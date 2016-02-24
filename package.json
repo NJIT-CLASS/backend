@@ -1,0 +1,18 @@
+{
+	"name": "CLASS-API",
+	"version": "0.0.1",
+	"description": "API for use with the CLASS Application Redeployment",
+  	"scripts": {
+    	"start": "node Server.js"
+  	},
+  	"dependencies": {
+    	"express": "*",
+    	"mysql": "*",
+    	"body-parser": "*",
+    	"MD5": "*"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/NJIT-CLASS/backend.git"
+	}
+}
