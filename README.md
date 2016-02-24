@@ -4,7 +4,7 @@
 
 If you've never used github before [set your ssh key](#github-setup)
 
-1. Clone the repo using git: `git clone git@github.com:NJIT-CLASS/backend.git
+1. Clone the repo using git: `git clone git@github.com:NJIT-CLASS/backend.git`
 2. CD into the cloned directory.
 3. Run `npm install` which will install all the third-party packages the project depends on.
 4. Run `npm start` to start the server and start developing.
