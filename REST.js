@@ -33,7 +33,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			if(err){
 				res.json({"Error": true, "Message": "401"});
 			}else{
-				res.json({"Error": false, "Message": "Success", "Changed": rows});
+				res.json({"Error": false, "Message": "Success", "EmailAddress": rows[0].EmailAddress});
 			}
     	});
     });
@@ -47,7 +47,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			if(err){
 				res.json({"Error": true, "Message": "401"});
 			}else{
-				res.json({"Error": false, "Message": "Success", "Changed": rows});
+				res.json({"Error": false, "Message": "Success", "FirstName": rows[0].FirstName, "LastName": rows[0].LastName});
 			}
     	});
     });
