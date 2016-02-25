@@ -96,3 +96,17 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 }
 
 module.exports = REST_ROUTER;
+//Login
+router.post("/login",function(req,res){
+	var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+	var table = ["UserID", "User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+	query = mysql.format(query,table);
+	connection.query(query,function(err,rows){
+	if(err){
+		res.status(401).end();
+	}else{
+		res.json({"Error":false, "Message": "Success",
+			"UserID":rows});
+		}
+	});
+});
