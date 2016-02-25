@@ -17,9 +17,9 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
-				res.json({"Error": true, "Message": "401"});
+				res.status(401);
 			}else{
-				res.json({"Error": false, "Message": "200"});
+				res.status(200);
 			}
     	});
     });
@@ -31,7 +31,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
-				res.json({"Error": true, "Message": "401"});
+				res.status(401);
 			}else{
 				res.json({"Error": false, "Message": "Success", "EmailAddress": rows[0].EmailAddress});
 			}
@@ -45,7 +45,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
-				res.json({"Error": true, "Message": "401"});
+				res.status(401);
 			}else{
 				res.json({"Error": false, "Message": "Success", "FirstName": rows[0].FirstName, "LastName": rows[0].LastName});
 			}
