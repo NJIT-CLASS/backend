@@ -41,7 +41,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
     //Updates Name
     router.put("/update/name",function(req,res){
-		var query = "UPDATE ?? SET ?? = ? AND ?? = ? WHERE ?? = ?";
+		var query = "UPDATE ?? SET ?? = ?, ?? = ? WHERE ?? = ?";
 		var table = ["User","FirstName",req.body.firstname,"LastName",req.body.lastname,"UserID",req.body.userid];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
