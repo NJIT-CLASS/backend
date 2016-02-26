@@ -34,7 +34,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				res.status(401).end();
 			}else{
 				res.json({"Error": false, "Message": "Success", 
-					"EmailAddress": rows[0].EmailAddress});
+					"EmailAddress": req.body.email});
 			}
     	});
     });
@@ -49,7 +49,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				res.status(401).end();
 			}else{
 				res.json({"Error": false, "Message": "Success", 
-					"Name": rows});
+					"FirstName": req.body.firstname, "LastName": req.body.lastname});
 			}
     	});
     });
@@ -59,19 +59,15 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Issue #3
 	 * General User Endpoint
 	 **/
-	router.get("/generalUser",function(req,res){
-		var query = "SELECT `EmailAddress`,`FirstName`,`LastName`, `UserType` FROM ?? WHERE UserID = ?";
-		var table = ["User",req.body.userid];
+	router.get("/generalUser/:userid",function(req,res){
+		var query = "SELECT ??, ??, ??, ?? FROM ?? WHERE ?? = ?";
+		var table = ["EmailAddress","FirstName","LastName","UserType", "User","UserID", req.params.userid];
 		query = mysql.format(query,table);
 		connection.query(query,function(err,rows){
 			if(err) {
-				res.json({"Error" : true, "Message" : "Error executing MySQL query"});
+				res.status(401).end();
 			} else {
-				if(rows.length > 0){
-					res.json({"Error" : false, "Message" : "Success", "Users" : rows});
-				}else{
-					res.json({"Error" : false, "Message" : "Success", "Users" : "No Found"});
-				}
+					res.json({"Error" : false, "Message" : "Success", "User" : rows});
 			}
 		});
 	});
