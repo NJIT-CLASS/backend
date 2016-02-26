@@ -17,9 +17,9 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
-				res.status(401);
+				res.status(401).end();
 			}else{
-				res.status(200);
+				res.status(200).end();
 			}
     	});
     });
@@ -31,9 +31,10 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
-				res.status(401);
+				res.status(401).end();
 			}else{
-				res.json({"Error": false, "Message": "Success", "EmailAddress": rows[0].EmailAddress});
+				res.json({"Error": false, "Message": "Success", 
+					"EmailAddress": rows[0].EmailAddress});
 			}
     	});
     });
@@ -45,53 +46,50 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
-				res.status(401);
+				res.status(401).end();
 			}else{
-				res.json({"Error": false, "Message": "Success", "FirstName": rows[0].FirstName, "LastName": rows[0].LastName});
+				res.json({"Error": false, "Message": "Success", 
+					"Name": rows});
 			}
     	});
     });
 
 	/*
 	 * Cesar Salazar 02-24-2016
-
 	 * Issue #3
-
 	 * General User Endpoint
-
 	 **/
 	router.get("/generalUser",function(req,res){
-
 		var query = "SELECT `EmailAddress`,`FirstName`,`LastName`, `UserType` FROM ?? WHERE UserID = ?";
-
 		var table = ["User",req.body.userid];
-
 		query = mysql.format(query,table);
-
-//console.log(query);
-
-
-		connection.query(query,function(err,rows)
-		{
-
+		connection.query(query,function(err,rows){
 			if(err) {
-
 				res.json({"Error" : true, "Message" : "Error executing MySQL query"});
-
 			} else {
-
-				if(rows.length > 0)
-
-				{
+				if(rows.length > 0){
 					res.json({"Error" : false, "Message" : "Success", "Users" : rows});
-				}
-				else
-				{
+				}else{
 					res.json({"Error" : false, "Message" : "Success", "Users" : "No Found"});
 				}
 			}
 		});
 	});
+	
+	//Login 
+    router.post("/login",function(req,res){
+		var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		query = mysql.format(query, table);
+		connection.query(query,function(err,rows){
+			if(err){
+				res.status(401).end();
+			}else{
+				res.json({"Error": false, "Message": "Success", 
+					"UserID": rows});
+			}
+    	});
+    });
 
 }
 
