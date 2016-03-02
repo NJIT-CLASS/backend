@@ -110,8 +110,112 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				res.json({"SemesterID": response.insertId});
 			}
 		});
-	});
+	});	
 
+	//Christian Alexander
+	//Issue 5 Dummy Endpoints
+	router.post("/course/create",function(req, res){
+		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		//query = mysql.format(query, table);
+		//connection.query(query,function(err,rows){
+		//	if(err){
+		//		res.status(401).end();
+		//	}else{
+				res.json({"Error": false, "Message": "Success", 
+					"CourseID": "101"});
+		//	}
+    	//});
+	});
+	router.post("/coursesection/create",function(req, res){
+		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		//query = mysql.format(query, table);
+		//connection.query(query,function(err,rows){
+		//	if(err){
+		//		res.status(401).end();
+		//	}else{
+				res.json({"Error": false, "Message": "Success", 
+					"CourseSectionID": "101"});
+		//	}
+    	//});
+	});
+	router.post("/coursesection/adduser",function(req, res){
+		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		//query = mysql.format(query, table);
+		//connection.query(query,function(err,rows){
+		//	if(err){
+		//		res.status(401).end();
+		//	}else{
+				res.json({"Error": false, "Message": "Success", 
+					"UserID": "1"});
+		//	}
+    	//});
+	});
+	router.get("/course/:courseid",function(req, res){
+		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		//query = mysql.format(query, table);
+		//connection.query(query,function(err,rows){
+		//	if(err){
+		//		res.status(401).end();
+		//	}else{
+				res.json({"Error": false, "Message": "Success", 
+					"CourseID": "101"});
+		//	}
+    	//});
+	});
+	router.get("/coursesection/:courseid",function(req, res){
+		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		//query = mysql.format(query, table);
+		//connection.query(query,function(err,rows){
+		//	if(err){
+		//		res.status(401).end();
+		//	}else{
+				res.json({"Error": false, "Message": "Success", 
+					"SectionName": "A Section", "SectionDescription": "",
+					"Users": rows});
+		//	}
+    	//});
+	});
+	router.put("/course/update",function(req, res){
+		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		//query = mysql.format(query, table);
+		//connection.query(query,function(err,rows){
+		//	if(err){
+		//		res.status(401).end();
+		//	}else{
+				res.status(200).end(); 
+		//	}
+    	//});
+	});
+	router.put("/coursesection/update",function(req, res){
+		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		//query = mysql.format(query, table);
+		//connection.query(query,function(err,rows){
+		//	if(err){
+		//		res.status(401).end();
+		//	}else{
+				res.status(200).end();
+		//	}
+    	//});
+	});
+	router.delete("/coursesection/removeuser",function(req, res){
+		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
+		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
+		//query = mysql.format(query, table);
+		//connection.query(query,function(err,rows){
+		//	if(err){
+		//		res.status(401).end();
+		//	}else{
+				res.status(200).end();
+		//  }
+    	//});
+	});
 }
 
 module.exports = REST_ROUTER;
