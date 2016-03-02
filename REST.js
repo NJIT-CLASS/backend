@@ -1,4 +1,5 @@
 var mysql = require("mysql");
+var dateFormat = require('dateformat');
 
 function REST_ROUTER(router,connection,md5) {
 	var self = this;
@@ -86,6 +87,30 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			}
     	});
     });
+
+
+	/**
+	 * Create Semester
+	 * Issue #4
+	 * Cesar Salazar
+	 */
+	router.post("/CreateSemester",function(req,res){
+		var query = "insert into Semester (semesterName, startDate,endDate) values( ?,?,?)";
+		//insert into Semester (semesterName, startDate,endDate) values ('Spring 2016','2016-01-10','2016-05-31')
+
+		//Formating Dates
+		var startDate =  dateFormat(req.body.startDate, "yyyy-mm-dd");
+		var endDate =  dateFormat(req.body.endDate, "yyyy-mm-dd");
+		var table = [req.body.semesterName,startDate,endDate];
+		query = mysql.format(query, table);
+		connection.query(query,function(err,response){
+			if(err){
+				res.status(401).end();
+			}else{
+				res.json({"SemesterID": response.insertId});
+			}
+		});
+	});
 
 }
 
