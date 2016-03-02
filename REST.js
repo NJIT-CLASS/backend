@@ -112,21 +112,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		});
 	});	
 
-	//Christian Alexander
-	//Issue 5 Dummy Endpoints
-	router.post("/course/create",function(req, res){
-		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
-		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
-		//query = mysql.format(query, table);
-		//connection.query(query,function(err,rows){
-		//	if(err){
-		//		res.status(401).end();
-		//	}else{
-				res.json({"Error": false, "Message": "Success", 
-					"CourseID": "101"});
-		//	}
-    	//});
-	});
+
 	router.post("/coursesection/create",function(req, res){
 		//var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
 		//var table = ["UserID","User", "EmailAddress",req.body.emailaddress,"Password",md5(req.body.password)];
@@ -216,6 +202,93 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		//  }
     	//});
 	});
+
+	/**
+	 * Create Semester
+	 * Issue #4.1
+	 * Cesar Salazar
+	 */
+	router.post("/CreateSemester",function(req,res){
+		/*var query = "insert into Semester (semesterName, startDate,endDate) values( ?,?,?)";
+		//insert into Semester (semesterName, startDate,endDate) values ('Spring 2016','2016-01-10','2016-05-31')
+
+		//Formating Dates
+		var startDate =  dateFormat(req.body.startDate, "yyyy-mm-dd");
+		var endDate =  dateFormat(req.body.endDate, "yyyy-mm-dd");
+		var table = [req.body.semesterName,startDate,endDate];
+		query = mysql.format(query, table);
+		connection.query(query,function(err,response){
+			if(err){
+				res.status(401).end();
+			}else{
+				res.json({"SemesterID": response.insertId});
+			}
+		});*/
+		res.json({"Error": false, "Message": "Success",
+			"Semester": "101"});
+
+	});
+
+//4.2
+	router.get("/getsemester/:semesterID", function(req,res){
+		/*var query = "SELECT ??, ??, ??, ?? FROM ?? WHERE ?? = ?";
+		var table =  ["semesterID", "semesterName", "startDate", "endDate","Semester","semesterID", req.params.semesterID];
+		query=mysql.format(query,table);
+		connection.query(query,function(err,rows){
+			if(err) {
+				res.status(401).end();
+			} else {
+				res.json({"Error" : false, "Message" : "Success", "Semester" : rows});
+			}
+		});*/
+	});
+
+	/**
+	 * Create Semester
+	 * Issue #4.3
+	 * Cesar Salazar
+	 */
+	router.get("/SemesterList",function(req,res){
+		/*var query = "SELECT * FROM ??";
+		var table = ["Semester"];
+		query = mysql.format(query,table);
+		connection.query(query,function(err,rows){
+			if(err) {
+				res.status(401).end();
+			} else {
+				res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
+			}
+		});*/
+
+		res.json({"Error": false, "Message": "Success",
+			"Semesters": "101"});
+	});
+
+	/**
+	 * Spring 3
+	 * Issue # 5.1
+	 * Create Course
+	 * Cesar Salazar
+	 */
+	router.post("/CreateCourse",function(req,res){
+		/*var query = "insert into Course (Course_number, Course_tittle) values(?,?)";
+		//insert into Semester (semesterName, startDate,endDate) values ('Spring 2016','2016-01-10','2016-05-31')
+
+		//Formating Dates
+
+		var table = [req.body.Course_number,req.body.Course_tittle];
+		query = mysql.format(query, table);
+		connection.query(query,function(err,response){
+			if(err){
+				res.status(401).end();
+			}else{
+				res.json({"CourseID": response.insertId});
+			}
+		});*/
+		res.json({"Error": false, "Message": "Success",
+			"Course": "101"});
+	});
+
 }
 
 module.exports = REST_ROUTER;
