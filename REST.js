@@ -241,6 +241,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				res.json({"Error" : false, "Message" : "Success", "Semester" : rows});
 			}
 		});*/
+		res.json({"Error": false, "Message": "Success",
+			"Semesters": "101"});
 	});
 
 	/**
@@ -287,6 +289,49 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		});*/
 		res.json({"Error": false, "Message": "Success",
 			"Course": "101"});
+	});
+
+	/**
+	 * Get A course
+	 * Issue # 5.4
+	 * Cesar Salazar
+	 */
+	router.get("/getCourse/:courseId",function(req,res){
+		/*var query = "SELECT * FROM ??";
+		 var table = ["Semester"];
+		 query = mysql.format(query,table);
+		 connection.query(query,function(err,rows){
+		 if(err) {
+		 res.status(401).end();
+		 } else {
+		 res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
+		 }
+		 });*/
+
+		res.json({"Error": false, "Message": "Success",
+			"Course": "101"});
+	});
+
+
+	/**
+	 * Get A course
+	 * Issue # 5.5
+	 * Cesar Salazar
+	 */
+	router.get("/getCourseSection/:sectionId",function(req,res){
+		/*var query = "SELECT * FROM ??";
+		 var table = ["Semester"];
+		 query = mysql.format(query,table);
+		 connection.query(query,function(err,rows){
+		 if(err) {
+		 res.status(401).end();
+		 } else {
+		 res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
+		 }
+		 });*/
+
+		res.json({"Error": false, "Message": "Success",
+			"Section": "101"});
 	});
 
 }
