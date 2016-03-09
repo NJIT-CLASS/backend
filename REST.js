@@ -334,6 +334,31 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			"Section": "101"});
 	});
 
+	/**
+	 * Get A course
+	 * Issue # 5.5
+	 * Cesar Salazar
+
+	     course ID
+		 course name
+		 course number
+		 course creator id
+	 */
+	router.put("/UpdateCourse",function(req,res){
+		/*var query = "SELECT * FROM ??";
+		 var table = ["Semester"];
+		 query = mysql.format(query,table);
+		 connection.query(query,function(err,rows){
+		 if(err) {
+		 res.status(401).end();
+		 } else {
+		 res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
+		 }
+		 });*/
+
+		res.status(200).end()
+	});
+
 }
 
 module.exports = REST_ROUTER;
