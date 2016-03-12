@@ -61,8 +61,9 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * General User Endpoint
 	 **/
 	router.get("/generalUser/:userid",function(req,res){
-		var query = "SELECT ??, ??, ??, ?? FROM ?? WHERE ?? = ?";
-		var table = ["EmailAddress","FirstName","LastName","UserType", "User","UserID", req.params.userid];
+		//select u.FirstName, u.LastName, uc.Email from User as u inner join UserContact as uc on u.UserContactID = uc.UserContactID where UserID = 1;
+		var query = "SELECT ??, ??, ?? FROM ?? as ?? inner join ?? as on ??=?? ?? WHERE ?? = ?";
+		var table = ["u.FirstName","u.LastName","uc.Email", "User","u","UserContact","uc","u.UserContactID","u.UserContactID","UserID", req.params.userid];
 		query = mysql.format(query,table);
 		connection.query(query,function(err,rows){
 			if(err) {
@@ -91,17 +92,17 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	/**
 	 * Create Semester
-	 * Issue #4
+	 * Issue #4.1
 	 * Cesar Salazar
 	 */
 	router.post("/CreateSemester",function(req,res){
-		var query = "insert into Semester (semesterName, startDate,endDate) values( ?,?,?)";
+		var query = "insert into Semester (Name, StartDate,EndDate,OrganizationID) values( ?,?,?,?)";
 		//insert into Semester (semesterName, startDate,endDate) values ('Spring 2016','2016-01-10','2016-05-31')
 
 		//Formating Dates
 		var startDate =  dateFormat(req.body.startDate, "yyyy-mm-dd");
 		var endDate =  dateFormat(req.body.endDate, "yyyy-mm-dd");
-		var table = [req.body.semesterName,startDate,endDate];
+		var table = [req.body.Name,startDate,endDate,req.body.OrganizationID];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,response){
 			if(err){
@@ -110,7 +111,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				res.json({"SemesterID": response.insertId});
 			}
 		});
-	});	
+	});
 
 
 	router.post("/coursesection/create",function(req, res){
@@ -251,7 +252,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.get("/SemesterList",function(req,res){
-		/*var query = "SELECT * FROM ??";
+		var query = "SELECT * FROM ??";
 		var table = ["Semester"];
 		query = mysql.format(query,table);
 		connection.query(query,function(err,rows){
@@ -260,10 +261,9 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			} else {
 				res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
 			}
-		});*/
+		});
 
-		res.json({"Error": false, "Message": "Success",
-			"Semesters": "101"});
+
 	});
 
 	/**
@@ -273,12 +273,12 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.post("/CreateCourse",function(req,res){
-		/*var query = "insert into Course (Course_number, Course_tittle) values(?,?)";
+		var query = "insert into Course (Number, Tittle,OrganizationID) values(?,?,?)";
 		//insert into Semester (semesterName, startDate,endDate) values ('Spring 2016','2016-01-10','2016-05-31')
 
 		//Formating Dates
 
-		var table = [req.body.Course_number,req.body.Course_tittle];
+		var table = [req.body.Number,req.body.Tittle,rq.body.OrganizationID];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,response){
 			if(err){
@@ -286,9 +286,9 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			}else{
 				res.json({"CourseID": response.insertId});
 			}
-		});*/
-		res.json({"Error": false, "Message": "Success",
-			"Course": "101"});
+		});
+		/*res.json({"Error": false, "Message": "Success",
+			"Course": "101"});*/
 	});
 
 	/**
@@ -297,19 +297,19 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.get("/getCourse/:courseId",function(req,res){
-		/*var query = "SELECT * FROM ??";
-		 var table = ["Semester"];
-		 query = mysql.format(query,table);
-		 connection.query(query,function(err,rows){
-		 if(err) {
-		 res.status(401).end();
-		 } else {
-		 res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
-		 }
-		 });*/
+		var query = "SELECT ??, ?? FROM ??";
+		var table = ["Number","Title","Course"];
+		query = mysql.format(query,table);
+		connection.query(query,function(err,result){
+			if(err) {
+				res.status(401).end();
+			} else {
+				res.json({"Error" : false, "Message" : "Success", "Course" : result});
+			}
+		});
 
-		res.json({"Error": false, "Message": "Success",
-			"Course": "101"});
+		//	res.json({"Error": false, "Message": "Success",
+		//	"Course": "101"});
 	});
 
 
@@ -319,44 +319,42 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.get("/getCourseSection/:sectionId",function(req,res){
-		/*var query = "SELECT * FROM ??";
-		 var table = ["Semester"];
-		 query = mysql.format(query,table);
-		 connection.query(query,function(err,rows){
-		 if(err) {
-		 res.status(401).end();
-		 } else {
-		 res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
-		 }
-		 });*/
+		var query = "SELECT ??, ??, ??, ?? FROM ??";
+		var table = ["Name","StartDate","EndDate","Description","Section"];
+		query = mysql.format(query,table);
+		connection.query(query,function(err,rows){
+			if(err) {
+				res.status(401).end();
+			} else {
+				res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
+			}
+		});
 
-		res.json({"Error": false, "Message": "Success",
-			"Section": "101"});
+
 	});
 
 	/**
 	 * Get A course
-	 * Issue # 5.5
+	 * Issue # 5.6
 	 * Cesar Salazar
 
-	     course ID
-		 course name
-		 course number
-		 course creator id
+	 course ID
+	 course name
+	 course number
+	 course creator id
 	 */
 	router.put("/UpdateCourse",function(req,res){
-		/*var query = "SELECT * FROM ??";
-		 var table = ["Semester"];
-		 query = mysql.format(query,table);
-		 connection.query(query,function(err,rows){
-		 if(err) {
-		 res.status(401).end();
-		 } else {
-		 res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
-		 }
-		 });*/
+		var query = "update ?? set ??=?, ??=? where ?? = ?";
+		var table = ["Course","Title",req.body.Title,"Number",req.body.Number,"CourseID",req.body.CourseID];
+		query = mysql.format(query,table);
+		connection.query(query,function(err,rows){
+			if(err) {
+				res.status(400).end()
+			} else {
+				res.status(200).end()
+			}
+		});
 
-		res.status(200).end()
 	});
 
 }
