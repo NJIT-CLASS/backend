@@ -247,7 +247,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	});
 
 	/**
-	 * Create Semester
+	 * SemesterList
 	 * Issue #4.3
 	 * Cesar Salazar
 	 */
@@ -292,7 +292,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	});
 
 	/**
-	 * Get A course
+	 * getCourse
 	 * Issue # 5.4
 	 * Cesar Salazar
 	 */
@@ -314,7 +314,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 
 	/**
-	 * Get A course
+	 * getCourseSection
 	 * Issue # 5.5
 	 * Cesar Salazar
 	 */
@@ -334,7 +334,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	});
 
 	/**
-	 * Get A course
+	 * UpdateCourse
 	 * Issue # 5.6
 	 * Cesar Salazar
 
