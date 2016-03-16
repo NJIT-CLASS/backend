@@ -308,8 +308,6 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			}
 		});
 
-		//	res.json({"Error": false, "Message": "Success",
-		//	"Course": "101"});
 	});
 
 
@@ -319,19 +317,42 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.get("/getCourseSection/:sectionId",function(req,res){
-		var query = "SELECT ??, ??, ??, ?? FROM ??";
-		var table = ["Name","StartDate","EndDate","Description","Section"];
+		var query = "SELECT ??, ?? FROM ?? where ?? = ?";
+		var table = ["Name","Description","Section","SectionID",req.params.sectionId];
 		query = mysql.format(query,table);
+
 		connection.query(query,function(err,rows){
 			if(err) {
 				res.status(401).end();
 			} else {
-				res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
+				getSectionUsers(req.params.sectionId,function(result){
+					res.json({"result":rows,"Section" : result});
+				});
 			}
 		});
 
-
 	});
+
+	/**
+	 * Get list of users for the given section.
+	 * @param SectionID
+	 * @param callback
+     */
+	function getSectionUsers(SectionID,callback)
+	{
+		var query = "SELECT ??, ?? FROM ?? where ?? = ?";
+		var table = ["UserID","UserRole","SectionUser","SectionID",SectionID];
+		query = mysql.format(query,table);
+
+		connection.query(query,function(err,rows){
+			if(err) {
+				res.status(401).end();
+			} else {
+				callback(rows);
+			}
+		});
+
+	}
 
 	/**
 	 * UpdateCourse
