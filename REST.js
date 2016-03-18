@@ -381,7 +381,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	/**
 	 * Delete User from Section
-	 * Issue # 5.7
+	 * Issue # 5.8
 	 * Cesar Salazar
 
 	 UserID
