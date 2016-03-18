@@ -378,6 +378,30 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	});
 
+
+	/**
+	 * Delete User from Section
+	 * Issue # 5.7
+	 * Cesar Salazar
+
+	 course ID
+	 course name
+	 course number
+	 course creator id
+	 */
+	router.delete("/DeleteUserSection/",function(req,res){
+		var query = "delete from ?? where ?? = ? and ?? = ?";
+		var table = ["SectionUser","UserID",req.body.userID, "SectionID",req.body.SectionID];
+		query = mysql.format(query,table);
+		connection.query(query,function(err,rows){
+			if(err) {
+				res.status(400).end()
+			} else {
+				res.status(200).end()
+			}
+		});
+
+	});
 }
 
 module.exports = REST_ROUTER;
