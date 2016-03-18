@@ -384,10 +384,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Issue # 5.7
 	 * Cesar Salazar
 
-	 course ID
-	 course name
-	 course number
-	 course creator id
+	 UserID
+	 SectionID
 	 */
 	router.delete("/DeleteUserSection/",function(req,res){
 		var query = "delete from ?? where ?? = ? and ?? = ?";
