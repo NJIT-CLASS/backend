@@ -11,10 +11,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
         res.json({"Message" : "Hello, World!"});
    });
 
-	//Issue 1 - Login
-	/*
-		Hira
-	*/
+	//Hira - Issue 1
+	//Login Function
     router.post("/login",function(req,res){
 		var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
 		var table = ["UserID","UserLobin", "Email",req.body.emailaddress,"Password",md5(req.body.password)];
@@ -184,7 +182,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	//Christian Alexander - Issue 5.2
 	//Create Course Section
-	router.post("course/create",function(req,res){
+	router.post("course/createsection",function(req,res){
 		var query = "insert into ??(??,??,??,??) values(?,?,?,?)";
 		var table = ["section", "CourseID", "SemesterID","Name",
 			"Description", req.body.courseid,req.body.semesterid,req.body.name,
@@ -205,16 +203,46 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Add Student to Section
 	/*TO DO = GET CourseID, ADD IT TO TABLE */
 	router.put("/course/adduser",function(req,res){
-		var query = "insert into ??(??, ??, ??, ??) values ?, ?, ?, ?";
-		var table = ["SectionUser", "SectionID", "UserID", "UserRole",
-			"UserStatus",
+		var query = "select ?? from ?? where ??=?";
+		var table = ["UserID", "UserLogin", "Email", req.body.email];
+		query = mysql.format(query, table);
+		connection.query(query,function(err,response){
+			if(err){
+				res.status(401).end();
+			}else{
+				if(rows > 0){
+					addUserToSection(response.UserID,req.body.email,
+						req.body.courseid, req.body.sectionid, function(result){
+						res.json({"Error" : false, "Message" : "Success", "UserID": response.UserID});
+					)};
+				}else{
+					res.json({"Error" : true, "Message" : "UserID Not Found"});
+				}
+			}
+		});
 	});
+
+	function addUserToSection(UserID, Email, CourseID, SectionID, callback)
+	{
+		var query = "INSERT INTO ??(??,??,??,??) Values(?,?,?,?)";
+		var table = ["SectionUser","UserID","Email","CourseID","SectionID",
+			UserID, Email, CourseID, SectionID];
+		query = mysql.format(query,table);
+
+		connection.query(query,function(err,rows){
+			if(err) {
+				res.status(401).end();
+			} else {
+				callback();
+			}
+		});
+	}
 	/**
 	 * getCourse
 	 * Issue # 5.4
 	 * Cesar Salazar
 	 */
-	router.get("/getCourse/:courseId",function(req,res){
+	router.get("/course/:courseId",function(req,res){
 		var query = "SELECT ??, ?? FROM ??";
 		var table = ["Number","Title","Course"];
 		query = mysql.format(query,table);
@@ -234,7 +262,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Issue # 5.5
 	 * Cesar Salazar
 	 */
-	router.get("/getCourseSection/:sectionId",function(req,res){
+	router.get("/course/getsection/:sectionId",function(req,res){
 		var query = "SELECT ??, ?? FROM ?? where ?? = ?";
 		var table = ["Name","Description","Section","SectionID",req.params.sectionId];
 		query = mysql.format(query,table);
@@ -269,7 +297,6 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				callback(rows);
 			}
 		});
-
 	}
 
 	/**
@@ -282,13 +309,13 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 course number
 	 course creator id
 	 */
-	router.put("/UpdateCourse",function(req,res){
+	router.put("/course/update",function(req,res){
 		var query = "update ?? set ??=?, ??=? where ?? = ?";
 		var table = ["Course","Title",req.body.Title,"Number",req.body.Number,"CourseID",req.body.CourseID];
 		query = mysql.format(query,table);
 		connection.query(query,function(err,rows){
 			if(err) {
-				res.status(400).end()
+				res.status(401).end()
 			} else {
 				res.status(200).end()
 			}
@@ -320,7 +347,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 UserID
 	 SectionID
 	 */
-	router.delete("/DeleteUserSection/",function(req,res){
+	router.delete("/course/deleteuser",function(req,res){
 		var query = "delete from ?? where ?? = ? and ?? = ?";
 		var table = ["SectionUser","UserID",req.body.userID, "SectionID",req.body.SectionID];
 		query = mysql.format(query,table);
@@ -336,10 +363,21 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	//Christian Alexander - Issue 6
 	//Get User's Courses
-	/*TO DO : ADD COURSE ID TO SECTIONUSER */
 	router.get("/course/getCourses/:userid",function(req, res){
 		var query = "select ??, ?? from ?? where ??=?";
-		var table = ["CourseID
+		var table = ["CourseID", "SectionID", "SectionUser", "UserID", req.body.userid];
+		query = mysql.format(query, table);
+		connection.query(query, function(err,rows){
+			if(err){ 
+				res.status(401).end();
+			}else{
+				if(rows.length > 0){
+					res.json({"Error" : false, "Message" : "Success", "Result" : rows});
+				}else{
+					res.json({"Error" : true, "Message" : "User Has No Courses"});
+				}
+			}
+		});
 	});
 }
 
