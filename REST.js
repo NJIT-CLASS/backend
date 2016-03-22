@@ -21,9 +21,9 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			if(err){
 				res.status(401).end();
 			}else{
-				if(results.length > 0){
+				if(rows.length > 0){
 					res.json({"Error": false, "Message": "Success", 
-						"UserID": rows});
+						"UserID": rows[0].UserID});
 				}else{
 					res.status(401).end();
 				}
@@ -35,7 +35,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Updates Password
     router.put("/update/password",function(req,res){
 		var query = "UPDATE ?? SET ?? = ? WHERE ?? = ? AND ?? = ?";
-		var table = ["User","Password",md5(req.body.password),"UserID",req.body.userid,"Password",md5(req.body.oldpassword)];
+		var table = ["UserLogin","Password",md5(req.body.password),"UserID",req.body.userid,"Password",md5(req.body.oldpassword)];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
@@ -49,7 +49,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
     //Updates Email
     router.put("/update/email",function(req,res){
 		var query = "UPDATE ?? SET ?? = ? WHERE ?? = ? AND ?? = ?";
-		var table = ["User","EmailAddress",req.body.email,"UserID",req.body.userid,"Password",md5(req.body.password)];
+		var table = ["UserLogin","EmailAddress",req.body.email,"UserID",req.body.userid,"Password",md5(req.body.password)];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
