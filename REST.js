@@ -39,6 +39,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
+				console.log("/update/password : "+ err.message);
 				res.status(401).end();
 			}else{
 				res.status(200).end();
@@ -53,6 +54,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
+				console.log("/update/email : "+ err.message);
 				res.status(401).end();
 			}else{
 				res.json({"Error": false, "Message": "Success", 
@@ -68,6 +70,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
+				console.log("/update/name : "+ err.message);
+
 				res.status(401).end();
 			}else{
 				res.json({"Error": false, "Message": "Success", 
@@ -79,11 +83,12 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Issue 3 - General User Endpoint
 	router.get("/generalUser/:userid",function(req,res){
 		//select u.FirstName, u.LastName, u.UserType, uc.Email from User as u inner join UserContact as uc on u.UserContactID = uc.UserContactID where UserID = 1;
-		var query = "SELECT ??, ??, ??, ?? FROM ?? as ?? inner join ?? as on ??=?? ?? WHERE ?? = ?";
-		var table = ["u.FirstName","u.LastName","u.UserType","uc.Email", "User","u","UserContact","uc","u.UserContactID","u.UserContactID","UserID", req.params.userid];
+		var query = "SELECT ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
+		var table = ["u.FirstName","u.LastName","u.UserType","uc.Email", "User","u","UserContact","uc","uc.UserContactID","u.UserContactID","UserID", req.params.userid];
 		query = mysql.format(query,table);
 		connection.query(query,function(err,rows){
 			if(err) {
+				console.log("/generalUser : "+ err.message);
 				res.status(401).end();
 			} else {
 					res.json({"Error" : false, "Message" : "Success", "User" : rows});
@@ -98,20 +103,38 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.post("/CreateSemester",function(req,res){
-		var query = "insert into Semester (Name, StartDate,EndDate) values(?,?,?)";
+		var query = "insert into Semester (Name, StartDate,EndDate,OrganizationID) values(?,?,?,?)";
 
 		//Formating Dates
 		var startDate =  dateFormat(req.body.startDate, "yyyy-mm-dd");
 		var endDate =  dateFormat(req.body.endDate, "yyyy-mm-dd");
-		var table = [req.body.Name,startDate,endDate];
-		query = mysql.format(query, table);
-		connection.query(query,function(err,response){
-			if(err){
-				res.status(401).end();
-			}else{
-				res.json({"SemesterID": response.insertId});
-			}
-		});
+
+		if(req.body.endDate == null	|| req.body.startDate == null)
+		{
+			console.log("/CreateSemester : Dates must be defined");
+			res.status(401).end();
+		}
+		else if(startDate > endDate )
+		{
+			console.log("/CreateSemester : StartDate canot be grater than EndDate");
+			res.status(401).end();
+		}
+		else
+		{
+			var table = [req.body.Name,startDate,endDate,req.body.OrganizationID];
+			query = mysql.format(query, table);
+			connection.query(query,function(err,response){
+				if(err){
+					console.log("/CreateSemester : "+ err.message);
+					res.status(401).end();
+				}else{
+					console.log("/CreateSemester Succesfully");
+					res.json({"SemesterID": response.insertId});
+				}
+			});
+
+		}
+
 	});
 
 	//Christian Alexander - Issue 4.2
@@ -122,6 +145,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 					"SemesterID", req.params.semesterid];
 		connection.query(query,function(err,rows){
 			if(err){
+				console.log("/semester/email : "+ err.message);
+
 				res.status(400).end();	
 			}else{
 				res.json({"Error" : false, "Message" : "Success", "Course" : result});
@@ -132,10 +157,12 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Christian Alexander - Issue 4.3
 	//Get All Semester Information
 	router.get("/semester", function(req, res){
-		var query = "select *  from ??;
+		var query = "select *  from ??";
 		var table = ["Semester"];
 		connection.query(query,function(err,rows){
 			if(err){
+				console.log("/semester : "+ err.message);
+
 				res.status(400).end();	
 			}else{
 				res.json({"Error" : false, "Message" : "Success", "Semesters" : result});
@@ -150,13 +177,15 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Create Course
 	 * Cesar Salazar
 	 */
-	router.post("course/create",function(req,res){
+	router.post("/course/create",function(req,res){
 		var query = "insert into ??(??,??,??,??) values(?,?,?,?)";
 		var table = ["Course", "CreatorID", "Number","Title", 
 					req.body.userid,req.body.number,req.body.title];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,response){
 			if(err){
+				console.log("/course/create : "+ err.message);
+
 				res.status(401).end();
 			}else{
 				getCreatedCourseID(function(result){
@@ -190,6 +219,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, table);
 		connection.query(query,function(err,response){
 			if(err){
+				console.log("/course/createsection : "+ err.message);
+
 				res.status(401).end();
 			}else{
 				getCreatedCourseID(function(result){
@@ -207,15 +238,21 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		var table = ["UserID", "UserLogin", "Email", req.body.email];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,response){
-			if(err){
+			if(err)
+			{
+				console.log("/course/adduser : "+ err.message);
 				res.status(401).end();
-			}else{
-				if(rows > 0){
+			}
+			else
+			{
+				if(rows > 0)
+				{
 					addUserToSection(response.UserID,req.body.email,
-						req.body.courseid, req.body.sectionid, function(result){
-						res.json({"Error" : false, "Message" : "Success", "UserID": response.UserID});
-					)};
-				}else{
+						req.body.courseid, req.body.sectionid, function(result) {
+							res.json({"Error": false, "Message": "Success", "UserID": response.UserID});
+						});
+				}else
+				{
 					res.json({"Error" : true, "Message" : "UserID Not Found"});
 				}
 			}
@@ -231,6 +268,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 		connection.query(query,function(err,rows){
 			if(err) {
+				console.log("Method addUserToSection : "+ err.message);
+
 				res.status(401).end();
 			} else {
 				callback();
@@ -248,6 +287,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query,table);
 		connection.query(query,function(err,result){
 			if(err) {
+				console.log("/course : "+ err.message);
 				res.status(401).end();
 			} else {
 				res.json({"Error" : false, "Message" : "Success", "Course" : result});
@@ -269,6 +309,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 		connection.query(query,function(err,rows){
 			if(err) {
+				console.log("/course/getsection/ : "+ err.message);
 				res.status(401).end();
 			} else {
 				getSectionUsers(req.params.sectionId,function(result){
@@ -292,6 +333,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 		connection.query(query,function(err,rows){
 			if(err) {
+				console.log("Method getSectionUsers : "+ err.message);
+
 				res.status(401).end();
 			} else {
 				callback(rows);
@@ -315,6 +358,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query,table);
 		connection.query(query,function(err,rows){
 			if(err) {
+				console.log("/course/update : "+ err.message);
+
 				res.status(401).end()
 			} else {
 				res.status(200).end()
@@ -333,6 +378,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query, tabe);
 		connection.query(query, function(err,rows){
 			if(err){
+				console.log("/course/updatesection : "+ err.message);
+
 				req.status(401).end();
 			}else{
 				req.status(200).end();
@@ -353,6 +400,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		query = mysql.format(query,table);
 		connection.query(query,function(err,rows){
 			if(err) {
+				console.log("/course/deleteuser : "+ err.message);
+
 				res.status(400).end()
 			} else {
 				res.status(200).end()
