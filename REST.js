@@ -482,6 +482,31 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		});
 	});
 
+	/**
+	 * Create reset password hash
+	 * Issue # 8.2
+	 * Cesar Salazar
+
+	 */
+	router.get("/getPasswordResetRequest",function(req, res){
+		var query = "select ?? from ?? where ??=?";
+		var table = ["UserID", "ResetPasswordRequest", "RequestHash", req.query.PasswordHash];
+		query = mysql.format(query, table);
+		connection.query(query, function(err,result){
+			if(err){
+				console.log("/getPasswordResetRequest : " + err.message);
+				res.status(404).end();
+			}else{
+				if(result.length > 0){
+					console.log("/getPasswordResetRequest : Request found");
+					res.json({"Error" : false, "Message" : "Success", "UserID" : result});
+				}else{
+					console.log("/getPasswordReset : Request not found");
+					res.json({"Error" : true, "Message" : "Request Password not found"});
+				}
+			}
+		});
+	});
 
 }
 
