@@ -1,5 +1,6 @@
 var mysql = require("mysql");
 var dateFormat = require('dateformat');
+var Guid = require('guid');
 
 function REST_ROUTER(router,connection,md5) {
 	var self = this;
@@ -103,7 +104,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.post("/CreateSemester",function(req,res){
-		var query = "insert into Semester (Name, StartDate,EndDate,OrganizationID) values(?,?,?,?)";
+		var query = "insert into Semester (Name, StartDate,EndDate) values(?,?,?)";
 
 		//Formating Dates
 		var startDate =  dateFormat(req.body.startDate, "yyyy-mm-dd");
@@ -112,12 +113,12 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		if(req.body.endDate == null	|| req.body.startDate == null)
 		{
 			console.log("/CreateSemester : Dates must be defined");
-			res.status(401).end();
+			res.status(400).end();
 		}
 		else if(startDate > endDate )
 		{
 			console.log("/CreateSemester : StartDate canot be grater than EndDate");
-			res.status(401).end();
+			res.status(400).end();
 		}
 		else
 		{
@@ -126,7 +127,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			connection.query(query,function(err,response){
 				if(err){
 					console.log("/CreateSemester : "+ err.message);
-					res.status(401).end();
+					res.status(400).end();
 				}else{
 					console.log("/CreateSemester Succesfully");
 					res.json({"SemesterID": response.insertId});
@@ -186,7 +187,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			if(err){
 				console.log("/course/create : "+ err.message);
 
-				res.status(401).end();
+				res.status(400).end();
 			}else{
 				getCreatedCourseID(function(result){
 					res.json({"result":rows});
@@ -202,7 +203,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 		connection.query(query,function(err,rows){
 			if(err) {
-				res.status(401).end();
+				res.status(400).end();
 			} else {
 				callback(rows);
 			}
@@ -288,7 +289,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		connection.query(query,function(err,result){
 			if(err) {
 				console.log("/course : "+ err.message);
-				res.status(401).end();
+				res.status(400).end();
 			} else {
 				res.json({"Error" : false, "Message" : "Success", "Course" : result});
 			}
@@ -310,7 +311,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		connection.query(query,function(err,rows){
 			if(err) {
 				console.log("/course/getsection/ : "+ err.message);
-				res.status(401).end();
+				res.status(400).end();
 			} else {
 				getSectionUsers(req.params.sectionId,function(result){
 					res.json({"result":rows,"Section" : result});
@@ -360,7 +361,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			if(err) {
 				console.log("/course/update : "+ err.message);
 
-				res.status(401).end()
+				res.status(400).end()
 			} else {
 				res.status(200).end()
 			}
@@ -428,6 +429,60 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			}
 		});
 	});
+
+
+	/**
+	 * Create reset password hash
+	 * Issue # 8.1
+	 * Cesar Salazar
+
+	 */
+
+	router.post("/resetPassword",function(req,res){
+
+		if(req.body.email == null)
+		{
+			console.log("/resetPassword : Email not sent");
+			req.status(401).end();
+			return;
+		}
+
+		var query = "CALL ??(?)"
+		var table = ["sp_Request_Reset_Password",req.body.email];
+		query = mysql.format(query, table);
+		connection.query(query, function(err,result){
+			if(err){
+				console.log("/resetPassword : "+ err.message);
+				res.status(401).end();
+			}else{
+
+				var response = result[0][0].result;
+				if(response == -1)
+				{
+					console.log("/resetPassword : Email does not exist");
+					res.status(401).end();
+
+				}
+				else if(response == 1)
+				{
+					console.log("/resetPassword : Record updated");
+					res.status(200).end();
+
+				}
+				else if(response == 2)
+				{
+					console.log("/resetPassword : Record created");
+					res.status(200).end();
+
+				}
+
+
+
+			}
+		});
+	});
+
+
 }
 
 module.exports = REST_ROUTER;
