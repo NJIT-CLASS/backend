@@ -457,6 +457,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			}else{
 
 				var response = result[0][0].result;
+				var Hash = result[0][0].HashValue;
 				if(response == -1)
 				{
 					console.log("/resetPassword : Email does not exist");
@@ -465,13 +466,13 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				}
 				else if(response == 1)
 				{
-					console.log("/resetPassword : Record updated");
+					console.log("/resetPassword : Record updated "+ Hash);
 					res.status(200).end();
 
 				}
 				else if(response == 2)
 				{
-					console.log("/resetPassword : Record created");
+					console.log("/resetPassword : Record created " + Hash);
 					res.status(200).end();
 
 				}
@@ -484,7 +485,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	/**
 	 * Create reset password hash
-	 * Issue # 8.2
+	 * Issue # 8.3
 	 * Cesar Salazar
 
 	 */
@@ -503,6 +504,46 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				}else{
 					console.log("/getPasswordReset : Request not found");
 					res.json({"Error" : true, "Message" : "Request Password not found"});
+				}
+			}
+		});
+	});
+
+	router.post("/resetUserPassword",function(req,res){
+
+		if(req.body.HashRequest == null)
+		{
+			console.log("/resetPassword : HashRequest not sent");
+			req.status(401).end();
+			return;
+		}
+
+		if(req.body.newPassword == null)
+		{
+			console.log("/resetPassword : newPassword not sent");
+			req.status(401).end();
+			return;
+		}
+
+		var query = "CALL ??(?,?)"
+		var table = ["sp_Reset_Password",req.body.HashRequest,req.body.newPassword];
+		query = mysql.format(query, table);
+		connection.query(query, function(err,result){
+			if(err){
+				console.log("/resetPassword : "+ err.message);
+				res.status(401).end();
+			}else {
+
+				var response = result[0][0].result;
+				if (response == -1) {
+					console.log("/resetPassword : HashRequest does not exist");
+					res.status(401).end();
+
+				}
+				else if (response == 1) {
+					console.log("/resetPassword : Password updated");
+					res.status(200).end();
+
 				}
 			}
 		});
