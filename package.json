@@ -9,7 +9,9 @@
     	"express": "*",
     	"mysql": "*",
     	"body-parser": "*",
-    	"MD5": "*"
+    	"MD5": "*",
+        "dateformat": "*",
+        "guid": "*"
 	},
 	"repository": {
 		"type": "git",
