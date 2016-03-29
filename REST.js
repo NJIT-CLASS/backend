@@ -1,6 +1,6 @@
 var mysql = require("mysql");
 var dateFormat = require('dateformat');
-var Guid = require('guid');
+//var Guid = require('guid');
 
 function REST_ROUTER(router,connection,md5) {
 	var self = this;
@@ -51,7 +51,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
     //Updates Email
     router.put("/update/email",function(req,res){
 		var query = "UPDATE ?? SET ?? = ? WHERE ?? = ? AND ?? = ?";
-		var table = ["UserLogin","EmailAddress",req.body.email,"UserID",req.body.userid,"Password",md5(req.body.password)];
+		var table = ["UserLogin","Email",req.body.email,"UserID",req.body.userid,"Password",md5(req.body.password)];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,rows){
 			if(err){
@@ -144,13 +144,16 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		var query = "select ??, ??, ??, ?? from ?? where ??=?";
 		var table = ["SemesterID", "Name","StartDate", "EndDate","Semester",
 					"SemesterID", req.params.semesterid];
+
+		query = mysql.format(query, table);
+
 		connection.query(query,function(err,rows){
 			if(err){
 				console.log("/semester/email : "+ err.message);
 
 				res.status(400).end();	
 			}else{
-				res.json({"Error" : false, "Message" : "Success", "Course" : result});
+				res.json({"Error" : false, "Message" : "Success", "Course" : rows});
 			}
 		});
 	});
@@ -160,13 +163,16 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	router.get("/semester", function(req, res){
 		var query = "select *  from ??";
 		var table = ["Semester"];
+
+		query = mysql.format(query, table);
+
 		connection.query(query,function(err,rows){
 			if(err){
 				console.log("/semester : "+ err.message);
 
 				res.status(400).end();	
 			}else{
-				res.json({"Error" : false, "Message" : "Success", "Semesters" : result});
+				res.json({"Error" : false, "Message" : "Success", "Semesters" : rows});
 			}
 		});
 	});
@@ -179,9 +185,23 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.post("/course/create",function(req,res){
-		var query = "insert into ??(??,??,??,??) values(?,?,?,?)";
+		var query = "insert into ??(??,??,??) values(?,?,?)";
 		var table = ["Course", "CreatorID", "Number","Title", 
 					req.body.userid,req.body.number,req.body.title];
+
+		if(req.body.userid == null)
+		{
+			console.log("course/create : UserID cannot be null");
+			res.status(400).end();
+			return;
+		}
+		if(req.body.title == null)
+		{
+			console.log("course/create : Title cannot be null");
+			res.status(400).end();
+			return;
+		}
+
 		query = mysql.format(query, table);
 		connection.query(query,function(err,response){
 			if(err){
@@ -190,7 +210,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				res.status(400).end();
 			}else{
 				getCreatedCourseID(function(result){
-					res.json({"result":rows});
+					res.json({"result":result});
 				});	
 			}
 		});
@@ -212,12 +232,36 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	//Christian Alexander - Issue 5.2
 	//Create Course Section
-	router.post("course/createsection",function(req,res){
+	router.post("/course/createsection",function(req,res){
+
+
 		var query = "insert into ??(??,??,??,??) values(?,?,?,?)";
-		var table = ["section", "CourseID", "SemesterID","Name",
+		var table = ["Section", "CourseID", "SemesterID","Name",
 			"Description", req.body.courseid,req.body.semesterid,req.body.name,
 			req.body.description];
+
+
+		if(req.body.semesterid == null)
+		{
+			console.log("course/createsection : SemesterID cannot be null");
+			res.status(400).end();
+			return;
+		}
+		if(req.body.courseid == null)
+		{
+			console.log("course/createsection : CourseID cannot be null");
+			res.status(400).end();
+			return;
+		}
+		if(req.body.description == null)
+		{
+			console.log("course/createsection : Description cannot be null");
+			res.status(400).end();
+			return;
+		}
+
 		query = mysql.format(query, table);
+
 		connection.query(query,function(err,response){
 			if(err){
 				console.log("/course/createsection : "+ err.message);
@@ -225,8 +269,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				res.status(401).end();
 			}else{
 				getCreatedCourseID(function(result){
-					res.json({"result":rows});
-				});	
+					res.json({"result":result});
+				});
 			}
 		});
 	});
@@ -235,8 +279,25 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Add Student to Section
 	/*TO DO = GET CourseID, ADD IT TO TABLE */
 	router.put("/course/adduser",function(req,res){
-		var query = "select ?? from ?? where ??=?";
-		var table = ["UserID", "UserLogin", "Email", req.body.email];
+
+		if(req.body.email == null)
+		{
+			console.log("course/adduser : Email cannot be null");
+			res.status(400).end();
+			return;
+		}
+
+		if(req.body.sectionid == null || req.body.sectionid.length == 0)
+		{
+			console.log("course/adduser : SectionID cannot be empty");
+			res.status(400).end();
+			return;
+		}
+
+
+
+		var query = "select ??,??  from ??  as ul inner join ?? as u on ul.UserID = u.UserID where ??=?";
+		var table = ["u.UserID","u.UserType", "UserLogin","User", "ul.Email", req.body.email];
 		query = mysql.format(query, table);
 		connection.query(query,function(err,response){
 			if(err)
@@ -246,11 +307,11 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			}
 			else
 			{
-				if(rows > 0)
+				if(response.length > 0)
 				{
-					addUserToSection(response.UserID,req.body.email,
-						req.body.courseid, req.body.sectionid, function(result) {
-							res.json({"Error": false, "Message": "Success", "UserID": response.UserID});
+					addUserToSection(response[0].UserID,response[0].UserType,"Active",
+						req.body.sectionid, function(result) {
+							res.json({"Error": false, "Message": "Success", "UserID": response[0].UserID});
 						});
 				}else
 				{
@@ -260,11 +321,19 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		});
 	});
 
-	function addUserToSection(UserID, Email, CourseID, SectionID, callback)
+	/**
+	 * Check because User is being added multiple times to the section
+	 * @param UserID
+	 * @param UserRole
+	 * @param UserStatus
+	 * @param SectionID
+     * @param callback
+     */
+	function addUserToSection(UserID, UserRole , UserStatus, SectionID, callback)
 	{
 		var query = "INSERT INTO ??(??,??,??,??) Values(?,?,?,?)";
-		var table = ["SectionUser","UserID","Email","CourseID","SectionID",
-			UserID, Email, CourseID, SectionID];
+		var table = ["SectionUser","UserID","UserRole","UserStatus","SectionID",
+			UserID, UserRole, UserStatus, SectionID];
 		query = mysql.format(query,table);
 
 		connection.query(query,function(err,rows){
@@ -273,7 +342,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 				res.status(401).end();
 			} else {
-				callback();
+				callback(UserID);
 			}
 		});
 	}
@@ -283,8 +352,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.get("/course/:courseId",function(req,res){
-		var query = "SELECT ??, ?? FROM ??";
-		var table = ["Number","Title","Course"];
+		var query = "SELECT ??, ?? FROM ?? Where ??=?";
+		var table = ["Number","Title","Course","CourseID",req.params.courseId];
 		query = mysql.format(query,table);
 		connection.query(query,function(err,result){
 			if(err) {
@@ -356,14 +425,30 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	router.put("/course/update",function(req,res){
 		var query = "update ?? set ??=?, ??=? where ?? = ?";
 		var table = ["Course","Title",req.body.Title,"Number",req.body.Number,"CourseID",req.body.CourseID];
+
+		if(req.body.title == null)
+		{
+			console.log("course/create : Title cannot be null");
+			res.status(400).end();
+			return;
+		}
+
+		if(req.body.CourseID == null)
+		{
+			console.log("course/create : CourseID cannot be null");
+			res.status(400).end();
+			return;
+		}
+
+
 		query = mysql.format(query,table);
 		connection.query(query,function(err,rows){
 			if(err) {
 				console.log("/course/update : "+ err.message);
 
-				res.status(400).end()
+				res.status(400).end();
 			} else {
-				res.status(200).end()
+				res.status(200).end();
 			}
 		});
 
@@ -376,14 +461,41 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 		var table = ["Section", "Name", req.body.name, "Description",
 			req.body.description, "SectionID", req.body.sectionid,
 			"SemesterID", req.body.semesterid];
-		query = mysql.format(query, tabe);
+
+		if(req.body.semesterid == null)
+		{
+			console.log("course/updatesection : SemesterID cannot be null");
+			res.status(400).end();
+			return;
+		}
+		if(req.body.courseid == null)
+		{
+			console.log("course/updatesection : CourseID cannot be null");
+			res.status(400).end();
+			return;
+		}
+		if(req.body.description == null)
+		{
+			console.log("course/updatesection : Description cannot be null");
+			res.status(400).end();
+			return;
+		}
+
+		if(req.body.sectionid == null)
+		{
+			console.log("course/updatesection : sectionid cannot be null");
+			res.status(400).end();
+			return;
+		}
+
+		query = mysql.format(query, table);
 		connection.query(query, function(err,rows){
 			if(err){
 				console.log("/course/updatesection : "+ err.message);
 
-				req.status(401).end();
+				res.status(401).end();
 			}else{
-				req.status(200).end();
+				res.status(200).end();
 			}
 		});
 	});
@@ -414,8 +526,9 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Christian Alexander - Issue 6
 	//Get User's Courses
 	router.get("/course/getCourses/:userid",function(req, res){
-		var query = "select ??, ?? from ?? where ??=?";
-		var table = ["CourseID", "SectionID", "SectionUser", "UserID", req.body.userid];
+
+		var query = "select ??, ?? from ?? as su inner join Section as s on s.SectionID = su.SectionID where ??=?";
+		var table = ["s.CourseID", "s.SectionID", "SectionUser", "su.UserID", req.params.userid];
 		query = mysql.format(query, table);
 		connection.query(query, function(err,rows){
 			if(err){ 
