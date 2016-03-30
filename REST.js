@@ -1,6 +1,16 @@
 var mysql = require("mysql");
 var dateFormat = require('dateformat');
 //var Guid = require('guid');
+var models = require('./Model');
+var User = models.User;
+var UserLogin = models.UserLogin;
+var UserContact = models.UserContact;
+
+//var server = require('./Server.js');
+
+//var User = server.app.get('models').User;
+
+
 
 function REST_ROUTER(router,connection,md5) {
 	var self = this;
@@ -11,6 +21,28 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
     router.get("/",function(req,res){
         res.json({"Message" : "Hello, World!"});
    });
+
+	//Christian Alexander - Issue 6
+	//Get User's Courses
+	router.get("/ModelTest/:userID",function(req, res){
+
+		UserLogin.findById(req.params.userID).then(function(user) {
+			console.log("User name : "+ user.Email);
+
+		});
+
+		User.findById(req.params.userID).then(function(user) {
+			console.log("User name : "+ user.FirstName);
+			var UserLog = user.getUserLogin().then(function(USerLogin){
+				console.log("User Email : "+ USerLogin.Email);
+
+			});
+			user.getUserContact().then(function(USerLogin){
+				console.log("User Email : "+ USerLogin.Email);
+				res.status(200).end();			});
+			//console.Log("Email " + UserLog.Email);
+		});
+	});
 
 	//Hira - Issue 1
 	//Login Function
