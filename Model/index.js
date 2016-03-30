@@ -4,9 +4,9 @@
 
 var Sequelize = require("sequelize");
 
-var sequelize = new Sequelize('class', 'class', 'LC,m%HNpMsVqqNCHH7WAa6P7n', {
-    host: 'njit-class-system.cofdnjjki73o.us-east-1.rds.amazonaws.com',
-    dialect: 'mysql',
+var sequelize = new Sequelize('class', 'class', '', {
+    host: '',
+    dialect: '',
 
     pool: {
         max: 5,
@@ -15,7 +15,7 @@ var sequelize = new Sequelize('class', 'class', 'LC,m%HNpMsVqqNCHH7WAa6P7n', {
     },
 });
 
-var models = ['User','UserLogin','UserContact'];
+var models = ['User','UserLogin','UserContact','Assignment','AssignmentSection','Section'];
 
 
 
@@ -30,7 +30,8 @@ models.forEach(function(model) {
    // m.Task.belongsTo(m.User);
     m.User.belongsTo(m.UserLogin, {foreignKey: 'UserID'});
     m.User.belongsTo(m.UserContact, {foreignKey: 'UserContactID'});
-
+    m.Assignment.belongsTo(m.User, {foreignKey: 'UserID'});
+    m.AssignmentSection.belongsTo(m.Section, {foreignKey: 'SectionID'});
     //m.User.hasMany(m.PhoneNumber);
 })(module.exports);
 
