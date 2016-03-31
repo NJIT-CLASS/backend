@@ -70,15 +70,7 @@ module.exports = function(sequelize, DataTypes) {
 
         // define the table's name
         tableName: 'User'
-    },
-
-        {  instanceMethods: {
-            getUserLogin: function() {
-                // how to implement this method ?
-                return "Login";
-            }
-        }
-        });
+    });
 };
 
 ///var User =

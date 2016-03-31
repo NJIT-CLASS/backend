@@ -1,12 +1,7 @@
 /**
  * Created by cesarsalazar on 3/30/16.
  */
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-/**
- * Created by cesarsalazar on 3/29/16.
- */
+
 //var Sequelize = require("sequelize");
 //var sequelize = require("./index.js");
 
