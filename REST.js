@@ -5,6 +5,11 @@ var models = require('./Model');
 var User = models.User;
 var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
+var Course = models.Course;
+var Section = models.Section;
+var Semester = models.Semester;
+
+
 
 //var server = require('./Server.js');
 
@@ -26,11 +31,54 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Get User's Courses
 	router.get("/ModelTest/:userID",function(req, res){
 
-		UserLogin.findById(req.params.userID).then(function(user) {
-			console.log("User name : "+ user.Email);
+
+
+		Semester.findById(req.params.userID).then(function(Semester) {
+			console.log("Semester name : "+ Semester.Name);
+
+			Semester.getSections().then(function(Sections){
+				console.log("Found");
+			});
 
 		});
 
+		Section.findById(req.params.userID).then(function(Section) {
+			console.log("Section name : "+ Section.Name);
+
+			Section.getSemester().then(function(Semester){
+				console.log("Semester Name : "+ Semester.Name);
+				//res.status(200).end();
+			});
+
+			Section.getCourse().then(function(Course){
+				console.log("Course Title : "+ Course.Title);
+				//res.status(200).end();
+			});
+			Section.getSectionUsers().then(function(Users){
+				console.log("Found");
+				//res.status(200).end();
+			});
+
+		});
+
+		UserLogin.findById(req.params.userID).then(function(user) {
+			console.log("User Email : "+ user.Email);
+
+		});
+
+		Course.findById(req.params.userID).then(function(course) {
+			console.log("User Course : "+ course.Title);
+
+			course.getUser().then(function(Creator){
+				console.log("Creator Name : "+ Creator.FirstName);
+				//res.status(200).end();
+			});
+
+			course.getSections().then(function(sections){
+				console.log('Sections Found');
+			});
+		});
+		//Course.find
 		User.findById(req.params.userID).then(function(user) {
 			console.log("User name : "+ user.FirstName);
 			var UserLog = user.getUserLogin().then(function(USerLogin){

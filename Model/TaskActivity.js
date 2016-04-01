@@ -25,8 +25,8 @@ module.exports = function(sequelize, DataTypes) {
                 allowNull:false
             },
             EarliestStartTime: {
-                type: DataTypes.DATETIME,
-                field: 'AssignmentID', // Will result in an attribute that is firstName when user facing but first_name in the database
+                type: DataTypes.DATE,
+                field: 'EarliestStartTime', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: true
             },
             Instructions: {
