@@ -5,23 +5,23 @@ module.exports = function(sequelize, DataTypes) {
     return sequelize.define('TaskActivity', {
             TaskActivityID: {
                 type: DataTypes.INTEGER,
-                field: 'TaskID', // Will result in an attribute that is firstName when user facing but first_name in the database
+                field: 'TaskActivityID', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false,
                 primaryKey: true
             },
             Name: {
                 type: DataTypes.STRING,
-                field: 'UserID',
+                field: 'Name',
                 allowNull: false
             },
             Type: {
                 type: DataTypes.STRING,
-                field: 'TaskActivityID', // Will result in an attribute that is firstName when user facing but first_name in the database
+                field: 'Type', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false
             },
             MaximumDuration: {
                 type: DataTypes.INTEGER,
-                field: 'WorlkflowID',
+                field: 'MaximumDuration',
                 allowNull:false
             },
             EarliestStartTime: {

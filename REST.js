@@ -8,6 +8,8 @@ var UserContact = models.UserContact;
 var Course = models.Course;
 var Section = models.Section;
 var Semester = models.Semester;
+var Task = models.Task;
+var TaskActivity= models.TaskActivity;
 
 
 
@@ -32,6 +34,26 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	router.get("/ModelTest/:userID",function(req, res){
 
 
+		Task.findById(req.params.userID).then(function(Task) {
+			console.log("Semester name : "+ Task.TaskID);
+
+			Task.getUser().then(function(User){
+				console.log("Task User Name "+ User.FirstName);
+			});
+			Task.getTaskActivity().then(function(TaskActivity){
+				console.log("TaskActivity Name "+ TaskActivity.Name);
+			});
+
+		});
+
+		TaskActivity.findById(2).then(function(TaskActiviy) {
+			console.log("TaskActiviy name : "+ TaskActiviy.Name);
+
+			TaskActiviy.getTasks().then(function(Tasks){
+				console.log("Found");
+			});
+
+		});
 
 		Semester.findById(req.params.userID).then(function(Semester) {
 			console.log("Semester name : "+ Semester.Name);

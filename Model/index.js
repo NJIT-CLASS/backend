@@ -51,7 +51,7 @@ models.forEach(function(model) {
     m.SectionUser.belongsTo(m.Section,{foreignKey: 'SectionID'});
 
     m.GroupUser.belongsTo(m.User, {foreignKey : 'UserID'});
-    m.GroupUser.belongsTo(m.Group,{foreignKey : 'GroupID'})
+    //m.GroupUser.belongsTo(m.Group,{foreignKey : 'GroupID'});
 
     //has Many Relations
 
@@ -62,10 +62,10 @@ models.forEach(function(model) {
     m.Workflow.hasMany(m.Task,{as : 'Tasks', foreignKey: 'WorlkflowID'});
     m.User.hasMany(m.SectionUser,{as : 'Users',foreignKey: 'UserID'});
     m.Section.hasMany(m.SectionUser,{as : 'SectionUsers',foreignKey: 'SectionID'});
-    m.User.hasMany(m.GroupUser, {as :' GroupUsers' ,foreignKey : 'UserID'});
-    m.TaskActivity.hasMany(m.Task,{as :' Tasks' ,foreignKey: 'TaskActivityID'});
-    m.User.hasMany(m.Task,{as :' Tasks' ,foreignKey: 'UserID'});
-    m.Group.hasMany(m.GroupUser,{as :' GroupUsers' ,foreignKey : 'GroupID'})
+    m.User.hasMany(m.GroupUser, {as :'GroupUsers' ,foreignKey : 'UserID'});
+    m.TaskActivity.hasMany(m.Task,{as :'Tasks' ,foreignKey: 'TaskActivityID'});
+    m.User.hasMany(m.Task,{as :'Tasks' ,foreignKey: 'UserID'});
+   // m.Group.hasMany(m.GroupUser,{as :' GroupUsers' ,foreignKey : 'GroupID'})
 
 
 })(module.exports);
