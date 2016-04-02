@@ -1,6 +1,6 @@
 var mysql = require("mysql");
 var dateFormat = require('dateformat');
-//var Guid = require('guid');
+var Guid = require('guid');
 var models = require('./Model');
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -10,7 +10,10 @@ var Section = models.Section;
 var Semester = models.Semester;
 var Task = models.Task;
 var TaskActivity= models.TaskActivity;
-
+var Assignment= models.Assignment;
+var Workflow= models.Workflow;
+var WorkflowActivity= models.WorkflowActivity;
+var ResetPasswordRequest = models.ResetPasswordRequest;
 
 
 //var server = require('./Server.js');
@@ -33,6 +36,36 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Get User's Courses
 	router.get("/ModelTest/:userID",function(req, res){
 
+
+		Workflow.findById(req.params.userID).then(function(Workflow){
+			console.log("Workflow Found");
+
+			Workflow.getWorkflowActivity().then(function(workflowActivity){
+				console.log("WorkflowActivity Found "+ workflowActivity.Name);
+			});
+
+			Workflow.getAssignment().then(function(assignment){
+				console.log("Assignment Found : "+ assignment.Title);
+			});
+		});
+
+		WorkflowActivity.findById(req.params.userID).then(function(workflowActivity){
+			console.log("WorkflowActivity Found "+ workflowActivity.Name);
+
+			workflowActivity.getWorkflows().then(function(workflows){
+				console.log("workflows Found ");
+			});
+
+		});
+
+		Assignment.findById(req.params.userID).then(function(assignment){
+			console.log("Assignment Found : "+ assignment.Title);
+
+			assignment.getWorkflows().then(function(workflows){
+				console.log("workflows Found ");
+			});
+
+		});
 
 		Task.findById(req.params.userID).then(function(Task) {
 			console.log("Semester name : "+ Task.TaskID);
@@ -662,40 +695,50 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			return;
 		}
 
-		var query = "CALL ??(?)"
-		var table = ["sp_Request_Reset_Password",req.body.email];
-		query = mysql.format(query, table);
-		connection.query(query, function(err,result){
-			if(err){
-				console.log("/resetPassword : "+ err.message);
+		var guid = Guid.create();
+
+		UserLogin.find({ where: { Email : req.body.email}}).then(function(userlogin){
+			if(userlogin == null)
+			{
+				console.log("/resetPassword : Email does not exist");
 				res.status(401).end();
-			}else{
-
-				var response = result[0][0].result;
-				var Hash = result[0][0].HashValue;
-				if(response == -1)
-				{
-					console.log("/resetPassword : Email does not exist");
-					res.status(401).end();
-
-				}
-				else if(response == 1)
-				{
-					console.log("/resetPassword : Record updated "+ Hash);
-					res.status(200).end();
-
-				}
-				else if(response == 2)
-				{
-					console.log("/resetPassword : Record created " + Hash);
-					res.status(200).end();
-
-				}
+			}
+			else
+			{
+				User.find( { where : {UserID : userlogin.UserID }}).then(function(user){
 
 
+					user.getResetPasswordRequest().then(function(PasswordRequest){
 
+						Guid.isGuid(guid);
+						var value = guid.value;
+						if(PasswordRequest != null)
+						{
+							ResetPasswordRequest.update( { RequestHash : value }, { where : { UserID : PasswordRequest.UserID }} ).then(function(){
+								console.log("/resetPassword : Record updated ");
+								res.status(200).end();
+							});
+						}
+						else
+						{
+							var newRequest = ResetPasswordRequest.build({ UserID :  user.UserID, RequestHash : value});
+
+							newRequest.save().then(function()
+							{
+								console.log("/resetPassword : Record created ");
+								res.status(200).end();
+							}).catch(function(error) {
+								// Ooops, do some error-handling
+								console.log("/resetPassword : Error while inserting " + error.message);
+								res.status(401).end();
+							});
+
+						}
+					});
+				});
 			}
 		});
+
 	});
 
 	/**
@@ -740,7 +783,24 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			return;
 		}
 
-		var query = "CALL ??(?,?)"
+		//User.find( { where : {UserID : userlogin.UserID }}).then(function(user)
+		ResetPasswordRequest.find( { where : { RequestHash :  req.body.HashRequest}}).then(function(request){
+
+			if(request == null)
+			{
+				console.log("/resetPassword : HashRequest does not exist");
+				res.status(401).end();
+			}
+			else{
+				UserLogin.update( { Password : md5(req.body.newPassword) }, { where : { UserID : request.UserID }} ).then(function(){
+					request.destroy();
+					console.log("/resetPassword : Password updated");
+					res.status(200).end();
+				});
+			}
+		});
+	});
+		/*var query = "CALL ??(?,?)"
 		var table = ["sp_Reset_Password",req.body.HashRequest,req.body.newPassword];
 		query = mysql.format(query, table);
 		connection.query(query, function(err,result){
@@ -762,7 +822,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				}
 			}
 		});
-	});
+	});*/
 
 }
 

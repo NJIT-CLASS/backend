@@ -16,7 +16,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false,
             primaryKey: true
         }
-    }, {
+    },{
         timestamps: false,
 
         // don't delete database entries but set the newly added attribute deletedAt

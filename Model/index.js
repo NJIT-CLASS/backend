@@ -32,6 +32,7 @@ models.forEach(function(model) {
 // describe relationships
 (function(m) {
     //Belongs To Relations
+    m.User.belongsTo(m.ResetPasswordRequest, {foreignKey: 'UserID'});
     m.User.belongsTo(m.UserLogin, {foreignKey: 'UserID'});
     m.User.belongsTo(m.UserContact, {foreignKey: 'UserContactID'});
 
