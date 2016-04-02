@@ -4,8 +4,8 @@
 
 var Sequelize = require("sequelize");
 
-var sequelize = new Sequelize('class', 'class', '', {
-    host: '',
+var sequelize = new Sequelize('class', 'class', 'LC,m%HNpMsVqqNCHH7WAa6P7n', {
+    host: 'njit-class-system.cofdnjjki73o.us-east-1.rds.amazonaws.com',
     dialect: 'mysql',
 
     pool: {
@@ -16,11 +16,11 @@ var sequelize = new Sequelize('class', 'class', '', {
 });
 
 var models = ['User','UserLogin','UserContact',
-              'Course','Section','Semester',
-              'Task','TaskActivity','Workflow',
-              'WorkflowActivity','Assignment','AssignmentSection',
-              'GroupUser','Organization','SectionUser',
-              'ResetPasswordRequest','Groups'];
+    'Course','Section','Semester',
+    'Task','TaskActivity','Workflow',
+    'WorkflowActivity','Assignment','AssignmentSection',
+    'GroupUser','Organization','SectionUser',
+    'ResetPasswordRequest','Groups'];
 
 
 
@@ -66,7 +66,7 @@ models.forEach(function(model) {
     m.User.hasMany(m.GroupUser, {as :'GroupUsers' ,foreignKey : 'UserID'});
     m.TaskActivity.hasMany(m.Task,{as :'Tasks' ,foreignKey: 'TaskActivityID'});
     m.User.hasMany(m.Task,{as :'Tasks' ,foreignKey: 'UserID'});
-   // m.Group.hasMany(m.GroupUser,{as :' GroupUsers' ,foreignKey : 'GroupID'})
+    // m.Group.hasMany(m.GroupUser,{as :' GroupUsers' ,foreignKey : 'GroupID'})
 
 
 })(module.exports);
