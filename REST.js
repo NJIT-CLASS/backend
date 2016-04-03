@@ -253,7 +253,53 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 			return;
 		}
 
-		var query = "UPDATE ?? SET ?? = ? WHERE ?? = ? AND ?? = ?";
+		UserContact.findById(req.body.userid).then(function(userContact){
+			if(userContact == null)
+			{
+				res.json({
+					"Error": false, "Message": "Not updated",
+					"EmailAddress": "User not found"
+
+				});
+			}
+			else
+			{
+				userContact.Email = req.body.email;
+
+				userContact.save().then(function () {
+					UserLogin.findById(req.body.userid).then(function(userLogin){
+
+						userLogin.Email = req.body.email;
+
+						userLogin.save().then(function () {
+							res.json({
+								"Error": false, "Message": "Success",
+								"EmailAddress": req.body.email
+							});
+						}).catch(function (error) {
+							// Ooops, do some error-handling
+							console.log("/update/email : " + error.message);
+							res.json({
+								"Error": false, "Message": error.message,
+								"EmailAddress": req.body.email
+
+							});
+						});
+					});
+				}).catch(function (error) {
+					// Ooops, do some error-handling
+					console.log("/update/email : " + error.message);
+					res.json({
+						"Error": false, "Message": error.message,
+						"EmailAddress": req.body.email
+
+					});
+				});
+
+			}
+		});
+
+	/*	var query = "UPDATE ?? SET ?? = ? WHERE ?? = ? AND ?? = ?";
 		var table = ["UserLogin", "Email", req.body.email, "UserID", req.body.userid, "Password", md5(req.body.password)];
 		query = mysql.format(query, table);
 		connection.query(query, function (err, rows) {
@@ -276,7 +322,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				}
 
 			}
-		});
+		});*/
 	});
 
 	//Updates Name
