@@ -11,7 +11,11 @@
     "dateformat": "*",
     "express": "*",
     "guid": "*",
+<<<<<<< HEAD
     "mysql": "^2.10.2",
+=======
+    "mysql": "*",
+>>>>>>> ab00f50956489903c91f8cf0c7c41efc45204cde
     "sequelize": "^3.20.0"
   },
   "repository": {
