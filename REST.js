@@ -608,7 +608,12 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				console.log("/course : " + err.message);
 				res.status(400).end();
 			} else {
-				res.json({"Error": false, "Message": "Success", "Course": result});
+				//res.json({"Error": false, "Message": "Success", "Course": result});
+				Section.findAll({ where : { CourseID : req.params.courseId}}).then(function (sections)
+				{
+					res.json({"Error": false, "Message": "Success", "Course": result, "Sections" : sections });
+				});
+
 			}
 		});
 
