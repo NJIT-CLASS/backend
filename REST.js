@@ -600,8 +600,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.get("/course/:courseId", function (req, res) {
-		var query = "SELECT ??, ?? FROM ?? Where ??=?";
-		var table = ["Number", "Title", "Course", "CourseID", req.params.courseId];
+		var query = "SELECT ??,??, ?? FROM ?? Where ??=?";
+		var table = ["CourseID","Number", "Title", "Course", "CourseID", req.params.courseId];
 		query = mysql.format(query, table);
 		connection.query(query, function (err, result) {
 			if (err) {
