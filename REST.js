@@ -108,3 +108,108 @@ router.post("/login",function(req,res){
 		}
 	});
 });
+
+//4.2
+router.get("/getsemester/:semesterID", function(req,rest){
+	var query = "SELECT ??, ??, ??, ?? FROM ?? WHERE ?? = ?";
+	var table =  ["semesterID", "semestername", "start date", "end date","Semester","semesterID", req.params.semesterID];
+	query=mysql.format(query,table);
+	connection.query(query,function(err,rows){
+		if(err) {
+	res.status(401.end();
+		} else {
+	res.json({"Error" : false, "Message" : "Success", 
+		}
+	});
+});
+//5.2
+
+router.post(“/CreateSection”.function(req.res){
+
+var query = “insert into Section (CourseNumber, SemesterID, SectionName, SectionDescription) value(?, ?, ?)”;
+
+var table = [req.body.CourseNumber,req.body.SemesterID,req.body.SectionName,req.body.SectionDescription];
+query = mysql.format(query,table);
+connection.query(query,function(err,response)
+{
+        if(err){
+res.status(401).end();
+}else{
+res.json({"SectionID": response.insertId});
+}
+});
+});
+
+//5.3
+router.post(“/addUser”.function(req.res){
+
+var query = “insert into Section (Email, CourseID, SectionID)
+ value(?, ?, ?)”;
+
+var table = [req.body.Email,req.body.CourseID,req.body.SectionID];
+query = mysql.format(query,table);
+connection.query(query,function(err,response)
+{
+        if(err){
+res.status(401).end();
+}else{
+res.json({"addUser": response.insertId});
+}
+});
+});
+
+/** Create a new Instructor 
+*Issue #19
+**/
+
+router.put("/newInstructor/",function(req,res){
+	Email.find({ where : { Email : req.body.Email, Password : md5(req.body.password) }}). then(function(Email){
+	if(Email == null)
+	{
+		console.log("/newInstructor : Authentication Failed");
+		res.status(400).end();
+	}
+	else{
+		Email.find(req.body.Email).then(function(user){
+
+			if(email == null)
+			{
+				console.log("/newInstructor/ User not found");
+				res.status(400).end();
+			}
+			else
+			{
+				email.Admin = 0;
+				email.save().then(function () {
+					console.log("/newInstructor : Email Updated ");
+				res.status(200).end();
+				}).catch(function (error) {
+					console.log("/newInstructor : Error! " + error.message);
+				res.staus(400).end();
+			});
+		}
+	});
+}
+});
+} 
+
+/** Return Section Member 
+*Issue #20
+**/
+
+function getSectionUsers(SectionID, callback) {
+	var query = "SELECT ??, ?? FROM ?? where ?? = ?";
+	var table = ["UserID", "UserRole", "SectionUser", "SectionID", SectionID];
+	query = mysql.format(query, table);
+
+	connection.query(query, function (err, rows) {
+		if (err) {
+			console.log("Method getSectionUsers : " + err.message);
+			
+			res.status(401).end();
+		} else {
+			callback(rows);
+		}
+});
+}
+
