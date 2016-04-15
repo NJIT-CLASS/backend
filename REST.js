@@ -1023,6 +1023,19 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	});
 
+
+/** Create a new Instructor 
+*Issue #19
+**/
+
+router.put("/newInstructor/",function(req,res){
+	
+});
+
+
+
+
 }
 
 module.exports = REST_ROUTER;
+
