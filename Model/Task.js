@@ -78,9 +78,48 @@ module.exports = function(sequelize, DataTypes) {
             // if you don't want that, set the following
             freezeTableName: true,
 
+            instanceMethods: {
+                timeOut: function() {
+                    // how to implement this method ?
+                    //console.log("TIming out");
+                },
+                addTriggerCondition : function (data)
+                {
+
+                },
+                getTriggerConditions : function()
+                {
+
+                },
+                addExpireCondition : function(data)
+                {
+
+                },
+                getExpireConditions : function()
+                {
+
+                },
+                triggerConditionsAreMet : function()
+                {
+
+                },
+                expireConditionsAreMet : function()
+                {
+
+                },
+                conditionMet : function(condition)
+                {
+
+                },
+
+
+
+            },
+
             // define the table's name
             tableName: 'Task'
-        });
+        }
+    );
 };
 
 ///var User =
