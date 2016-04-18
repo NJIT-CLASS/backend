@@ -1055,7 +1055,34 @@ router.put("/newInstructor/",function(req,res){
 });
 
 }
+/**Issue #20
+**/
+function getSectionUsers(SectionID, callback) {
+	var query = "SELECT ??, ?? FROM ?? where ?? = ?";
+	var table = ["UserID", "UserRole", "SectionUser", "SectionID", SectionID];
+	query = mysql.format(query, table);
+
+	connection.query(query, function (err, rows) {
+		if (err) {
+			console.log("Method getSectionUsers : " + err.message);
+			
+			res.status(401).end();
+		} else {
+			callback(rows);
+		}
 
 });
+}
+
+
+/**Issue#21
+**/
+
+
+
+
+});
+}
+ 
 module.exports = REST_ROUTER;
 
