@@ -1024,12 +1024,38 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 router.put("/newInstructor/",function(req,res){
 	
+	Email.find({ where : { Email : req.body.Email, Password : md5(req.body.password) }}). then(function(Email){
+       if(Email == null)
+       {
+         console.log("/newInstructor : Authentication Failed");
+         res.status(400).end();
+       }
+       else{
+          Email.find(req.body.Email).then(function(user){
+
+        if(email == null)
+        {
+          console.log("/newInstructor/ User not found");
+          res.status(400).end();
+        }
+          else
+        {
+	 email.Admin = 0;                    
+	 email.save().then(function () {
+        console.log("/newInstructor : Email Updated ");
+        res.status(200).end();
+        }).catch(function (error) {
+        console.log("/newInstructor : Error! " + error.message);
+        res.staus(400).end();
+		});
+	}		
 });
 
-
-
+}
+});
 
 }
 
+});
 module.exports = REST_ROUTER;
 
