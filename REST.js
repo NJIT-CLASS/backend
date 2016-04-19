@@ -14,7 +14,7 @@ var Assignment= models.Assignment;
 var Workflow= models.Workflow;
 var WorkflowActivity= models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
-
+var Manager = require('./WorkFlow/Manager.js');
 
 //var server = require('./Server.js');
 
@@ -34,6 +34,12 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 	//Christian Alexander - Issue 6
 	//Get User's Courses
+
+	router.get("/Manager", function (req, res) {
+
+		Manager.Manager.checkTimeoutTasks();
+	});
+
 	router.get("/ModelTest/:userID", function (req, res) {
 
 
@@ -636,7 +642,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 				res.status(400).end();
 			} else {
 				getSectionUsers(req.params.sectionId, function (result) {
-					res.json({"result": rows, "Section": result});
+					res.json({"result": rows, "UserSection": result});
 				});
 			}
 		});
