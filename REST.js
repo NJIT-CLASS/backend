@@ -1081,8 +1081,8 @@ function getSectionUsers(SectionID, callback) {
 }
 
 
-/**Issue#21
- *
+/**
+ * Issue#21
  *
  **/
 
