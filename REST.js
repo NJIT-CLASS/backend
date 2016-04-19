@@ -1086,7 +1086,20 @@ function getSectionUsers(SectionID, callback) {
  *
  **/
 
+router.get(“/generalUser/:Instructor”, function (req, res) {
+	var query = “select * from ??”;
+	var table = [“Instructor”];
+	query = mysql.format(query, table);
+	connection.query(query, function (err, rows) {
+		if (err) {
+			console.log(“/instructor : “ + err.message);
+			res.status(400).end();
+		} else {
+			res.json({“Error”: false, “Message” : “Success”});
+		}
+	});
 
+});
 
 
 });
