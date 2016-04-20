@@ -7,6 +7,8 @@ var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
 var Course = models.Course;
 var Section = models.Section;
+var SectionUser = models.SectionUser;
+
 var Semester = models.Semester;
 var Task = models.Task;
 var TaskActivity= models.TaskActivity;
@@ -15,6 +17,7 @@ var Workflow= models.Workflow;
 var WorkflowActivity= models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var Manager = require('./WorkFlow/Manager.js');
+var Allocator = require('./WorkFlow/Allocator.js');
 
 //var server = require('./Server.js');
 
@@ -35,6 +38,14 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Christian Alexander - Issue 6
 	//Get User's Courses
 
+	router.get("/Allocator", function (req, res) {
+
+		var alloc = new Allocator.Allocator();
+		alloc.Allocate([1,2],[2,2]);
+		//alloc.createRole('test');
+		//var a = [];
+		//alloc.count(a);
+	});
 	router.get("/Manager", function (req, res) {
 
 		Manager.Manager.checkTimeoutTasks();
@@ -632,6 +643,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * Cesar Salazar
 	 */
 	router.get("/course/getsection/:sectionId", function (req, res) {
+
 		var query = "SELECT ??, ?? FROM ?? where ?? = ?";
 		var table = ["Name", "Description", "Section", "SectionID", req.params.sectionId];
 		query = mysql.format(query, table);
@@ -655,10 +667,11 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	 * @param callback
 	 */
 	function getSectionUsers(SectionID, callback) {
-		var query = "SELECT ??, ?? FROM ?? where ?? = ?";
-		var table = ["UserID", "UserRole", "SectionUser", "SectionID", SectionID];
+		var query = "SELECT distinct ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? where ?? = ?";
+		//select distinct  u.UserID, u.UserType, u.FirstName, u.MiddleInitial, u.LastName from SectionUser as us inner join User as u where SectionID = 2;
+		var table = ["u.UserID", "u.UserType","u.FirstName","u.MiddleInitial", "u.LastName", "SectionUser","us","User", "u", "SectionID", SectionID];
 		query = mysql.format(query, table);
-
+		console.log(query);
 		connection.query(query, function (err, rows) {
 			if (err) {
 				console.log("Method getSectionUsers : " + err.message);

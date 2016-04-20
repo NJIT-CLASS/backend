@@ -33,8 +33,17 @@ module.exports = function(sequelize, DataTypes) {
                 type: DataTypes.STRING,
                 field: 'Instructions', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false
-            }
-
+            },
+            Assigne_Constraints: {
+                type: DataTypes.JSON,
+                field: 'Assignee_constraints',
+                allowNull:false
+            },
+            Visual_ID: {
+            type: DataTypes.INTEGER,
+                field: 'Visual_ID',
+                allowNull:true
+        }
         },
         {
             timestamps: false,
