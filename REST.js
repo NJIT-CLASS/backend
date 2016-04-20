@@ -1043,7 +1043,7 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 
 router.put("/newInstructor/",function(req,res){
 	
-	Email.find({ where : { Email : req.body.Email, Password : md5(req.body.password) }}). then(function(Email){
+	Email.find({ where : { Email : req.body.Email, Password : md5(req.body.password) }}).then(function(Email){
        if(Email == null)
        {
          console.log("/newInstructor : Authentication Failed");
@@ -1052,31 +1052,32 @@ router.put("/newInstructor/",function(req,res){
        else{
           Email.find(req.body.Email).then(function(user){
 
-        if(email == null)
-        {
-          console.log("/newInstructor/ User not found");
-          res.status(400).end();
-        }
-          else
-        {
-	 email.Admin = 0;                    
-	 email.save().then(function () {
-        console.log("/newInstructor : Email Updated ");
-        res.status(200).end();
-        }).catch(function (error) {
-        console.log("/newInstructor : Error! " + error.message);
-        res.staus(400).end();
-		});
-	}		
-});
+			if(email == null)
+			{
+			  console.log("/newInstructor/ User not found");
+			  res.status(400).end();
+			}
+          	else
+			{
+				 email.Admin = 0;
+				 email.save().then(function () {
+					console.log("/newInstructor : Email Updated ");
+						res.status(200).end();
+					}).catch(function (error) {
+						console.log("/newInstructor : Error! " + error.message);
+						res.staus(400).end();
+					});
+			}
+			});
 
-}
-});
+		}
+	});
 
-}
-/**Issue #20
-**/
-function getSectionUsers(SectionID, callback) {
+});
+/*
+ * Issue #20
+ **/
+/*function getSectionUsers(SectionID, callback) {
 	var query = "SELECT ??, ?? FROM ?? where ?? = ?";
 	var table = ["UserID", "UserRole", "SectionUser", "SectionID", SectionID];
 	query = mysql.format(query, table);
@@ -1091,7 +1092,7 @@ function getSectionUsers(SectionID, callback) {
 		}
 
 });
-}
+}*/
 
 
 /**
@@ -1099,24 +1100,24 @@ function getSectionUsers(SectionID, callback) {
  *
  **/
 
-router.get(“/generalUser/:Instructor”, function (req, res) {
-	var query = “select * from ??”;
-	var table = [“Instructor”];
+router.get("/generalUser/:Instructor", function (req, res) {
+	var query = "select * from ??";
+	var table = ['Instructor'];
 	query = mysql.format(query, table);
 	connection.query(query, function (err, rows) {
 		if (err) {
-			console.log(“/instructor : “ + err.message);
+			console.log("/instructor : " + err.message);
 			res.status(400).end();
 		} else {
-			res.json({“Error”: false, “Message” : “Success”});
+			res.json({"Error": false, "Message" : "Success"});
 		}
 	});
 
 });
 
 
-});
 }
+
  
 module.exports = REST_ROUTER;
 
