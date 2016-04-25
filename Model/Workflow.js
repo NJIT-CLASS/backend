@@ -7,16 +7,17 @@ module.exports = function(sequelize, DataTypes) {
                 type: DataTypes.INTEGER,
                 field: 'WorkflowID', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false,
-                primaryKey: true
+                primaryKey: true,
+                autoIncrement: true
             },
             WorkflowActivityID: {
                 type: DataTypes.INTEGER,
                 field: 'WorkflowActivityID',
                 allowNull: false
             },
-            AssignmentID: {
+            AssignmentSectionID: {
                 type: DataTypes.INTEGER,
-                field: 'AssignmentID', // Will result in an attribute that is firstName when user facing but first_name in the database
+                field: 'AssignmentSectionID', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false
             },
             StartTime: {

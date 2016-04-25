@@ -30,7 +30,7 @@ module.exports = function(sequelize, DataTypes) {
         ,
         StartDate: {
             type: DataTypes.DATE,
-            field: 'Settings',
+            field: 'StartDate',
             allowNull: true
         },
         EndDate: {
@@ -39,18 +39,18 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         }
         ,
-        Title: {
+        A_workflow_collection: {
             type: DataTypes.STRING,
-            field: 'Title',
+            field: 'A_workflow_collection',
             allowNull: false
         },
-        UserID: {
-            type: DataTypes.INTEGER,
-            field: 'UserID',
+        A_workflow_timing: {
+            type: DataTypes.JSON,
+            field: 'A_workflow_timing',
             allowNull: false
-        },
+        }/*,
         GroupSize: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.JSON,
             field: 'GroupSize',
             allowNull: false
         },
@@ -58,7 +58,7 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER,
             field: 'UseCase',
             allowNull: false
-        }
+        }*/
     }, {
         timestamps: false,
 

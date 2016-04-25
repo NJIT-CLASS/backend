@@ -7,7 +7,7 @@ module.exports = function(sequelize, DataTypes) {
                 type: DataTypes.INTEGER,
                 field: 'WorkflowActivityID', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false,
-                primaryKey: true
+                primaryKey: true,
             },
             TaskActivityCollection: {
                 type: DataTypes.JSON,
@@ -22,6 +22,11 @@ module.exports = function(sequelize, DataTypes) {
             Description: {
                 type: DataTypes.STRING,
                 field: 'Description',
+                allowNull:false
+            },
+            WA_A_id :{
+                type : DataTypes.INTEGER,
+                field: 'WA_A_id',
                 allowNull:false
             }
 

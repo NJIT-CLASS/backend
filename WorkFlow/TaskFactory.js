@@ -39,12 +39,12 @@ function TaskFactory(workflow, tasks)
 
 TaskFactory.prototype.createTasks = function ()
 {
-    if(this.getTasks().length == 0)
+    /*if(this.getTasks().length == 0)
         throw Error("No tasks defined for TaskFactory");
 
     var tasks = this.getTasks();
 
-    /**
+    /!**
      * Tasks shoud be like
      * [
      *   {
@@ -98,7 +98,7 @@ TaskFactory.prototype.createTasks = function ()
      *      ...
      *   }
      * ]
-     */
+     *!/
     for(var i = 0; i < tasks.length; i++)
     {
         var count  = 1;
@@ -136,7 +136,7 @@ TaskFactory.prototype.createTasks = function ()
             });
         }
 
-    }
+    }*/
 }
 
 module.exports.TaskFactory = TaskFactory;

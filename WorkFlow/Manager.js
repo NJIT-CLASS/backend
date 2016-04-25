@@ -10,6 +10,8 @@ var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
 var Course = models.Course;
 var Section = models.Section;
+var SectionUser = models.SectionUser;
+
 var Semester = models.Semester;
 var Task = models.Task;
 var TaskActivity= models.TaskActivity;
@@ -159,15 +161,150 @@ Manager.checkAssginment = function(assignmentSection)
             callback(count > 0 ? true: false);
         });
 }
-Manager.trigger = function(){
 
+/**
+ * Returns the assignment based on the assignment section
+ * @param assignmentSection
+ */
+Manager.getAssignments = function(assignmentSection)
+{
+    return Assignment.findById(assignmentSection.AssignmentID).then(function(assignment){
+        return assignment;
+    });
 }
 
+/**
+ * Returns the list of users assigne to the section
+ * @param assignmentSection
+ */
+Manager.getUserSection = function(assignmentSection)
+{
+    return SectionUser.findAll({ where : { SectionID : assignmentSection.SectionID, UserStatus : 'Active', UserRole : 'Student'},  include : [  { model : User }]}).then(function(assignment){
+        return assignment;
+    });
+}
+
+/**
+ * reutrning the workflow activity 1.
+ * We need to find a way to get the Workflow activity in general
+ * from the assignment or section some how.
+ */
+Manager.getWorkflowActivity = function()
+{
+    return WorkflowActivity.findById(1).then(function(workflowActivity){
+        return workflowActivity;
+    });
+}
+
+
+/**
+ * Triggers when the start date has been reached fro the adssignment instance(assgnment section)
+ * @param assignmentSection
+ */
+Manager.trigger = function(assignmentSection){
+
+
+
+Promise.all([Manager.getAssignments(assignmentSection),Manager.getUserSection(assignmentSection), this.getWorkflowActivity()]).then(function(result)
+    {
+        var assignment = result[0];
+        var S_User = result[1];
+        var workflowActivity = result[2];
+
+        for(var i = 0 ; i < S_User.length; i++)
+        {
+            var sectionUser = S_User[i];
+        //    console.log(sectionUser);
+
+
+            var workflowInstance = Workflow.build({
+                Type : workflowActivity.Name,
+                StartTime : new Date(),
+                EndTime : assignmentSection.EndDate,
+                AssignmentSectionID : assignmentSection.AssignmentSectionID,
+                WorkflowActivityID : workflowActivity.WorkflowActivityID
+            });
+
+
+            Promise.all([
+                            workflowInstance.save().then(function(workflow) {
+                                return workflow;
+                            }),
+                            Manager.getTaskActivity(workflowActivity.WorkflowActivityID,assignment)
+            ]).then(function(result){
+
+                var workflow = result[0];
+                var taskActivities = result[1];
+
+                for(var i = 0; i < taskActivities.length; i++)
+                {
+                    var currentTaskActivity = taskActivities[i];
+                    var task = Task.build({
+                        UserID : sectionUser.UserID,
+                        TaskActivityID : currentTaskActivity.TaskActivityID,
+                        WorkflowID : workflow.WorkflowID,
+                        Task_status : "Incomplete",
+                        StartDate : workflow.StartTime,
+                        EndDate: workflow.EndTime,
+                        Data : JSON.parse("{}"),
+                        Settings : JSON.parse("{}"),
+                        user_history : null,
+                    AssignmentSectionID : assignmentSection.AssignmentSectionID
+
+                    });
+
+
+                    task.save().then(function(task)
+                    {
+                        console.log("task created");
+                    }).catch(function (e){
+                        console.log(e);
+                    });
+                }
+
+
+
+
+
+            });
+            /*workflowInstance.save().bind([assignment,S_User]).then(function(workflow)
+            {
+                console.log("Workflow saved");
+
+                Manager.triggerTaskCreation(workflow,this[0],this[1],Manager.);
+
+            }).catch(function(e){
+                console.log(e);
+
+            });*/
+
+        }
+
+
+
+
+    });
+}
+
+/**
+ * Create tasks for the TaskActivities
+ */
+Manager.getTaskActivity = function(workflowActivityID,assignment)
+{
+    return TaskActivity.findAll({ where : { TA_WA_id : workflowActivityID , TA_AA_id: assignment.AssignmentID}}).then( function (taskActivities) {
+        return taskActivities;
+    });
+}
 Manager.notifyUser = function(event, task)
 {
     //Waiting for email sending piece from Christian
 }
 
+
+Manager.CreteTaskFromTaskAcivity = function(workflowInstance)
+{
+
+}
 
 Manager.triggerTaskCreation = function(workflow,assignment, users, tasks)
 {

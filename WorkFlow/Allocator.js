@@ -26,35 +26,6 @@ var ResetPasswordRequest = models.ResetPasswordRequest;
  */
 function Allocator()
 {
-    /*var roles_ = [];
-    var workflows_ = [];
-    var role_rules_ = [];
-    var pools_ = [];
-    var role_queue_ = [];
-    var runCount_ = [];
-    var taskInstanceStorage_ = [];
-
-    this.getRoles = function(){
-        return roles_;
-    }
-
-    this.setRoles = function(roles){
-        roles_ = roles;
-    }
-
-    this.appendRoles = function(role)
-    {
-        roles_.push(role)
-    }
-
-    this.getWorkflows = function(){
-        return workflows_;
-    }
-
-    this.setWorkflows = function(workflows){
-        workflows_ = workflows;
-    }*/
-
     /**
      * Get the workflows base in the asignment ID.
      * It pulls also the Tasks, and TaskActivities..
@@ -71,7 +42,24 @@ function Allocator()
 
     }
 
+    /**
+     * Get the workflows base in the asignment ID.
+     * It pulls also the Tasks, and TaskActivities..
+     * @param assignment
+     * @returns {*}
+     */
+    this.getWorkflowActivities = function(assignment)
+    {
 
+        return WorkflowActivity.findAll({ where : { WA_A_id : assignment}, include :[{ model : Workflow, as : 'Workflows', include :[{ model : Task , as: 'Tasks', include :[ { model : TaskActivity }]}]}]/*,  include : [  { model : Workflow, as: 'Workflows'}]*/}).then(function(workflows)
+        {
+            return workflows;
+        });/*.catch(function (e)
+        {
+            console.log(e);
+        });*/
+
+    }
     /**
      * this method gets the list of sectionUsers with the User object
      * base on the section ID.
@@ -112,23 +100,14 @@ function Allocator()
     {
         for(var i = 0; i < Users.length; i++)
         {
-            if(Users[i].UserType == 'Teacher')
+            if(Users[i].UserRole == 'Instructor')
             {
                 var instructor = Users[i];
                 Users.splice(i,1);
-                return  instructor;
+                return  instructor.UserID;
             }
         }
     }
-
-    /*function updateUSER($ta_id, $newUser){
-        global $link2;
-
-        $sql = "Update pla_task set user_id = '".$newUser."'
-        where task_id = '".$ta_id."';";
-
-        mysqli_query($link2, $sql);
-    }*/
 
     /**
      * Assigning the User ID to the given task
@@ -142,6 +121,9 @@ function Allocator()
         Task.save().then(function()
         {
             console.log('User ID assigned to task');
+        }).catch(function(e)
+        {
+            console.log(e);
         });
 
     }
@@ -160,19 +142,19 @@ function Allocator()
         /**
          * Checking if the user_history exists or not.
          */
-        if(typeof Task.User_history === 'undefined' || Task.User_history == null)
+        if(typeof Task.user_history === 'undefined' || Task.user_history == null)
         {
             var user_history;
-            var arr;
-            arr['regular'] =  newUser;
+            var arr = {'regular' : newUser};
+            //arr['regular'] =  newUser;
             newUH.push(arr);
 
-            var content = JSON.parse(newUH);
+            //var content = JSON.parse(newUH);
 
             /**
              * Updating user_history
              */
-            Task.User_history = content;
+            Task.user_history = JSON.stringify(newUH);
 
             /**
              * Saving in the Database
@@ -183,34 +165,19 @@ function Allocator()
         }
         else
         {
-            //var user_history;
-            /*$aJson = json_decode($user_history, true);
-            foreach ($aJson as $j){
-            $newUH[] = $j;
-                }
-            $reg = array();
-            $reg['regular'] = $newUser;
-            $newUH[] = $reg;
-            //$content = json_encode($aJson);
+            var aJson =  JSON.parse(Task.user_history.toString());
 
-            $sql = "Update pla_task set user_history = '".json_encode($newUH)."'
-            where task_id = '".$ta_id."';";
-
-            mysqli_query($link2, $sql);*/
-
-            var aJon =  JSON.Parse(Task.User_history);
-
-            for(var key in aJson)
+            for(var i = 0; i < aJson.length; i++)
             {
-                newUH.push(key);
+                newUH.push(aJson[i]);
             }
 
-            var reg = [];
-            reg['regular'] = newUser;
-            newUH.push(newUH);
-            Tasks.User_history = JSON.stringify(newUH);
+            var arr = {'regular' : newUser};
 
-            Tasks.save().then(function(){
+            newUH.push(arr);
+            Task.user_history = JSON.stringify(newUH);
+
+            Task.save().then(function(){
                 console.log("Saving user_history in task");
             });
 
@@ -227,9 +194,11 @@ function Allocator()
  */
 Allocator.prototype.Allocate = function(assignments, section)
 {
-    var alloc = this;
+    //var allocation = {};
+
+    var allocator = this;
     for (var  i = 0; i < assignments.length; i++) {
-        Promise.all([this.getWorkflows(assignments[i]),this.getStudents(section[i])]).then(function(results){
+        Promise.all([this.getWorkflowActivities(assignments[i]),this.getStudents(section[i])]).then(function(results){
             console.log(results)
 
             /**
@@ -237,177 +206,152 @@ Allocator.prototype.Allocate = function(assignments, section)
              * result[1] is the studetn list based on the section
              */
 
-            var allocation;
-            var Reversedallocation;
-            var workflows = results[0];
+            var workflowsActivities = results[0];
             var Students = results[1];
-          //  var
 
-            var tasksP = [];
-            for(var w = 0; w < workflows.length;w++)
+            /**
+             * Removing the instructor from the list and
+             * keeping instructor ID
+             */
+            var instructorID = allocator.getInstructorFromUserList(Students);
+
+            for (var i = 0; i < workflowsActivities.length; i++)
             {
-                allocation[j] = [];
-                var Tasks = workflows[w].Tasks;
+
                 /**
-                 * Here we will be going through each task
+                 * Holding the list of workflows for the current WorkflowActivity
                  */
-                var i = 0;
-                for(var t = 0; t < Tasks.length; t++)
+                var workflows = workflowsActivities[i].Workflows;
+
+                /*
+                 * Holding the allocation for the current workflowActivity
+                 */
+                var allocation = new Array(workflows.length);
+                for(var w = 0; w < workflows.length;w++)
                 {
-                    var taskActivity = Tasks[t].TaskActivity;
+                    var w_id = workflows[w].WorkflowID;
+                    var Tasks = workflows[w].Tasks;
 
-                    var aJson = JSON.parse(taskActivity.Assigne_Constraints);
-                    var aConst = aJson.constraints;
-                    var aRole = aJson.role;
+                    //for each workflow instance, the last student in the array will be move all the way up to
+                    // be at index = 0. This way students will get the same amount of tasks per assignment.
+                    var s = Students.length;
+                    var tempStudent = Students[s-1];
+                    Students.splice(s - 1,1);
+                    Students.unshift(tempStudent);
 
 
-                    if(aRole == 'nobody')
+                    if(typeof allocation[w] === 'undefined')
+                        allocation[w] = {};
+
+
+                    /**
+                     * Here we will be going through each task
+                     */
+                    var stCounter = 0;
+                    for(var t = 0; t < Tasks.length; t++)
                     {
-                        /*$allocation[$workflow][$row['TA_visual_id']] = 0;
-                        $user = $allocation[$workflow][$row['TA_visual_id']];
-                        updateUSER($ta_id,$user);*/
 
-                        allocation[w][taskActivity.Visual_ID] = 0;
-                        var user = allocation[w][taskActivity.Visual_ID];
-                        this.UpdatUser(Tasks[t],0);
+                        var taskActivity = Tasks[t].TaskActivity;
 
-                    }
-                    else if(aRole == 'instructor')
-                    {
-                        /*$allocation[$workflow][$row['TA_visual_id']] = getInstructor();
-                        $user = $allocation[$workflow][$row['TA_visual_id']];
-                        echo "<td>$user</td>";*/
+                        /**
+                         * Retrieving constrains information
+                         */
+                        var aJson = JSON.parse(taskActivity.Assignee_constraints.toString());
+                        var aConst = aJson.constraints;
+                        var aRole = aJson.role;
 
-                        allocation[w][taskActivity.Visual_ID] = this.getInstructorFromUserList(Students);
-                        var user = allocation[w][taskActivity.Visual_ID];
-                        //Check What happen in here
-                    }
-                    else
-                    {
-                        if(typeof aConst['same as'] !== 'undefined')
+
+                        if(aRole == 'nobody')
                         {
-                            /*$allocation[$workflow][$row['TA_visual_id']] = $allocation[$workflow][$aConst['same as']];
-                            $id = $allocation[$workflow][$aConst['same as']];
-                            updateUSER($ta_id,$id);
-                            //for printing purposes.
-
-                            echo "<td>$id / $row[TA_id]</td>";
-                            $reversedAlloc[$id][$row['TA_visual_id']] = $workflow.'  \ '.$row['TA_visual_id'];
-                            updateUH($ta_id,$id);*/
-
-                            allocation[j][taskActivity.Visual_ID] = allocation[j][aConst['same as']];
-                            var id = allocation[w][aConst['same as']];
-                            this.UpdatUser(Tasks[t],id);
-
-                            Reversedallocation[id][taskActivity.Visual_ID] = w + ' \ ' + taskActivity.Visual_ID;
-                            this.UpdateUH(Tasks[t],id);
-                        }
-                        else if(typeof aConst['not'] !== 'undefined')
-                        {
-                            /*$notThese = $aConst['not'];
-                            $avoidThese = array();
-                            $chooseMe = array();
-                            foreach ($notThese as $vid){ $avoidThese[] = $allocation[$workflow][$vid];}
-
-                            foreach ($students as $st){
-                            if (!in_array($st,$avoidThese)){
-                                $chooseMe[] = $st;
-                            }
-                        }
-
-                            $allocation[$workflow][$row['TA_visual_id']] = $chooseMe[0];
-                            $id = $chooseMe[0];
-                            updateUSER($ta_id,$id);
-                            //for printing purposes.
-                            $id = $chooseMe[0];
-                            echo "<td>$id / $row[TA_id]</td>";
-                            $reversedAlloc[$id][$row['TA_visual_id']] = $workflow.'  \ '.$row['TA_visual_id'];
-                            updateUH($ta_id,$id);*/
-
-                            var notThese = aConst['not'];
-                            var avoidThese = [];
-                            var ChooseMe = [];
-
-                            for(var vid in notThese)
-                            {
-                                avoidThese.push(allocation[w][vid]);
-                            }
-
-                            for(var st in Students)
-                            {
-                                if(array.indexOf(st.UserID) != -1)
-                                    ChooseMe.push(st);
-                            }
-
-                            allocation[w][taskActivity.Visual_ID] = ChooseMe[0];
-                            var id = ChooseMe[0];
-
-                            this.UpdateUser(Tasks[t].TaskID,id);
-                            Reversedallocation[id][taskActivity.Visual_ID] = w + ' \ ' + taskActivity.Visual_ID;
-                            this.UpdateUH(Tasks[t],id);
+                            /**
+                             * User ID : 8 is nobody by default in the current users table
+                             */
+                            allocation[w][taskActivity.Visual_ID] = 8;
+                            var user = allocation[w][taskActivity.Visual_ID];
+                            allocator.UpdateUser(Tasks[t],8);
 
                         }
-                        else if(typeof aConst['new to subwf'] !== 'undefined')
+                        else if(aRole == 'instructor')
                         {
-                            /*$allocation[$workflow][$row['TA_visual_id']] = $students[$i];  //here i!=0;
-                            $id = $students[$i];
-                            updateUSER($ta_id,$id);
-                            //for printing purposes.
+                            allocation[w][taskActivity.Visual_ID] = instructorID;
 
-                            echo "<td>$id/$row[TA_id]</td>";
-                            $reversedAlloc[$id][$row['TA_visual_id']] = $workflow.'  \ '.$row['TA_visual_id'];
-                            updateUH($ta_id,$id);*/
-
-                            allocation[w][taskActivity.Visual_ID] = Students[i]; //here i!=0
-                            var id = Students[i];
-                            this.UpdateUser(Tasks[k],id);
-
-                            Reversedallocation[id][taskActivity.Visual_ID] = w + ' \ ' + taskActivity.Visual_ID;
-                            this.UpdateUH(Tasks[t],id);
-
-                        }
-                        else if(typeof aConst['new to wf'] !== 'undefined')
-                        {
-                            /*$allocation[$workflow][$row['TA_visual_id']] = $students[$i];  //here i=0;
-                            $id = $students[$i];
-                            updateUSER($ta_id,$id);
-                            //for printing purposes.
-
-                            echo "<td>$id / $row[TA_id]</td>";
-                            $reversedAlloc[$id][$row['TA_visual_id']] = $workflow.'  \ '.$row['TA_visual_id'];
-                            updateUH($ta_id,$id);*/
-
-                            allocation[w][taskActivity.Visual_ID] = Students[i]; //here i=0
-                            var id = Students[i];
-                            this.UpdateUser(Tasks[k],id);
-
-                            Reversedallocation[id][taskActivity.Visual_ID] = w + ' \ ' + taskActivity.Visual_ID;
-                            this.UpdateUH(Tasks[t],id);
+                            var user = allocation[w][taskActivity.Visual_ID]
+                            allocator.UpdateUser(Tasks[t],user);
                         }
                         else
                         {
-                           /* $allocation[$workflow][$row['TA_visual_id']] = $students[$i];  //here i=0;
-                            $id = $students[$i];
-                            updateUSER($ta_id,$id);
-                            //for printing purposes.
+                            if(typeof aConst !== 'undefined' && aConst != null && typeof aConst['same as'] !== 'undefined')
+                            {
 
-                            echo "<td>$id / $row[TA_id]</td>";
-                            $reversedAlloc[$id][$row['TA_visual_id']] = $workflow.'  \ '.$row['TA_visual_id'];
-                            updateUH($ta_id,$id);*/
+                                allocation[w][taskActivity.Visual_ID] = allocation[w][aConst['same as']];
+                                var id = allocation[w][aConst['same as']];
 
-                            allocation[w][taskActivity.Visual_ID] = Students[i]; //here i=0
-                            var id = Students[i];
-                            this.UpdateUser(Tasks[k],id);
+                                allocator.UpdateUser(Tasks[t],id);
+                                allocator.UpdateUH(Tasks[t],id);
+                            }
+                            else if(typeof aConst !== 'undefined' && aConst != null &&  typeof aConst['not'] !== 'undefined')
+                            {
+                                var notThese = aConst['not'];
+                                var avoidThese = [];
+                                var ChooseMe = [];
 
-                            Reversedallocation[id][taskActivity.Visual_ID] = w + ' \ ' + taskActivity.Visual_ID;
-                            this.UpdateUH(Tasks[t],id);
+
+                                var visual = {};
+                                var alloc = {};
+
+                                for(var i = 0 ; i < notThese.length;i++)
+                                {
+                                    var vid = notThese[i];
+                                    avoidThese.push(allocation[w][vid]);
+                                }
+
+
+                                for(var i = 0 ; i < Students.length;i++)
+                                {
+                                    var st = Students[i].UserID;
+                                    if(avoidThese.indexOf(st) == -1)
+                                        ChooseMe.push(st);
+                                }
+
+                                allocation[w][taskActivity.Visual_ID] = ChooseMe[0];
+                                var id = ChooseMe[0];
+
+                                allocator.UpdateUser(Tasks[t],id);
+                                allocator.UpdateUH(Tasks[t],id);
+
+                            }
+                            else if(typeof aConst !== 'undefined' && aConst != null &&  typeof aConst['new to subwf'] !== 'undefined')
+                            {
+                                allocation[w][taskActivity.Visual_ID] = Students[stCounter].UserID;
+                                var id = Students[stCounter].UserID;;
+
+                                allocator.UpdateUser(Tasks[t],id);
+                                allocator.UpdateUH(Tasks[t],id);
+
+                            }
+                            else if(typeof aConst !== 'undefined' && aConst != null && typeof aConst['new to wf'] !== 'undefined')
+                            {
+                                allocation[w][taskActivity.Visual_ID] = Students[stCounter].UserID;
+                                var id = Students[stCounter].UserID;;
+
+                                allocator.UpdateUser(Tasks[t],id);
+                                alloc.UpdateUH(Tasks[t],id);
+                            }
+                            else
+                            {
+                                allocation[w][taskActivity.Visual_ID] = Students[stCounter].UserID;
+                                var id = Students[stCounter].UserID;
+
+                                allocator.UpdateUser(Tasks[t],id);
+                                allocator.UpdateUH(Tasks[t],id);
+                            }
+
                         }
 
+
                     }
-
-                    i++;
+                    stCounter++;
                 }
-
             }
 
             /**

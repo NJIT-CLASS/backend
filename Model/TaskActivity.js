@@ -7,7 +7,8 @@ module.exports = function(sequelize, DataTypes) {
                 type: DataTypes.INTEGER,
                 field: 'TaskActivityID', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false,
-                primaryKey: true
+                primaryKey: true,
+                autoIncrement: true
             },
             Name: {
                 type: DataTypes.STRING,
@@ -34,16 +35,49 @@ module.exports = function(sequelize, DataTypes) {
                 field: 'Instructions', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false
             },
-            Assigne_Constraints: {
-                type: DataTypes.JSON,
-                field: 'Assignee_constraints',
-                allowNull:false
-            },
             Visual_ID: {
-            type: DataTypes.INTEGER,
+                type: DataTypes.INTEGER,
                 field: 'Visual_ID',
                 allowNull:true
-        }
+            },
+            TA_WA_id: {
+                type: DataTypes.INTEGER,
+                field: 'TA_WA_id',
+                allowNull:true
+            },
+            TA_AA_id: {
+                type: DataTypes.INTEGER,
+                field: 'TA_AA_id',
+                allowNull:true
+            },
+            Assignee_constraints: {
+                type: DataTypes.BLOB,
+                field: 'Assignee_constraints',
+                allowNull:true
+            },
+            TA_version_history: {
+                type: DataTypes.BLOB,
+                field: 'TA_version_history',
+                allowNull:true
+            },
+            TA_trigger_condition: {
+                type: DataTypes.BLOB,
+                field: 'TA_trigger_condition',
+                allowNull:true
+            },
+            TA_next_task: {
+                type: DataTypes.STRING,
+                field: 'TA_next_task',
+                allowNull:true
+            },
+            Task_grade_type :{
+                type: DataTypes.STRING,
+                allowNull : true,
+                field : 'Task_grade_type',
+                validate: {
+                    isIn: [['Points', 'Percentage']]
+                }
+            }
         },
         {
             timestamps: false,

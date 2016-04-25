@@ -44,9 +44,19 @@ models.forEach(function(model) {
     m.Task.belongsTo(m.TaskActivity,{foreignKey: 'TaskActivityID'});
     m.Task.belongsTo(m.Workflow,{foreignKey: 'WorlkflowID'});
     m.Task.belongsTo(m.User,{foreignKey: 'UserID'});
+    m.Task.belongsTo(m.AssignmentSection,{foreignKey: 'AssignmentSectionID'});
+
+
+
+
+    m.TaskActivity.belongsTo(m.WorkflowActivity,{foreignKey: 'TA_WA_id'});
+    m.TaskActivity.belongsTo(m.Assignment,{foreignKey: 'TA_AA_id'});
 
     m.Workflow.belongsTo(m.WorkflowActivity,{foreignKey: 'WorkflowActivityID'});
-    m.Workflow.belongsTo(m.Assignment,{foreignKey: 'AssignmentID'});
+    m.Workflow.belongsTo(m.AssignmentSection,{foreignKey: 'AssignmentSectionID'});
+
+    m.WorkflowActivity.belongsTo(m.Assignment,{foreignKey: 'WA_A_id'});
+
 
     m.SectionUser.belongsTo(m.User,{foreignKey: 'UserID'});
     m.SectionUser.belongsTo(m.Section,{foreignKey: 'SectionID'});
@@ -59,7 +69,7 @@ models.forEach(function(model) {
     m.Semester.hasMany(m.Section,{as : 'Sections', foreignKey: 'SemesterID'});
     m.Course.hasMany(m.Section,{as : 'Sections', foreignKey: 'CourseID'});
     m.WorkflowActivity.hasMany(m.Workflow,{as : 'Workflows', foreignKey: 'WorkflowActivityID'});
-    m.Assignment.hasMany(m.Workflow,{as : 'Workflows', foreignKey: 'AssignmentID'});
+    m.AssignmentSection.hasMany(m.Workflow,{as : 'Workflows', foreignKey: 'AssignmentSectionID'});
     m.Workflow.hasMany(m.Task,{as : 'Tasks', foreignKey: 'WorlkflowID'});
     m.User.hasMany(m.SectionUser,{as : 'Users',foreignKey: 'UserID'});
     m.Section.hasMany(m.SectionUser,{as : 'SectionUsers',foreignKey: 'SectionID'});

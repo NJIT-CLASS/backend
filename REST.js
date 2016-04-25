@@ -13,6 +13,7 @@ var Semester = models.Semester;
 var Task = models.Task;
 var TaskActivity= models.TaskActivity;
 var Assignment= models.Assignment;
+var AssignmentSection = models.AssignmentSection;
 var Workflow= models.Workflow;
 var WorkflowActivity= models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
@@ -41,14 +42,20 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	router.get("/Allocator", function (req, res) {
 
 		var alloc = new Allocator.Allocator();
-		alloc.Allocate([1,2],[2,2]);
+		alloc.Allocate([1],[1]);
 		//alloc.createRole('test');
 		//var a = [];
 		//alloc.count(a);
 	});
 	router.get("/Manager", function (req, res) {
 
-		Manager.Manager.checkTimeoutTasks();
+		//Manager.Manager.checkTimeoutTasks();
+		AssignmentSection.findById(1).then(
+			function (asection) {
+				Manager.Manager.trigger(asection);
+
+			}
+		);
 	});
 
 	router.get("/ModelTest/:userID", function (req, res) {

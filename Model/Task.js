@@ -7,7 +7,8 @@ module.exports = function(sequelize, DataTypes) {
                 type: DataTypes.INTEGER,
                 field: 'TaskID', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false,
-                primaryKey: true
+                primaryKey: true,
+                autoIncrement: true
             },
             UserID: {
                 type: DataTypes.INTEGER,
@@ -24,14 +25,14 @@ module.exports = function(sequelize, DataTypes) {
                 field: 'WorlkflowID',
                 allowNull:false
             },
-            AssignmentID: {
+            AssignmentSectionID: {
                 type: DataTypes.INTEGER,
-                field: 'AssignmentID', // Will result in an attribute that is firstName when user facing but first_name in the database
+                field: 'AssignmentSectionID', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false
             },
-            Status: {
+            Task_status: {
                 type: DataTypes.STRING,
-                field: 'Status', // Will result in an attribute that is firstName when user facing but first_name in the database
+                field: 'Task_status', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: true
             },
             StartDate: {
@@ -64,10 +65,30 @@ module.exports = function(sequelize, DataTypes) {
                 field: 'type', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: true
             },
-            User_history: {
-                type: DataTypes.JSON,
-                field: 'User_history',
-                allowNull:false
+            user_history: {
+                type: DataTypes.BLOB,
+                field: 'user_history',
+                allowNull:true
+            },
+            Task_final_grade :{
+                type : DataTypes.FLOAT,
+                field : 'Task_final_grade',
+                allowNull : true
+            },
+            Task_files :{
+                type : DataTypes.JSON,
+                field : 'Task_files',
+                allowNull : true
+            },
+            Task_reference :{
+                type : DataTypes.INTEGER,
+                field : 'Task_reference',
+                allowNull : true
+            },
+            Next_Tasks :{
+                type : DataTypes.BLOB,
+                field : 'Next_Tasks',
+                allowNull : true
             }
 
         },
