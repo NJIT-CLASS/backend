@@ -1107,19 +1107,14 @@ router.put("/newInstructor/",function(req,res){
  *
  **/
 
-router.get("/generalUser/:Instructor", function (req, res) {
-	var query = "select * from ??";
-	var table = ['Instructor'];
-	query = mysql.format(query, table);
-	connection.query(query, function (err, rows) {
-		if (err) {
-			console.log("/instructor : " + err.message);
-			res.status(400).end();
-		} else {
-			res.json({"Error": false, "Message" : "Success"});
-		}
-	});
-
+router.get("/instructors", function (req, res) {
+	User.find({ 
+		where : { UserType : 'Professor'}
+		attributes: ['UserID', 'FirstName', 'Email', 'Admin']
+	}).then(function(instructors){
+		console.log("/instructors");
+		res.json({"Error": false, "Instructors": instructors});
+	})
 });
 
 
