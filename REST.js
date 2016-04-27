@@ -371,8 +371,8 @@ REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	//Issue 3 - General User Endpoint
 	router.get("/generalUser/:userid", function (req, res) {
 		//select u.FirstName, u.LastName, u.UserType, uc.Email from User as u inner join UserContact as uc on u.UserContactID = uc.UserContactID where UserID = 1;
-		var query = "SELECT ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
-		var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "User", "u", "UserContact", "uc", "uc.UserContactID", "u.UserContactID", "UserID", req.params.userid];
+		var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
+		var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserContact", "uc", "uc.UserContactID", "u.UserContactID", "UserID", req.params.userid];
 		query = mysql.format(query, table);
 		connection.query(query, function (err, rows) {
 			if (err) {
