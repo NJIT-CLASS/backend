@@ -21,6 +21,7 @@ var AssignmentSection= models.AssignmentSection;
 var Workflow= models.Workflow;
 var WorkflowActivity= models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
+var Allocator = require('./WorkFlow/Allocator.js');
 
 
 /**
@@ -214,9 +215,11 @@ Promise.all([Manager.getAssignments(assignmentSection),Manager.getUserSection(as
         for(var i = 0 ; i < S_User.length; i++)
         {
             var sectionUser = S_User[i];
-        //    console.log(sectionUser);
 
 
+            /**
+             * Creating each workflowInstance
+             */
             var workflowInstance = Workflow.build({
                 Type : workflowActivity.Name,
                 StartTime : new Date(),
@@ -233,9 +236,14 @@ Promise.all([Manager.getAssignments(assignmentSection),Manager.getUserSection(as
                             Manager.getTaskActivity(workflowActivity.WorkflowActivityID,assignment)
             ]).then(function(result){
 
+
+                /**
+                 * Creating task for each workflowInstance
+                 */
                 var workflow = result[0];
                 var taskActivities = result[1];
 
+                var promisesArray = [];
                 for(var i = 0; i < taskActivities.length; i++)
                 {
                     var currentTaskActivity = taskActivities[i];
@@ -253,16 +261,26 @@ Promise.all([Manager.getAssignments(assignmentSection),Manager.getUserSection(as
 
                     });
 
-
-                    task.save().then(function(task)
+                    /**
+                     * Adding promises to the array
+                     */
+                    promisesArray.push(task.save().then(function(task)
                     {
                         console.log("task created");
-                    }).catch(function (e){
-                        console.log(e);
-                    });
+                    }));
+
                 }
 
 
+                Promise.all(promisesArray).then(function(result){
+
+                    /**
+                     * Once the tasks are created
+                     * we will allocate them to the students
+                     */
+                    var alloc = new Allocator.Allocator();
+                    alloc.Allocate([assignmentSection.AssignmentID],[assignmentSection.SectionID]);
+                });
 
 
 
