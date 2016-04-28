@@ -4,6 +4,7 @@
 
 var models = require('../Model');
 var TaskFactory = require('./TaskFactory.js');
+var Allocator = require('./Allocator.js');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -21,7 +22,7 @@ var AssignmentSection= models.AssignmentSection;
 var Workflow= models.Workflow;
 var WorkflowActivity= models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
-var Allocator = require('./WorkFlow/Allocator.js');
+
 
 
 /**

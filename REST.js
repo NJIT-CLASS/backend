@@ -19,7 +19,7 @@ var WorkflowActivity= models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
-
+var sequelize = require("./Model/index.js").sequelize;
 //var server = require('./Server.js');
 
 //var User = server.app.get('models').User;
@@ -34,6 +34,222 @@ function REST_ROUTER(router,connection,md5) {
 REST_ROUTER.prototype.handleRoutes= function(router,connection,md5) {
 	router.get("/", function (req, res) {
 		res.json({"Message": "Hello, World!"});
+	});
+
+
+	/**
+	 * EndPoint for assignment Creation.
+	 * Cesar Salazar
+	 */
+	router.post("/Assignment/Create", function (req, res) {
+
+		var value = req.body.assignment;
+
+
+		/*******************************
+		 *     Exectuing Transaction   *
+		 *      if something fails,    *
+		 *  changes will be rolledback *
+		 *******************************/
+
+		sequelize.transaction(function(t){
+			"use strict";
+
+			/**
+			 * Defining assignment
+			 */
+			var assignment = Assignment.build({
+				Description : req.body.assignment.Description,
+				GradeDistribution : req.body.assignment.GradeDistribution,
+				Title : req.body.assignment.Title,
+				UserID : req.body.assignment.UserID,
+				GroupSize : req.body.assignment.GroupSize,
+				Settings : {},
+				UseCase : "1a"
+			});
+
+			/**
+			 * save changes for assignment
+			 */
+			return  assignment.save({transaction : t}).then(function(assignment)
+			{
+
+				//for (let workflow of req.body.assignment.WorkflowActivity) {
+
+				/**
+				 * Getting  workflow for assignment
+				 */
+				var workflow = req.body.assignment.WorkflowActivity;
+				console.log("creating workflow");
+
+
+				/**
+				 * Defining Workflow
+				 */
+				var workFlow = WorkflowActivity.build(
+					{
+						Name : workflow.Name,
+						Type : workflow.Type,
+						MaximumDuration : workflow.MaximumDuration,
+						Description : workflow.Description,
+						WA_A_id : assignment.AssignmentID
+
+					}
+				);
+				var promises = [];
+
+				/**
+				 * Saving Changes
+				 */
+				return workFlow.save({transaction : t}).then(function(workflow)
+				{
+					"use strict";
+					console.log("Succesfully creation of wokflow activity");
+
+
+					/**
+					 * Creating each TaskActivity for the assignment
+					 */
+					for (let taskactivity of req.body.assignment.TaskActivity) {
+
+						console.log("Creating taskActivity");
+
+						var taskActivity = TaskActivity.build(
+							{
+								Name : taskactivity.Name,
+								Type : taskactivity.Type,
+								MaximumDuration : taskactivity.MaximumDuration,
+								EarliestStartTime : taskactivity.EarliestStartTime,
+								Instructions : taskactivity.Instructions,
+								Visual_ID : taskactivity.Visual_ID,
+								TaskActivity_grade_difference : taskactivity.TaskActivity_grade_difference,
+								Task_grade_type : taskactivity.Task_grade_type,
+								Assignee_constraints : JSON.stringify(taskactivity.Assignee_constraints),
+								TA_due : JSON.stringify(taskactivity.TA_due),
+								TA_trigger_condition : JSON.stringify(taskactivity.TA_trigger_condition) ,
+								TA_next_task : JSON.stringify(taskactivity.TA_next_task),
+								TA_WA_id : null,//workflow.WorkflowActivityID,
+								TA_AA_id : assignment.AssignmentID
+							}
+						);
+
+						/**
+						 * Adding Promises to array
+						 * for just one time execution
+						 */
+						promises.push(taskActivity.save({transaction : t}));
+					}
+
+					/**
+					 * Executing task creation changes all at once
+					 */
+					return Promise.all(promises,{transaction : t});
+				});
+				//}
+			})
+		}).then(function(result)
+		{
+			/**
+			 * Transcation has been succesful
+			 * Changes have been commited
+			 */
+
+			//Loggin error
+			console.log("Assignment Creation succesfully");
+
+			res.status(200).end();
+		}).catch(function (err) {
+
+			// Transaction has been rolled back
+			// err is the reason why rejected the promise chain returned to the transaction callback
+			console.log("Assignment Creation has failed");
+
+			//Loggin error
+			console.log(err);
+			res.status(400).end();
+
+
+		});;
+
+		/**********************************
+		keep until testing is finished
+
+		var assignment = Assignment.build({
+			Description : req.body.assignment.Description,
+			GradeDistribution : req.body.assignment.GradeDistribution,
+			Title : req.body.assignment.Title,
+			UserID : req.body.assignment.UserID,
+			GroupSize : req.body.assignment.GroupSize,
+			Settings : {},
+			UseCase : "1a"
+		});
+
+
+		assignment.save().then(function(assignment)
+		{
+
+			//for (let workflow of req.body.assignment.WorkflowActivity) {
+			var workflow = req.body.assignment.WorkflowActivity;
+			console.log("creating workflow");
+
+			var workFlow = WorkflowActivity.build(
+				{
+					Name : workflow.Name,
+					Type : workflow.Type,
+					MaximumDuration : workflow.MaximumDuration,
+					Description : workflow.Description,
+					WA_A_id : assignment.AssignmentID
+
+				}
+			);
+
+			workFlow.save().then(function(workflow)
+			{
+				"use strict";
+				console.log("Succesfully creation of wokflow activity");
+
+
+
+				for (let taskactivity of req.body.assignment.TaskActivity) {
+
+					console.log("Creating taskActivity");
+
+					var taskActivity = TaskActivity.build(
+						{
+							Name : taskactivity.Name,
+							Type : taskactivity.Type,
+							MaximumDuration : taskactivity.MaximumDuration,
+							EarliestStartTime : taskactivity.EarliestStartTime,
+							Instructions : taskactivity.Instructions,
+							Visual_ID : taskactivity.Visual_ID,
+							TaskActivity_grade_difference : taskactivity.TaskActivity_grade_difference,
+							Task_grade_type : taskactivity.Task_grade_type,
+							Assignee_constraints : JSON.stringify(taskactivity.Assignee_constraints),
+							TA_due : JSON.stringify(taskactivity.TA_due),
+							TA_trigger_condition : JSON.stringify(taskactivity.TA_trigger_condition) ,
+							TA_next_task : JSON.stringify(taskactivity.TA_next_task),
+							TA_WA_id : workflow.WorkflowActivityID,
+							TA_AA_id : assignment.AssignmentID
+						}
+					);
+
+					taskActivity.save().then(function()
+					{
+						console.log("Succesfully creation of task activity");
+
+					}).catch(function(e){
+						console.log(e);
+					});
+				}
+			}).catch(function(e){
+				console.log(e);
+			});
+			//}
+		}).catch(function(e){
+			console.log(e);
+		});
+
+		*/
 	});
 
 	//Christian Alexander - Issue 6
@@ -1109,7 +1325,7 @@ router.put("/newInstructor/",function(req,res){
 
 router.get("/instructors", function (req, res) {
 	User.find({ 
-		where : { UserType : 'Professor'}
+		where : { UserType : 'Professor'},
 		attributes: ['UserID', 'FirstName', 'Email', 'Admin']
 	}).then(function(instructors){
 		console.log("/instructors");
