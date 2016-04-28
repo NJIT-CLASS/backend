@@ -1334,6 +1334,29 @@ router.get("/instructors", function (req, res) {
 });
 
 
+	/**
+	 * Get UserByID based on email
+	 * Cesar Salazar
+	 */
+
+		//Issue 3 - General User Endpoint
+	router.get("/getUserID/:email", function (req, res) {
+
+		UserLogin.find({ where :{ Email : req.params.email}}).then(
+			function(user)
+			{
+				"use strict";
+				res.json({"Error": false, "UserID": user.UserID});
+			}
+		).catch(function(e)
+		{
+			"use strict";
+			console.log("getUserID " + e);
+			res.json({"Error": true, "UserID": -1});
+		});
+	});
+
+
 }
 
  
