@@ -12,6 +12,7 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER,
             field: 'UserContactID', // Will result in an attribute that is firstName when user facing but first_name in the database
             allowNull: false,
+            autoIncrement: true,
             primaryKey: true
         },
         Email: {

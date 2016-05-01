@@ -7,6 +7,7 @@ var Sequelize = require("sequelize");
 var sequelize = new Sequelize("class", "class", "LC,m%HNpMsVqqNCHH7WAa6P7n", {
     host: "njit-class-system.cofdnjjki73o.us-east-1.rds.amazonaws.com",
     dialect: 'mysql',
+    omitNull: true,
 
     pool: {
         max: 5,

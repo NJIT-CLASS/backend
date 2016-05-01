@@ -11,6 +11,7 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER,
             field: 'UserID', // Will result in an attribute that is firstName when user facing but first_name in the database
             allowNull: false,
+            autoIncrement: true,
             primaryKey: true
         },
         FirstName: {
@@ -31,19 +32,19 @@ module.exports = function(sequelize, DataTypes) {
         OrganizationGroup: {
             type: DataTypes.JSON,
             field: 'OrganizationGroup', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: false
+            allowTrue: false
         },
         UserContactID: {
             type: DataTypes.INTEGER,
             field: 'UserContactID',
-            allowNull: false
+            allowNull: false,
         },
         UserType: {
             type: DataTypes.STRING,
             allowNull: false,
             field: 'UserType', // Will result in an attribute that is firstName when user facing but first_name in the database
             validate: {
-                isIn: [['Student', 'Teacher']]
+                isIn: [['Student', 'Instructor']]
             }
         },
         Admin: {
