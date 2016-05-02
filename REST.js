@@ -103,7 +103,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     /**
                      * Creating each TaskActivity for the assignment
                      */
-                    for (taskactivity in req.body.assignment.TaskActivity) {
+                    for (var taskactivity in req.body.assignment.TaskActivity) {
 
                         console.log("Creating taskActivity");
 
@@ -669,7 +669,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     
     //Endpoint to add a user to a course
     router.put("/course/adduser", function(req, res) {
-        if (req.body.email == null || req.body.courseid = null || req.body.coursesectionid == null) {
+        if (req.body.email == null || req.body.courseid == null || req.body.coursesectionid == null) {
             console.log("course/adduser : Email cannot be null");
             res.status(400).end();
         }
