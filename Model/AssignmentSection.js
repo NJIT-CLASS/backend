@@ -18,8 +18,8 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER,
             field: 'AssignmentID', // Will result in an attribute that is firstName when user facing but first_name in the database
             allowNull: false,
-            primaryKey: true
-
+            primaryKey: true,
+            autoIncrement : true
         },
         SectionID: {
             type: DataTypes.INTEGER,
@@ -42,12 +42,12 @@ module.exports = function(sequelize, DataTypes) {
         A_workflow_collection: {
             type: DataTypes.STRING,
             field: 'A_workflow_collection',
-            allowNull: false
+            allowNull: true
         },
         A_workflow_timing: {
             type: DataTypes.JSON,
             field: 'A_workflow_timing',
-            allowNull: false
+            allowNull: true
         }/*,
         GroupSize: {
             type: DataTypes.JSON,
