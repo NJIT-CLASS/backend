@@ -268,6 +268,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         );
     });
 
+    //Endpoint to Test All Models for a UserID
     router.get("/ModelTest/:userID", function(req, res) {
 
 
@@ -384,41 +385,31 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint for Login Function
     router.post("/login", function(req, res) {
-        var query = "SELECT ?? FROM ?? WHERE ?? = ? AND ?? = ?";
-        var table = ["UserID", "UserLogin", "Email", req.body.emailaddress, "Password", md5(req.body.password)];
-        query = mysql.format(query, table);
-
-        if (req.body.emailaddress == null) {
-            console.log("/login : Old emailaddress not sent");
+        if (req.body.emailaddress == null || req.body.password == null) {
+            console.log('/login : Invalid Credentials');
             res.status(401).end();
             return;
         }
-
-        if (req.body.password == null) {
-            console.log("/login : Password not sent");
-            res.status(401).end();
-            return;
-        }
-
-
-        connection.query(query, function(err, rows) {
-            if (err) {
-                res.status(401).end();
+        
+        UserLogin.find({
+            where: {
+                Email: req.body.emailaddress,
+                Password: md5(req.body.password)
+            },
+            attributes: ['UserID']
+        }).then(function(user) {
+            if(user == null){    
+                console.log('/login : Invalid Credentials');
+                res.status(401).end()
             } else {
-                if (rows.length > 0) {
-                    res.json({
-                        "Error": false,
-                        "Message": "Success",
-                        "UserID": rows[0].UserID
-                    });
-                } else {
-                    res.status(401).end();
-                }
+                res.json({
+                    "UserID": user.UserID
+                });
             }
         });
     });
 
-    //Updates Email
+    //Endpoint to update a User's Email
     router.put("/update/email", function(req, res) {
         if (req.body.password == null || req.body.email == null || req.body.userid == null) {
             console.log("/update/email : Bad Input");
@@ -427,7 +418,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
         UserLogin.find({
             where: {
-                UserID: req.body.userID,
+                UserID: req.body.userid,
                 Password: req.body.password
             },
             attributes: ['Email']
@@ -448,30 +439,39 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    //Updates Name
+    //Endpoint to update a User's Name
     router.put("/update/name", function(req, res) {
-        var query = "UPDATE ?? SET ?? = ?, ?? = ? WHERE ?? = ?";
-        var table = ["User", "FirstName", req.body.firstname, "LastName", req.body.lastname, "UserID", req.body.userid];
-        query = mysql.format(query, table);
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("/update/name : " + err.message);
-
+        User.find({
+            where: {
+                UserID: req.body.userid
+            },
+            attributes: ['FirstName','LastName']
+        }).then(function(user) {
+            if(user == null){
+                console.log('/update/name : UserID not Found');
                 res.status(401).end();
             } else {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "FirstName": req.body.firstname,
-                    "LastName": req.body.lastname
+                if(req.body.firstname != ''){
+                    user.FirstName = req.body.firstname;
+                }
+                if(req.body.lastname != ''){
+                    user.LastName = req.body.lastname;
+                }
+                user.save().then(function(used) {
+                    res.json({
+                        "FirstName": user.FirstName,
+                        "LastName" : user.LastName
+                    });
+                }).catch(function(err) {
+                    console.log('/update/name : ' + err);
+                    res.status(401).end();
                 });
             }
         });
     });
 
-    //Issue 3 - General User Endpoint
+    //Endpoint to return general user data
     router.get("/generalUser/:userid", function(req, res) {
-        //select u.FirstName, u.LastName, u.UserType, uc.Email from User as u inner join UserContact as uc on u.UserContactID = uc.UserContactID where UserID = 1;
         var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
         var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserContact", "uc", "uc.UserContactID", "u.UserContactID", "UserID", req.params.userid];
         query = mysql.format(query, table);
@@ -489,12 +489,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    //Issue 4
-    /**
-     * Create Semester
-     * Issue #4.1
-     * Cesar Salazar
-     */
+    //Endpoint to create a semester
     router.post("/CreateSemester", function(req, res) {
         var query = "insert into Semester (Name, StartDate,EndDate) values(?,?,?)";
 
@@ -527,8 +522,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-    //Christian Alexander - Issue 4.2
-    //Get Semester Information
+    //Endpoint to return Semester Information
     router.get("/semester/:semesterid", function(req, res) {
         var query = "select ??, ??, ??, ?? from ?? where ??=?";
         var table = ["SemesterID", "Name", "StartDate", "EndDate", "Semester",
@@ -552,8 +546,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    //Christian Alexander - Issue 4.3
-    //Get All Semester Information
+    //Endpoint to get All Semester Information
     router.get("/semester", function(req, res) {
         var query = "select *  from ??";
         var table = ["Semester"];
@@ -673,9 +666,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         });
     });
-    //Christian Alexander - 5.3
-    //Add Student to Section
-    /*TO DO = GET CourseID, ADD IT TO TABLE */
+    
+    //Endpoint to add a user to a course
     router.put("/course/adduser", function(req, res) {
         if (req.body.email == null || req.body.courseid = null || req.body.coursesectionid == null) {
             console.log("course/adduser : Email cannot be null");
