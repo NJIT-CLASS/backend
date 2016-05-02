@@ -1257,6 +1257,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
         });
     });
+
+    //Endpoint to Get Pending Tasks
+    router.get("/task/:userid", function(req, res){
+       Task.findAll({
+           where: {
+                UserID: req.params.userid
+           }
+        }).then(function (task) {
+            res.json({
+                "Tasks": task
+            });
+        }).catch(function(e) {
+            console.log("/task/:userid " + e);
+            res.json({
+                "Tasks": -1
+            });
+        });
+    });
+
 }
 
 module.exports = REST_ROUTER;
