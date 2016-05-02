@@ -150,7 +150,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
             //Loggin error
             console.log("Assignment Creation succesfully");
-
+            
             res.status(200).end();
         }).catch(function(err) {
 
@@ -163,87 +163,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(400).end();
 
 
-        });;
-
-        /**********************************
-        keep until testing is finished
-
-        var assignment = Assignment.build({
-        	Description : req.body.assignment.Description,
-        	GradeDistribution : req.body.assignment.GradeDistribution,
-        	Title : req.body.assignment.Title,
-        	UserID : req.body.assignment.UserID,
-        	GroupSize : req.body.assignment.GroupSize,
-        	Settings : {},
-        	UseCase : "1a"
         });
-
-
-        assignment.save().then(function(assignment)
-        {
-
-        	//for (let workflow of req.body.assignment.WorkflowActivity) {
-        	var workflow = req.body.assignment.WorkflowActivity;
-        	console.log("creating workflow");
-
-        	var workFlow = WorkflowActivity.build(
-        		{
-        			Name : workflow.Name,
-        			Type : workflow.Type,
-        			MaximumDuration : workflow.MaximumDuration,
-        			Description : workflow.Description,
-        			WA_A_id : assignment.AssignmentID
-
-        		}
-        	);
-
-        	workFlow.save().then(function(workflow)
-        	{
-        		"use strict";
-        		console.log("Succesfully creation of wokflow activity");
-
-
-
-        		for (let taskactivity of req.body.assignment.TaskActivity) {
-
-        			console.log("Creating taskActivity");
-
-        			var taskActivity = TaskActivity.build(
-        				{
-        					Name : taskactivity.Name,
-        					Type : taskactivity.Type,
-        					MaximumDuration : taskactivity.MaximumDuration,
-        					EarliestStartTime : taskactivity.EarliestStartTime,
-        					Instructions : taskactivity.Instructions,
-        					Visual_ID : taskactivity.Visual_ID,
-        					TaskActivity_grade_difference : taskactivity.TaskActivity_grade_difference,
-        					Task_grade_type : taskactivity.Task_grade_type,
-        					Assignee_constraints : JSON.stringify(taskactivity.Assignee_constraints),
-        					TA_due : JSON.stringify(taskactivity.TA_due),
-        					TA_trigger_condition : JSON.stringify(taskactivity.TA_trigger_condition) ,
-        					TA_next_task : JSON.stringify(taskactivity.TA_next_task),
-        					TA_WA_id : workflow.WorkflowActivityID,
-        					TA_AA_id : assignment.AssignmentID
-        				}
-        			);
-
-        			taskActivity.save().then(function()
-        			{
-        				console.log("Succesfully creation of task activity");
-
-        			}).catch(function(e){
-        				console.log(e);
-        			});
-        		}
-        	}).catch(function(e){
-        		console.log(e);
-        	});
-        	//}
-        }).catch(function(e){
-        	console.log(e);
-        });
-
-        */
     });
 
     //Endpoint for Assignment Allocator
@@ -1265,6 +1185,19 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.json({
                 "Tasks": -1
             });
+        });
+    });
+
+    router.post("assignment/section", function(req, res){
+        AssignmentSection.create({
+            AssignmentID: req.body.assignmentid,
+            SectionID: req.body.sectionid
+        }).save().then(function() {
+            console.log('/assignment/section success');
+            res.status(200).end();
+        }).catch(function(e) {
+            console.log('/assignment/section ' + e);
+            res.status(400).end();
         });
     });
 
