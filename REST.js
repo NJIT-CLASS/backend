@@ -323,6 +323,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 res.status(401).end()
             } else {
                 res.json({
+                    "Error": false,
+                    "Message": "Success",
                     "UserID": user.UserID
                 });
             }
