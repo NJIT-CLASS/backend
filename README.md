@@ -16,6 +16,7 @@ If you've never used github before [set your ssh key](#github-setup)
 - [MySQL](https://www.mysql.com): Database
 - [Body Parser](https://github.com/expressjs/body-parser): Parses JSON
 - [MD5](https://en.wikipedia.org/wiki/MD5): Message Digest Algorithm for Security
+- [Sequelize](http://docs.sequelizejs.com/en/latest/) : ORM library to access data base and manipulate data easily.
 
 ##Github Setup
 
