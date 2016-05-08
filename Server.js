@@ -31,6 +31,11 @@ REST.prototype.connectMysql = function() {
 
 REST.prototype.configureExpress = function(connection) {
       var self = this;
+      app.use(function(req, res, next) {
+        res.header("Access-Control-Allow-Origin", "*");
+        res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+        next();
+      });
       app.use(bodyParser.urlencoded({ extended: true }));
       app.use(bodyParser.json());
       var router = express.Router();
@@ -42,7 +47,7 @@ REST.prototype.configureExpress = function(connection) {
 REST.prototype.startServer = function() {
       app.listen(process.env.serverPort,function(){
           console.log(md5("CesarP"));
-          console.log("All right ! I am alive at Port 3000.");
+          console.log("All right ! I am alive at Port ." + process.env.serverPort);
       });
 }
 

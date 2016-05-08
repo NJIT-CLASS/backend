@@ -341,9 +341,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         UserLogin.find({
             where: {
                 UserID: req.body.userid,
-                Password: req.body.password
-            },
-            attributes: ['Email']
+                Password: md5(req.body.password)
+            }
         }).then(function(user) {
             if (user == null) {
                 console.log('/update/email : Bad Input');
@@ -366,8 +365,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         User.find({
             where: {
                 UserID: req.body.userid
-            },
-            attributes: ['FirstName','LastName']
+            }
         }).then(function(user) {
             if(user == null){
                 console.log('/update/name : UserID not Found');
@@ -394,9 +392,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to return general user data
     router.get("/generalUser/:userid", function(req, res) {
+        // var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
+        // var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserContact", "uc", "uc.UserContactID", "u.UserContactID", "UserID", req.params.userid];
+        // query = mysql.format(query, table);
         var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
-        var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserContact", "uc", "uc.UserContactID", "u.UserContactID", "UserID", req.params.userid];
-        query = mysql.format(query, table);
+       var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserLogin", "uc", "uc.UserID", "u.UserID", "u.UserID", req.params.userid];
+       query = mysql.format(query, table);
         connection.query(query, function(err, rows) {
             if (err) {
                 console.log("/generalUser : " + err.message);
