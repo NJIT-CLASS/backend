@@ -4,7 +4,13 @@
 
 var Sequelize = require("sequelize");
 
-var sequelize = new Sequelize("class", "class", "LC,m%HNpMsVqqNCHH7WAa6P7n", {
+process.env.dbHost = 'localhost';
+process.env.dbUser = 'root';
+process.env.dbPass = '123456';
+process.env.database = 'CLASS/PLA';
+process.env.serverPort = '4000';
+
+var sequelize = new Sequelize(process.env.database, process.env.dbUser, process.env.dbPass, {
     host: process.env.dbHost,
     dialect: 'mysql',
     omitNull: true,

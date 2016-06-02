@@ -150,7 +150,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
             //Loggin error
             console.log("Assignment Creation succesfully");
-            
+
             res.status(200).end();
         }).catch(function(err) {
 
@@ -310,7 +310,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(401).end();
             return;
         }
-        
+
         UserLogin.find({
             where: {
                 Email: req.body.emailaddress,
@@ -318,7 +318,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             },
             attributes: ['UserID']
         }).then(function(user) {
-            if(user == null){    
+            if (user == null) {
                 console.log('/login : Invalid Credentials');
                 res.status(401).end()
             } else {
@@ -367,20 +367,20 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 UserID: req.body.userid
             }
         }).then(function(user) {
-            if(user == null){
+            if (user == null) {
                 console.log('/update/name : UserID not Found');
                 res.status(401).end();
             } else {
-                if(req.body.firstname != ''){
+                if (req.body.firstname != '') {
                     user.FirstName = req.body.firstname;
                 }
-                if(req.body.lastname != ''){
+                if (req.body.lastname != '') {
                     user.LastName = req.body.lastname;
                 }
                 user.save().then(function(used) {
                     res.json({
                         "FirstName": user.FirstName,
-                        "LastName" : user.LastName
+                        "LastName": user.LastName
                     });
                 }).catch(function(err) {
                     console.log('/update/name : ' + err);
@@ -395,26 +395,46 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         // var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
         // var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserContact", "uc", "uc.UserContactID", "u.UserContactID", "UserID", req.params.userid];
         // query = mysql.format(query, table);
-        var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
-       var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserLogin", "uc", "uc.UserID", "u.UserID", "u.UserID", req.params.userid];
-       query = mysql.format(query, table);
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("/generalUser : " + err.message);
-                res.status(401).end();
-            } else {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "User": rows
-                });
-            }
+        /*var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
+        var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserLogin", "uc", "uc.UserID", "u.UserID", "u.UserID", req.params.userid];
+        query = mysql.format(query, table);
+         connection.query(query, function(err, rows) {
+             if (err) {
+                 console.log("/generalUser : " + err.message);
+                 res.status(401).end();
+             } else {
+                 res.json({
+                     "Error": false,
+                     "Message": "Success",
+                     "User": rows
+                 });
+             }
+         });*/
+        User.findAll({
+            where: {
+                UserID: req.params.userid
+            },
+            attributes: ['FirstName', 'LastName', 'UserType', 'Admin'],
+            include: [{
+                model: UserLogin,
+                attributes: ['Email']
+            }]
+        }).then(function(user) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "User": user
+            });
+        }).catch(function(err) {
+            console.log("/generalUser : " + err.message);
+            res.status(401).end();
         });
+
     });
 
     //Endpoint to create a semester
     router.post("/CreateSemester", function(req, res) {
-        var query = "insert into Semester (Name, StartDate,EndDate) values(?,?,?)";
+        /*var query = "insert into Semester (Name, StartDate,EndDate) values(?,?,?)";
 
         //Formating Dates
         var startDate = dateFormat(req.body.startDate, "yyyy-mm-dd");
@@ -441,13 +461,41 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 }
             });
 
+        }*/
+
+        var startDate = dateFormat(req.body.startDate, "yyyy-mm-dd");
+        var endDate = dateFormat(req.body.endDate, "yyyy-mm-dd");
+        if (req.body.endDate == null || req.body.startDate == null) {
+            console.log("/CreateSemester : Dates must be defined");
+            res.status(400).end();
+        } else if (startDate > endDate) {
+            console.log("/CreateSemester : StartDate cannot be grater than EndDate");
+            res.status(400).end();
+        } else {
+            var semester = Semester.build({
+                Name: req.body.Name,
+                StartDate: req.body.startDate,
+                EndDate: req.body.endDate,
+                OrganizationID: req.body.OrganizationID
+
+            }).save().then(function(response) {
+                console.log("/CreateSemester Succesfully");
+                res.json({
+                    "SemesterID": response.insertId
+                });
+            }).catch(function(err) {
+                console.log("/CreateSemester : " + err.message);
+                res.status(400).end();
+            });
         }
+
+
 
     });
 
     //Endpoint to return Semester Information
     router.get("/semester/:semesterid", function(req, res) {
-        var query = "select ??, ??, ??, ?? from ?? where ??=?";
+        /*var query = "select ??, ??, ??, ?? from ?? where ??=?";
         var table = ["SemesterID", "Name", "StartDate", "EndDate", "Semester",
             "SemesterID", req.params.semesterid
         ];
@@ -466,12 +514,30 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     "Course": rows
                 });
             }
+        });*/
+
+        Semester.findAll({
+            where: {
+                SemesterID: req.params.semesterid
+            },
+            attributes: ['SemesterID', 'Name', 'StartDate', 'EndDate', 'OrganizationID']
+        }).then(function(rows) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Course": rows
+            });
+        }).catch(function(err) {
+            console.log("/semester/email : " + err.message);
+            res.status(401).end();
         });
+
+
     });
 
     //Endpoint to get All Semester Information
     router.get("/semester", function(req, res) {
-        var query = "select *  from ??";
+        /*var query = "select *  from ??";
         var table = ["Semester"];
 
         query = mysql.format(query, table);
@@ -488,8 +554,19 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     "Semesters": rows
                 });
             }
+        });*/
+        Semester.findAll({}).then(function(rows) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Semesters": rows
+            }).catch(function(err) {
+                console.log("/semester: " + err.message);
+                res.status(401).end();
+            });
         });
     });
+
 
     //Issue 5
     /**
@@ -499,7 +576,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
      * Cesar Salazar
      */
     router.post("/course/create", function(req, res) {
-        var query = "insert into ??(??,??,??) values(?,?,?)";
+        /*var query = "insert into ??(??,??,??) values(?,?,?)";
         var table = ["Course", "CreatorID", "Number", "Title",
             req.body.userid, req.body.number, req.body.title
         ];
@@ -528,7 +605,37 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     });
                 });
             }
-        });
+        });*/
+
+        if (req.body.userid == null) {
+            console.log("/course/create : UserID cannot be null");
+            res.status(400).end();
+            return;
+        } else if (req.body.title == null) {
+            console.log("/course/create : Title cannot be null");
+            res.status(400).end();
+            return;
+        } else {
+            var course = Course.build({
+                CreatorID: req.body.userid,
+                Number: req.body.number,
+                Title: req.body.title
+
+            }).save().then(function(err, response) {
+                if (err) {
+                    console.log("/course/create : " + err.message);
+
+                    res.status(400).end();
+                } else {
+                    getCreatedCourseID(function(result) {
+                        res.json({
+                            "result": result
+                        });
+                    });
+                }
+            });
+        }
+
     });
 
     function getCreatedCourseID(callback) {
@@ -543,6 +650,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 callback(rows);
             }
         });
+
+        /*sequelize.query("SELECT LAST_INSERT_ID()", {
+            type: sequelize.QueryTypes.SELECT
+        }).then(function(rows) {
+            callback(rows);
+        }).catch(function(err) {
+            res.status(400).end();
+        });*/
     }
 
     //Christian Alexander - Issue 5.2
@@ -550,7 +665,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.post("/course/createsection", function(req, res) {
 
 
-        var query = "insert into ??(??,??,??,??) values(?,?,?,?)";
+        /*var query = "insert into ??(??,??,??,??) values(?,?,?,?)";
         var table = ["Section", "CourseID", "SemesterID", "Name",
             "Description", req.body.courseid, req.body.semesterid, req.body.name,
             req.body.description
@@ -587,9 +702,43 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     });
                 });
             }
+        });*/
+
+        if (req.body.semesterid == null) {
+            console.log("course/createsection : SemesterID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.courseid == null) {
+            console.log("course/createsection : CourseID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.description == null) {
+            console.log("course/createsection : Description cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        var section = Section.build({
+            SemesterID: req.body.semesterid,
+            CourseID: req.body.courseid,
+            Name: req.body.name,
+            Description: req.body.description
+
+        }).save().then(function(response) {
+          getCreatedCourseID(function(result) {
+            res.json({
+                "result": result
+            });
+        });
+      }).catch(function(err) {
+            console.log("/course/createsection : " + err.message);
+
+            res.status(401).end();
         });
     });
-    
+
     //Endpoint to add a user to a course
     router.put("/course/adduser", function(req, res) {
         if (req.body.email == null || req.body.courseid == null || req.body.coursesectionid == null) {
@@ -666,7 +815,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
      * Cesar Salazar
      */
     router.get("/course/:courseId", function(req, res) {
-        var query = "SELECT ??,??, ?? FROM ?? Where ??=?";
+        /*var query = "SELECT ??,??, ?? FROM ?? Where ??=?";
         var table = ["CourseID", "Number", "Title", "Course", "CourseID", req.params.courseId];
         query = mysql.format(query, table);
         connection.query(query, function(err, result) {
@@ -689,7 +838,30 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 });
 
             }
-        });
+        });*/
+
+        Course.find({
+            where: {
+                CourseID: req.params.courseId
+            },
+            attributes: ["CourseID", "Number", "Title"]
+        }).then(function(result) {
+            Section.findAll({
+                where: {
+                    CourseID: req.params.courseId
+                }
+            });
+        }).then(function(sections) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Course": result,
+                "Sections": sections
+            });
+        }).catch(function(err) {
+            console.log("/course : " + err.message);
+            res.status(400).end();
+        })
 
     });
 
@@ -701,7 +873,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
      */
     router.get("/course/getsection/:sectionId", function(req, res) {
 
-        var query = "SELECT ??, ?? FROM ?? where ?? = ?";
+        /*var query = "SELECT ??, ?? FROM ?? where ?? = ?";
         var table = ["Name", "Description", "Section", "SectionID", req.params.sectionId];
         query = mysql.format(query, table);
 
@@ -717,8 +889,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     });
                 });
             }
-        });
+        });*/
 
+        Section.find({
+                where: {
+                    SectionID: req.params.sectionId
+                },
+                attributes: ["Name", "Description"]
+            }).then(function(err, rows) {
+                if (err) {
+                    console.log("/course/getsection/ : " + err.message);
+                    res.status(400).end();
+                }
+            })
+            .then(getSectionUsers(req.params.sectionId, function(result) {
+                res.json({
+                    "result": rows,
+                    "UserSection": result
+                });
+            }));
     });
 
     /**
@@ -727,7 +916,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
      * @param callback
      */
     function getSectionUsers(SectionID, callback) {
-        var query = "SELECT distinct ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? where ?? = ?";
+        /*var query = "SELECT distinct ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? where ?? = ?";
         //select distinct  u.UserID, u.UserType, u.FirstName, u.MiddleInitial, u.LastName from SectionUser as us inner join User as u where SectionID = 2;
         var table = ["u.UserID", "u.UserType", "u.FirstName", "u.MiddleInitial", "u.LastName", "SectionUser", "us", "User", "u", "SectionID", SectionID];
         query = mysql.format(query, table);
@@ -740,6 +929,21 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             } else {
                 callback(rows);
             }
+        });*/
+
+        SectionUser.find({
+            where: {
+                SectionID: SectionID
+            },
+            attributes: ['UserID', 'UserType', 'FirstName', 'MiddleInitial', 'LastName'],
+            include: [{
+                model: User
+            }]
+        }).then(function(rows) {
+            callback(rows);
+        }).catch(function(err) {
+            console.log("Method getSectionUsers : " + err.message);
+            res.status(401).end();
         });
     }
 
@@ -754,7 +958,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
      course creator id
      */
     router.put("/course/update", function(req, res) {
-        var query = "update ?? set ??=?, ??=? where ?? = ?";
+        /*var query = "update ?? set ??=?, ??=? where ?? = ?";
         var table = ["Course", "Title", req.body.Title, "Number", req.body.Number, "CourseID", req.body.CourseID];
 
         if (req.body.title == null) {
@@ -779,6 +983,36 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             } else {
                 res.status(200).end();
             }
+        });*/
+
+        Course.find({
+            where: {
+                CourseID: req.body.CourseID,
+            }
+        }).then(function(course) {
+            if (course == null) {
+                console.log('/course/update : Bad Input');
+                res.status(401).end();
+            } else {
+                if (req.body.Number != null) {
+                    course.Number = req.body.Number;
+                }
+                if (req.body.Title != null) {
+                    course.Title = req.body.Title;
+                }
+                course.save().then(function(used) {
+                    res.json({
+                        "Number": req.body.Number,
+                        "Title": req.body.Title
+                    });
+
+
+                }).catch(function(err) {
+                    console.log('/course/update : ' + err);
+                    res.status(401).end();
+                });
+            }
+
         });
 
     });
@@ -786,7 +1020,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //Christian Alexander - Issue 5.7
     //Update a Course Section
     router.put("/course/updatesection", function(req, res) {
-        var query = "update ?? set ??=?, ??=? where ??=? and ?? = ?";
+        /*var query = "update ?? set ??=?, ??=? where ??=? and ?? = ?";
         var table = ["Section", "Name", req.body.name, "Description",
             req.body.description, "SectionID", req.body.sectionid,
             "SemesterID", req.body.semesterid
@@ -823,6 +1057,35 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             } else {
                 res.status(200).end();
             }
+        });*/
+
+        Section.find({
+            where: {
+                SectionID: req.body.sectionid,
+                SemesterID: req.body.semesterid
+            }
+        }).then(function(section) {
+            if (section == null) {
+                console.log('/course/updatesection : Bad Input');
+                res.status(401).end();
+            } else {
+                if (section.Name != null) {
+                    section.Name = req.body.Name;
+                }
+                if (section.Description != null) {
+                    section.Description = req.body.Description;
+                }
+                section.save().then(function(used) {
+                    res.json({
+                        "Nane": req.body.Name,
+                        "Description": req.body.Description
+                    });
+                }).catch(function(err) {
+                    console.log('/course/updatesection : ' + err);
+                    res.status(401).end();
+                });
+
+            }
         });
     });
     /**
@@ -834,7 +1097,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
      SectionID
      */
     router.delete("/course/deleteuser", function(req, res) {
-        var query = "delete from ?? where ?? = ? and ?? = ?";
+        /*var query = "delete from ?? where ?? = ? and ?? = ?";
         var table = ["SectionUser", "UserID", req.body.userID, "SectionID", req.body.SectionID];
         query = mysql.format(query, table);
         connection.query(query, function(err, rows) {
@@ -845,14 +1108,27 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             } else {
                 res.status(200).end()
             }
+        });*/
+        SectionUser.destroy({
+            where: {
+                UserID: req.body.userID,
+                SectionID: req.body.SectionID
+            }
+        }).then(function(rows) {
+            res.status(200).end();
+        }).catch(function(err) {
+            console.log("/course/deleteuser : " + err.message);
+
+            res.status(400).end();
         });
+
 
     });
 
     //Endpoint to get a user's courses
     router.get("/course/getCourses/:userid", function(req, res) {
 
-        var query = "select ??, ?? from ?? as su inner join Section as s on s.SectionID = su.SectionID where ??=?";
+        /*var query = "select ??, ?? from ?? as su inner join Section as s on s.SectionID = su.SectionID where ??=?";
         var table = ["s.CourseID", "s.SectionID", "SectionUser", "su.UserID", req.params.userid];
         query = mysql.format(query, table);
         connection.query(query, function(err, rows) {
@@ -872,6 +1148,28 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     });
                 }
             }
+        });*/
+
+        Course.findAll({
+            where: {
+                UserID: req.params.userid
+            },
+            attributes: ["CourseID", "SectionID"],
+        }).then(function(rows) {
+            if (rows.length > 0) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": rows
+                });
+            } else {
+                res.json({
+                    "Error": true,
+                    "Message": "User Has No Courses"
+                });
+            }
+        }).catch(function(err) {
+            res.status(401).end();
         });
     });
 
@@ -940,7 +1238,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
      */
     router.get("/getPasswordResetRequest", function(req, res) {
-        var query = "select ?? from ?? where ??=?";
+        /*var query = "select ?? from ?? where ??=?";
         var table = ["UserID", "ResetPasswordRequest", "RequestHash", req.query.PasswordHash];
         query = mysql.format(query, table);
         connection.query(query, function(err, result) {
@@ -963,6 +1261,31 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     });
                 }
             }
+        });*/
+
+        ResetPasswordRequest.find({
+            where: {
+                RequestHash: req.query.PasswordHash
+            },
+            attributes: ["UserID"]
+        }).then(function(result) {
+            if (result.length > 0) {
+                console.log("/getPasswordResetRequest : Request found");
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "UserID": result
+                });
+            } else {
+                console.log("/getPasswordReset : Request not found");
+                res.json({
+                    "Error": true,
+                    "Message": "Request Password not found"
+                });
+            }
+        }).catch(function(err) {
+            console.log("/getPasswordResetRequest : " + err.message);
+            res.status(404).end();
         });
     });
 
@@ -1174,12 +1497,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     //Endpoint to Get Pending Tasks
-    router.get("/task/:userid", function(req, res){
-       Task.findAll({
-           where: {
+    router.get("/task/:userid", function(req, res) {
+        Task.findAll({
+            where: {
                 UserID: req.params.userid
-           }
-        }).then(function (task) {
+            }
+        }).then(function(task) {
             res.json({
                 "Tasks": task
             });
@@ -1191,7 +1514,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    router.post("assignment/section", function(req, res){
+    router.post("assignment/section", function(req, res) {
         AssignmentSection.create({
             AssignmentID: req.body.assignmentid,
             SectionID: req.body.sectionid
@@ -1203,6 +1526,21 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(400).end();
         });
     });
+
+    /*router.get("/createProblem", function(req, res){
+      Task.findAll({
+        where: {
+            TaskID:req.param.TaskID
+
+        }
+        attributes: ["TaskActivity.type", "Assignment.Name", "Course.Name", "Semester.name", "Assignment.Description"]
+      }).then(function(Tasks){
+        console.log("/createProblem Problem Created");
+        res.json()
+      })
+
+
+    });*/
 
 }
 

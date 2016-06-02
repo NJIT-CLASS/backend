@@ -21,8 +21,8 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.STRING,
             field: 'Email',
             allowNull: true
-        }
-        ,
+        },
+
         Password: {
             type: DataTypes.STRING,
             field: 'Password',
