@@ -109,7 +109,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
                         var taskActivity = TaskActivity.build({
                             Name: taskactivity.Name,
-                            Type: taskactivity.Type,
+                            Type: TaskActivity.TaskActivityType,
                             MaximumDuration: taskactivity.MaximumDuration,
                             EarliestStartTime: taskactivity.EarliestStartTime,
                             Instructions: taskactivity.Instructions,
@@ -481,7 +481,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }).save().then(function(response) {
                 console.log("/CreateSemester Succesfully");
                 res.json({
-                    "SemesterID": response.insertId
+                    "SemesterID": response.SemesterID
                 });
             }).catch(function(err) {
                 console.log("/CreateSemester : " + err.message);
@@ -611,34 +611,32 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             console.log("/course/create : UserID cannot be null");
             res.status(400).end();
             return;
-        } else if (req.body.title == null) {
+        }
+        if (req.body.title == null) {
             console.log("/course/create : Title cannot be null");
             res.status(400).end();
             return;
-        } else {
-            var course = Course.build({
-                CreatorID: req.body.userid,
-                Number: req.body.number,
-                Title: req.body.title
-
-            }).save().then(function(err, response) {
-                if (err) {
-                    console.log("/course/create : " + err.message);
-
-                    res.status(400).end();
-                } else {
-                    getCreatedCourseID(function(result) {
-                        res.json({
-                            "result": result
-                        });
-                    });
-                }
-            });
         }
+        var course = Course.build({
+            CreatorID: req.body.userid,
+            Number: req.body.number,
+            Title: req.body.title
+
+        }).save().then(function(response) {
+            res.json({
+                "NewCourse": response,
+                "CourseID": response.CourseID
+            });
+        }).catch(function(err) {
+            console.log("/course/create : " + err.message);
+
+            res.status(400).end();
+        });
+
 
     });
 
-    function getCreatedCourseID(callback) {
+    /*function getCreatedCourseID(callback) {
         var query = "SELECT LAST_INSERT_ID()";
         var table = [];
         query = mysql.format(query, table);
@@ -657,8 +655,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             callback(rows);
         }).catch(function(err) {
             res.status(400).end();
-        });*/
-    }
+        });
+    }*/
 
     //Christian Alexander - Issue 5.2
     //Create Course Section
@@ -714,11 +712,17 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(400).end();
             return;
         }
+        if (req.body.name == null) {
+            console.log("course/createsection : Name cannot be null");
+            res.status(400).end();
+            return;
+        }
         if (req.body.description == null) {
             console.log("course/createsection : Description cannot be null");
             res.status(400).end();
             return;
         }
+
 
         var section = Section.build({
             SemesterID: req.body.semesterid,
@@ -727,12 +731,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             Description: req.body.description
 
         }).save().then(function(response) {
-          getCreatedCourseID(function(result) {
             res.json({
-                "result": result
+                "result": response
             });
-        });
-      }).catch(function(err) {
+        }).catch(function(err) {
             console.log("/course/createsection : " + err.message);
 
             res.status(401).end();
@@ -850,14 +852,15 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 where: {
                     CourseID: req.params.courseId
                 }
+            }).then(function(sections) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Course": result,
+                    "Sections": sections
+                });
             });
-        }).then(function(sections) {
-            res.json({
-                "Error": false,
-                "Message": "Success",
-                "Course": result,
-                "Sections": sections
-            });
+
         }).catch(function(err) {
             console.log("/course : " + err.message);
             res.status(400).end();
@@ -892,22 +895,21 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });*/
 
         Section.find({
-                where: {
-                    SectionID: req.params.sectionId
-                },
-                attributes: ["Name", "Description"]
-            }).then(function(err, rows) {
-                if (err) {
-                    console.log("/course/getsection/ : " + err.message);
-                    res.status(400).end();
-                }
-            })
-            .then(getSectionUsers(req.params.sectionId, function(result) {
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ["Name", "Description"]
+        }).then(function(rows) {
+            getSectionUsers(req.params.sectionId, function(result) {
                 res.json({
                     "result": rows,
                     "UserSection": result
                 });
-            }));
+            });
+        }).catch(function(err) {
+            console.log("/course : " + err.message);
+            res.status(400).end();
+        })
     });
 
     /**
@@ -916,7 +918,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
      * @param callback
      */
     function getSectionUsers(SectionID, callback) {
-        /*var query = "SELECT distinct ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? where ?? = ?";
+        var query = "SELECT distinct ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? where ?? = ?";
         //select distinct  u.UserID, u.UserType, u.FirstName, u.MiddleInitial, u.LastName from SectionUser as us inner join User as u where SectionID = 2;
         var table = ["u.UserID", "u.UserType", "u.FirstName", "u.MiddleInitial", "u.LastName", "SectionUser", "us", "User", "u", "SectionID", SectionID];
         query = mysql.format(query, table);
@@ -929,22 +931,27 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             } else {
                 callback(rows);
             }
-        });*/
+        });
 
-        SectionUser.find({
+        /*SectionUser.find({
             where: {
                 SectionID: SectionID
             },
-            attributes: ['UserID', 'UserType', 'FirstName', 'MiddleInitial', 'LastName'],
+            attributes: [[sequelize.literal('distinct `User.UserID`'),'User.UserID'],
+            [sequelize.literal('distinct `User.UserType`'),'User.UserType'],
+            [sequelize.literal('distinct `User.FirstName`'),'User.FirstName'],
+            [sequelize.literal('distinct `User.MiddleInitial`'),'User.MiddleInitial'],
+            [sequelize.literal('distinct `User.LastName`'),'LastName']],
             include: [{
-                model: User
+                model: User,
+                attributes: ['UserID', 'UserType', 'FirstName', 'MiddleInitial', 'LastName']
             }]
         }).then(function(rows) {
             callback(rows);
         }).catch(function(err) {
             console.log("Method getSectionUsers : " + err.message);
             res.status(401).end();
-        });
+        });*/
     }
 
     /**
@@ -985,35 +992,45 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         });*/
 
-        Course.find({
+        if (req.body.Title == null) {
+            console.log("course/create : Title cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        if (req.body.courseid == null) {
+            console.log("course/create : CourseID cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+
+
+        Course.update({
+            Title: req.body.Title,
+            Number: req.body.Number
+        }, {
             where: {
-                CourseID: req.body.CourseID,
+                CourseID: req.body.courseid
             }
-        }).then(function(course) {
-            if (course == null) {
-                console.log('/course/update : Bad Input');
-                res.status(401).end();
-            } else {
-                if (req.body.Number != null) {
-                    course.Number = req.body.Number;
+        }).then(function(result) {
+            Course.find({
+                where: {
+                    CourseID: req.body.courseid
                 }
-                if (req.body.Title != null) {
-                    course.Title = req.body.Title;
-                }
-                course.save().then(function(used) {
-                    res.json({
-                        "Number": req.body.Number,
-                        "Title": req.body.Title
-                    });
-
-
-                }).catch(function(err) {
-                    console.log('/course/update : ' + err);
-                    res.status(401).end();
+            }).then(function(courseUpdated) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "result": result,
+                    "CourseUpdated": courseUpdated
                 });
-            }
-
+            });
+        }).catch(function(err) {
+            console.log('/course/update : ' + err);
+            res.status(401).end();
         });
+
 
     });
 
@@ -1059,34 +1076,63 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         });*/
 
-        Section.find({
+        if (req.body.semesterid == null) {
+            console.log("course/updatesection : SemesterID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.courseid == null) {
+            console.log("course/updatesection : CourseID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.description == null) {
+            console.log("course/updatesection : Description cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        if (req.body.sectionid == null) {
+            console.log("course/updatesection : sectionid cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        if (req.body.name == null) {
+            console.log("course/updatesection : name cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        Section.update({
+            Name: req.body.name,
+            Description: req.body.description
+        }, {
             where: {
                 SectionID: req.body.sectionid,
+                CourseID: req.body.courseid,
                 SemesterID: req.body.semesterid
             }
-        }).then(function(section) {
-            if (section == null) {
-                console.log('/course/updatesection : Bad Input');
-                res.status(401).end();
-            } else {
-                if (section.Name != null) {
-                    section.Name = req.body.Name;
+        }).then(function(result) {
+            Section.find({
+                where: {
+                    SectionID: req.body.sectionid,
+                    CourseID: req.body.courseid,
+                    SemesterID: req.body.semesterid
                 }
-                if (section.Description != null) {
-                    section.Description = req.body.Description;
-                }
-                section.save().then(function(used) {
-                    res.json({
-                        "Nane": req.body.Name,
-                        "Description": req.body.Description
-                    });
-                }).catch(function(err) {
-                    console.log('/course/updatesection : ' + err);
-                    res.status(401).end();
+            }).then(function(sectionUpdated) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "result": result,
+                    "CourseUpdated": sectionUpdated
                 });
+            }).catch(function(err) {
+                console.log('/course/update : ' + err);
+                res.status(401).end();
+            });
+        })
 
-            }
-        });
     });
     /**
      * Delete User from Section
@@ -1106,6 +1152,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
                 res.status(400).end()
             } else {
+                console.log("Delete User Success");
                 res.status(200).end()
             }
         });*/
@@ -1115,6 +1162,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 SectionID: req.body.SectionID
             }
         }).then(function(rows) {
+            console.log("Delete User Success");
             res.status(200).end();
         }).catch(function(err) {
             console.log("/course/deleteuser : " + err.message);
@@ -1150,11 +1198,16 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         });*/
 
-        Course.findAll({
+        SectionUser.findAll({
             where: {
                 UserID: req.params.userid
             },
-            attributes: ["CourseID", "SectionID"],
+            attributes: ['Section.CourseID', 'Section.SectionID'],
+            include: [{
+                model: Section,
+                required: true,
+                attributes: ['CourseID', 'SectionID']
+            }]
         }).then(function(rows) {
             if (rows.length > 0) {
                 res.json({
@@ -1527,20 +1580,80 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    /*router.get("/createProblem", function(req, res){
-      Task.findAll({
-        where: {
-            TaskID:req.param.TaskID
+    /*router.get("/createProblem", function(req, res) {
+        Task.findAll({
+            where: {
+                TaskID: req.param.TaskID
 
-        }
-        attributes: ["TaskActivity.type", "Assignment.Name", "Course.Name", "Semester.name", "Assignment.Description"]
-      }).then(function(Tasks){
-        console.log("/createProblem Problem Created");
-        res.json()
-      })
+            }
+            attributes: ["TaskActivity.TaskActivityType", "Assignment.Name", "Course.Name", "Semester.name", "Assignment.Description"]
+        }).then(function(Tasks) {
+            console.log("/createProblem Problem Created");
+            res.json()
+        })
 
 
     });*/
+
+    router.get("/TaskTemplate/main/:taskID", function(req, res) {
+        Task.find({
+            where: {
+                TaskID: req.params.taskID
+            }
+        }).then(function(taskResult) {
+            //Retrieve TaskActivityID from Task
+            TaskActivity.find({
+                where: {
+                    TaskActivityID: taskResult.TaskActivityID
+                }
+            }).then(function(taskActivityResult) {
+                //Retrieve TaskActivityType from TaskActivity
+                Course.find({
+                    where: {
+                        CourseID: req.query.courseID
+                    }
+                }).then(function(courseResult) {
+                    //Retrieve Course.Name and Course.Number
+                    Assignment.find({
+                        where: {
+                            UserID: req.query.userID
+                        }
+                    }).then(function(assignmentResult) {
+                        //Retrieve Assignment.Title and Assignment.AssignmentID
+                        Section.find({
+                            where: {
+                                SectionID: req.query.sectionID
+                            }
+                        }).then(function(sectionResult) {
+                            //Retrieve SemesterID from Section
+                            Semester.find({
+                                where: {
+                                    SemesterID: sectionResult.SemesterID
+                                }
+                            }).then(function(semesterResult) {
+                                //Retrieve Semester.Title from Semester
+                                res.json({
+                                    "Error": false,
+                                    "Message": "Success",
+                                    "taskActivityID": taskResult.TaskActivityID,
+                                    "taskActivityType": taskActivityResult.TaskActivityType,
+                                    "courseName": courseResult.Title,
+                                    "courseNumber": courseResult.Number,
+                                    "assignmentTitle": assignmentResult.Title,
+                                    "assignmentID": assignmentResult.AssignmentID,
+                                    "semesterID": sectionResult.SemesterID,
+                                    "semesterName": semesterResult.Title
+                                });
+                            }).catch(function(err) {
+                                console.log('/TaskTemplate/main/ ' + err);
+                                res.status(400).end();
+                            });
+                        });
+                    });
+                });
+            });
+        });
+    });
 
 }
 

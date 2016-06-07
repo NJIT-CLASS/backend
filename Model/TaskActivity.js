@@ -15,7 +15,7 @@ module.exports = function(sequelize, DataTypes) {
                 field: 'Name',
                 allowNull: false
             },
-            Type: {
+            TaskActivityType: {
                 type: DataTypes.STRING,
                 field: 'Type', // Will result in an attribute that is firstName when user facing but first_name in the database
                 allowNull: false

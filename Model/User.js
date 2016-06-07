@@ -12,7 +12,8 @@ module.exports = function(sequelize, DataTypes) {
             field: 'UserID', // Will result in an attribute that is firstName when user facing but first_name in the database
             allowNull: false,
             autoIncrement: true,
-            primaryKey: true
+            primaryKey: true,
+            unique: true
         },
         FirstName: {
             type: DataTypes.STRING,

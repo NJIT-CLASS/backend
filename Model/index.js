@@ -55,7 +55,6 @@ models.forEach(function(model) {
 
 
 
-
     m.TaskActivity.belongsTo(m.WorkflowActivity,{foreignKey: 'TA_WA_id'});
     m.TaskActivity.belongsTo(m.Assignment,{foreignKey: 'TA_AA_id'});
 
@@ -70,6 +69,13 @@ models.forEach(function(model) {
 
     m.GroupUser.belongsTo(m.User, {foreignKey : 'UserID'});
     //m.GroupUser.belongsTo(m.Group,{foreignKey : 'GroupID'});
+
+    //m.TaskTemplate.belongsTo(m.User, {foreignKey : 'UserID'});
+    //m.TaskTemplate.belongsTo(m.Section,{foreignKey: 'SectionID'});
+    //m.TaskTemplate.belongsTo(m.Course,{foreignKey: 'CourseID'});
+    //m.TaskTemplate.belongsTo(m.Task,{foreignKey: 'TaskID'});
+
+
 
     //has Many Relations
 
