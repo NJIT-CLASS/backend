@@ -33,7 +33,8 @@ module.exports = function(sequelize, DataTypes) {
             Task_status: {
                 type: DataTypes.STRING,
                 field: 'Task_status', // Will result in an attribute that is firstName when user facing but first_name in the database
-                allowNull: true
+                allowNull: true,
+                defaultValue: 'INCOMPLETE'
             },
             StartDate: {
                 type: DataTypes.DATE,

@@ -1595,6 +1595,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });*/
 
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
     router.get("/TaskTemplate/main/:taskID", function(req, res) {
         Task.find({
             where: {
@@ -1613,13 +1615,13 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         CourseID: req.query.courseID
                     }
                 }).then(function(courseResult) {
-                    //Retrieve Course.Name and Course.Number
+                    //Retrieve Course.Name and Course.Number from Course
                     Assignment.find({
                         where: {
                             UserID: req.query.userID
                         }
                     }).then(function(assignmentResult) {
-                        //Retrieve Assignment.Title and Assignment.AssignmentID
+                        //Retrieve Assignment.Title and Assignment.AssignmentID from Assignment
                         Section.find({
                             where: {
                                 SectionID: req.query.sectionID
@@ -1642,9 +1644,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                     "assignmentTitle": assignmentResult.Title,
                                     "assignmentID": assignmentResult.AssignmentID,
                                     "semesterID": sectionResult.SemesterID,
-                                    "semesterName": semesterResult.Title
+                                    "semesterName": semesterResult.Name
                                 });
                             }).catch(function(err) {
+                                //Catch error and print into console.
                                 console.log('/TaskTemplate/main/ ' + err);
                                 res.status(400).end();
                             });
@@ -1654,6 +1657,592 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
         });
     });
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
+    router.get("/TaskTemplate/create/:taskid", function(req, res) {
+
+        //Find Task.AssignmentSectionID from Task
+        Task.find({
+            where: {
+                TaskID: req.params.taskid
+            }
+        }).then(function(taskResult) {
+            //Find the particular AssignmentSection using AssignmentSectionID retrieved from Task.
+            AssignmentSection.find({
+                where: {
+                    AssignmentSectionID: taskResult.AssignmentSectionID
+                }
+            }).then(function(assignmentSectionResult) {
+                //Access Assignment through AssignmentSection.AssignmentID.
+                Assignment.find({
+                    where: {
+                        AssignmentID: assignmentSectionResult.AssignmentID
+                    }
+                }).then(function(assignmentResult) {
+                    //Access TaskActivity through Task.TaskActivityID.
+                    TaskActivity.find({
+                        where: {
+                            TaskActivityID: taskResult.TaskActivityID
+                        }
+                    }).then(function(taskActivityResult) {
+                        //Returns json
+                        res.json({
+                            "Error": false,
+                            "Message": "Success",
+                            "assignmentDescription": assignmentResult.Description,
+                            "taskInstruction": taskActivityResult.Instructions
+                        });
+                    }).catch(function(err) {
+                        console.log('/TaskTemplate/create/ ' + err);
+                        res.status(404).end();
+                    });
+                });
+            });
+        });
+    });
+
+    router.post("/TaskTemplate/create/submit", function(req, res) {
+        if (req.body.taskid == null) {
+            console.log("/TaskTemplate/create/submit : TaskID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.userid == null) {
+            console.log("/TaskTemplate/create/submit : UserID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.taskData == null) {
+            console.log("/TaskTemplate/create/submit : Data cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        Task.find({
+            where: {
+                TaskID: req.body.taskid,
+                UserID: req.body.userid
+            }
+        }).then(function(result) {
+            //Ensure userid input matches Task.UserID
+            if (req.body.userid != result.UserID) {
+                console.log("/TaskTemplate/create/submit : UserID Incorrect Match");
+                res.status(400).end();
+                return;
+            }
+
+            //Change Task_status to Complete and store userCreatedProblem
+            result.update({
+                Task_status: 'Complete',
+                Data: req.body.taskData
+
+            }).then(function(response) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": response
+                });
+            }).catch(function(err) {
+                console.log('/TaskTemplate/create/submit ' + err);
+                res.status(400).end();
+            });
+
+        });
+
+    });
+
+    router.post("/TaskTemplate/create/save", function(req, res) {
+        if (req.body.taskid == null) {
+            console.log("/TaskTemplate/create/save : TaskID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.userid == null) {
+            console.log("/TaskTemplate/create/save : UserID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.taskData == null) {
+            console.log("/TaskTemplate/create/save : Data cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        Task.find({
+            where: {
+                TaskID: req.body.taskid,
+                UserID: req.body.userid
+            }
+        }).then(function(result) {
+            //Ensure userid input matches Task.UserID
+            if (req.body.userid != result.UserID) {
+                console.log("/TaskTemplate/create/save : UserID Incorrect Match");
+                res.status(400).end();
+                return;
+            }
+
+            //Task_status remains incomplete and store userCreatedProblem
+            result.update({
+                Data: req.body.taskData
+
+            }).then(function(response) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": response
+                });
+            }).catch(function(err) {
+                console.log('/TaskTemplate/create/save ' + err);
+                res.status(400).end();
+            });
+
+        });
+
+    });
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
+    router.get("/TaskTemplate/edit/:taskid", function(req, res) {
+        //Find Task.AssignmentSectionID from Task
+        Task.find({
+            where: {
+                TaskID: req.params.taskid
+            }
+        }).then(function(taskResult) {
+            //Find the particular AssignmentSection using AssignmentSectionID retrieved from Task.
+            AssignmentSection.find({
+                where: {
+                    AssignmentSectionID: taskResult.AssignmentSectionID
+                }
+            }).then(function(assignmentSectionResult) {
+                //Access Assignment through AssignmentSection.AssignmentID.
+                Assignment.find({
+                    where: {
+                        AssignmentID: assignmentSectionResult.AssignmentID
+                    }
+                }).then(function(assignmentResult) {
+                    //Access TaskActivity through Task.TaskActivityID.
+                    TaskActivity.find({
+                        where: {
+                            TaskActivityID: taskResult.TaskActivityID
+                        }
+                    }).then(function(taskActivityResult) {
+                        Task.find({
+                            where: {
+                                TaskID: taskResult.Task_reference
+                            }
+                        }).then(function(createdProblemTaskResult) {
+                            //Returns json
+                            res.json({
+                                "Error": false,
+                                "Message": "Success",
+                                "ProblemText": createdProblemTaskResult.Data,
+                                "assignmentDescription": assignmentResult.Description,
+                                "taskInstruction": taskActivityResult.Instructions,
+                                "problem": taskResult.Data
+                            });
+                        }).catch(function(err) {
+                            console.log('/TaskTemplate/edit/ ' + err);
+                            res.status(404).end();
+                        });
+                    });
+
+                });
+            });
+        });
+    });
+
+    router.post("/TaskTemplate/edit/submit", function(req, res) {
+        if (req.body.taskid == null) {
+            console.log("/TaskTemplate/edit/submit : TaskID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.userid == null) {
+            console.log("/TaskTemplate/edit/submit : UserID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.taskData == null) {
+            console.log("/TaskTemplate/edit/submit : Data cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        Task.find({
+            where: {
+                TaskID: req.body.taskid,
+                UserID: req.body.userid
+            }
+        }).then(function(result) {
+            //Ensure userid input matches Task.UserID
+            if (req.body.userid != result.UserID) {
+                console.log("/TaskTemplate/edit/submit : UserID Incorrect Match");
+                res.status(400).end();
+                return;
+            }
+
+            //Change Task_status to Complete and store userCreatedProblem
+            result.update({
+                Task_status: 'Complete',
+                Data: req.body.taskData
+
+            }).then(function(response) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": response
+                });
+            }).catch(function(err) {
+                console.log('/TaskTemplate/edit/submit ' + err);
+                res.status(400).end();
+            });
+
+        });
+    });
+
+    router.post("/TaskTemplate/edit/save", function(req, res) {
+        if (req.body.taskid == null) {
+            console.log("/TaskTemplate/edit/save : TaskID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.userid == null) {
+            console.log("/TaskTemplate/edit/save : UserID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.taskData == null) {
+            console.log("/TaskTemplate/edit/save : Data cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        Task.find({
+            where: {
+                TaskID: req.body.taskid,
+                UserID: req.body.userid
+            }
+        }).then(function(result) {
+            //Ensure userid input matches Task.UserID
+            if (req.body.userid != result.UserID) {
+                console.log("/TaskTemplate/edit/save : UserID Incorrect Match");
+                res.status(400).end();
+                return;
+            }
+
+            //Change Task_status to Complete and store userCreatedProblem
+            result.update({
+                Data: req.body.taskData
+
+            }).then(function(response) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": response
+                });
+            }).catch(function(err) {
+                console.log('/TaskTemplate/edit/save ' + err);
+                res.status(400).end();
+            });
+
+        });
+    });
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
+    router.get("/TaskTemplate/solve/:taskid", function(req, res) {
+        //Find Task.AssignmentSectionID from Task
+        Task.find({
+            where: {
+                TaskID: req.params.taskid
+            }
+        }).then(function(taskResult) {
+            //Find the particular AssignmentSection using AssignmentSectionID retrieved from Task.
+            AssignmentSection.find({
+                where: {
+                    AssignmentSectionID: taskResult.AssignmentSectionID
+                }
+            }).then(function(assignmentSectionResult) {
+                //Access Assignment through AssignmentSection.AssignmentID.
+                Assignment.find({
+                    where: {
+                        AssignmentID: assignmentSectionResult.AssignmentID
+                    }
+                }).then(function(assignmentResult) {
+                    //Access TaskActivity through Task.TaskActivityID.
+                    TaskActivity.find({
+                        where: {
+                            TaskActivityID: taskResult.TaskActivityID
+                        }
+                    }).then(function(taskActivityResult) {
+                        Task.find({
+                            where: {
+                                TaskID: taskResult.Task_reference
+                            }
+                        }).then(function(editProblemTaskResult) {
+                            //Returns json
+                            res.json({
+                                "Error": false,
+                                "Message": "Success",
+                                "ProblemText": editProblemTaskResult.Data,
+                                "assignmentDescription": assignmentResult.Description,
+                                "taskInstruction": taskActivityResult.Instructions,
+                                "problem": taskResult.Data
+                            });
+                        }).catch(function(err) {
+                            console.log('/TaskTemplate/edit/ ' + err);
+                            res.status(404).end();
+                        });
+                    });
+
+                });
+            });
+        });
+    });
+
+    router.post("/TaskTemplate/solve/submit", function(req, res) {
+        if (req.body.taskid == null) {
+            console.log("/TaskTemplate/solve/submit : TaskID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.userid == null) {
+            console.log("/TaskTemplate/solve/submit : UserID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.taskData == null) {
+            console.log("/TaskTemplate/solve/submit : Data cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        Task.find({
+            where: {
+                TaskID: req.body.taskid,
+                UserID: req.body.userid
+            }
+        }).then(function(result) {
+            //Ensure userid input matches Task.UserID
+            if (req.body.userid != result.UserID) {
+                console.log("/TaskTemplate/solve/submit : UserID Incorrect Match");
+                res.status(400).end();
+                return;
+            }
+
+            //Change Task_status to Complete and store userCreatedProblem
+            result.update({
+                Task_status: 'Complete',
+                Data: req.body.taskData
+
+            }).then(function(response) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": response
+                });
+            }).catch(function(err) {
+                console.log('/TaskTemplate/solve/submit ' + err);
+                res.status(400).end();
+            });
+
+        });
+    });
+
+    router.post("/TaskTemplate/solve/save", function(req, res) {
+        if (req.body.taskid == null) {
+            console.log("/TaskTemplate/solve/save : TaskID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.userid == null) {
+            console.log("/TaskTemplate/solve/save : UserID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.taskData == null) {
+            console.log("/TaskTemplate/solve/save : Data cannot be null");
+            res.status(400).end();
+            return;
+        }
+
+        Task.find({
+            where: {
+                TaskID: req.body.taskid,
+                UserID: req.body.userid
+            }
+        }).then(function(result) {
+            //Ensure userid input matches Task.UserID
+            if (req.body.userid != result.UserID) {
+                console.log("/TaskTemplate/solve/save : UserID Incorrect Match");
+                res.status(400).end();
+                return;
+            }
+
+            //Change Task_status to Complete and store userCreatedProblem
+            result.update({
+                Data: req.body.taskData
+
+            }).then(function(response) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": response
+                });
+            }).catch(function(err) {
+                console.log('/TaskTemplate/solve/save ' + err);
+                res.status(400).end();
+            });
+
+        });
+    });
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
+    router.get("/TaskTemplate/grade/:taskid", function(req, res) {
+        Task.find({
+            where: {
+                TaskID: req.params.taskid
+            }
+        }).then(function(taskResult) {
+            Task.find({
+                where: {
+                    TaskID: taskResult.Task_reference
+                }
+            }).then(function(solvedProblemResult) {
+                Task.find({
+                    where: {
+                        TaskID: solvedProblemResult.Task_reference
+                    }
+                }).then(function(editProblemTaskResult) {
+                    TaskActivity.find({
+                        where: {
+                            TaskActivityID: taskResult.TaskActivityID
+                        }
+                    }).then(function(taskActivityResult) {
+                        res.json({
+                            "Error": false,
+                            "Message": "Success",
+                            "editProblem": editProblemTaskResult.Data,
+                            "sovledProblem": solvedProblemResult.Data,
+                            "taskInstruction": taskActivityResult.Instructions,
+                            "problem": taskResult.Data
+                        });
+                    }).catch(function(err) {
+                        console.log('/TaskTemplate/grade/ ' + err);
+                        res.status(404).end();
+                    });
+                });
+            });
+        });
+    });
+
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
+    router.get("/TaskTemplate/dispute/:taskid", function(req, res) {
+        Task.find({
+            where: {
+                TaskID: req.params.taskid
+            }
+        }).then(function(taskResult) {
+            Task.find({
+                where: {
+                    TaskID: taskResult.Task_reference
+                }
+            }).then(function(gradeResult) {
+                Task.find({
+                    where: {
+                        TaskID: gradeResult.Task_reference
+                    }
+                }).then(function(solvedProblemResult) {
+                    Task.find({
+                        where: {
+                            TaskID: solvedProblemResult.Task_reference
+                        }
+                    }).then(function(editProblemTaskResult) {
+                        TaskActivity.find({
+                            where: {
+                                TaskActivityID: taskResult.TaskActivityID
+                            }
+                        }).then(function(taskActivityResult) {
+                            res.json({
+                                "Error": false,
+                                "Message": "Success",
+                                "editProblem": editProblemTaskResult.Data,
+                                "sovledProblem": solvedProblemResult.Data,
+                                "gradeProblem": gradeResult.Data,
+                                "taskInstruction": taskActivityResult.Instructions,
+                                "problem": taskResult.Data
+                            });
+                        }).catch(function(err) {
+                            console.log('/TaskTemplate/dispute/ ' + err);
+                            res.status(404).end();
+                        });
+                    });
+                });
+            });
+        });
+    });
+
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
+    router.get("/TaskTemplate/resolve/:taskid", function(req, res) {
+        Task.find({
+            where: {
+                TaskID: req.params.taskid
+            }
+        }).then(function(taskResult) {
+            Task.find({
+                where: {
+                    TaskID: taskResult.Task_reference
+                }
+            }).then(function(disputedResult) {
+                Task.find({
+                    where: {
+                        TaskID: disputedResult.Task_reference
+                    }
+                }).then(function(gradeResult) {
+                    Task.find({
+                        where: {
+                            TaskID: gradeResult.Task_reference
+                        }
+                    }).then(function(solvedProblemResult) {
+                        Task.find({
+                            where: {
+                                TaskID: solvedProblemResult.Task_reference
+                            }
+                        }).then(function(editProblemTaskResult) {
+                            TaskActivity.find({
+                                where: {
+                                    TaskActivityID: taskResult.TaskActivityID
+                                }
+                            }).then(function(taskActivityResult) {
+                                res.json({
+                                    "Error": false,
+                                    "Message": "Success",
+                                    "editProblem": editProblemTaskResult.Data,
+                                    "sovledProblem": solvedProblemResult.Data,
+                                    "gradeProblem": gradeResult.Data,
+                                    "disputedProblem": disputedProblem.Data,
+                                    "taskInstruction": taskActivityResult.Instructions,
+                                    "problem": taskResult.Data
+                                });
+                            }).catch(function(err) {
+                                console.log('/TaskTemplate/dispute/ ' + err);
+                                res.status(404).end();
+                            });
+                        });
+                    });
+                });
+            })
+        });
+    });
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
+
 
 }
 
