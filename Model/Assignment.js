@@ -15,23 +15,11 @@ module.exports = function(sequelize, DataTypes) {
             primaryKey: true,
             autoIncrement: true
         },
-        Description: {
-            type: DataTypes.STRING,
-            field: 'Description',
-            allowNull: true
-        }
-        ,
-        Settings: {
-            type: DataTypes.JSON,
-            field: 'Settings',
-            allowNull: false
-        },
         GradeDistribution: {
             type: DataTypes.JSON,
             field: 'GradeDistribution',
             allowNull: false
-        }
-        ,
+        },
         Title: {
             type: DataTypes.STRING,
             field: 'Title',
@@ -51,6 +39,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER,
             field: 'UseCase',
             allowNull: false
+        },
+        WA_A_id :{
+            type : DataTypes.INTEGER,
+            field: 'WA_A_id',
+            allowNull:false
         }
     }, {
         timestamps: false,

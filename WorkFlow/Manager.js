@@ -350,6 +350,8 @@ Manager.getTasks= function(assignmentSection)
  * @return string The Human Version of the Type
  * @param string The type
  */
+
+ //Should from database
 Manager.humanTask = function(type)
 {
     var action_human = '';

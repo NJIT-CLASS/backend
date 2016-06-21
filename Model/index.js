@@ -70,6 +70,9 @@ models.forEach(function(model) {
     m.GroupUser.belongsTo(m.User, {foreignKey : 'UserID'});
     //m.GroupUser.belongsTo(m.Group,{foreignKey : 'GroupID'});
 
+    m.AssignmentSection.belongsTo(m.Section, {foreignKey: 'SectionID'});
+    m.AssignmentSection.belongsTo(m.Assignment,{foreignKey: 'AssignmentID'});
+
     //m.TaskTemplate.belongsTo(m.User, {foreignKey : 'UserID'});
     //m.TaskTemplate.belongsTo(m.Section,{foreignKey: 'SectionID'});
     //m.TaskTemplate.belongsTo(m.Course,{foreignKey: 'CourseID'});
@@ -79,16 +82,29 @@ models.forEach(function(model) {
 
     //has Many Relations
 
-    m.Semester.hasMany(m.Section,{as : 'Sections', foreignKey: 'SemesterID'});
-    m.Course.hasMany(m.Section,{as : 'Sections', foreignKey: 'CourseID'});
-    m.WorkflowActivity.hasMany(m.Workflow,{as : 'Workflows', foreignKey: 'WorkflowActivityID'});
+    m.Assignment.hasMany(m.AssignmentSection,{as:'AssignmentSections', foreignKey: 'AssignmentID'});
+    m.Assignment.hasMany(m.WorkflowActivity, {as: 'WorkflowActivities', foreignKey: 'WA_A_id'});
+
+    m.AssignmentSection.hasMany(m.Task,{as:'Tasks', foreignKey: 'AssignmentSectionID'});
     m.AssignmentSection.hasMany(m.Workflow,{as : 'Workflows', foreignKey: 'AssignmentSectionID'});
-    m.Workflow.hasMany(m.Task,{as : 'Tasks', foreignKey: 'WorlkflowID'});
-    m.User.hasMany(m.SectionUser,{as : 'Users',foreignKey: 'UserID'});
+
+    m.Course.hasMany(m.Section,{as : 'Sections', foreignKey: 'CourseID'});
+
+    m.Section.hasMany(m.AssignmentSection,{as : 'AssignmentSections',foreignKey: 'SectionID'});
+    m.Semester.hasMany(m.Section,{as : 'Sections', foreignKey: 'SemesterID'});
+
     m.Section.hasMany(m.SectionUser,{as : 'SectionUsers',foreignKey: 'SectionID'});
-    m.User.hasMany(m.GroupUser, {as :'GroupUsers' ,foreignKey : 'UserID'});
+
     m.TaskActivity.hasMany(m.Task,{as :'Tasks' ,foreignKey: 'TaskActivityID'});
+
+    m.Workflow.hasMany(m.Task,{as : 'Tasks', foreignKey: 'WorlkflowID'});
+
+    m.WorkflowActivity.hasMany(m.Workflow,{as : 'Workflows', foreignKey: 'WorkflowActivityID'});
+
+    m.User.hasMany(m.SectionUser,{as : 'Users',foreignKey: 'UserID'});
+    m.User.hasMany(m.GroupUser, {as :'GroupUsers' ,foreignKey : 'UserID'});
     m.User.hasMany(m.Task,{as :'Tasks' ,foreignKey: 'UserID'});
+
     // m.Group.hasMany(m.GroupUser,{as :' GroupUsers' ,foreignKey : 'GroupID'})
 
 

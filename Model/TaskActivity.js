@@ -77,6 +77,19 @@ module.exports = function(sequelize, DataTypes) {
                 validate: {
                     isIn: [['Points', 'Percentage']]
                 }
+            },
+            TA_display_name:{
+                type: DataTypes.STRING,
+                field: 'Display Name',
+                allowNull: true
+            },
+            TA_fields:{
+              type: DataTypes.JSON,
+              field: 'TA_fields',
+            },
+            TA_overall_rubric:{
+              type: DataTypes.STRING,
+              field: 'TA_overall_rubric'
             }
         },
         {

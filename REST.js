@@ -560,10 +560,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 "Error": false,
                 "Message": "Success",
                 "Semesters": rows
-            }).catch(function(err) {
-                console.log("/semester: " + err.message);
-                res.status(401).end();
             });
+        }).catch(function(err) {
+            console.log("/semester: " + err.message);
+            res.status(401).end();
         });
     });
 
@@ -2237,13 +2237,199 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         });
                     });
                 });
-            })
+            });
         });
     });
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
 
+    //Endpoint to get the PendingTasks of users
+    /* Need to only pick relevant data. Too big, could cause scaling slowdown issues
+    Most likely: TaskID,UserID,WorlkflowID, StartDate,EndDate,Task_status from Task; Name,Visual_ID from TaskActivity; Name from WorkflowActivity
+    */
+    router.get("/getPendingTasks/:userID", function(req, res) {
+        Task.findAll({
+            where: {
+                UserID: req.params.userID,
+                Task_status: "Incomplete"
+            },
+            attributes: ["TaskID", "UserID", "WorkflowID", "StartDate", "EndDate", "Task_status"],
+            include: [ ///// Need new mappings in index.js AssignmentSection -> Assignment, Assignment ::=> AssignmentSection
+                {
+                    model: AssignmentSection,
+                    attributes: ["AssignmentSectionID", "AssignmentID"],
+                    include: [{
+                        model: Section,
+                        attributes: ["SectionID"],
+                        include: [{
+                            model: Course,
+                            attributes: ["Title", "CourseID"]
+                        }]
+
+                    }, {
+                        model: Assignment,
+                        attributes: ["Title"]
+                    }]
+                },
+                /*Task - > AssignmentSection - > Section - > Course */
+                {
+                    model: TaskActivity,
+                    attributes: ["Name", "Type", "Visual_ID"],
+                    include: [{
+                        model: WorkflowActivity,
+                        attributes: ["Name"]
+                    }]
+                }
+            ]
+        }).then(function(tasks) {
+            console.log("/getPendingTasks/ Tasks found");
+            res.json({
+                "Error": false,
+                "PendingTasks": tasks
+            }).catch(function(err) {
+                console.log('/getPendingTasks: ' + err);
+                res.status(404).end();
+            });
+        });
+
+
+    });
+
+    router.get("/getCompletedTasks/:userID", function(req, res) {
+        Task.findAll({
+            where: {
+                UserID: req.params.userID,
+                Task_status: "Complete"
+            },
+            attributes: ["TaskID", "UserID", "WorkflowID", "StartDate", "EndDate", "Task_status"],
+            include: [ ///// Need new mappings in index.js AssignmentSection -> Assignment, Assignment ::=> AssignmentSection
+                {
+                    model: AssignmentSection,
+                    attributes: ["AssignmentSectionID", "AssignmentID"],
+                    include: [{
+                        model: Section,
+                        attributes: ["SectionID"],
+                        include: [{
+                            model: Course,
+                            attributes: ["Title", "CourseID"]
+                        }]
+
+                    }, {
+                        model: Assignment,
+                        attributes: ["Title"]
+                    }]
+                },
+                /*, {
+                                       model: Section,
+                                       attributes: ['SectionID'],
+                                       include: [{
+                                           model: Course,
+                                           attributes: ["Title"]
+                                       }]
+                                   } */
+                /*Task - > AssignmentSection - > Section - > Course */
+                {
+                    model: TaskActivity,
+                    attributes: ["Name", "Type", "Visual_ID"],
+                    include: [{
+                        model: WorkflowActivity,
+                        attributes: ["Name"]
+                    }]
+                }
+            ]
+        }).then(function(tasks) {
+            console.log("/getCompletedTasks/ Tasks found");
+            res.json({
+                "Error": false,
+                "CompletedTasks": tasks
+            }).catch(function(err) {
+                console.log('/getCompletedTasks: ' + err);
+                res.status(404).end();
+            });
+        });
+
+
+    });
+
+    router.get('/getAssignmentRecord/:assignmentid', function(req, req) {
+        Assignment.find({
+            where: {
+                AssignmentID: req.params.assignmentid
+            },
+            attributes: ["Title"]
+        }).then(function(assignmentResult) {
+            WorkflowActivity.findAll({
+                where: {
+                    WA_A_id: assignmentResult.WA_A_id
+                }
+            }).then(function(workflowActivityResult) {
+
+                var tasks = [];
+
+                for (var task in workflowActivityResult.TaskActivityCollection) {
+                    //need taskid, task_status and taskActivityType
+                    //TaskActivityCollection is json of TaskActivityID
+                    //iterate through each json string
+                    TaskActivity.find({
+                        where: {
+                            TaskActivityID: task
+                        }
+                    }).then(function(taskActivityResult) {
+                        Task.find({
+                            where: {
+                                TaskActivityID: taskActivityResult.TaskActivityID
+                            }
+                        }).then(function(taskResult) {
+                            tasks.push({
+                                TaskID: taskResult.TaskID,
+                                TaskActivityType: taskActivityResult.TaskActivityType,
+                                Task_status: taskResult.Task_status,
+                            });
+                        });
+                    });
+                }
+
+                res.json({
+                    "Error": false,
+                    "AssignmentRecords": tasks
+                });
+            }).catch(function(err) {
+                console.log('/getAssignmentRecord: ' + err);
+                res.status(404).end();
+            });
+        });
+
+    });
+
+    router.get('/superCall/:taskid', function(req, res) {
+        var currentTask = req.params.taskid;
+        var superTask = [];
+
+        do {
+            Task.find({
+                where: {
+                    TaskID: currentTask
+                },
+                attributes: ["Data"],
+                include: [{
+                    model: TaskActivity,
+                    attributes: ["TaskActivityType", "TA_overall_rubric", "Instructions", "TA_fields"]
+                }]
+            }).then(function(result) {
+                superTask.push(result);
+                currentTask = result.Previous_Tasks;
+            }).catch(function(err) {
+                console.log('/superCall: ' + err);
+                res.status(404).end();
+            });
+        } while (typeof currentTask !== 'undefined');
+
+        res.json({
+            "Error": false,
+            "superTask": superTask
+        });
+    });
 }
 
 module.exports = REST_ROUTER;

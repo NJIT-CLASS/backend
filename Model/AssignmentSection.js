@@ -12,22 +12,21 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER,
             field: 'AssignmentSectionID', // Will result in an attribute that is firstName when user facing but first_name in the database
             allowNull: false,
-            primaryKey: true
+            primaryKey: true,
+            autoIncrement: true
         },
         AssignmentID: {
             type: DataTypes.INTEGER,
             field: 'AssignmentID', // Will result in an attribute that is firstName when user facing but first_name in the database
             allowNull: false,
-            primaryKey: true,
-            autoIncrement : true
+            primaryKey: true
         },
         SectionID: {
             type: DataTypes.INTEGER,
             field: 'SectionID',
             allowNull: false,
             primaryKey: true
-        }
-        ,
+        },
         StartDate: {
             type: DataTypes.DATE,
             field: 'StartDate',
@@ -37,8 +36,7 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.DATE,
             field: 'EndDate',
             allowNull: true
-        }
-        ,
+        },
         A_workflow_collection: {
             type: DataTypes.STRING,
             field: 'A_workflow_collection',
@@ -48,17 +46,18 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.JSON,
             field: 'A_workflow_timing',
             allowNull: true
-        }/*,
-        GroupSize: {
-            type: DataTypes.JSON,
-            field: 'GroupSize',
-            allowNull: false
-        },
-        UseCase: {
-            type: DataTypes.INTEGER,
-            field: 'UseCase',
-            allowNull: false
-        }*/
+        }
+        /*,
+                GroupSize: {
+                    type: DataTypes.JSON,
+                    field: 'GroupSize',
+                    allowNull: false
+                },
+                UseCase: {
+                    type: DataTypes.INTEGER,
+                    field: 'UseCase',
+                    allowNull: false
+                }*/
     }, {
         timestamps: false,
 
