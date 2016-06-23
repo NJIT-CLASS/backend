@@ -1,38 +1,51 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Semester', {
-        SemesterID: {
-            //Unique identifier for the semester
+    return sequelize.define('WorkflowInstance', {
+        WorkflowInstanceID: {
+            //Unique identifier for the workflow instance.
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SemesterID',
+            field: 'WorkflowInstanceID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-        OrganizationID: {
-            //Unique identifier for the organization
+        WorkflowActivityID: {
+            //Unique identifier for workflow activity.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'OrganizationID',
+            field: 'WorkflowActivityID',
             allowNull: false
         },
-        Name: {
-            //Name of the semester (e.g. Fall2017,Winter2016)
-            type: DataTypes.STRING(25),
-            field: 'Name',
+        AssignmentInstanceID: {
+            //Unique identifier for assignment instance
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'AssignmentInstanceID',
+            allowNull: false
+        },
+        StartTime: {
+            //Start date of the workflow instance
+            type: DataTypes.DATE,
+            field: 'StartTime',
             allowNull: true
         },
-        StartDate: {
-            //Start date of the semester
+        EndTime: {
+            //Scheduled end date of the workflow instance
             type: DataTypes.DATE,
-            field: 'StartDate',
+            field: 'EndTime',
             allowNull: true
         },
-        EndDate: {
-            //End date of the semester
-            type: DataTypes.DATE,
-            field: 'EndDate',
+        TaskCollection: {
+            //Array of task instance ids corresponding to this workflow instance.
+            type: DataTypes.JSON,
+            field: 'TaskCollection',
             allowNull: true
+        },
+        Data: {
+            //Any data for the workflow instance instead of tasks. (Not currently used.)
+            type: DataTypes.JSON,
+            field: 'Data',
+            allownull: true
         }
 
     }, {
@@ -53,6 +66,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'Semester'
+        tableName: 'Workflow'
     });
 };

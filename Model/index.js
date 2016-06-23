@@ -1,7 +1,3 @@
-/**
- * Created by cesarsalazar on 3/29/16.
- */
-
 var Sequelize = require("sequelize");
 
 process.env.dbHost = 'localhost';
@@ -22,12 +18,13 @@ var sequelize = new Sequelize(process.env.database, process.env.dbUser, process.
     },
 });
 
-var models = ['User','UserLogin','UserContact',
-    'Course','Section','Semester',
-    'Task','TaskActivity','Workflow',
-    'WorkflowActivity','Assignment','AssignmentSection',
-    'GroupUser','Organization','SectionUser',
-    'ResetPasswordRequest','Groups'];
+var models = ['Assignment','AssignmentInstance', 'Course', 'Group',
+    'GroupUser','Organization', 'ResetPasswordRequest', 'Section',
+    'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
+    'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance'
+];
+
+
 
 
 
@@ -39,71 +36,83 @@ models.forEach(function(model) {
 // describe relationships
 (function(m) {
     //Belongs To Relations
+    //Sorted By Foreign Key
+
+    m.AssignmentInstance.belongsTo(m.Assignment, {foreignKey: 'AssignmentID'});
+    m.TaskActivity.belongsTo(m.Assignment, {foreignKey: 'AssignmentID'});
+    m.WorkflowActivity.belongsTo(m.Assignment, {foreignKey: 'AssignmentID'});
+
+    m.TaskInstance.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'});
+    m.WorkflowInstance.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'});
+
+    m.Section.belongsTo(m.Course, {foreignKey: 'CourseID'});
+
+    m.GroupUser.belongsTo(m.Group,{foreignKey : 'GroupID'});
+    m.TaskInstance.belongsTo(m.Group,{foreignKey : 'GroupID'});
+
+    m.Course.belongsTo(m.Organization,{foreignKey : 'OrganizationID'});
+    m.Section.belongsTo(m.Organization,{foreignKey : 'OrganizationID'});
+    m.Semester.belongsTo(m.Organization,{foreignKey : 'OrganizationID'});
+
     m.User.belongsTo(m.ResetPasswordRequest, {foreignKey: 'UserID'});
+
+    m.AssignmentInstance.belongsTo(m.Section, {foreignKey: 'SectionID'});
+    m.Group.belongsTo(m.Section, {foreignKey: 'SectionID'});
+    m.SectionUser.belongsTo(m.Section, {foreignKey: 'SectionID'});
+
+    m.Section.belongsTo(m.Semester, {foreignKey: 'SemesterID'});
+
+    m.TaskInstance.belongsTo(m.TaskActivity, {foreignKey: 'TaskActivityID'});
+
+    m.GroupUser.belongsTo(m.User, {foreignKey: 'UserID'});
+    m.ResetPasswordRequest.belongsTo(m.User, {foreignKey: 'UserID'});
+    m.SectionUser.belongsTo(m.User, {foreignKey: 'UserID'});
+    m.TaskInstance.belongsTo(m.User, {foreignKey: 'UserID'});
+    m.UserLogin.belongsTo(m.User, {foreignKey: 'UserID'});
+
     m.User.belongsTo(m.UserLogin, {foreignKey: 'UserID'});
+
     m.User.belongsTo(m.UserContact, {foreignKey: 'UserContactID'});
 
-    m.Course.belongsTo(m.User,{foreignKey: 'CreatorID'});
+    m.Assignment.belongsTo(m.WorkflowActivity, {foreignKey: 'WorkflowActivityID'});
+    m.TaskActivity.belongsTo(m.WorkflowActivity, {foreignKey: 'WorkflowActivityID'});
+    m.WorkflowInstance.belongsTo(m.WorkflowActivity, {foreignKey: 'WorkflowActivityID'});
 
-    m.Section.belongsTo(m.Semester,{foreignKey: 'SemesterID'});
-    m.Section.belongsTo(m.Course,{foreignKey: 'CourseID'});
-
-    m.Task.belongsTo(m.TaskActivity,{foreignKey: 'TaskActivityID'});
-    m.Task.belongsTo(m.Workflow,{foreignKey: 'WorlkflowID'});
-    m.Task.belongsTo(m.User,{foreignKey: 'UserID'});
-    m.Task.belongsTo(m.AssignmentSection,{foreignKey: 'AssignmentSectionID'});
+    m.TaskInstance.belongsTo(m.WorkflowInstance, {foreignKey: 'WorlkflowInstanceID'});
 
 
-
-    m.TaskActivity.belongsTo(m.WorkflowActivity,{foreignKey: 'TA_WA_id'});
-    m.TaskActivity.belongsTo(m.Assignment,{foreignKey: 'TA_AA_id'});
-
-    m.Workflow.belongsTo(m.WorkflowActivity,{foreignKey: 'WorkflowActivityID'});
-    m.Workflow.belongsTo(m.AssignmentSection,{foreignKey: 'AssignmentSectionID'});
-
-    m.WorkflowActivity.belongsTo(m.Assignment,{foreignKey: 'WA_A_id'});
-
-
-    m.SectionUser.belongsTo(m.User,{foreignKey: 'UserID'});
-    m.SectionUser.belongsTo(m.Section,{foreignKey: 'SectionID'});
-
-    m.GroupUser.belongsTo(m.User, {foreignKey : 'UserID'});
-    //m.GroupUser.belongsTo(m.Group,{foreignKey : 'GroupID'});
-
-    m.AssignmentSection.belongsTo(m.Section, {foreignKey: 'SectionID'});
-    m.AssignmentSection.belongsTo(m.Assignment,{foreignKey: 'AssignmentID'});
-
-    //m.TaskTemplate.belongsTo(m.User, {foreignKey : 'UserID'});
-    //m.TaskTemplate.belongsTo(m.Section,{foreignKey: 'SectionID'});
-    //m.TaskTemplate.belongsTo(m.Course,{foreignKey: 'CourseID'});
-    //m.TaskTemplate.belongsTo(m.Task,{foreignKey: 'TaskID'});
-
+    m.Course.belongsTo(m.User, {foreignKey: 'CreatorID'});
+//------------------------------------------------------------------------------------------
 
 
     //has Many Relations
 
-    m.Assignment.hasMany(m.AssignmentSection,{as:'AssignmentSections', foreignKey: 'AssignmentID'});
-    m.Assignment.hasMany(m.WorkflowActivity, {as: 'WorkflowActivities', foreignKey: 'WA_A_id'});
+    m.Assignment.hasMany(m.AssignmentInstance, {as: 'AssignmentInstances',foreignKey: 'AssignmentID'});
+    m.Assignment.hasMany(m.WorkflowActivity, {as: 'WorkflowActivities',foreignKey: 'AssignmentID'});
+    m.Assignment.hasMany(m.TaskActivity, {as: 'TaskActivities',foreignKey: 'AssignmentID'});
 
-    m.AssignmentSection.hasMany(m.Task,{as:'Tasks', foreignKey: 'AssignmentSectionID'});
-    m.AssignmentSection.hasMany(m.Workflow,{as : 'Workflows', foreignKey: 'AssignmentSectionID'});
 
-    m.Course.hasMany(m.Section,{as : 'Sections', foreignKey: 'CourseID'});
+    m.AssignmentInstance.hasMany(m.TaskInstance, {as: 'TaskInstances',foreignKey: 'AssignmentInstanceID'});
+    m.AssignmentInstance.hasMany(m.WorkflowInstance, {as: 'WorkflowInstances',foreignKey: 'AssignmentInstanceID'});
 
-    m.Section.hasMany(m.AssignmentSection,{as : 'AssignmentSections',foreignKey: 'SectionID'});
-    m.Semester.hasMany(m.Section,{as : 'Sections', foreignKey: 'SemesterID'});
+    m.Course.hasMany(m.Section, {as: 'Sections',foreignKey: 'CourseID'});
+    m.Course.hasMany(m.User, {as: 'Users', foreignKey: 'CourseID'});
 
-    m.Section.hasMany(m.SectionUser,{as : 'SectionUsers',foreignKey: 'SectionID'});
+    m.Section.hasMany(m.AssignmentInstance, {as: 'AssignmentInstances',foreignKey: 'SectionID'});
+    m.Section.hasMany(m.SectionUser, {as: 'SectionUsers',foreignKey: 'SectionID'});
 
-    m.TaskActivity.hasMany(m.Task,{as :'Tasks' ,foreignKey: 'TaskActivityID'});
+    m.Semester.hasMany(m.Section, {as: 'Sections',foreignKey: 'SemesterID'});
 
-    m.Workflow.hasMany(m.Task,{as : 'Tasks', foreignKey: 'WorlkflowID'});
+    m.TaskActivity.hasMany(m.TaskInstance, {as: 'TaskInstances',foreignKey: 'TaskActivityID'});
 
-    m.WorkflowActivity.hasMany(m.Workflow,{as : 'Workflows', foreignKey: 'WorkflowActivityID'});
+    m.WorkflowInstance.hasMany(m.TaskInstance, {as: 'TaskInstances',foreignKey: 'WorlkflowID'});
 
-    m.User.hasMany(m.SectionUser,{as : 'Users',foreignKey: 'UserID'});
-    m.User.hasMany(m.GroupUser, {as :'GroupUsers' ,foreignKey : 'UserID'});
-    m.User.hasMany(m.Task,{as :'Tasks' ,foreignKey: 'UserID'});
+    m.WorkflowActivity.hasMany(m.WorkflowInstance, {as: 'WorkflowInstances',foreignKey: 'WorkflowActivityID'});
+    m.WorkflowActivity.hasMany(m.TaskActivity, {as: 'TaskActivities', foreignKey: 'WorkflowActivityID'})
+
+    m.User.hasMany(m.SectionUser, {as: 'Users',foreignKey: 'UserID'});
+    m.User.hasMany(m.GroupUser, {as: 'GroupUsers',foreignKey: 'UserID'});
+    m.User.hasMany(m.TaskInstance, {as: 'TaskInstances', foreignKey: 'UserID'});
 
     // m.Group.hasMany(m.GroupUser,{as :' GroupUsers' ,foreignKey : 'GroupID'})
 

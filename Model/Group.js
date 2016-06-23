@@ -1,32 +1,36 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('Groups', {
         GroupID: {
-            type: DataTypes.INTEGER,
-            field: 'GroupID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique identifier for the group.
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'GroupID',
             allowNull: false,
-            primaryKey: true
+            primaryKey: true,
+            unique: true
         },
         SectionID: {
-            type: DataTypes.INTEGER,
-            field: 'SectionID', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: false,
-        },
-        Name: {
-            type: DataTypes.STRING,
-            field: 'Name',
+            //Unique identifier for the section
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SectionID',
             allowNull: false
         },
+        Name: {
+            //Name of the group
+            type: DataTypes.STRING(30),
+            field: 'Name',
+            allowNull: true
+        },
         Leader: {
-            type: DataTypes.INTEGER,
+            //Stores the ID of the user in the group with the authority to make decisions on behalf of the group. It is optional.
+            type: DataTypes.INTEGER.UNSIGNED,
             field: 'Leader',
+            allowNull: true
+        },
+        List: {
+            //Array of users
+            type: DataTypes.BLOB,
+            field: 'List',
             allowNull: true
         }
     }, {
@@ -50,7 +54,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'Groups'
     });
 };
-
-///var User =
-
-///module.exports = User;

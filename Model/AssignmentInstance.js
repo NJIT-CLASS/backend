@@ -1,40 +1,52 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Semester', {
-        SemesterID: {
-            //Unique identifier for the semester
+    return sequelize.define('AssignmentInstance', {
+        AssignmentInstanceID: {
+            //Assignment instance ID
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SemesterID',
+            field: 'AssignmentInstanceID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-        OrganizationID: {
-            //Unique identifier for the organization
+        AssignmentID: {
+            //identifier for Assignment (activity)
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'OrganizationID',
+            field: 'AssignmentID',
             allowNull: false
         },
-        Name: {
-            //Name of the semester (e.g. Fall2017,Winter2016)
-            type: DataTypes.STRING(25),
-            field: 'Name',
-            allowNull: true
+        SectionID: {
+            //identifier for a section.
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SectionID',
+            allowNull: false
         },
         StartDate: {
-            //Start date of the semester
+            //Start date for the assignment. 0 means start immediately.
             type: DataTypes.DATE,
             field: 'StartDate',
-            allowNull: true
+            allowNull: false
         },
         EndDate: {
-            //End date of the semester
+            //Overall end date for all the workflows associated to this assignment to finish.
             type: DataTypes.DATE,
             field: 'EndDate',
             allowNull: true
+        },
+        WorkflowCollection: {
+            //Array of workflow instance ids corresponding to this assignment instance.
+            type: DataTypes.BLOB,
+            field: 'WorkflowCollection',
+            allowNull: true
+        },
+        WorkflowTiming: {
+            //Array of arrays of workflow instance and task instance timing parameters
+            type: DataTypes.BLOB,
+            field: 'WorkflowTiming',
+            allowNull: false
         }
-
     }, {
         timestamps: false,
 
@@ -53,6 +65,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'Semester'
+        tableName: 'AssignmentSection'
     });
 };

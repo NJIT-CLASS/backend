@@ -1,106 +1,126 @@
-/**
- * Created by cesarsalazar on 3/29/16.
- */
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Task', {
-        TaskID: {
-            type: DataTypes.INTEGER,
-            field: 'TaskID', // Will result in an attribute that is firstName when user facing but first_name in the database
+    return sequelize.define('TaskInstance', {
+        TaskInstanceID: {
+            //Unique Identifier for the task instance.
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'TaskInstanceID',
             allowNull: false,
             primaryKey: true,
-            autoIncrement: true
+            autoIncrement: true,
+            unique: true
         },
         UserID: {
-            type: DataTypes.INTEGER,
+            //Id of the user assigned to this task
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
             field: 'UserID',
             allowNull: false
         },
         TaskActivityID: {
-            type: DataTypes.INTEGER,
-            field: 'TaskActivityID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique Identifier for the task activity.
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'TaskActivityID',
             allowNull: false
         },
-        WorkflowID: {
-            type: DataTypes.INTEGER,
-            field: 'WorlkflowID',
+        WorkflowInstanceID: {
+            //Unique identifier for a workflow instance.
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'WorkflowInstanceID',
             allowNull: false
         },
-        AssignmentSectionID: {
-            type: DataTypes.INTEGER,
-            field: 'AssignmentSectionID', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: false
-        },
-        Task_status: {
-            type: DataTypes.STRING,
-            field: 'Task_status', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: true,
-            defaultValue: 'INCOMPLETE'
-        },
-        StartDate: {
-            type: DataTypes.DATE,
-            field: 'StartDate',
-            allowNull: false
-        },
-        EndDate: {
-            type: DataTypes.DATE,
-            field: 'EndDate', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: false
-        },
-        Data: {
-            type: DataTypes.JSON,
-            field: 'Data', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: false
-        },
-        Settings: {
-            type: DataTypes.JSON,
-            field: 'Settings',
+        AssignmentInstanceID: {
+            //Unique identifier for Assignment instance.
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'AssignmentInstanceID',
             allowNull: false
         },
         GroupID: {
-            type: DataTypes.INTEGER,
-            field: 'GroupID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Id of the group assigned to this task (not currently used)
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'GroupID',
+            allowNull: true //Should be false, but not needed in the system now
+        },
+        Status: {
+            //Current status of the task instance
+            type: DataTypes.STRING(20),
+            field: 'Status',
             allowNull: true
         },
-        type: {
-            type: DataTypes.STRING,
-            field: 'type', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: true
-        },
-        user_history: {
-            type: DataTypes.BLOB,
-            field: 'user_history',
-            allowNull: true
-        },
-        Task_final_grade: {
-            type: DataTypes.FLOAT,
-            field: 'Task_final_grade',
-            allowNull: true
-        },
-        Task_files: {
-            type: DataTypes.JSON,
-            field: 'Task_files',
-            allowNull: true
-        },
-        Task_reference: {
-            type: DataTypes.INTEGER,
-            field: 'Task_reference',
-            allowNull: true
-        },
-        Next_Tasks: {
-            type: DataTypes.BLOB,
-            field: 'Next_Tasks',
-            allowNull: true
-        },
-        Previous_Tasks: {
-            type: DataTypes.BLOB,
-            field: 'Previous_Tasks',
-            allowNull: true
-        },
-        Email_Last_Sent: {
+        StartDate: {
+            //Start date of the task
             type: DataTypes.DATE,
-            field: 'Email_Last_Sent',
+            field: 'StartDate',
+            allowNull: true
+        },
+        EndDate: {
+            //End date of the task
+            type: DataTypes.DATE,
+            field: 'EndDate',
+            allowNull: true
+        },
+        Data: {
+            //User’s input is stored here. For non-display tasks, this will hold the value calculated by the task’s function.
+            type: DataTypes.JSON,
+            field: 'Data',
+            allowNull: true
+        },
+        // Settings: {
+        //     //??
+        //     type: DataTypes.JSON,
+        //     field: 'Settings',
+        //     allowNull: true
+        // },
+        // Type: {
+        //     type: DataTypes.STRING,
+        //     field: 'Type',
+        //     allowNull: true
+        // },
+        UserHistory: {
+            //Prior users assigned to this task instance, if reallocated (will be refined in future versions)
+            type: DataTypes.JSON,
+            field: 'UserHistory',
+            allowNull: true
+        },
+        FinalGrade: {
+            //Will hold a potential final grade for the “referred_to” task_activity, or be null if it does not. This will be a single consolidated grade, not the individual criteria subgrades.
+            type: DataTypes.FLOAT.UNSIGNED,
+            field: 'FinalGrade',
+            allowNull: true
+        },
+        Files: {
+            //File identifiers when uploaded by users (when uploaded as user input)
+            type: DataTypes.JSON,
+            field: 'Files',
+            allowNull: true
+        },
+        ReferencedTask: {
+            //Task_ID of the referenced task, if any.
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'ReferencedTask',
+            allowNull: true
+        },
+        NextTasks: {
+            //Array of possible next
+            type: DataTypes.BLOB,
+            field: 'NextTasks',
+            allowNull: true
+        },
+        PreviousTasks: {
+            //Array of possible previous
+            type: DataTypes.BLOB,
+            field: 'PreviousTasks',
+            allowNull: true
+        },
+        EmailLastSent: {
+            //The Record of when the last email was sent.
+            //Keep a whole array of email history
+            type: DataTypes.DATE,
+            field: 'EmailLastSent',
             allowNull: false,
-            defaultValue: '2000-01-01T00:00:00'
+            defaultValue: '1999-01-01T00:00:00'
         }
 
     }, {
@@ -473,7 +493,7 @@ module.exports = function(sequelize, DataTypes) {
                 //Notify the user
 
                 //type has to be added to the data base
-                if (this.type == 'dispute') {
+                if (this.Type == 'dispute') {
                     this.setData('value', false);
                     this.save().then(function() {
                         this.complete();
@@ -622,10 +642,6 @@ module.exports = function(sequelize, DataTypes) {
             }
         },
         // define the table's name
-        tableName: 'Task'
+        tableName: 'TaskInstance'
     });
 };
-
-///var User =
-
-///module.exports = User;

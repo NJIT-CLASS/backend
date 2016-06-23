@@ -1,49 +1,70 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('Assignment', {
         AssignmentID: {
-            type: DataTypes.INTEGER,
-            field: 'AssignmentID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique identifier for Assignment (activity)
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'AssignmentID',
             allowNull: false,
             primaryKey: true,
-            autoIncrement: true
-        },
-        GradeDistribution: {
-            type: DataTypes.JSON,
-            field: 'GradeDistribution',
-            allowNull: false
-        },
-        Title: {
-            type: DataTypes.STRING,
-            field: 'Title',
-            allowNull: false
+            autoIncrement: true,
+            unique: true
         },
         UserID: {
-            type: DataTypes.INTEGER,
-            field: 'UserID',
+            //The assignment’s owner.
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'OwnerID',
             allowNull: false
         },
-        GroupSize: {
-            type: DataTypes.INTEGER,
-            field: 'GroupSize',
+        WorkflowActivityIDs: { //*
+            //WorkflowActivity_Assignment_ID
+            //BLOB of Foreign Keys
+            type: DataTypes.BLOB,
+            field: 'WorkflowActivityID',
             allowNull: false
         },
-        UseCase: {
-            type: DataTypes.INTEGER,
-            field: 'UseCase',
-            allowNull: false
+        Description: {
+            //Description of the Assignment
+            type: DataTypes.TEXT,
+            field: 'Description',
+            allowNull: true
         },
-        WA_A_id :{
-            type : DataTypes.INTEGER,
-            field: 'WA_A_id',
-            allowNull:false
+        GradeDistribution: {
+            //Describes the percentage given for every workflow and distribution of grade for every task
+            type: DataTypes.JSON,
+            field: 'GradeDistribution',
+            allowNull: true
+        },
+        Title: {
+            //Name of the assignment.
+            type: DataTypes.STRING,
+            field: 'Title',
+            allowNull: true
+        },
+        Type:{
+          type: DataTypes.STRING,
+          field: 'Type',
+          allowNull: true
+        },
+        DisplayName: {
+          type: DataTypes.STRING,
+          field: 'DisplayName',
+          allowNull: true
+        },
+        Section: {
+          type: DataTypes.STRING,
+          field: 'Section',
+          allowNull: true
+        },
+        Semester: {
+          type: DataTypes.STRING,
+          field: 'Semester',
+          allowNull: true
+        },
+        VersionHistory: {
+          type: DataTypes.JSON,
+          field: 'VersionHistory',
+          allowNull: true
         }
     }, {
         timestamps: false,
@@ -66,7 +87,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'Assignment'
     });
 };
-
-///var User =
-
-///module.exports = User;

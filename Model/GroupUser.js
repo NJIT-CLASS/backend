@@ -1,22 +1,14 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('GroupUser', {
         GroupID: {
-            type: DataTypes.INTEGER,
-            field: 'GroupID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'GroupID',
             allowNull: false,
             primaryKey: true
         },
         UserID: {
-            type: DataTypes.INTEGER,
-            field: 'UserID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'UserID',
             allowNull: false,
         },
         Role: {
@@ -24,7 +16,9 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Role',
             allowNull: false,
             validate: {
-                isIn: [['Student', 'Instructor']]
+                isIn: [
+                    ['Student', 'Instructor']
+                ]
             }
         },
         Status: {
@@ -32,7 +26,9 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Status',
             allowNull: false,
             validate: {
-                isIn: [['Active', 'Inactive']]
+                isIn: [
+                    ['Active', 'Inactive']
+                ]
             }
         }
     }, {
@@ -56,7 +52,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'GroupUser'
     });
 };
-
-///var User =
-
-///module.exports = User;

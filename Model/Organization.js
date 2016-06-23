@@ -1,54 +1,52 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('Organization', {
         OrganizationID: {
-            type: DataTypes.INTEGER,
-            field: 'OrganizationID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique identifier for the organization
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'OrganizationID',
             allowNull: false,
-            primaryKey: true
+            primaryKey: true,
+            autoIncrement: true,
+            unique: true
         },
         Name: {
-            type: DataTypes.STRING,
-            field: 'Name', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Name of the organization
+            type: DataTypes.STRING(40),
+            field: 'Name',
             allowNull: true,
-        },
-        Address: {
-            type: DataTypes.STRING,
-            field: 'Address',
-            allowNull: false
-        },
-        City: {
-            type: DataTypes.STRING,
-            field: 'City',
-            allowNull: false
-        },
-        State: {
-            type: DataTypes.STRING,
-            field: 'State',
-            allowNull: false
-        },
-        Zip: {
-            type: DataTypes.STRING,
-            field: 'Zip',
-            allowNull: false
-        },
-        Country: {
-            type: DataTypes.STRING,
-            field: 'Country',
-            allowNull: false
-        },
-        Type: {
-            type: DataTypes.STRING,
-            field: 'Type',
-            allowNull: true
         }
+        // Address: {
+        //     //Address of the organization.
+        //     type: DataTypes.STRING(70),
+        //     field: 'Address',
+        //     allowNull: false
+        // },
+        // City: {
+        //     type: DataTypes.STRING(20),
+        //     field: 'City',
+        //     allowNull: false
+        // },
+        // State: {
+        //     type: DataTypes.STRING(2),
+        //     field: 'State',
+        //     allowNull: false
+        // },
+        // ZipCode: {
+        //     type: DataTypes.STRING(20),
+        //     field: 'Zip',
+        //     allowNull: false
+        // },
+        // Country: {
+        //     type: DataTypes.STRING(30),
+        //     field: 'Country',
+        //     allowNull: false
+        // },
+        // Type: {
+        //     //Unique identifier for the organization type.
+        //     type: DataTypes.STRING,
+        //     field: 'Type',
+        //     allowNull: true
+        // }
     }, {
         timestamps: false,
 
@@ -70,7 +68,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'Organization'
     });
 };
-
-///var User =
-
-///module.exports = User;

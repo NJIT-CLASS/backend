@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "description": "API for use with the CLASS Application Redeployment",
   "scripts": {
-    "start": "node Server.js"  
+    "start": "node Server.js"
   },
   "dependencies": {
     "MD5": "*",

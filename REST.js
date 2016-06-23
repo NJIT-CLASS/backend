@@ -10,11 +10,12 @@ var Section = models.Section;
 var SectionUser = models.SectionUser;
 
 var Semester = models.Semester;
-var Task = models.Task;
+var TaskInstance = models.TaskInstance;
 var TaskActivity = models.TaskActivity;
 var Assignment = models.Assignment;
-var AssignmentSection = models.AssignmentSection;
-var Workflow = models.Workflow;
+var AssignmentInstance = models.AssignmentInstance;
+
+var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var Manager = require('./WorkFlow/Manager.js');
@@ -38,7 +39,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
         var value = req.body.assignment;
 
-
         /*******************************
          *     Exectuing Transaction   *
          *      if something fails,    *
@@ -52,13 +52,16 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
              * Defining assignment
              */
             var assignment = Assignment.build({
-                Description: req.body.assignment.Description,
-                GradeDistribution: req.body.assignment.GradeDistribution,
-                Title: req.body.assignment.Title,
                 UserID: req.body.assignment.UserID,
-                GroupSize: req.body.assignment.GroupSize,
-                Settings: {},
-                UseCase: "1a"
+                WorkflowActivityID: req.body.assignment.WorkflowActivityID,
+                Description: req.body.assignment.Description,
+                GradeDistribution: JSON.stringify(req.body.assignment.GradeDistribution),
+                Title: req.body.assignment.Title,
+                Type: req.body.assignment.Type,
+                DisplayName: req.body.assignment.DisplayName,
+                Section: null,
+                Semester: null,
+                VersionHistory: JSON.stringify({})
             });
 
             /**
@@ -81,11 +84,16 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                  * Defining Workflow
                  */
                 var workFlow = WorkflowActivity.build({
+                    AssignmentID: assignment.AssignmentID,
+                    TaskActivityCollection: JSON.stringify(workflow.TaskActivityCollection),
                     Name: workflow.Name,
                     Type: workflow.Type,
-                    MaximumDuration: workflow.MaximumDuration,
+                    GradeDistribution: JSON.stringify(workflow.GradeDistribution),
+                    NumberOfSets: workflow.NumberOfSets,
                     Description: workflow.Description,
-                    WA_A_id: assignment.AssignmentID
+                    GroupSize: workflow.GroupSize,
+                    StartTaskActivity: JSON.stringify(workflow.StartTaskActivity),
+                    VersionHistory: JSON.stringify({})
 
                 });
                 var promises = [];
@@ -108,20 +116,40 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         console.log("Creating taskActivity");
 
                         var taskActivity = TaskActivity.build({
+                            WorkflowActivityID: null, //workflow.WorkflowActivityID,
+                            AssignmentID: assignment.AssignmentID,
                             Name: taskactivity.Name,
-                            Type: TaskActivity.TaskActivityType,
+                            Type: taskactivity.Type,
+                            FileUpload: taskactivity.FileUpload,
                             MaximumDuration: taskactivity.MaximumDuration,
                             EarliestStartTime: taskactivity.EarliestStartTime,
+                            AtDurationEnd: JSON.stringify(taskactivity.AtDurationEnd),
+                            WhatIfLate: taskactivity.WhatIfLate,
+                            DisplayName: taskactivity.DisplayName,
+                            Documentation: taskactivity.Documentation,
+                            OneOrSeparate: taskactivity.OneOrSeparate,
+                            AssigneeConstraints: JSON.stringify(taskactivity.AssigneeConstraints),
+                            Difficulty: taskactivity.Difficulty,
+                            SimpleGrade: taskactivity.SimpleGrade,
+                            IsFinalGradingTask: taskactivity.IsFinalGradingTask,
                             Instructions: taskactivity.Instructions,
-                            Visual_ID: taskactivity.Visual_ID,
-                            TaskActivity_grade_difference: taskactivity.TaskActivity_grade_difference,
-                            Task_grade_type: taskactivity.Task_grade_type,
-                            Assignee_constraints: JSON.stringify(taskactivity.Assignee_constraints),
-                            TA_due: JSON.stringify(taskactivity.TA_due),
-                            TA_trigger_condition: JSON.stringify(taskactivity.TA_trigger_condition),
-                            TA_next_task: JSON.stringify(taskactivity.TA_next_task),
-                            TA_WA_id: null, //workflow.WorkflowActivityID,
-                            TA_AA_id: assignment.AssignmentID
+                            Rubric: taskactivity.Rubric,
+                            Fields: JSON.stringify(taskactivity.Fields),
+                            AllowReflection: JSON.stringify(taskactivity.AllowReflection),
+                            AllowAssessment: taskactivity.AllowAssessment,
+                            NumberParticipants: taskactivity.NumberParticipants,
+                            TriggerConsolidationThreshold: JSON.stringify(taskactivity.TriggerConsolidationThreshold),
+                            FunctionType: taskactivity.FunctionType,
+                            Function: taskactivity.Function,
+                            AllowDispute: taskactivity.AllowDispute,
+                            LeadsToNewProblem: taskactivity.LeadsToNewProblem,
+                            LeadsToNewSolution: taskactivity.LeadsToNewSolution,
+                            VisualID: taskactivity.VisualID,
+                            VersionHistory: JSON.stringify({}),
+                            RefersToWhichTask: taskactivity.RefersToWhichTask,
+                            TriggerCondition: JSON.stringify(taskactivity.TriggerCondition),
+                            PreviousTasks: JSON.stringify(taskactivity.PreviousTasks),
+                            NextTasks: JSON.stringify(taskactivity.NextTasks)
                         });
 
                         /**
@@ -180,7 +208,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/manager", function(req, res) {
 
         //Manager.Manager.checkTimeoutTasks();
-        AssignmentSection.findById(1).then(
+        AssignmentInstance.findById(1).then(
             function(asection) {
                 Manager.Manager.trigger(asection);
 
@@ -192,14 +220,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/ModelTest/:userID", function(req, res) {
 
 
-        Workflow.findById(req.params.userID).then(function(Workflow) {
-            console.log("Workflow Found");
+        WorkflowInstance.findById(req.params.userID).then(function(WorkflowInstance) {
+            console.log("WorkflowInstance Found");
 
-            Workflow.getWorkflowActivity().then(function(workflowActivity) {
+            WorkflowInstance.getWorkflowActivity().then(function(workflowActivity) {
                 console.log("WorkflowActivity Found " + workflowActivity.Name);
             });
 
-            Workflow.getAssignment().then(function(assignment) {
+            WorkflowInstance.getAssignment().then(function(assignment) {
                 console.log("Assignment Found : " + assignment.Title);
             });
         });
@@ -207,7 +235,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         WorkflowActivity.findById(req.params.userID).then(function(workflowActivity) {
             console.log("WorkflowActivity Found " + workflowActivity.Name);
 
-            workflowActivity.getWorkflows().then(function(workflows) {
+            workflowActivity.getWorkflowInstances().then(function(workflows) {
                 console.log("workflows Found ");
             });
 
@@ -216,28 +244,28 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         Assignment.findById(req.params.userID).then(function(assignment) {
             console.log("Assignment Found : " + assignment.Title);
 
-            assignment.getWorkflows().then(function(workflows) {
+            assignment.getWorkflowInstances().then(function(workflows) {
                 console.log("workflows Found ");
             });
 
         });
 
-        Task.findById(req.params.userID).then(function(Task) {
-            console.log("Semester name : " + Task.TaskID);
+        TaskInstance.findById(req.params.userID).then(function(taskInstance) {
+            console.log("Semester name : " + taskInstance.TaskInstanceID);
 
-            Task.getUser().then(function(User) {
-                console.log("Task User Name " + User.FirstName);
+            taskInstance.getUser().then(function(User) {
+                console.log("TaskInstance User Name " + User.FirstName);
             });
-            Task.getTaskActivity().then(function(TaskActivity) {
+            taskInstance.getTaskActivity().then(function(TaskActivity) {
                 console.log("TaskActivity Name " + TaskActivity.Name);
             });
 
         });
 
-        TaskActivity.findById(2).then(function(TaskActiviy) {
-            console.log("TaskActiviy name : " + TaskActiviy.Name);
+        TaskActivity.findById(2).then(function(TaskActivity) {
+            console.log("TaskActivity name : " + TaskActivity.Name);
 
-            TaskActiviy.getTasks().then(function(Tasks) {
+            TaskActivity.getTaskInstances().then(function(TaskInstances) {
                 console.log("Found");
             });
 
@@ -392,24 +420,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to return general user data
     router.get("/generalUser/:userid", function(req, res) {
-        // var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
-        // var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserContact", "uc", "uc.UserContactID", "u.UserContactID", "UserID", req.params.userid];
-        // query = mysql.format(query, table);
-        /*var query = "SELECT ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? on ??=?? WHERE ?? = ?";
-        var table = ["u.FirstName", "u.LastName", "u.UserType", "uc.Email", "u.Admin", "User", "u", "UserLogin", "uc", "uc.UserID", "u.UserID", "u.UserID", req.params.userid];
-        query = mysql.format(query, table);
-         connection.query(query, function(err, rows) {
-             if (err) {
-                 console.log("/generalUser : " + err.message);
-                 res.status(401).end();
-             } else {
-                 res.json({
-                     "Error": false,
-                     "Message": "Success",
-                     "User": rows
-                 });
-             }
-         });*/
         User.findAll({
             where: {
                 UserID: req.params.userid
@@ -434,34 +444,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to create a semester
     router.post("/CreateSemester", function(req, res) {
-        /*var query = "insert into Semester (Name, StartDate,EndDate) values(?,?,?)";
-
-        //Formating Dates
-        var startDate = dateFormat(req.body.startDate, "yyyy-mm-dd");
-        var endDate = dateFormat(req.body.endDate, "yyyy-mm-dd");
-
-        if (req.body.endDate == null || req.body.startDate == null) {
-            console.log("/CreateSemester : Dates must be defined");
-            res.status(400).end();
-        } else if (startDate > endDate) {
-            console.log("/CreateSemester : StartDate cannot be grater than EndDate");
-            res.status(400).end();
-        } else {
-            var table = [req.body.Name, startDate, endDate, req.body.OrganizationID];
-            query = mysql.format(query, table);
-            connection.query(query, function(err, response) {
-                if (err) {
-                    console.log("/CreateSemester : " + err.message);
-                    res.status(400).end();
-                } else {
-                    console.log("/CreateSemester Succesfully");
-                    res.json({
-                        "SemesterID": response.insertId
-                    });
-                }
-            });
-
-        }*/
 
         var startDate = dateFormat(req.body.startDate, "yyyy-mm-dd");
         var endDate = dateFormat(req.body.endDate, "yyyy-mm-dd");
@@ -495,26 +477,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to return Semester Information
     router.get("/semester/:semesterid", function(req, res) {
-        /*var query = "select ??, ??, ??, ?? from ?? where ??=?";
-        var table = ["SemesterID", "Name", "StartDate", "EndDate", "Semester",
-            "SemesterID", req.params.semesterid
-        ];
-
-        query = mysql.format(query, table);
-
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("/semester/email : " + err.message);
-
-                res.status(400).end();
-            } else {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Course": rows
-                });
-            }
-        });*/
 
         Semester.findAll({
             where: {
@@ -537,24 +499,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to get All Semester Information
     router.get("/semester", function(req, res) {
-        /*var query = "select *  from ??";
-        var table = ["Semester"];
 
-        query = mysql.format(query, table);
-
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("/semester : " + err.message);
-
-                res.status(400).end();
-            } else {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Semesters": rows
-                });
-            }
-        });*/
         Semester.findAll({}).then(function(rows) {
             res.json({
                 "Error": false,
@@ -568,44 +513,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
 
-    //Issue 5
-    /**
-     * Spring 3
-     * Issue # 5.1
-     * Create Course
-     * Cesar Salazar
-     */
     router.post("/course/create", function(req, res) {
-        /*var query = "insert into ??(??,??,??) values(?,?,?)";
-        var table = ["Course", "CreatorID", "Number", "Title",
-            req.body.userid, req.body.number, req.body.title
-        ];
-
-        if (req.body.userid == null) {
-            console.log("course/create : UserID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.title == null) {
-            console.log("course/create : Title cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        query = mysql.format(query, table);
-        connection.query(query, function(err, response) {
-            if (err) {
-                console.log("/course/create : " + err.message);
-
-                res.status(400).end();
-            } else {
-                getCreatedCourseID(function(result) {
-                    res.json({
-                        "result": result
-                    });
-                });
-            }
-        });*/
 
         if (req.body.userid == null) {
             console.log("/course/create : UserID cannot be null");
@@ -620,7 +528,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var course = Course.build({
             CreatorID: req.body.userid,
             Number: req.body.number,
-            Title: req.body.title
+            Title: req.body.title,
+            OrganizationID: req.body.OrganizationID//new
 
         }).save().then(function(response) {
             res.json({
@@ -636,71 +545,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-    /*function getCreatedCourseID(callback) {
-        var query = "SELECT LAST_INSERT_ID()";
-        var table = [];
-        query = mysql.format(query, table);
-
-        connection.query(query, function(err, rows) {
-            if (err) {
-                res.status(400).end();
-            } else {
-                callback(rows);
-            }
-        });
-
-        /*sequelize.query("SELECT LAST_INSERT_ID()", {
-            type: sequelize.QueryTypes.SELECT
-        }).then(function(rows) {
-            callback(rows);
-        }).catch(function(err) {
-            res.status(400).end();
-        });
-    }*/
-
-    //Christian Alexander - Issue 5.2
-    //Create Course Section
     router.post("/course/createsection", function(req, res) {
 
-
-        /*var query = "insert into ??(??,??,??,??) values(?,?,?,?)";
-        var table = ["Section", "CourseID", "SemesterID", "Name",
-            "Description", req.body.courseid, req.body.semesterid, req.body.name,
-            req.body.description
-        ];
-
-
-        if (req.body.semesterid == null) {
-            console.log("course/createsection : SemesterID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.courseid == null) {
-            console.log("course/createsection : CourseID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.description == null) {
-            console.log("course/createsection : Description cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        query = mysql.format(query, table);
-
-        connection.query(query, function(err, response) {
-            if (err) {
-                console.log("/course/createsection : " + err.message);
-
-                res.status(401).end();
-            } else {
-                getCreatedCourseID(function(result) {
-                    res.json({
-                        "result": result
-                    });
-                });
-            }
-        });*/
 
         if (req.body.semesterid == null) {
             console.log("course/createsection : SemesterID cannot be null");
@@ -727,6 +573,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var section = Section.build({
             SemesterID: req.body.semesterid,
             CourseID: req.body.courseid,
+            OrganizationID: req.body.OrganizationID,//new
             Name: req.body.name,
             Description: req.body.description
 
@@ -742,6 +589,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     //Endpoint to add a user to a course
+    //****Need to look over
     router.put("/course/adduser", function(req, res) {
         if (req.body.email == null || req.body.courseid == null || req.body.coursesectionid == null) {
             console.log("course/adduser : Email cannot be null");
@@ -811,37 +659,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         })
     });
 
-    /**
-     * getCourse
-     * Issue # 5.4
-     * Cesar Salazar
-     */
     router.get("/course/:courseId", function(req, res) {
-        /*var query = "SELECT ??,??, ?? FROM ?? Where ??=?";
-        var table = ["CourseID", "Number", "Title", "Course", "CourseID", req.params.courseId];
-        query = mysql.format(query, table);
-        connection.query(query, function(err, result) {
-            if (err) {
-                console.log("/course : " + err.message);
-                res.status(400).end();
-            } else {
-                //res.json({"Error": false, "Message": "Success", "Course": result});
-                Section.findAll({
-                    where: {
-                        CourseID: req.params.courseId
-                    }
-                }).then(function(sections) {
-                    res.json({
-                        "Error": false,
-                        "Message": "Success",
-                        "Course": result,
-                        "Sections": sections
-                    });
-                });
-
-            }
-        });*/
-
         Course.find({
             where: {
                 CourseID: req.params.courseId
@@ -868,31 +686,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-
-    /**
-     * getCourseSection
-     * Issue # 5.5
-     * Cesar Salazar
-     */
+    //Need to translate getsectionUsers function
     router.get("/course/getsection/:sectionId", function(req, res) {
-
-        /*var query = "SELECT ??, ?? FROM ?? where ?? = ?";
-        var table = ["Name", "Description", "Section", "SectionID", req.params.sectionId];
-        query = mysql.format(query, table);
-
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("/course/getsection/ : " + err.message);
-                res.status(400).end();
-            } else {
-                getSectionUsers(req.params.sectionId, function(result) {
-                    res.json({
-                        "result": rows,
-                        "UserSection": result
-                    });
-                });
-            }
-        });*/
 
         Section.find({
             where: {
@@ -954,43 +749,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });*/
     }
 
-    /**
-     * UpdateCourse
-     * Issue # 5.6
-     * Cesar Salazar
 
-     course ID
-     course name
-     course number
-     course creator id
-     */
     router.put("/course/update", function(req, res) {
-        /*var query = "update ?? set ??=?, ??=? where ?? = ?";
-        var table = ["Course", "Title", req.body.Title, "Number", req.body.Number, "CourseID", req.body.CourseID];
-
-        if (req.body.title == null) {
-            console.log("course/create : Title cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        if (req.body.CourseID == null) {
-            console.log("course/create : CourseID cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-
-        query = mysql.format(query, table);
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("/course/update : " + err.message);
-
-                res.status(400).end();
-            } else {
-                res.status(200).end();
-            }
-        });*/
 
         if (req.body.Title == null) {
             console.log("course/create : Title cannot be null");
@@ -1034,47 +794,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-    //Christian Alexander - Issue 5.7
-    //Update a Course Section
+
     router.put("/course/updatesection", function(req, res) {
-        /*var query = "update ?? set ??=?, ??=? where ??=? and ?? = ?";
-        var table = ["Section", "Name", req.body.name, "Description",
-            req.body.description, "SectionID", req.body.sectionid,
-            "SemesterID", req.body.semesterid
-        ];
-
-        if (req.body.semesterid == null) {
-            console.log("course/updatesection : SemesterID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.courseid == null) {
-            console.log("course/updatesection : CourseID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.description == null) {
-            console.log("course/updatesection : Description cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        if (req.body.sectionid == null) {
-            console.log("course/updatesection : sectionid cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        query = mysql.format(query, table);
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("/course/updatesection : " + err.message);
-
-                res.status(401).end();
-            } else {
-                res.status(200).end();
-            }
-        });*/
 
         if (req.body.semesterid == null) {
             console.log("course/updatesection : SemesterID cannot be null");
@@ -1134,28 +855,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         })
 
     });
-    /**
-     * Delete User from Section
-     * Issue # 5.8
-     * Cesar Salazar
 
-     UserID
-     SectionID
-     */
+
     router.delete("/course/deleteuser", function(req, res) {
-        /*var query = "delete from ?? where ?? = ? and ?? = ?";
-        var table = ["SectionUser", "UserID", req.body.userID, "SectionID", req.body.SectionID];
-        query = mysql.format(query, table);
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("/course/deleteuser : " + err.message);
 
-                res.status(400).end()
-            } else {
-                console.log("Delete User Success");
-                res.status(200).end()
-            }
-        });*/
         SectionUser.destroy({
             where: {
                 UserID: req.body.userID,
@@ -1176,33 +879,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //Endpoint to get a user's courses
     router.get("/course/getCourses/:userid", function(req, res) {
 
-        /*var query = "select ??, ?? from ?? as su inner join Section as s on s.SectionID = su.SectionID where ??=?";
-        var table = ["s.CourseID", "s.SectionID", "SectionUser", "su.UserID", req.params.userid];
-        query = mysql.format(query, table);
-        connection.query(query, function(err, rows) {
-            if (err) {
-                res.status(401).end();
-            } else {
-                if (rows.length > 0) {
-                    res.json({
-                        "Error": false,
-                        "Message": "Success",
-                        "Result": rows
-                    });
-                } else {
-                    res.json({
-                        "Error": true,
-                        "Message": "User Has No Courses"
-                    });
-                }
-            }
-        });*/
-
         SectionUser.findAll({
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['Section.CourseID', 'Section.SectionID'],
             include: [{
                 model: Section,
                 required: true,
@@ -1228,6 +908,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
 
     //Endpoint to get start a password reset request
+
     router.post("/resetPassword", function(req, res) {
         if (req.body.email == null) {
             console.log("/resetPassword : Email not sent");
@@ -1235,6 +916,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             return;
         }
         var guid = Guid.create();
+        //What is Guid?
+
         UserLogin.find({
             where: {
                 Email: req.body.email
@@ -1284,12 +967,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    /**
-     * Create reset password hash
-     * Issue # 8.3
-     * Cesar Salazar
-
-     */
+    //still need fixing
     router.get("/getPasswordResetRequest", function(req, res) {
         /*var query = "select ?? from ?? where ??=?";
         var table = ["UserID", "ResetPasswordRequest", "RequestHash", req.query.PasswordHash];
@@ -1550,25 +1228,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     //Endpoint to Get Pending Tasks
-    router.get("/task/:userid", function(req, res) {
-        Task.findAll({
+    router.get("/taskInstance/:userid", function(req, res) {
+        TaskInstance.findAll({
             where: {
                 UserID: req.params.userid
             }
-        }).then(function(task) {
+        }).then(function(taskInstance) {
             res.json({
-                "Tasks": task
+                "TaskInstances": taskInstance
             });
         }).catch(function(e) {
-            console.log("/task/:userid " + e);
+            console.log("/taskInstanceInstance/:userid " + e);
             res.json({
-                "Tasks": -1
+                "TaskInstances": -1
             });
         });
     });
 
     router.post("assignment/section", function(req, res) {
-        AssignmentSection.create({
+        AssignmentInstance.create({
             AssignmentID: req.body.assignmentid,
             SectionID: req.body.sectionid
         }).save().then(function() {
@@ -1580,65 +1258,44 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    /*router.get("/createProblem", function(req, res) {
-        Task.findAll({
-            where: {
-                TaskID: req.param.TaskID
-
-            }
-            attributes: ["TaskActivity.TaskActivityType", "Assignment.Name", "Course.Name", "Semester.name", "Assignment.Description"]
-        }).then(function(Tasks) {
-            console.log("/createProblem Problem Created");
-            res.json()
-        })
-
-
-    });*/
-
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    router.get("/TaskTemplate/main/:taskID", function(req, res) {
-        Task.find({
+    router.get("/taskInstanceTemplate/main/:taskInstanceID", function(req, res) {
+        TaskInstance.find({
             where: {
-                TaskID: req.params.taskID
+                TaskInstanceID: req.params.taskInstanceID
             }
-        }).then(function(taskResult) {
-            //Retrieve TaskActivityID from Task
+        }).then(function(taskInstanceResult) {
             TaskActivity.find({
                 where: {
-                    TaskActivityID: taskResult.TaskActivityID
+                    TaskActivityID: taskInstanceResult.TaskActivityID
                 }
             }).then(function(taskActivityResult) {
-                //Retrieve TaskActivityType from TaskActivity
                 Course.find({
                     where: {
                         CourseID: req.query.courseID
                     }
                 }).then(function(courseResult) {
-                    //Retrieve Course.Name and Course.Number from Course
                     Assignment.find({
                         where: {
                             UserID: req.query.userID
                         }
                     }).then(function(assignmentResult) {
-                        //Retrieve Assignment.Title and Assignment.AssignmentID from Assignment
                         Section.find({
                             where: {
                                 SectionID: req.query.sectionID
                             }
                         }).then(function(sectionResult) {
-                            //Retrieve SemesterID from Section
                             Semester.find({
                                 where: {
                                     SemesterID: sectionResult.SemesterID
                                 }
                             }).then(function(semesterResult) {
-                                //Retrieve Semester.Title from Semester
                                 res.json({
                                     "Error": false,
                                     "Message": "Success",
-                                    "taskActivityID": taskResult.TaskActivityID,
-                                    "taskActivityType": taskActivityResult.TaskActivityType,
+                                    "taskActivityID": taskInstanceResult.TaskActivityID,
+                                    "taskActivityType": taskActivityResult.Type,
                                     "courseName": courseResult.Title,
                                     "courseNumber": courseResult.Number,
                                     "assignmentTitle": assignmentResult.Title,
@@ -1648,7 +1305,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 });
                             }).catch(function(err) {
                                 //Catch error and print into console.
-                                console.log('/TaskTemplate/main/ ' + err);
+                                console.log('/taskInstanceTemplate/main/ ' + err);
                                 res.status(400).end();
                             });
                         });
@@ -1660,30 +1317,30 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    router.get("/TaskTemplate/create/:taskid", function(req, res) {
+    router.get("/taskInstanceTemplate/create/:taskInstanceid", function(req, res) {
 
-        //Find Task.AssignmentSectionID from Task
-        Task.find({
+        //Find TaskInstance.AssignmentInstanceID from TaskInstance
+        TaskInstance.find({
             where: {
-                TaskID: req.params.taskid
+                TaskInstanceID: req.params.taskInstanceid
             }
-        }).then(function(taskResult) {
-            //Find the particular AssignmentSection using AssignmentSectionID retrieved from Task.
-            AssignmentSection.find({
+        }).then(function(taskInstanceResult) {
+            //Find the particular AssignmentInstance using AssignmentInstanceID retrieved from TaskInstance.
+            AssignmentInstance.find({
                 where: {
-                    AssignmentSectionID: taskResult.AssignmentSectionID
+                    AssignmentInstanceID: taskInstanceResult.AssignmentInstanceID
                 }
-            }).then(function(assignmentSectionResult) {
-                //Access Assignment through AssignmentSection.AssignmentID.
+            }).then(function(assignmentInstanceResult) {
+                //Access Assignment through AssignmentInstance.AssignmentID.
                 Assignment.find({
                     where: {
-                        AssignmentID: assignmentSectionResult.AssignmentID
+                        AssignmentID: assignmentInstanceResult.AssignmentID
                     }
                 }).then(function(assignmentResult) {
-                    //Access TaskActivity through Task.TaskActivityID.
+                    //Access TaskActivity through TaskInstance.TaskActivityID.
                     TaskActivity.find({
                         where: {
-                            TaskActivityID: taskResult.TaskActivityID
+                            TaskActivityID: taskInstanceResult.TaskActivityID
                         }
                     }).then(function(taskActivityResult) {
                         //Returns json
@@ -1694,7 +1351,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                             "taskInstruction": taskActivityResult.Instructions
                         });
                     }).catch(function(err) {
-                        console.log('/TaskTemplate/create/ ' + err);
+                        console.log('/taskInstanceTemplate/create/ ' + err);
                         res.status(404).end();
                     });
                 });
@@ -1702,40 +1359,40 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    router.post("/TaskTemplate/create/submit", function(req, res) {
-        if (req.body.taskid == null) {
-            console.log("/TaskTemplate/create/submit : TaskID cannot be null");
+    router.post("/taskInstanceTemplate/create/submit", function(req, res) {
+        if (req.body.taskInstanceid == null) {
+            console.log("/taskInstanceTemplate/create/submit : TaskInstanceID cannot be null");
             res.status(400).end();
             return;
         }
         if (req.body.userid == null) {
-            console.log("/TaskTemplate/create/submit : UserID cannot be null");
+            console.log("/taskInstanceTemplate/create/submit : UserID cannot be null");
             res.status(400).end();
             return;
         }
-        if (req.body.taskData == null) {
-            console.log("/TaskTemplate/create/submit : Data cannot be null");
+        if (req.body.taskInstanceData == null) {
+            console.log("/taskInstanceTemplate/create/submit : Data cannot be null");
             res.status(400).end();
             return;
         }
 
-        Task.find({
+        TaskInstance.find({
             where: {
-                TaskID: req.body.taskid,
+                TaskInstanceID: req.body.taskInstanceid,
                 UserID: req.body.userid
             }
         }).then(function(result) {
-            //Ensure userid input matches Task.UserID
+            //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != result.UserID) {
-                console.log("/TaskTemplate/create/submit : UserID Incorrect Match");
+                console.log("/taskInstanceTemplate/create/submit : UserID Incorrect Match");
                 res.status(400).end();
                 return;
             }
 
             //Change Task_status to Complete and store userCreatedProblem
             result.update({
-                Task_status: 'Complete',
-                Data: req.body.taskData
+                Status: 'Complete',
+                Data: req.body.taskInstanceData
 
             }).then(function(response) {
                 res.json({
@@ -1744,7 +1401,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     "Result": response
                 });
             }).catch(function(err) {
-                console.log('/TaskTemplate/create/submit ' + err);
+                console.log('/taskInstanceTemplate/create/submit ' + err);
                 res.status(400).end();
             });
 
@@ -1752,39 +1409,39 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-    router.post("/TaskTemplate/create/save", function(req, res) {
-        if (req.body.taskid == null) {
-            console.log("/TaskTemplate/create/save : TaskID cannot be null");
+    router.post("/taskInstanceTemplate/create/save", function(req, res) {
+        if (req.body.taskInstanceid == null) {
+            console.log("/taskInstanceTemplate/create/save : TaskInstanceID cannot be null");
             res.status(400).end();
             return;
         }
         if (req.body.userid == null) {
-            console.log("/TaskTemplate/create/save : UserID cannot be null");
+            console.log("/taskInstanceTemplate/create/save : UserID cannot be null");
             res.status(400).end();
             return;
         }
-        if (req.body.taskData == null) {
-            console.log("/TaskTemplate/create/save : Data cannot be null");
+        if (req.body.taskInstanceData == null) {
+            console.log("/taskInstanceTemplate/create/save : Data cannot be null");
             res.status(400).end();
             return;
         }
 
-        Task.find({
+        TaskInstance.find({
             where: {
-                TaskID: req.body.taskid,
+                TaskInstanceID: req.body.taskInstanceid,
                 UserID: req.body.userid
             }
         }).then(function(result) {
-            //Ensure userid input matches Task.UserID
+            //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != result.UserID) {
-                console.log("/TaskTemplate/create/save : UserID Incorrect Match");
+                console.log("/taskInstanceTemplate/create/save : UserID Incorrect Match");
                 res.status(400).end();
                 return;
             }
 
-            //Task_status remains incomplete and store userCreatedProblem
+            //Task_Status remains incomplete and store userCreatedProblem
             result.update({
-                Data: req.body.taskData
+                Data: req.body.taskInstanceData
 
             }).then(function(response) {
                 res.json({
@@ -1793,7 +1450,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     "Result": response
                 });
             }).catch(function(err) {
-                console.log('/TaskTemplate/create/save ' + err);
+                console.log('/taskInstanceTemplate/create/save ' + err);
                 res.status(400).end();
             });
 
@@ -1803,34 +1460,34 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    router.get("/TaskTemplate/edit/:taskid", function(req, res) {
-        //Find Task.AssignmentSectionID from Task
-        Task.find({
+    router.get("/taskInstanceTemplate/edit/:taskInstanceid", function(req, res) {
+        //Find TaskInstance.AssignmentInstanceID from TaskInstance
+        TaskInstance.find({
             where: {
-                TaskID: req.params.taskid
+                TaskInstanceID: req.params.taskInstanceid
             }
-        }).then(function(taskResult) {
-            //Find the particular AssignmentSection using AssignmentSectionID retrieved from Task.
-            AssignmentSection.find({
+        }).then(function(taskInstanceResult) {
+            //Find the particular AssignmentInstance using AssignmentInstanceID retrieved from TaskInstance.
+            AssignmentInstance.find({
                 where: {
-                    AssignmentSectionID: taskResult.AssignmentSectionID
+                    AssignmentInstanceID: taskInstanceResult.AssignmentInstanceID
                 }
-            }).then(function(assignmentSectionResult) {
-                //Access Assignment through AssignmentSection.AssignmentID.
+            }).then(function(assignmentInstanceResult) {
+                //Access Assignment through AssignmentInstance.AssignmentID.
                 Assignment.find({
                     where: {
-                        AssignmentID: assignmentSectionResult.AssignmentID
+                        AssignmentID: assignmentInstanceResult.AssignmentID
                     }
                 }).then(function(assignmentResult) {
-                    //Access TaskActivity through Task.TaskActivityID.
+                    //Access TaskActivity through TaskInstance.TaskActivityID.
                     TaskActivity.find({
                         where: {
-                            TaskActivityID: taskResult.TaskActivityID
+                            TaskActivityID: taskInstanceResult.TaskActivityID
                         }
                     }).then(function(taskActivityResult) {
-                        Task.find({
+                        TaskInstance.find({
                             where: {
-                                TaskID: taskResult.Task_reference
+                                TaskInstanceID: taskInstanceResult.ReferencedTask
                             }
                         }).then(function(createdProblemTaskResult) {
                             //Returns json
@@ -1840,10 +1497,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 "ProblemText": createdProblemTaskResult.Data,
                                 "assignmentDescription": assignmentResult.Description,
                                 "taskInstruction": taskActivityResult.Instructions,
-                                "problem": taskResult.Data
+                                "problem": taskInstanceResult.Data
                             });
                         }).catch(function(err) {
-                            console.log('/TaskTemplate/edit/ ' + err);
+                            console.log('/taskInstanceTemplate/edit/ ' + err);
                             res.status(404).end();
                         });
                     });
@@ -1853,40 +1510,40 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    router.post("/TaskTemplate/edit/submit", function(req, res) {
-        if (req.body.taskid == null) {
-            console.log("/TaskTemplate/edit/submit : TaskID cannot be null");
+    router.post("/taskInstanceTemplate/edit/submit", function(req, res) {
+        if (req.body.taskInstanceid == null) {
+            console.log("/taskInstanceTemplate/edit/submit : TaskInstanceID cannot be null");
             res.status(400).end();
             return;
         }
         if (req.body.userid == null) {
-            console.log("/TaskTemplate/edit/submit : UserID cannot be null");
+            console.log("/taskInstanceTemplate/edit/submit : UserID cannot be null");
             res.status(400).end();
             return;
         }
-        if (req.body.taskData == null) {
-            console.log("/TaskTemplate/edit/submit : Data cannot be null");
+        if (req.body.taskInstanceData == null) {
+            console.log("/taskInstanceTemplate/edit/submit : Data cannot be null");
             res.status(400).end();
             return;
         }
 
-        Task.find({
+        TaskInstance.find({
             where: {
-                TaskID: req.body.taskid,
+                TaskInstanceID: req.body.taskInstanceid,
                 UserID: req.body.userid
             }
         }).then(function(result) {
-            //Ensure userid input matches Task.UserID
+            //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != result.UserID) {
-                console.log("/TaskTemplate/edit/submit : UserID Incorrect Match");
+                console.log("/taskInstanceTemplate/edit/submit : UserID Incorrect Match");
                 res.status(400).end();
                 return;
             }
 
-            //Change Task_status to Complete and store userCreatedProblem
+            //Change Task_Status to Complete and store userCreatedProblem
             result.update({
-                Task_status: 'Complete',
-                Data: req.body.taskData
+                Status: 'Complete',
+                Data: req.body.taskInstanceData
 
             }).then(function(response) {
                 res.json({
@@ -1895,46 +1552,46 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     "Result": response
                 });
             }).catch(function(err) {
-                console.log('/TaskTemplate/edit/submit ' + err);
+                console.log('/taskInstanceTemplate/edit/submit ' + err);
                 res.status(400).end();
             });
 
         });
     });
 
-    router.post("/TaskTemplate/edit/save", function(req, res) {
-        if (req.body.taskid == null) {
-            console.log("/TaskTemplate/edit/save : TaskID cannot be null");
+    router.post("/taskInstanceTemplate/edit/save", function(req, res) {
+        if (req.body.taskInstanceid == null) {
+            console.log("/taskInstanceTemplate/edit/save : TaskInstanceID cannot be null");
             res.status(400).end();
             return;
         }
         if (req.body.userid == null) {
-            console.log("/TaskTemplate/edit/save : UserID cannot be null");
+            console.log("/taskInstanceTemplate/edit/save : UserID cannot be null");
             res.status(400).end();
             return;
         }
-        if (req.body.taskData == null) {
-            console.log("/TaskTemplate/edit/save : Data cannot be null");
+        if (req.body.taskInstanceData == null) {
+            console.log("/taskInstanceTemplate/edit/save : Data cannot be null");
             res.status(400).end();
             return;
         }
 
-        Task.find({
+        TaskInstance.find({
             where: {
-                TaskID: req.body.taskid,
+                TaskInstanceID: req.body.taskInstanceid,
                 UserID: req.body.userid
             }
         }).then(function(result) {
-            //Ensure userid input matches Task.UserID
+            //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != result.UserID) {
-                console.log("/TaskTemplate/edit/save : UserID Incorrect Match");
+                console.log("/taskInstanceTemplate/edit/save : UserID Incorrect Match");
                 res.status(400).end();
                 return;
             }
 
             //Change Task_status to Complete and store userCreatedProblem
             result.update({
-                Data: req.body.taskData
+                Data: req.body.taskInstanceData
 
             }).then(function(response) {
                 res.json({
@@ -1943,7 +1600,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     "Result": response
                 });
             }).catch(function(err) {
-                console.log('/TaskTemplate/edit/save ' + err);
+                console.log('/taskInstanceTemplate/edit/save ' + err);
                 res.status(400).end();
             });
 
@@ -1952,34 +1609,34 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    router.get("/TaskTemplate/solve/:taskid", function(req, res) {
-        //Find Task.AssignmentSectionID from Task
-        Task.find({
+    router.get("/taskInstanceTemplate/solve/:taskInstanceid", function(req, res) {
+        //Find TaskInstance.AssignmentInstanceID from TaskInstance
+        TaskInstance.find({
             where: {
-                TaskID: req.params.taskid
+                TaskInstanceID: req.params.taskInstanceid
             }
-        }).then(function(taskResult) {
-            //Find the particular AssignmentSection using AssignmentSectionID retrieved from Task.
-            AssignmentSection.find({
+        }).then(function(taskInstanceResult) {
+            //Find the particular AssignmentInstance using AssignmentInstanceID retrieved from TaskInstance.
+            AssignmentInstance.find({
                 where: {
-                    AssignmentSectionID: taskResult.AssignmentSectionID
+                    AssignmentInstanceID: taskInstanceResult.AssignmentInstanceID
                 }
-            }).then(function(assignmentSectionResult) {
-                //Access Assignment through AssignmentSection.AssignmentID.
+            }).then(function(assignmentInstanceResult) {
+                //Access Assignment through AssignmentInstance.AssignmentID.
                 Assignment.find({
                     where: {
-                        AssignmentID: assignmentSectionResult.AssignmentID
+                        AssignmentID: assignmentInstanceResult.AssignmentID
                     }
                 }).then(function(assignmentResult) {
                     //Access TaskActivity through Task.TaskActivityID.
                     TaskActivity.find({
                         where: {
-                            TaskActivityID: taskResult.TaskActivityID
+                            TaskActivityID: taskInstanceResult.TaskActivityID
                         }
                     }).then(function(taskActivityResult) {
-                        Task.find({
+                        TaskInstance.find({
                             where: {
-                                TaskID: taskResult.Task_reference
+                                TaskInstanceID: taskInstanceResult.ReferencedTask
                             }
                         }).then(function(editProblemTaskResult) {
                             //Returns json
@@ -1989,10 +1646,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 "ProblemText": editProblemTaskResult.Data,
                                 "assignmentDescription": assignmentResult.Description,
                                 "taskInstruction": taskActivityResult.Instructions,
-                                "problem": taskResult.Data
+                                "problem": taskInstanceResult.Data
                             });
                         }).catch(function(err) {
-                            console.log('/TaskTemplate/edit/ ' + err);
+                            console.log('/taskInstanceTemplate/edit/ ' + err);
                             res.status(404).end();
                         });
                     });
@@ -2002,40 +1659,40 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    router.post("/TaskTemplate/solve/submit", function(req, res) {
-        if (req.body.taskid == null) {
-            console.log("/TaskTemplate/solve/submit : TaskID cannot be null");
+    router.post("/taskInstanceTemplate/solve/submit", function(req, res) {
+        if (req.body.taskInstanceid == null) {
+            console.log("/taskInstanceTemplate/solve/submit : TaskInstanceID cannot be null");
             res.status(400).end();
             return;
         }
         if (req.body.userid == null) {
-            console.log("/TaskTemplate/solve/submit : UserID cannot be null");
+            console.log("/taskInstanceTemplate/solve/submit : UserID cannot be null");
             res.status(400).end();
             return;
         }
-        if (req.body.taskData == null) {
-            console.log("/TaskTemplate/solve/submit : Data cannot be null");
+        if (req.body.taskInstanceData == null) {
+            console.log("/taskInstanceTemplate/solve/submit : Data cannot be null");
             res.status(400).end();
             return;
         }
 
-        Task.find({
+        TaskInstance.find({
             where: {
-                TaskID: req.body.taskid,
+                TaskInstanceID: req.body.taskInstanceid,
                 UserID: req.body.userid
             }
         }).then(function(result) {
-            //Ensure userid input matches Task.UserID
+            //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != result.UserID) {
-                console.log("/TaskTemplate/solve/submit : UserID Incorrect Match");
+                console.log("/taskInstanceTemplate/solve/submit : UserID Incorrect Match");
                 res.status(400).end();
                 return;
             }
 
-            //Change Task_status to Complete and store userCreatedProblem
+            //Change Task_Status to Complete and store userCreatedProblem
             result.update({
-                Task_status: 'Complete',
-                Data: req.body.taskData
+                Status: 'Complete',
+                Data: req.body.taskInstanceData
 
             }).then(function(response) {
                 res.json({
@@ -2044,46 +1701,46 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     "Result": response
                 });
             }).catch(function(err) {
-                console.log('/TaskTemplate/solve/submit ' + err);
+                console.log('/taskInstanceTemplate/solve/submit ' + err);
                 res.status(400).end();
             });
 
         });
     });
 
-    router.post("/TaskTemplate/solve/save", function(req, res) {
-        if (req.body.taskid == null) {
-            console.log("/TaskTemplate/solve/save : TaskID cannot be null");
+    router.post("/taskInstanceTemplate/solve/save", function(req, res) {
+        if (req.body.taskInstanceid == null) {
+            console.log("/taskInstanceTemplate/solve/save : TaskInstanceID cannot be null");
             res.status(400).end();
             return;
         }
         if (req.body.userid == null) {
-            console.log("/TaskTemplate/solve/save : UserID cannot be null");
+            console.log("/taskInstanceTemplate/solve/save : UserID cannot be null");
             res.status(400).end();
             return;
         }
-        if (req.body.taskData == null) {
-            console.log("/TaskTemplate/solve/save : Data cannot be null");
+        if (req.body.taskInstanceData == null) {
+            console.log("/taskInstanceTemplate/solve/save : Data cannot be null");
             res.status(400).end();
             return;
         }
 
-        Task.find({
+        TaskInstance.find({
             where: {
-                TaskID: req.body.taskid,
+                TaskInstanceID: req.body.taskInstanceid,
                 UserID: req.body.userid
             }
         }).then(function(result) {
-            //Ensure userid input matches Task.UserID
+            //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != result.UserID) {
-                console.log("/TaskTemplate/solve/save : UserID Incorrect Match");
+                console.log("/TaskInstanceTemplate/solve/save : UserID Incorrect Match");
                 res.status(400).end();
                 return;
             }
 
-            //Change Task_status to Complete and store userCreatedProblem
+            //Change Task_Status to Complete and store userCreatedProblem
             result.update({
-                Data: req.body.taskData
+                Data: req.body.taskInstanceData
 
             }).then(function(response) {
                 res.json({
@@ -2092,7 +1749,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     "Result": response
                 });
             }).catch(function(err) {
-                console.log('/TaskTemplate/solve/save ' + err);
+                console.log('/taskInstanceTemplate/solve/save ' + err);
                 res.status(400).end();
             });
 
@@ -2100,25 +1757,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    router.get("/TaskTemplate/grade/:taskid", function(req, res) {
-        Task.find({
+    router.get("/taskInstanceTemplate/grade/:taskInstanceid", function(req, res) {
+        TaskInstance.find({
             where: {
-                TaskID: req.params.taskid
+                TaskInstanceID: req.params.taskInstanceid
             }
-        }).then(function(taskResult) {
-            Task.find({
+        }).then(function(taskInstanceResult) {
+            TaskInstance.find({
                 where: {
-                    TaskID: taskResult.Task_reference
+                    TaskInstanceID: taskInstanceResult.ReferencedTask
                 }
             }).then(function(solvedProblemResult) {
-                Task.find({
+                TaskInstance.find({
                     where: {
-                        TaskID: solvedProblemResult.Task_reference
+                        TaskInstanceID: solvedProblemResult.ReferencedTask
                     }
                 }).then(function(editProblemTaskResult) {
                     TaskActivity.find({
                         where: {
-                            TaskActivityID: taskResult.TaskActivityID
+                            TaskActivityID: taskInstanceResult.TaskActivityID
                         }
                     }).then(function(taskActivityResult) {
                         res.json({
@@ -2127,10 +1784,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                             "editProblem": editProblemTaskResult.Data,
                             "sovledProblem": solvedProblemResult.Data,
                             "taskInstruction": taskActivityResult.Instructions,
-                            "problem": taskResult.Data
+                            "problem": taskInstanceResult.Data
                         });
                     }).catch(function(err) {
-                        console.log('/TaskTemplate/grade/ ' + err);
+                        console.log('/taskInstanceTemplate/grade/ ' + err);
                         res.status(404).end();
                     });
                 });
@@ -2141,30 +1798,30 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    router.get("/TaskTemplate/dispute/:taskid", function(req, res) {
-        Task.find({
+    router.get("/taskInstanceTemplate/dispute/:taskInstanceid", function(req, res) {
+        TaskInstance.find({
             where: {
-                TaskID: req.params.taskid
+                TaskInstanceID: req.params.taskInstanceid
             }
-        }).then(function(taskResult) {
-            Task.find({
+        }).then(function(taskInstanceResult) {
+            TaskInstance.find({
                 where: {
-                    TaskID: taskResult.Task_reference
+                    TaskInstanceID: taskInstanceResult.ReferencedTask
                 }
             }).then(function(gradeResult) {
-                Task.find({
+                TaskInstance.find({
                     where: {
-                        TaskID: gradeResult.Task_reference
+                        TaskInstanceID: gradeResult.ReferencedTask
                     }
                 }).then(function(solvedProblemResult) {
-                    Task.find({
+                    TaskInstance.find({
                         where: {
-                            TaskID: solvedProblemResult.Task_reference
+                            TaskInstanceID: solvedProblemResult.ReferencedTask
                         }
                     }).then(function(editProblemTaskResult) {
                         TaskActivity.find({
                             where: {
-                                TaskActivityID: taskResult.TaskActivityID
+                                TaskActivityID: taskInstanceResult.TaskActivityID
                             }
                         }).then(function(taskActivityResult) {
                             res.json({
@@ -2174,10 +1831,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 "sovledProblem": solvedProblemResult.Data,
                                 "gradeProblem": gradeResult.Data,
                                 "taskInstruction": taskActivityResult.Instructions,
-                                "problem": taskResult.Data
+                                "problem": taskInstanceResult.Data
                             });
                         }).catch(function(err) {
-                            console.log('/TaskTemplate/dispute/ ' + err);
+                            console.log('/taskInstanceTemplate/dispute/ ' + err);
                             res.status(404).end();
                         });
                     });
@@ -2189,35 +1846,35 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    router.get("/TaskTemplate/resolve/:taskid", function(req, res) {
-        Task.find({
+    router.get("/taskInstanceTemplate/resolve/:taskInstanceid", function(req, res) {
+        TaskInstance.find({
             where: {
-                TaskID: req.params.taskid
+                TaskInstanceID: req.params.taskInstanceid
             }
-        }).then(function(taskResult) {
-            Task.find({
+        }).then(function(taskInstanceResult) {
+            TaskInstance.find({
                 where: {
-                    TaskID: taskResult.Task_reference
+                    TaskInstanceID: taskInstanceResult.ReferencedTask
                 }
             }).then(function(disputedResult) {
-                Task.find({
+                TaskInstance.find({
                     where: {
-                        TaskID: disputedResult.Task_reference
+                        TaskInstanceID: disputedResult.ReferencedTask
                     }
                 }).then(function(gradeResult) {
-                    Task.find({
+                    TaskInstance.find({
                         where: {
-                            TaskID: gradeResult.Task_reference
+                            TaskInstanceID: gradeResult.ReferencedTask
                         }
                     }).then(function(solvedProblemResult) {
-                        Task.find({
+                        TaskInstance.find({
                             where: {
-                                TaskID: solvedProblemResult.Task_reference
+                                TaskInstanceID: solvedProblemResult.ReferencedTask
                             }
                         }).then(function(editProblemTaskResult) {
                             TaskActivity.find({
                                 where: {
-                                    TaskActivityID: taskResult.TaskActivityID
+                                    TaskActivityID: taskInstanceResult.TaskActivityID
                                 }
                             }).then(function(taskActivityResult) {
                                 res.json({
@@ -2228,10 +1885,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                     "gradeProblem": gradeResult.Data,
                                     "disputedProblem": disputedProblem.Data,
                                     "taskInstruction": taskActivityResult.Instructions,
-                                    "problem": taskResult.Data
+                                    "problem": taskInstanceResult.Data
                                 });
                             }).catch(function(err) {
-                                console.log('/TaskTemplate/dispute/ ' + err);
+                                console.log('/taskInstanceTemplate/dispute/ ' + err);
                                 res.status(404).end();
                             });
                         });
@@ -2246,19 +1903,19 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to get the PendingTasks of users
     /* Need to only pick relevant data. Too big, could cause scaling slowdown issues
-    Most likely: TaskID,UserID,WorlkflowID, StartDate,EndDate,Task_status from Task; Name,Visual_ID from TaskActivity; Name from WorkflowActivity
+    Most likely: TaskInstanceID,UserID,WorlkflowID, StartDate,EndDate,Status from TaskInstance; Name,Visual_ID from TaskActivity; Name from WorkflowActivity
     */
-    router.get("/getPendingTasks/:userID", function(req, res) {
-        Task.findAll({
+    router.get("/getPendingTaskInstances/:userID", function(req, res) {
+        TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
-                Task_status: "Incomplete"
+                Status: "Incomplete"
             },
-            attributes: ["TaskID", "UserID", "WorkflowID", "StartDate", "EndDate", "Task_status"],
-            include: [ ///// Need new mappings in index.js AssignmentSection -> Assignment, Assignment ::=> AssignmentSection
+            attributes: ["TaskInstanceID", "UserID", "WorkflowInstanceID", "StartDate", "EndDate", "Status"],
+            include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
-                    model: AssignmentSection,
-                    attributes: ["AssignmentSectionID", "AssignmentID"],
+                    model: AssignmentInstance,
+                    attributes: ["AssignmentInstanceID", "AssignmentID"],
                     include: [{
                         model: Section,
                         attributes: ["SectionID"],
@@ -2272,23 +1929,23 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         attributes: ["Title"]
                     }]
                 },
-                /*Task - > AssignmentSection - > Section - > Course */
+                /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ["Name", "Type", "Visual_ID"],
+                    attributes: ["Name", "Type", "VisualID"],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ["Name"]
                     }]
                 }
             ]
-        }).then(function(tasks) {
-            console.log("/getPendingTasks/ Tasks found");
+        }).then(function(taskInstances) {
+            console.log("/getPendingTaskInstances/ TaskInstances found");
             res.json({
                 "Error": false,
-                "PendingTasks": tasks
+                "PendingTaskInstances": taskInstances
             }).catch(function(err) {
-                console.log('/getPendingTasks: ' + err);
+                console.log('/getPendingTaskInstances: ' + err);
                 res.status(404).end();
             });
         });
@@ -2296,17 +1953,17 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-    router.get("/getCompletedTasks/:userID", function(req, res) {
-        Task.findAll({
+    router.get("/getCompletedTaskInstances/:userID", function(req, res) {
+        TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
-                Task_status: "Complete"
+                Status: "Complete"
             },
-            attributes: ["TaskID", "UserID", "WorkflowID", "StartDate", "EndDate", "Task_status"],
-            include: [ ///// Need new mappings in index.js AssignmentSection -> Assignment, Assignment ::=> AssignmentSection
+            attributes: ["TaskInstanceID", "UserID", "WorkflowInstanceID", "StartDate", "EndDate", "Status"],
+            include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
-                    model: AssignmentSection,
-                    attributes: ["AssignmentSectionID", "AssignmentID"],
+                    model: AssignmentInstance,
+                    attributes: ["AssignmentInstanceID", "AssignmentID"],
                     include: [{
                         model: Section,
                         attributes: ["SectionID"],
@@ -2328,102 +1985,105 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                            attributes: ["Title"]
                                        }]
                                    } */
-                /*Task - > AssignmentSection - > Section - > Course */
+                /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ["Name", "Type", "Visual_ID"],
+                    attributes: ["Name", "Type", "VisualID"],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ["Name"]
                     }]
                 }
             ]
-        }).then(function(tasks) {
-            console.log("/getCompletedTasks/ Tasks found");
+        }).then(function(taskInstances) {
+            console.log("/getCompletedTaskInstances/ TaskInstances found");
             res.json({
                 "Error": false,
-                "CompletedTasks": tasks
+                "CompletedTaskInstances": taskInstances
             }).catch(function(err) {
-                console.log('/getCompletedTasks: ' + err);
+                console.log('/getCompletedTaskInstances: ' + err);
                 res.status(404).end();
             });
         });
-
-
     });
 
-    router.get('/getAssignmentRecord/:assignmentid', function(req, req) {
-        Assignment.find({
-            where: {
-                AssignmentID: req.params.assignmentid
-            },
-            attributes: ["Title"]
-        }).then(function(assignmentResult) {
-            WorkflowActivity.findAll({
-                where: {
-                    WA_A_id: assignmentResult.WA_A_id
-                }
-            }).then(function(workflowActivityResult) {
+    router.get('/getAssignmentRecord/:assignmentInstanceid', function(req, req) {
 
+        AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceid
+            },
+            attributes: ['Title']
+        }).then(function(AI_Result) {
+            WorkflowInstance.findAll({
+                where: {
+                    AssignmentInstanceID: AI_Result.AssignmentInstanceID
+                }
+                // include: [{
+                //     model: WorkflowActivity,
+                //     attributes: ['Type']
+                // }]
+            }).then(function(WI_Result) {
                 var tasks = [];
 
-                for (var task in workflowActivityResult.TaskActivityCollection) {
-                    //need taskid, task_status and taskActivityType
-                    //TaskActivityCollection is json of TaskActivityID
-                    //iterate through each json string
-                    TaskActivity.find({
-                        where: {
-                            TaskActivityID: task
-                        }
-                    }).then(function(taskActivityResult) {
-                        Task.find({
+                for (var workflowInstance in WI_Result) {
+                    var tempTasks = [];
+
+                    for (var task in workflowInstance.TaskCollection) {
+                        //each task is TaskInstanceID
+                        TaskInstance.find({
                             where: {
-                                TaskActivityID: taskActivityResult.TaskActivityID
-                            }
-                        }).then(function(taskResult) {
-                            tasks.push({
-                                TaskID: taskResult.TaskID,
-                                TaskActivityType: taskActivityResult.TaskActivityType,
-                                Task_status: taskResult.Task_status,
-                            });
+                                TaskInstanceID: task
+                            },
+                            attributes: ['TaskInstanceID', 'Status'],
+                            include: [{
+                                model: User,
+                                attributes: ['UserID', 'UserName']
+                            }, {
+                                model: TaskActivity,
+                                attributes: ['Type']
+                            }]
+                        }).then(function(taskInstanceResult) {
+                            tempTasks.push(taskInstanceResult);
                         });
-                    });
+                    }
+                    tasks.push(tempTasks);
                 }
 
                 res.json({
                     "Error": false,
                     "AssignmentRecords": tasks
                 });
+
             }).catch(function(err) {
                 console.log('/getAssignmentRecord: ' + err);
                 res.status(404).end();
             });
         });
-
     });
 
-    router.get('/superCall/:taskid', function(req, res) {
-        var currentTask = req.params.taskid;
+    router.get('/superCall/:taskInstanceid', function(req, res) {
+        var currentTaskInstance = req.params.taskInstanceid;
         var superTask = [];
 
         do {
-            Task.find({
+            TaskInstance.find({
                 where: {
-                    TaskID: currentTask
+                    TaskInstanceID: currentTaskInstance
                 },
                 attributes: ["Data"],
                 include: [{
                     model: TaskActivity,
-                    attributes: ["TaskActivityType", "TA_overall_rubric", "Instructions", "TA_fields"]
+                    attributes: ["TaskActivityType", "Rubric", "Instructions", "Fields"]
                 }]
             }).then(function(result) {
                 superTask.push(result);
-                currentTask = result.Previous_Tasks;
+                currentTaskInstance = result.PreviousTasks;// PreviousTasks or ReferencedTask
             }).catch(function(err) {
                 console.log('/superCall: ' + err);
                 res.status(404).end();
             });
-        } while (typeof currentTask !== 'undefined');
+        } while (typeof currentTaskInstance !== 'undefined');
 
         res.json({
             "Error": false,

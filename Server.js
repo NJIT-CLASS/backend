@@ -91,11 +91,13 @@ var AssignmentSection = models.AssignmentSection;
 var Workflow = models.Workflow;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
-
+*/
 
 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 .then(function(){
-    return sequelize.sync();
+    return sequelize.sync({
+      force: true
+    });
 })
 .then(function(){
     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -108,7 +110,7 @@ sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 
 
 
-var rule = new schedule.RecurrenceRule();
+/*var rule = new schedule.RecurrenceRule();
 rule.minute = 00;
 //'1 * * * * *' 1 minute.
 var job = schedule.scheduleJob('1 * * * * *', function(time) {

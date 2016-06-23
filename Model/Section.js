@@ -1,51 +1,72 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('Section', {
         SectionID: {
-            type: DataTypes.INTEGER,
-            field: 'SectionID', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: true,
+            //Unique identifier for the section
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SectionID',
+            allowNull: false,
             primaryKey: true,
-            autoIncrement: true
+            autoIncrement: true,
+            unique: true
         },
         SemesterID: {
-            type: DataTypes.INTEGER,
-            field: 'SemesterID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique identifier for the semester
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SemesterID',
             allowNull: false,
         },
         CourseID: {
-            type: DataTypes.INTEGER,
+            //Unique identifier for the course
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
             field: 'CourseID',
             allowNull: false
         },
-        Name: {
-            type: DataTypes.STRING,
-            field: 'Name',
+        OrganizationID: {
+            //Unique identifier for the organization
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'OrganizationID',
             allowNull: false
         },
+        Name: {
+            //Name of the section (e.g. 001,002,h01)
+            type: DataTypes.STRING(100),
+            field: 'Name',
+            allowNull: true
+        },
         StartDate: {
+            //Beginning date for this section
             type: DataTypes.DATE,
             field: 'StartDate',
             allowNull: true
-        }
-        ,
+        },
         EndDate: {
+            //Ending date for this section
             type: DataTypes.DATE,
             field: 'EndDate',
             allowNull: true
         },
         Description: {
+            //Description of the course (Day Assignment, night Assignment, weekend university)
             type: DataTypes.STRING,
             field: 'Description',
-            allowNull: false
+            allowNull: true
         }
+        // Roster: {
+        //     //Array of users in the course
+        //     type: DataTypes.BLOB,
+        //     field: 'Roster',
+        //     allowNull: true // current not used in the system might change later
+        // },
+        // GroupList: {
+        //     //Array of groups in the course
+        //     type: DataTypes.BLOB,
+        //     field: 'GroupList',
+        //     allowNull: true // current not used in the system might change later
+        // }
+
     }, {
         timestamps: false,
 
@@ -67,7 +88,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'Section'
     });
 };
-
-///var User =
-
-///module.exports = User;
