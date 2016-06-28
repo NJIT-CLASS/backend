@@ -65,7 +65,7 @@ REST.prototype.stop = function(err) {
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
-/*var sendgrid = require('sendgrid')('njitplamaster', 'plamaster123');
+var sendgrid = require('sendgrid')('njitplamaster', 'plamaster123');
 var schedule = require('node-schedule');
 
 
@@ -84,19 +84,19 @@ var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
 var Semester = models.Semester;
-var Task = models.Task;
+var TaskInstance = models.TaskInstance;
 var TaskActivity = models.TaskActivity;
 var Assignment = models.Assignment;
-var AssignmentSection = models.AssignmentSection;
-var Workflow = models.Workflow;
+var AssignmentInstance = models.AssignmentInstance;
+var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
-*/
+
 
 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 .then(function(){
     return sequelize.sync({
-      force: true
+      //force: true
     });
 })
 .then(function(){

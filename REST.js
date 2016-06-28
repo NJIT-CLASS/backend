@@ -2074,7 +2074,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 attributes: ["Data"],
                 include: [{
                     model: TaskActivity,
-                    attributes: ["TaskActivityType", "Rubric", "Instructions", "Fields"]
+                    attributes: ["Type", "Rubric", "Instructions", "Fields"]
                 }]
             }).then(function(result) {
                 superTask.push(result);

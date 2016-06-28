@@ -1,7 +1,7 @@
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('UserLogin', {
         UserID: {
-            type: DataTypes.INTEGER,
+            type: DataTypes.INTEGER.UNSIGNED,
             field: 'UserID',
             allowNull: false,
             primaryKey: true

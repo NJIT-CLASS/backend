@@ -20,8 +20,13 @@ module.exports = function(sequelize, DataTypes) {
             //WorkflowActivity_Assignment_ID
             //BLOB of Foreign Keys
             type: DataTypes.BLOB,
-            field: 'WorkflowActivityID',
-            allowNull: false
+            field: 'WorkflowActivityIDs',
+            allowNull: true
+        },
+        Instructions: {
+            type: DataTypes.TEXT,
+            field: 'Instructions',
+            allowNull: true
         },
         Description: {
             //Description of the Assignment
@@ -31,7 +36,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         GradeDistribution: {
             //Describes the percentage given for every workflow and distribution of grade for every task
-            type: DataTypes.JSON,
+            type: DataTypes.BLOB,
             field: 'GradeDistribution',
             allowNull: true
         },
@@ -41,30 +46,35 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Title',
             allowNull: true
         },
-        Type:{
-          type: DataTypes.STRING,
-          field: 'Type',
-          allowNull: true
+        Type: {
+            type: DataTypes.STRING,
+            field: 'Type',
+            allowNull: true
         },
         DisplayName: {
-          type: DataTypes.STRING,
-          field: 'DisplayName',
-          allowNull: true
+            type: DataTypes.STRING,
+            field: 'DisplayName',
+            allowNull: true
         },
-        Section: {
-          type: DataTypes.STRING,
-          field: 'Section',
-          allowNull: true
+        SectionID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SectionID',
+            allowNull: true
         },
-        Semester: {
-          type: DataTypes.STRING,
-          field: 'Semester',
-          allowNull: true
+        CourseID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
+            allowNull: false
+        },
+        SemesterID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SemesterID',
+            allowNull: true
         },
         VersionHistory: {
-          type: DataTypes.JSON,
-          field: 'VersionHistory',
-          allowNull: true
+            type: DataTypes.JSON,
+            field: 'VersionHistory',
+            allowNull: true
         }
     }, {
         timestamps: false,

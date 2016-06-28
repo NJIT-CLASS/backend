@@ -45,7 +45,7 @@ module.exports = function(sequelize, DataTypes) {
             //Array of arrays of workflow instance and task instance timing parameters
             type: DataTypes.BLOB,
             field: 'WorkflowTiming',
-            allowNull: false
+            allowNull: true
         }
     }, {
         timestamps: false,
@@ -65,6 +65,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'AssignmentSection'
+        tableName: 'AssignmentInstance'
     });
 };
