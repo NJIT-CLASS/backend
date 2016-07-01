@@ -20,17 +20,21 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
+var Allocator2 = require('./WorkFlow/Allocator2.js');
 var sequelize = require("./Model/index.js").sequelize;
 //var server = require('./Server.js');
 
 //var User = server.app.get('models').User;
 
+//-----------------------------------------------------------------------------------------------------
 
 
 function REST_ROUTER(router, connection, md5) {
     var self = this;
     self.handleRoutes(router, connection, md5);
 }
+
+//-----------------------------------------------------------------------------------------------------
 
 REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
@@ -194,6 +198,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
+
     //Endpoint for Assignment Allocator
     router.get("/allocator", function(req, res) {
 
@@ -203,6 +210,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //var a = [];
         //alloc.count(a);
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint for Assignment Manager
     router.get("/manager", function(req, res) {
@@ -215,6 +224,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         );
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to Test All Models for a UserID
     router.get("/ModelTest/:userID", function(req, res) {
@@ -331,6 +342,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     //Endpoint for Login Function
     router.post("/login", function(req, res) {
         if (req.body.emailaddress == null || req.body.password == null) {
@@ -358,6 +371,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         });
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a User's Email
     router.put("/update/email", function(req, res) {
@@ -387,6 +402,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         });
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a User's Name
     router.put("/update/name", function(req, res) {
@@ -418,6 +435,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     //Endpoint to return general user data
     router.get("/generalUser/:userid", function(req, res) {
         User.findAll({
@@ -442,31 +461,33 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-    //Endpoint to create a semester
-    router.post("/CreateSemester", function(req, res) {
+    //-----------------------------------------------------------------------------------------------------
 
-        var startDate = dateFormat(req.body.startDate, "yyyy-mm-dd");
-        var endDate = dateFormat(req.body.endDate, "yyyy-mm-dd");
-        if (req.body.endDate == null || req.body.startDate == null) {
-            console.log("/CreateSemester : Dates must be defined");
+    //Endpoint to create a semester
+    router.post("/createSemester", function(req, res) {
+
+        var startDate = dateFormat(req.body.startdate, "yyyy-mm-dd");
+        var endDate = dateFormat(req.body.enddate, "yyyy-mm-dd");
+        if (req.body.enddate == null || req.body.startdate == null) {
+            console.log("/createSemester : Dates must be defined");
             res.status(400).end();
         } else if (startDate > endDate) {
-            console.log("/CreateSemester : StartDate cannot be grater than EndDate");
+            console.log("/createSemester : StartDate cannot be grater than EndDate");
             res.status(400).end();
         } else {
             var semester = Semester.build({
-                Name: req.body.Name,
-                StartDate: req.body.startDate,
-                EndDate: req.body.endDate,
-                OrganizationID: req.body.OrganizationID
+                Name: req.body.name,
+                StartDate: req.body.startdate,
+                EndDate: req.body.enddate,
+                OrganizationID: req.body.organizationid
 
             }).save().then(function(response) {
-                console.log("/CreateSemester Succesfully");
+                console.log("/createSemester Succesfully");
                 res.json({
-                    "SemesterID": response.SemesterID
+                    "SemesterID": response
                 });
             }).catch(function(err) {
-                console.log("/CreateSemester : " + err.message);
+                console.log("/createSemester : " + err.message);
                 res.status(400).end();
             });
         }
@@ -474,6 +495,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
 
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to return Semester Information
     router.get("/semester/:semesterid", function(req, res) {
@@ -497,6 +520,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     //Endpoint to get All Semester Information
     router.get("/semester", function(req, res) {
 
@@ -512,6 +537,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
 
     router.post("/course/create", function(req, res) {
 
@@ -525,16 +551,26 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(400).end();
             return;
         }
+        if (req.body.number == null) {
+            console.log("/course/create : Number cannot be null");
+            res.status(400).end();
+            return;
+        }
+        if (req.body.organizationid == null) {
+            console.log("/course/create : OrganizationID cannot be null");
+            res.status(400).end();
+            return;
+        }
+
         var course = Course.build({
             CreatorID: req.body.userid,
             Number: req.body.number,
             Title: req.body.title,
-            OrganizationID: req.body.OrganizationID//new
+            OrganizationID: req.body.organizationid //new
 
         }).save().then(function(response) {
             res.json({
-                "NewCourse": response,
-                "CourseID": response.CourseID
+                "NewCourse": response
             });
         }).catch(function(err) {
             console.log("/course/create : " + err.message);
@@ -544,6 +580,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
 
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     router.post("/course/createsection", function(req, res) {
 
@@ -568,25 +606,42 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(400).end();
             return;
         }
+        if (req.body.organizationid == null) {
+            console.log("course/createsection : OrganizationID cannot be null");
+            res.status(400).end();
+            return;
+        }
 
+        //-----------------------------------------------------------------------------------------------------
 
-        var section = Section.build({
-            SemesterID: req.body.semesterid,
-            CourseID: req.body.courseid,
-            OrganizationID: req.body.OrganizationID,//new
-            Name: req.body.name,
-            Description: req.body.description
+        Semester.find({
+            where: {
+                SemesterID: req.body.semesterid
+            }
+        }).then(function(results) {
+            var section = Section.build({
+                SemesterID: req.body.semesterid,
+                CourseID: req.body.courseid,
+                OrganizationID: req.body.organizationid, //new
+                StartDate: results.StartDate,
+                EndDate: results.EndDate,
+                Name: req.body.name,
+                Description: req.body.description
 
-        }).save().then(function(response) {
-            res.json({
-                "result": response
+            }).save().then(function(response) {
+                res.json({
+                    "result": response
+                });
+            }).catch(function(err) {
+                console.log("/course/createsection : " + err.message);
+
+                res.status(401).end();
             });
-        }).catch(function(err) {
-            console.log("/course/createsection : " + err.message);
-
-            res.status(401).end();
         });
+
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to add a user to a course
     //****Need to look over
@@ -659,6 +714,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         })
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     router.get("/course/:courseId", function(req, res) {
         Course.find({
             where: {
@@ -686,6 +743,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     //Need to translate getsectionUsers function
     router.get("/course/getsection/:sectionId", function(req, res) {
 
@@ -695,60 +754,28 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             },
             attributes: ["Name", "Description"]
         }).then(function(rows) {
-            getSectionUsers(req.params.sectionId, function(result) {
+            SectionUser.findAll({
+                where: {
+                    SectionID: req.params.sectionId
+                },
+                attributes: ['UserID', 'UserRole', 'UserStatus'],
+                include: {
+                  model: User,
+                  attributes: ['UserName', 'FirstName', 'LastName', 'MiddleInitial']
+                }
+            }).then(function(users) {
                 res.json({
                     "result": rows,
-                    "UserSection": result
+                    "UserSection": users
                 });
-            });
+            })
         }).catch(function(err) {
             console.log("/course : " + err.message);
             res.status(400).end();
         })
     });
 
-    /**
-     * Get list of users for the given section.
-     * @param SectionID
-     * @param callback
-     */
-    function getSectionUsers(SectionID, callback) {
-        var query = "SELECT distinct ??, ??, ??, ??, ?? FROM ?? as ?? inner join ?? as ?? where ?? = ?";
-        //select distinct  u.UserID, u.UserType, u.FirstName, u.MiddleInitial, u.LastName from SectionUser as us inner join User as u where SectionID = 2;
-        var table = ["u.UserID", "u.UserType", "u.FirstName", "u.MiddleInitial", "u.LastName", "SectionUser", "us", "User", "u", "SectionID", SectionID];
-        query = mysql.format(query, table);
-        console.log(query);
-        connection.query(query, function(err, rows) {
-            if (err) {
-                console.log("Method getSectionUsers : " + err.message);
-
-                res.status(401).end();
-            } else {
-                callback(rows);
-            }
-        });
-
-        /*SectionUser.find({
-            where: {
-                SectionID: SectionID
-            },
-            attributes: [[sequelize.literal('distinct `User.UserID`'),'User.UserID'],
-            [sequelize.literal('distinct `User.UserType`'),'User.UserType'],
-            [sequelize.literal('distinct `User.FirstName`'),'User.FirstName'],
-            [sequelize.literal('distinct `User.MiddleInitial`'),'User.MiddleInitial'],
-            [sequelize.literal('distinct `User.LastName`'),'LastName']],
-            include: [{
-                model: User,
-                attributes: ['UserID', 'UserType', 'FirstName', 'MiddleInitial', 'LastName']
-            }]
-        }).then(function(rows) {
-            callback(rows);
-        }).catch(function(err) {
-            console.log("Method getSectionUsers : " + err.message);
-            res.status(401).end();
-        });*/
-    }
-
+//-----------------------------------------------------------------------------------------------------
 
     router.put("/course/update", function(req, res) {
 
@@ -757,14 +784,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(400).end();
             return;
         }
-
         if (req.body.courseid == null) {
             console.log("course/create : CourseID cannot be null");
             res.status(400).end();
             return;
         }
-
-
 
         Course.update({
             Title: req.body.Title,
@@ -794,6 +818,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //-----------------------------------------------------------------------------------------------------
 
     router.put("/course/updatesection", function(req, res) {
 
@@ -856,6 +881,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //-----------------------------------------------------------------------------------------------------
 
     router.delete("/course/deleteuser", function(req, res) {
 
@@ -876,6 +902,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     //Endpoint to get a user's courses
     router.get("/course/getCourses/:userid", function(req, res) {
 
@@ -883,10 +911,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             where: {
                 UserID: req.params.userid
             },
+            attributes:['SectionUserID', 'SectionID','UserROle', 'UserStatus'],
             include: [{
                 model: Section,
                 required: true,
-                attributes: ['CourseID', 'SectionID']
+                attributes: ['CourseID']
             }]
         }).then(function(rows) {
             if (rows.length > 0) {
@@ -906,6 +935,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get start a password reset request
 
@@ -967,6 +997,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     //still need fixing
     router.get("/getPasswordResetRequest", function(req, res) {
         /*var query = "select ?? from ?? where ??=?";
@@ -1020,6 +1052,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     router.post("/password/reset", function(req, res) {
         if (req.body.HashRequest == null) {
             console.log("/resetPassword : HashRequest not sent");
@@ -1059,6 +1093,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     //Endpoint to Get Courses Created by an Instructor
     router.get("/getCourseCreated/:instructorID", function(req, res) {
         Course.findAll({
@@ -1073,6 +1109,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
         });
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to make a user an admin
     router.put("/makeUserAdmin/", function(req, res) {
@@ -1094,6 +1132,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         });
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to make a user not an admin
     router.put("/makeUserNotAdmin/", function(req, res) {
@@ -1127,6 +1167,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
 
     //Assign a New Instructor
     router.put("/instructor/new", function(req, res) {
@@ -1194,6 +1235,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
+
     //Get All Instructors
     router.get("/instructor/all", function(req, res) {
         User.findAll({
@@ -1208,6 +1252,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
         });
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Get UserID from Email
     router.get("/getUserID/:email", function(req, res) {
@@ -1227,6 +1273,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
     //Endpoint to Get Pending Tasks
     router.get("/taskInstance/:userid", function(req, res) {
         TaskInstance.findAll({
@@ -1244,6 +1292,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
         });
     });
+
+    //-----------------------------------------------------------------------------------------------------
 
     router.post("assignment/section", function(req, res) {
         AssignmentInstance.create({
@@ -2078,7 +2128,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 }]
             }).then(function(result) {
                 superTask.push(result);
-                currentTaskInstance = result.PreviousTasks;// PreviousTasks or ReferencedTask
+                currentTaskInstance = result.PreviousTasks; // PreviousTasks or ReferencedTask
             }).catch(function(err) {
                 console.log('/superCall: ' + err);
                 res.status(404).end();
