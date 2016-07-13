@@ -50,7 +50,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         StartDate: {
-            //Start date of the task
+            //Time stamp for task instance start.
             type: DataTypes.DATE,
             field: 'StartDate',
             allowNull: true
@@ -113,6 +113,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.BLOB,
             field: 'PreviousTasks',
             allowNull: true
+        },
+        PreviousTask:{
+          type: DataTypes.INTEGER.UNSIGNED,
+          field: 'PreviousTask',
+          allowNull: true
         },
         EmailLastSent: {
             //The Record of when the last email was sent.

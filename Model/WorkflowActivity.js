@@ -43,10 +43,10 @@ module.exports = function(sequelize, DataTypes) {
           field: 'NumberOfSets',
           allowNull: true
         },
-        Description: {
+        Documentation: {
             //Description of the typeof workflow
             type: DataTypes.STRING(100),
-            field: 'Description',
+            field: 'Documentation',
             allowNull: true
         },
         GroupSize: {
@@ -56,7 +56,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true,
             defaultValue: 1
         },
-        StartTaskActivity:{
+        StartTaskActivity:{ //Not currently used.
             type: DataTypes.JSON,
             field: 'StartTaskActivity',
             allowNull: true

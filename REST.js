@@ -2,6 +2,8 @@ var mysql = require("mysql");
 var dateFormat = require('dateformat');
 var Guid = require('guid');
 var models = require('./Model');
+var Promise = require('bluebird');
+
 var User = models.User;
 var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
@@ -21,6 +23,7 @@ var ResetPasswordRequest = models.ResetPasswordRequest;
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var Allocator2 = require('./WorkFlow/Allocator2.js');
+var Allocator3 = require('./WorkFlow/Allocator3.js');
 var sequelize = require("./Model/index.js").sequelize;
 //var server = require('./Server.js');
 
@@ -41,8 +44,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //Endpoint to Create an Assignment
     router.post("/assignment/create", function(req, res) {
 
-        var value = req.body.assignment;
-
         /*******************************
          *     Exectuing Transaction   *
          *      if something fails,    *
@@ -51,57 +52,47 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
         sequelize.transaction(function(t) {
             "use strict";
-
             /**
              * Defining assignment
              */
             var assignment = Assignment.build({
                 UserID: req.body.assignment.UserID,
-                WorkflowActivityID: req.body.assignment.WorkflowActivityID,
-                Description: req.body.assignment.Description,
-                GradeDistribution: JSON.stringify(req.body.assignment.GradeDistribution),
-                Title: req.body.assignment.Title,
-                Type: req.body.assignment.Type,
-                DisplayName: req.body.assignment.DisplayName,
-                Section: null,
-                Semester: null,
-                VersionHistory: JSON.stringify({})
+                Name: req.body.assignment.AA_name,
+                Course: req.body.assignment.AA_course,
+                Instructions: req.body.assignment.AA_instructions,
+                Type: req.body.assignment.AA_type,
+                DisplayName: req.body.assignment.AA_display_name,
+                Section: req.body.assignment.AA_section,
+                Semester: req.body.assignment.AA_semester,
+                GradeDistribution: req.body.assignment.AA_grade_distribution,
+                Documentation: req.body.assignment.AA_documentation
             });
-
             /**
              * save changes for assignment
              */
             return assignment.save({
                 transaction: t
             }).then(function(assignment) {
-
                 //for (let workflow of req.body.assignment.WorkflowActivity) {
-
                 /**
                  * Getting  workflow for assignment
                  */
                 var workflow = req.body.assignment.WorkflowActivity;
                 console.log("creating workflow");
-
-
                 /**
                  * Defining Workflow
                  */
                 var workFlow = WorkflowActivity.build({
                     AssignmentID: assignment.AssignmentID,
-                    TaskActivityCollection: JSON.stringify(workflow.TaskActivityCollection),
-                    Name: workflow.Name,
-                    Type: workflow.Type,
-                    GradeDistribution: JSON.stringify(workflow.GradeDistribution),
-                    NumberOfSets: workflow.NumberOfSets,
-                    Description: workflow.Description,
-                    GroupSize: workflow.GroupSize,
-                    StartTaskActivity: JSON.stringify(workflow.StartTaskActivity),
-                    VersionHistory: JSON.stringify({})
-
+                    Type: workflow.WA_type,
+                    Name: workflow.WA_name,
+                    GradeDistribution: workflow.WA_grade_distribution,
+                    NumberOfSets: workflow.WA_number_of_sets,
+                    Documentation: workflow.WA_documentation,
+                    GroupSize: workflow.WA_default_group_size,
+                    StartTaskActivity: workflow.WA_starting_TA
                 });
                 var promises = [];
-
                 /**
                  * Saving Changes
                  */
@@ -110,8 +101,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 }).then(function(workflow) {
                     "use strict";
                     console.log("Succesfully creation of wokflow activity");
-
-
                     /**
                      * Creating each TaskActivity for the assignment
                      */
@@ -120,42 +109,37 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         console.log("Creating taskActivity");
 
                         var taskActivity = TaskActivity.build({
-                            WorkflowActivityID: null, //workflow.WorkflowActivityID,
-                            AssignmentID: assignment.AssignmentID,
-                            Name: taskactivity.Name,
-                            Type: taskactivity.Type,
-                            FileUpload: taskactivity.FileUpload,
-                            MaximumDuration: taskactivity.MaximumDuration,
-                            EarliestStartTime: taskactivity.EarliestStartTime,
-                            AtDurationEnd: JSON.stringify(taskactivity.AtDurationEnd),
-                            WhatIfLate: taskactivity.WhatIfLate,
-                            DisplayName: taskactivity.DisplayName,
-                            Documentation: taskactivity.Documentation,
-                            OneOrSeparate: taskactivity.OneOrSeparate,
-                            AssigneeConstraints: JSON.stringify(taskactivity.AssigneeConstraints),
-                            Difficulty: taskactivity.Difficulty,
-                            SimpleGrade: taskactivity.SimpleGrade,
-                            IsFinalGradingTask: taskactivity.IsFinalGradingTask,
-                            Instructions: taskactivity.Instructions,
-                            Rubric: taskactivity.Rubric,
-                            Fields: JSON.stringify(taskactivity.Fields),
-                            AllowReflection: JSON.stringify(taskactivity.AllowReflection),
-                            AllowAssessment: taskactivity.AllowAssessment,
-                            NumberParticipants: taskactivity.NumberParticipants,
-                            TriggerConsolidationThreshold: JSON.stringify(taskactivity.TriggerConsolidationThreshold),
-                            FunctionType: taskactivity.FunctionType,
-                            Function: taskactivity.Function,
-                            AllowDispute: taskactivity.AllowDispute,
-                            LeadsToNewProblem: taskactivity.LeadsToNewProblem,
-                            LeadsToNewSolution: taskactivity.LeadsToNewSolution,
-                            VisualID: taskactivity.VisualID,
-                            VersionHistory: JSON.stringify({}),
-                            RefersToWhichTask: taskactivity.RefersToWhichTask,
-                            TriggerCondition: JSON.stringify(taskactivity.TriggerCondition),
-                            PreviousTasks: JSON.stringify(taskactivity.PreviousTasks),
-                            NextTasks: JSON.stringify(taskactivity.NextTasks)
+                            WorkflowActivityID: workflow.WorkflowActivityID,
+                            AssignmentID: assignment.AssignmentID
+                            Type: workflow.tasks.TA_type,
+                            Name: workflow.tasks.TA_name,
+                            FileUpload: workflow.tasks.TA_file_upload,
+                            DueType: workflow.tasks.TA_due_type,
+                            StartDelay: workflow.tasks.TA_start_delay,
+                            AtDurationEnd: workflow.tasks.TA_at_duration_end,
+                            WhatIfLate: workflow.tasks.TA_what_if_late,
+                            DisplayName: workflow.tasks.TA_display_name,
+                            Documentation: workflow.tasks.TA_documentation,
+                            OneOrSeparate: workflow.tasks.TA_one_or_separate,
+                            AssigneeConstraints: workflow.tasks.TA_assignee_constraints,
+                            Difficulty: workflow.tasks.TA_difficulty,
+                            SimpleGrade: workflow.tasks.TA_simple_grade,
+                            IsFinalGradingTask: workflow.tasks.TA_is_final_grading_task,
+                            Instructions: workflow.tasks.TA_overall_instructions,
+                            Rubric: workflow.tasks.TA_rubric,
+                            Fields: workflow.tasks.TA_fields,
+                            AllowReflection: workflow.tasks.TA_allow_reflection,
+                            AllowRevision: workflow.tasks.TA_allow_revisions,
+                            AllowAssessment: workflow.tasks.TA_allow_assessment,
+                            NumberParticipants: workflow.tasks.TA_number_participants,
+                            TriggerConsolidationThreshold: workflow.tasks.TA_trigger_consolidation_threshold,
+                            FunctionType: workflow.tasks.TA_function_type,
+                            Function: workflow.tasks.TA_function,
+                            AllowDispute: workflow.tasks.TA_allow_dispute,
+                            LeadsToNewProblem: workflow.tasks.TA_leads_to_new_problem,
+                            LeadsToNewSolution: workflow.tasks.TA_leads_to_new_solution,
+                            VisualID: workflow.tasks.TA_visual_id
                         });
-
                         /**
                          * Adding Promises to array
                          * for just one time execution
@@ -164,7 +148,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                             transaction: t
                         }));
                     }
-
                     /**
                      * Executing task creation changes all at once
                      */
@@ -172,24 +155,20 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         transaction: t
                     });
                 });
-                //}
             })
         }).then(function(result) {
             /**
              * Transcation has been succesful
              * Changes have been commited
              */
-
             //Loggin error
             console.log("Assignment Creation succesfully");
-
             res.status(200).end();
-        }).catch(function(err) {
 
+        }).catch(function(err) {
             // Transaction has been rolled back
             // err is the reason why rejected the promise chain returned to the transaction callback
             console.log("Assignment Creation has failed");
-
             //Loggin error
             console.log(err);
             res.status(400).end();
@@ -210,6 +189,48 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //var a = [];
         //alloc.count(a);
     });
+
+    router.get("/allocate", function(req, res) {
+        var alloc3 = new Allocator3.Allocator3();
+
+        alloc3.createInstances(3, 13);
+        // alloc3.createAssignmentInstances(1, 3, '2016-07-12', {
+        //     'workflows': [{
+        //         'id': 10,
+        //         'startDate': '2016-07-15',
+        //         'tasks': [{
+        //             'id': 20,
+        //             'DueType': ['duration', 4000]
+        //         }, {
+        //             'id': 21,
+        //             'DueType': ['duration', 4000]
+        //         }, {
+        //             'id': 22,
+        //             'DueType': ['duration', 4000]
+        //         }, {
+        //             'id': 23,
+        //             'DueType': ['duration', 4000]
+        //         }, {
+        //             'id': 24,
+        //             'DueType': ['duration', 4000]
+        //         }, {
+        //             'id': 25,
+        //             'DueType': ['duration', 4000]
+        //         }, {
+        //             'id': 26,
+        //             'DueType': ['duration', 4000]
+        //         }, {
+        //             'id': 27,
+        //             'DueType': ['duration', 4000]
+        //         }, {
+        //             'id': 28,
+        //             'DueType': ['duration', 4000]
+        //         }, ]
+        //     }]
+        // });
+        //alloc3.getWorkflowTiming(13);
+    });
+
 
     //-----------------------------------------------------------------------------------------------------
 
@@ -760,8 +781,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 },
                 attributes: ['UserID', 'UserRole', 'UserStatus'],
                 include: {
-                  model: User,
-                  attributes: ['UserName', 'FirstName', 'LastName', 'MiddleInitial']
+                    model: User,
+                    attributes: ['UserName', 'FirstName', 'LastName', 'MiddleInitial']
                 }
             }).then(function(users) {
                 res.json({
@@ -775,7 +796,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         })
     });
 
-//-----------------------------------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------------------------
 
     router.put("/course/update", function(req, res) {
 
@@ -911,7 +932,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             where: {
                 UserID: req.params.userid
             },
-            attributes:['SectionUserID', 'SectionID','UserROle', 'UserStatus'],
+            attributes: ['SectionUserID', 'SectionID', 'UserROle', 'UserStatus'],
             include: [{
                 model: Section,
                 required: true,
@@ -2116,30 +2137,100 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var currentTaskInstance = req.params.taskInstanceid;
         var superTask = [];
 
-        do {
-            TaskInstance.find({
-                where: {
-                    TaskInstanceID: currentTaskInstance
-                },
-                attributes: ["Data"],
-                include: [{
-                    model: TaskActivity,
-                    attributes: ["Type", "Rubric", "Instructions", "Fields"]
-                }]
-            }).then(function(result) {
-                superTask.push(result);
-                currentTaskInstance = result.PreviousTasks; // PreviousTasks or ReferencedTask
-            }).catch(function(err) {
-                console.log('/superCall: ' + err);
-                res.status(404).end();
+        var promiseWhile = function(condition, action) {
+            var resolver = Promise.defer();
+
+            var loop = function() {
+                if (!condition()) return resolver.resolve();
+                return Promise.cast(action())
+                    .then(loop)
+                    .catch(resolver.reject);
+            };
+
+            process.nextTick(loop);
+
+            return resolver.promise;
+        }
+
+        promiseWhile(function() {
+            return (typeof currentTaskInstance === 'undefined');
+        }, function() {
+            return new Promise(function(resolve, reject) {
+                TaskInstance.find({
+                    where: {
+                        TaskInstanceID: currentTaskInstance
+                    },
+                    attributes: ["Data", "Status"],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                    }]
+                }).then(function(result) {
+                    superTask.push(result);
+                    currentTaskInstance = result.ReferencedTask; // PreviousTasks or ReferencedTask
+                });
             });
-        } while (typeof currentTaskInstance !== 'undefined');
+        }).then(function() {
+            console.log('All Done!');
+        }).catch(function(err) {
+            console.log('/superCall: ' + err);
+            res.status(404).end();
+        });
 
         res.json({
             "Error": false,
             "superTask": superTask
         });
+
+        // do {
+        //     TaskInstance.find({
+        //         where: {
+        //             TaskInstanceID: currentTaskInstance
+        //         },
+        //         attributes: ["Data"],
+        //         include: [{
+        //             model: TaskActivity,
+        //             attributes: ["Type", "Rubric", "Instructions", "Fields"]
+        //         }]
+        //     }).then(function(result) {
+        //         superTask.push(result);
+        //         currentTaskInstance = result.PreviousTasks; // PreviousTasks or ReferencedTask
+        //     }).catch(function(err) {
+        //         console.log('/superCall: ' + err);
+        //         res.status(404).end();
+        //     });
+        // } while (typeof currentTaskInstance !== 'undefined');
+
+        // res.json({
+        //     "Error": false,
+        //     "superTask": superTask
+        // });
     });
-}
+
+    router.get('/getAssignToSection/:assignmentid', function(req, res) {
+        Assignment.find({
+            where: {
+                AssignmentID: req.params.assignmentid
+            },
+            include: [{
+                model: TaskActivity,
+                attributes: ["TaskActivityID", "Type", "VisualID"],
+                include: [{
+                    model: WorkflowActivity,
+                    attributes: ["Name"]
+                }]
+            }]
+        }).then(function(result) {
+            res.JSON({
+                "Error": false,
+                "AssignToSection": result
+            });
+        }).catch(function(err) {
+            console.log('/getAssignToSection: ' + err);
+            res.status(404).end();
+        });
+    });
+
+    //---------------------------------------------------------------------------------------------------------------------------------------------
 
 module.exports = REST_ROUTER;

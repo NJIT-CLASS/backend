@@ -15,10 +15,10 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Number',
             allowNull: true
         },
-        Title: {
+        Name: {
             //Name of the course
             type: DataTypes.STRING(150),
-            field: 'Title',
+            field: 'Name',
             allowNull: true
         },
         OrganizationID: {

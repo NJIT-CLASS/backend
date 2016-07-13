@@ -17,8 +17,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false
         },
         WorkflowActivityIDs: { //*
-            //WorkflowActivity_Assignment_ID
-            //BLOB of Foreign Keys
+            //WorkflowActivity_Assignment_IDs
             type: DataTypes.BLOB,
             field: 'WorkflowActivityIDs',
             allowNull: true
@@ -28,10 +27,10 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Instructions',
             allowNull: true
         },
-        Description: {
+        Documentation: {
             //Description of the Assignment
             type: DataTypes.TEXT,
-            field: 'Description',
+            field: 'Documentation',
             allowNull: true
         },
         GradeDistribution: {
@@ -40,10 +39,10 @@ module.exports = function(sequelize, DataTypes) {
             field: 'GradeDistribution',
             allowNull: true
         },
-        Title: {
+        Name: {
             //Name of the assignment.
             type: DataTypes.STRING,
-            field: 'Title',
+            field: 'Name',
             allowNull: true
         },
         Type: {

@@ -21,6 +21,7 @@ function Allocator2() {
 
 };
 //-------------------------------------------------------------------------------------
+
 Allocator2.prototype.getAssignmentsFromAcitivity = function() {
     var assignments = [];
 
@@ -28,6 +29,9 @@ Allocator2.prototype.getAssignmentsFromAcitivity = function() {
         for (assignment in results) {
             assignments.push(assignment.AssignmentID);
         }
+
+        console.log(assignments);
+
     }).catch(function(err) {
         console.log(err);
     });
@@ -49,6 +53,9 @@ Allocator2.prototype.getWorkflowsFromActivity = function(a_id) {
             for (workflow in results) {
                 workflows.push(workflow.WorkflowActivityID);
             }
+
+            console.log(workflows);
+
         }).catch(function(err) {
             console.log(err);
         });
@@ -68,6 +75,9 @@ Allocator2.prototype.getWorkflowInstances = function(a_id) {
         for (workflow in results) {
             workflows.push(workflow.WorkflowInstanceID);
         }
+
+        console.log(workflows);
+
     }).catch(function(err) {
         console.log(err);
     });
@@ -90,6 +100,9 @@ Allocator2.prototype.getTasksFromActivity = function(wa_id) {
             //tasks.push(task.TaskActivityID);
             tasks[task.VisualID] = task.TaskActivityID
         }
+
+        console.log(tasks);
+
     }).catch(function(err) {
         console.log(err);
     });
@@ -110,6 +123,9 @@ Allocator2.prototype.getTaskInstances = function(wi_id) {
         for (task in results) {
             tasks.push(task.TaskInstanceID);
         }
+
+        console.log(tasks);
+
     }).catch(function(err) {
         console.log(err);
     });
@@ -175,6 +191,8 @@ Allocator2.prototype.updateUH = function(taskid, newUser) {
             console.log(err);
         });
 
+        console.log(UserHistory);
+
     }
 }
 
@@ -223,10 +241,15 @@ Allocator2.prototype.getStudents = function(sectionid) {
         }
     }).then(function(results) {
         shuffle(results);
+
+        console.log(results);
+
         return results;
     }).catch(function(err) {
         console.log(err);
-    })
+    });
+
+
 }
 
 //-------------------------------------------------------------------------------------
@@ -240,25 +263,25 @@ Allocator2.prototype.inArray = function(needle, haystack) {
 }
 
 //-------------------------------------------------------------------------------------
-Allocator2.prototype.allocate = function(sectionid) {
+Allocator2.prototype.allocate = function() {
 
-    var assignments = getAssignmentsFromAcitivity();
+    var assignments = this.getAssignmentsFromAcitivity();
     var allocation = {};
 
     for (a_id in assignments) {
 
-        var workflowActivities = getWorkflowsFromActivity(a_id);
-        var workflowInstances = getWorkflowInstances(a_id);
-        var students = getStudents(sectionid);
+        var workflowActivities = this.getWorkflowsFromActivity(a_id);
+        var workflowInstances = this.getWorkflowInstances(a_id);
+        var students = this.getStudents(sectionid);
 
 
         for (wa_id in workflowActivities) {
-
-            var taskActivities[wa_id] = getTaskInstances(wa_id);
+            var taskActivities =  new Array();
+            taskActivities[wa_id] = this.getTaskInstances(wa_id);
 
             for (workflow in workflowInstances) {
 
-                var taskInstances = getTaskInstances(workflow);
+                var taskInstances = this.getTaskInstances(workflow);
                 var temp = students.pop();
                 students.unshift(temp);
                 var i = 0;
@@ -282,18 +305,18 @@ Allocator2.prototype.allocate = function(sectionid) {
                                 allocation[workflow][result.VisualID] = 0;
                                 var user = allocation[workflow][result.VisualID];
 
-                                updateUSER(ta_id, user);
+                                this.updateUSER(ta_id, user);
                             } else if (aRole === 'instructor') {
                                 allocation[workflow][result.VisualID] = 1111;
                                 var user = allocation[workflow][result.VisualID];
 
-                                updateUSER(ta_id, user);
+                                this.updateUSER(ta_id, user);
                             } else {
                                 if (aConst.hasOwnProperty('same as')) {
                                     allocation[workflow][result.VisualID] = allocation[workflow][aConst['same as']];
                                     var id = allocation[workflow][aConst['same as']];
-                                    updateUSER(ta_id, id);
-                                    updateUH(ta_id, id);
+                                    this.updateUSER(ta_id, id);
+                                    this.updateUH(ta_id, id);
 
                                 } else if (aConst.hasOwnProperty('not')) {
                                     notThese = aConst['not'];
@@ -306,32 +329,32 @@ Allocator2.prototype.allocate = function(sectionid) {
 
                                     for (st in students) {
                                         if (!inArray(st, avoidThese)) {
-                                            chooseMe[] = st;
+                                            chooseMe.push(st);
                                         }
                                     }
 
                                     allocation[workflow][result.VisualID] = chooseMe[0];
                                     var id = chooseMe[0];
-                                    updateUSER(ta_id, id);
-                                    updateUH(ta_id, id);
+                                    this.updateUSER(ta_id, id);
+                                    this.updateUH(ta_id, id);
 
                                 } else if (aConst.hasOwnProperty('new to subwf')) {
 
                                     allocation[workflow][result.VisualID] = student[i];
                                     var id = student[i];
-                                    updateUSER(ta_id, id);
-                                    updateUH(ta_id, id);
+                                    this.updateUSER(ta_id, id);
+                                    this.updateUH(ta_id, id);
                                 } else if (aConst.hasOwnProperty('new to wf')) {
 
                                     allocation[workflow][result.VisualID] = student[i];
                                     var id = student[i];
-                                    updateUSER(ta_id, id);
-                                    updateUH(ta_id, id);
+                                    this.updateUSER(ta_id, id);
+                                    this.updateUH(ta_id, id);
                                 } else {
                                     allocation[workflow][result.VisualID] = student[i];
                                     var id = student[i];
-                                    updateUSER(ta_id, id);
-                                    updateUH(ta_id, id);
+                                    this.updateUSER(ta_id, id);
+                                    this.updateUH(ta_id, id);
                                 }
                             }
                         }
@@ -345,6 +368,8 @@ Allocator2.prototype.allocate = function(sectionid) {
             }
         }
     }
+
+    console.log(allocation);
 }
 
-module.export.Allocator2 = Allocator2;
+module.exports.Allocator2 = Allocator2;

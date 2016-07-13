@@ -40,16 +40,16 @@ module.exports = function(sequelize, DataTypes) {
             field: 'FileUpload',
             allowNull: true
         },
-        MaximumDuration: { //* DueType
+        DueType: { //* DueType
             //Maximum duration of the task in minutes
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'MaximumDuration',
+            type: DataTypes.JSON,
+            field: 'DueType',
             allowNull: true
         },
-        EarliestStartTime: { //*StartDelay
+        StartDelay: { //*StartDelay
             //Earlier start time in minutes. “0” means no delay, do when triggered.
             type: DataTypes.DATE,
-            field: 'EarliestStartTime',
+            field: 'StartDelay',
             allowNull: true
         },
         AtDurationEnd: {
@@ -208,7 +208,7 @@ module.exports = function(sequelize, DataTypes) {
         NextTasks: {
             //Specifies which task activity will follow after this task is finished.
             type: DataTypes.JSON,
-            field: 'NextTask',
+            field: 'NextTasks',
             allowNull: true
         }
     }, {

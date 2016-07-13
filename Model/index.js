@@ -134,6 +134,7 @@ models.forEach(function(model) {
 
       m.TaskActivity.belongsTo(m.WorkflowActivity,{foreignKey: 'WorkflowActivityID'});
       m.TaskActivity.belongsTo(m.AssignmentInstance,{foreignKey: 'AssignmentInstanceID'});
+      m.TaskActivity.belongsTo(m.Assignment, {foreignKey: 'AssignmentID'});
 
       m.WorkflowInstance.belongsTo(m.WorkflowActivity,{foreignKey: 'WorkflowActivityID'});
       m.WorkflowInstance.belongsTo(m.AssignmentInstance,{foreignKey: 'AssignmentInstanceID'});
@@ -156,6 +157,7 @@ models.forEach(function(model) {
 
       m.Assignment.hasMany(m.AssignmentInstance,{as:'AssignmentInstances', foreignKey: 'AssignmentID'});
       m.Assignment.hasMany(m.WorkflowActivity, {as: 'WorkflowActivities', foreignKey: 'AssignmentID'});
+      m.Assignment.hasMany(m.TaskActivity, {as: 'TaskActivities', foreignKey: 'AssignmentID'});
 
       m.AssignmentInstance.hasMany(m.TaskInstance,{as:'TaskInstances', foreignKey: 'AssignmentInstanceID'});
       m.AssignmentInstance.hasMany(m.WorkflowInstance,{as : 'WorkflowInstances', foreignKey: 'AssignmentInstanceID'});

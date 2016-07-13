@@ -27,7 +27,7 @@ module.exports = function(sequelize, DataTypes) {
             //Start date for the assignment. 0 means start immediately.
             type: DataTypes.DATE,
             field: 'StartDate',
-            allowNull: false
+            allowNull: true
         },
         EndDate: {
             //Overall end date for all the workflows associated to this assignment to finish.
@@ -37,13 +37,13 @@ module.exports = function(sequelize, DataTypes) {
         },
         WorkflowCollection: {
             //Array of workflow instance ids corresponding to this assignment instance.
-            type: DataTypes.BLOB,
+            type: DataTypes.JSON,
             field: 'WorkflowCollection',
             allowNull: true
         },
         WorkflowTiming: {
             //Array of arrays of workflow instance and task instance timing parameters
-            type: DataTypes.BLOB,
+            type: DataTypes.JSON,
             field: 'WorkflowTiming',
             allowNull: true
         }
