@@ -104,21 +104,22 @@ module.exports = function(sequelize, DataTypes) {
         },
         NextTasks: {
             //Array of possible next
-            type: DataTypes.BLOB,
+            type: DataTypes.JSON,
             field: 'NextTasks',
             allowNull: true
         },
         PreviousTasks: {
             //Array of possible previous
-            type: DataTypes.BLOB,
+            type: DataTypes.JSON,
             field: 'PreviousTasks',
             allowNull: true
         },
-        PreviousTask:{
-          type: DataTypes.INTEGER.UNSIGNED,
-          field: 'PreviousTask',
-          allowNull: true
-        },
+        // PreviousTask: {
+        //     //Ignore this (not currently used);
+        //     type: DataTypes.INTEGER.UNSIGNED,
+        //     field: 'PreviousTask',
+        //     allowNull: true
+        // },
         EmailLastSent: {
             //The Record of when the last email was sent.
             //Keep a whole array of email history

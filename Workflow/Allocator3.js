@@ -389,31 +389,124 @@ Allocator3.prototype.getWorkflowTiming = function(ai_id) {
     });
 }
 
+Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
+    AssignmentInstance.find({
+        where: {
+            AssignmentInstanceID: ai_id
+        }
+    }).then(function(assignmentInstance) {
+        WorkflowInstance.findAll({
+            where: {
+                AssignmentInstanceID: assignmentInstance.AssignmentInstanceID
+            }
+        }).then(function(workflows) {
+            Promise.map(workflows, function(workflow, index) {
+                console.log('Workflow: ', index, workflow.TaskCollection);
+                var previousTasks = [];
+                var nextTasks = JSON.parse(workflow.TaskCollection);
+                var taskRemoved;
+                Promise.map(JSON.parse(workflow.TaskCollection), function(task, index) {
+                    //console.log('PreviousTasks: ', previousTasks);
+                    console.log('NextTasks: ', nextTasks);
+                    console.log('PreviousTasks: ', previousTasks);
+                    taskRemoved = nextTasks.shift();
+
+                    console.log('Updating Previous and Next Tasks...')
+                    TaskInstance.update({
+                        PreviousTasks: JSON.stringify(previousTasks),
+                        NextTasks: JSON.stringify(nextTasks)
+                    }, {
+                        where: {
+                            TaskInstanceID: task
+                        }
+                    });
+                    previousTasks.push(taskRemoved);
+                }).catch(function(err) {
+                    console.log(err);
+                });
+            });
+        });
+    });
+}
+
+Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
+    TaskActivity.find({
+        where: {
+            taskActivityID: taskActivityID
+        }
+    }).then(function(result) {
+        console.log('NumberParticipants ', result.NumberParticipants);
+        return result.NumberParticipants;
+    }).catch(function(err) {
+        console.log(err);
+        res.status(401).end();
+    });
+}
+
+Allocator3.prototype.asyncLoop = function(iterations, func, callback) {
+    var index = 0;
+    var done = false;
+    var loop = {
+        next: function() {
+            if (done) {
+                return;
+            }
+
+            if (index < iterations) {
+                index++;
+                func(loop);
+
+            } else {
+                done = true;
+                callback();
+            }
+        },
+
+        iteration: function() {
+            return index - 1;
+        },
+
+        break: function() {
+            done = true;
+            callback();
+        }
+    };
+    loop.next();
+    return loop;
+}
+
 
 /*
   Create WorkflowInstances, and TaskInstances
 */
 
 Allocator3.prototype.createInstances = function(sectionid, ai_id) {
+    var x = this;
     var users;
     var workflowTiming;
     //creates seperate array to store all the workflow instances created
     var workflowArray = [];
+    // this.getUsersFromSection(sectionid) - returns all users from section(sectionid)
+    // this.getWorkflowTiming(ai_id) - returns WorkflowTiming from Assignment Instance.
+    return Promise.all([this.getUsersFromSection(sectionid), this.getWorkflowTiming(ai_id)]).then(function(result) {
 
-    Promise.all([this.getUsersFromSection(sectionid), this.getWorkflowTiming(ai_id)]).then(function(result) {
+        //Store the resulting object
         users = result[0];
         workflowTiming = JSON.parse(result[1]);
 
-        //iterate through all users from the section
+        //iterate through all usersn
         users.forEach(function(user) {
-            console.log(user);
+
+            console.log('Creating Workflow Instances for User: ', user);
             //iterate through all the workflows
             Promise.map(workflowTiming.workflows, function(workflow, index) {
                 //creates seperate array to store all task instances created within the workflow
                 var taskArray = [];
+                //Store the current WorkflowInstanceID once it is created
                 var wi_id;
 
-                //create workflow instances for each user
+                console.log('Creaing WorkflowInstance...');
+                //creating workflow instances for each user
                 WorkflowInstance.create({
                     //create attributes.
                     WorkflowActivityID: workflow.id,
@@ -422,39 +515,52 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                 }).then(function(workflowInstance) {
                     //push the resulting workflowInstance object from callback to workflow Array
                     workflowArray.push(workflowInstance.WorkflowInstanceID);
-                    console.log('workflowArray ', workflowArray);
+                    //store WorkflowInstanceID created
                     wi_id = workflowInstance.WorkflowInstanceID;
+
+                    console.log('Creating TaskInstances for WorkflowInstance:', workflowInstance.WorkflowInstanceID);
                     //iterate through all the tasks stored under workflows
                     Promise.map(workflowTiming.workflows[index].tasks, function(task) {
-                        //create individual task instances
-                        TaskInstance.create({
-                            //create attributes
-                            UserID: user,
-                            TaskActivityID: task.id,
-                            WorkflowInstanceID: workflowInstance.WorkflowInstanceID,
-                            AssignmentInstanceID: ai_id,
-                            Status: 'not_yet_started',
-                            Data: task.DueType,
-                            //PreviousTask: taskArray
-                        }).then(function(taskInstance) {
-                            //push the resulting workflowInstance object from callback to workflow Array
-                            taskArray.push(taskInstance.TaskInstanceID);
+                        // Promise.all([x.getNumberParticipants(task.id)]).then(function(result) {
+                        //     x.asyncLoop(result[0], function(loop) {
 
-                            WorkflowInstance.update({
-                                TaskCollection: taskArray.sort()
+                                console.log('Creating TaskInstance...');
+                                //create individual task instances
+                                TaskInstance.create({
+                                    //create attributes
+                                    UserID: user,
+                                    TaskActivityID: task.id,
+                                    WorkflowInstanceID: workflowInstance.WorkflowInstanceID,
+                                    AssignmentInstanceID: ai_id,
+                                    Status: 'not_yet_started',
+                                    Data: task.DueType
+                                }).then(function(taskInstance) {
+                                    //push the resulting workflowInstance object from callback to workflow Array
+                                    taskArray.push(taskInstance.TaskInstanceID);
 
-                            }, {
-                                where: {
-                                    WorkflowInstanceID: wi_id
-                                }
-                            });
+                                    //Update TaskCollection
+                                    WorkflowInstance.update({
+                                        TaskCollection: taskArray.sort() //Promise does not guarantee the object result are in order so sorted
+                                    }, {
+                                        where: {
+                                            WorkflowInstanceID: wi_id
+                                        }
+                                    });
 
-                        }).catch(function(err) {
-                            console.log(err);
-                        });
+                                // }).then(function() {
+                                //     loop.next();
+                                }).catch(function(err) {
+                                    console.log(err);
+                                });
+                        //     }, function() {
+                        //         console.log('Create Task Instances Done');
+                        //     });
+                        // });
+
                     }).then(function(done) {
+                        //Update WorkflowCollection
                         AssignmentInstance.update({
-                            WorkflowCollection: workflowArray.sort()
+                            WorkflowCollection: workflowArray.sort() //Promise does not guarantee the object result are in order so sorted
                         }, {
                             where: {
                                 AssignmentInstanceID: ai_id
@@ -466,10 +572,14 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                 });
             });
         });
-
     });
+}
 
-
+Allocator3.prototype.createAllInstances = function(sectionid, ai_id) {
+    var x = this;
+    Promise.all(x.createInstances(sectionid, ai_id)).then(function(done) {
+        x.updatePreviousAndNextTasks(ai_id);
+    });
 }
 
 module.exports.Allocator3 = Allocator3;

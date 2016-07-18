@@ -110,7 +110,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
                         var taskActivity = TaskActivity.build({
                             WorkflowActivityID: workflow.WorkflowActivityID,
-                            AssignmentID: assignment.AssignmentID
+                            AssignmentID: assignment.AssignmentID,
                             Type: workflow.tasks.TA_type,
                             Name: workflow.tasks.TA_name,
                             FileUpload: workflow.tasks.TA_file_upload,
@@ -193,7 +193,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/allocate", function(req, res) {
         var alloc3 = new Allocator3.Allocator3();
 
-        alloc3.createInstances(3, 13);
+        //alloc3.getNumberParticipants(23);
+        //alloc3.createInstances(3, 13);
+        alloc3.updatePreviousAndNextTasks(13);
         // alloc3.createAssignmentInstances(1, 3, '2016-07-12', {
         //     'workflows': [{
         //         'id': 10,
@@ -2134,77 +2136,103 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     router.get('/superCall/:taskInstanceid', function(req, res) {
-        var currentTaskInstance = req.params.taskInstanceid;
-        var superTask = [];
-
-        var promiseWhile = function(condition, action) {
-            var resolver = Promise.defer();
-
-            var loop = function() {
-                if (!condition()) return resolver.resolve();
-                return Promise.cast(action())
-                    .then(loop)
-                    .catch(resolver.reject);
-            };
-
-            process.nextTick(loop);
-
-            return resolver.promise;
-        }
-
-        promiseWhile(function() {
-            return (typeof currentTaskInstance === 'undefined');
-        }, function() {
-            return new Promise(function(resolve, reject) {
-                TaskInstance.find({
-                    where: {
-                        TaskInstanceID: currentTaskInstance
-                    },
-                    attributes: ["Data", "Status"],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
-                    }]
-                }).then(function(result) {
-                    superTask.push(result);
-                    currentTaskInstance = result.ReferencedTask; // PreviousTasks or ReferencedTask
-                });
-            });
-        }).then(function() {
-            console.log('All Done!');
-        }).catch(function(err) {
-            console.log('/superCall: ' + err);
-            res.status(404).end();
-        });
-
-        res.json({
-            "Error": false,
-            "superTask": superTask
-        });
-
-        // do {
+        //     var superTask = [];
+        //
         //     TaskInstance.find({
         //         where: {
-        //             TaskInstanceID: currentTaskInstance
-        //         },
-        //         attributes: ["Data"],
-        //         include: [{
-        //             model: TaskActivity,
-        //             attributes: ["Type", "Rubric", "Instructions", "Fields"]
-        //         }]
+        //             TaskInstanceID: req.params.taskInstanceid
+        //         }
         //     }).then(function(result) {
-        //         superTask.push(result);
-        //         currentTaskInstance = result.PreviousTasks; // PreviousTasks or ReferencedTask
+        //         var taskArray = JSON.parse(JSON.parse(result.PreviousTasks));
+        //         taskArray.push(req.params.taskInstanceid);
+        //         return taskArray;
+        //     }).then(function(taskarray) {
+        //         console.log(taskarray);
+        //         return Promise.map(taskarray, function(task) {
+        //             TaskInstance.find({
+        //                 where: {
+        //                     TaskInstanceID: task
+        //                 },
+        //                 attributes: ["Data", "Status"],
+        //                 include: [{
+        //                     model: TaskActivity,
+        //                     attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+        //                 }],
+        //                 raw: true
+        //             }).then(function(result) {
+        //                 console.log('result ', result);
+        //                 superTask.push(result);
+        //             }).catch(function(err) {
+        //                 console.log(err);
+        //             });
+        //         });
+        //
+        //     }).then(function(done) {
+        //         console.log('done', done);
+        //         if (done.length === superTask.length) {
+        //             console.log('superTask.length', superTask.length)
+        //             res.json({
+        //                 "superTask": superTask
+        //             });
+        //         }
         //     }).catch(function(err) {
-        //         console.log('/superCall: ' + err);
-        //         res.status(404).end();
+        //         console.log(err);
         //     });
-        // } while (typeof currentTaskInstance !== 'undefined');
-
-        // res.json({
-        //     "Error": false,
-        //     "superTask": superTask
         // });
+
+        var superTask = [];
+
+        sequelize.transaction(function(t) {
+            "use strict";
+
+            return TaskInstance.find({
+                where: {
+                    TaskInstanceID: req.params.taskInstanceid
+                }
+            }, {
+                transaction: t
+            }).then(function(result) {
+                var taskArray = JSON.parse(JSON.parse(result.PreviousTasks));
+                taskArray.push(JSON.parse(req.params.taskInstanceid));
+                return taskArray;
+            }).then(function(taskarray) {
+                console.log(taskarray);
+                return Promise.map(taskarray, function(task) {
+                    return TaskInstance.find({
+                        where: {
+                            TaskInstanceID: task
+                        },
+                        attributes: ["TaskInstanceID", "Data", "Status"],
+                        include: [{
+                            model: TaskActivity,
+                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                        }],
+                        raw: true
+                    }, {
+                        transaction: t
+                    }).then(function(result) {
+                        console.log('result ', result);
+                        superTask.push(result);
+                    }).catch(function(err) {
+                        console.log(err);
+                    });
+                });
+
+
+            }).then(function(done) {
+                console.log('superTask.length', superTask.length)
+                res.json({
+                    "superTask": superTask.sort(function(a, b) {
+                        var x = a.TaskInstanceID < b.TaskInstanceID ? -1 : 1;
+                        return x;
+                    })
+                });
+            }).catch(function(err) {
+                console.log(err);
+            });
+
+        })
+
     });
 
     router.get('/getAssignToSection/:assignmentid', function(req, res) {
@@ -2231,6 +2259,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    //---------------------------------------------------------------------------------------------------------------------------------------------
+}
 
 module.exports = REST_ROUTER;
