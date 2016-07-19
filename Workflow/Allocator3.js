@@ -391,16 +391,21 @@ Allocator3.prototype.getWorkflowTiming = function(ai_id) {
 
 Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
 
+    //Finding all workflow instances using ai_id
     WorkflowInstance.findAll({
         where: {
             AssignmentInstanceID: ai_id
         }
     }).then(function(workflows) {
+        //Iterate through all the workflow instances returned
         return Promise.map(workflows, function(workflow, index) {
             console.log('Workflow: ', index, workflow.TaskCollection);
+            //Empty list of previous tasks
             var previousTasks = [];
+            //All the next tasks stored in TaskCollection
             var nextTasks = JSON.parse(workflow.TaskCollection);
             var taskRemoved;
+            //Iterate through all the workflow Taskcollection
             return Promise.map(JSON.parse(workflow.TaskCollection), function(task, index) {
                 //console.log('PreviousTasks: ', previousTasks);
                 console.log('NextTasks: ', nextTasks);
@@ -424,7 +429,10 @@ Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
     });
 
 }
+/*
+    Get function for NumberParticipants attributes in TaskActivity
 
+*/
 Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
     TaskActivity.find({
         where: {
@@ -519,7 +527,7 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                     return Promise.map(workflowTiming.workflows[index].tasks, function(task) {
                         // Promise.all([x.getNumberParticipants(task.id)]).then(function(result) {
                         //     x.asyncLoop(result[0], function(loop) {
-
+                        
                         console.log('Creating TaskInstance...');
                         //create individual task instances
                         return TaskInstance.create({
@@ -574,12 +582,5 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
     });
 }
 
-Allocator3.prototype.createAssignment = function(sectionid, ai_id) {
-    var x = this;
-    return Promise.all(x.createInstances(sectionid, ai_id)).then(function(done) {
-        console.log("Updating previous and next tasks.....");
-        x.updatePreviousAndNextTasks(ai_id);
-    });
-}
 
 module.exports.Allocator3 = Allocator3;

@@ -193,45 +193,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/allocate", function(req, res) {
         var alloc3 = new Allocator3.Allocator3();
 
-        //alloc3.getNumberParticipants(23);
         alloc3.createInstances(3, 13);
-        //alloc3.createAssignment(3, 13);
-        //alloc3.updatePreviousAndNextTasks(13);
-        // alloc3.createAssignmentInstances(1, 3, '2016-07-12', {
-        //     'workflows': [{
-        //         'id': 10,
-        //         'startDate': '2016-07-15',
-        //         'tasks': [{
-        //             'id': 20,
-        //             'DueType': ['duration', 4000]
-        //         }, {
-        //             'id': 21,
-        //             'DueType': ['duration', 4000]
-        //         }, {
-        //             'id': 22,
-        //             'DueType': ['duration', 4000]
-        //         }, {
-        //             'id': 23,
-        //             'DueType': ['duration', 4000]
-        //         }, {
-        //             'id': 24,
-        //             'DueType': ['duration', 4000]
-        //         }, {
-        //             'id': 25,
-        //             'DueType': ['duration', 4000]
-        //         }, {
-        //             'id': 26,
-        //             'DueType': ['duration', 4000]
-        //         }, {
-        //             'id': 27,
-        //             'DueType': ['duration', 4000]
-        //         }, {
-        //             'id': 28,
-        //             'DueType': ['duration', 4000]
-        //         }, ]
-        //     }]
-        // });
-        //alloc3.getWorkflowTiming(13);
+
     });
 
 
@@ -2237,20 +2200,18 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     router.get('/getAssignToSection/:assignmentid', function(req, res) {
-        Assignment.find({
+        TaskActivity.findAll({
             where: {
                 AssignmentID: req.params.assignmentid
             },
+            attributes: ["TaskActivityID", "Name", "Type", "VisualID"],
             include: [{
-                model: TaskActivity,
-                attributes: ["TaskActivityID", "Type", "VisualID"],
-                include: [{
-                    model: WorkflowActivity,
-                    attributes: ["Name"]
-                }]
+                model: WorkflowActivity,
+                attributes: ["WorkflowActivityID", "Name"]
             }]
+
         }).then(function(result) {
-            res.JSON({
+            res.json({
                 "Error": false,
                 "AssignToSection": result
             });
