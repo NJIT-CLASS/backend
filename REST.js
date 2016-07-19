@@ -193,7 +193,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/allocate", function(req, res) {
         var alloc3 = new Allocator3.Allocator3();
 
-        alloc3.createInstances(3, 13);
+        //alloc3.createInstances(3, 13);
+        alloc3.createAssignmentInstances(1, [2, 3, 4], '2015-07-24', {});
 
     });
 
@@ -2219,6 +2220,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             console.log('/getAssignToSection: ' + err);
             res.status(404).end();
         });
+    });
+
+    router.post('/getAssignToSection/submit/', function(req, res) {
+
+        var allocator = new Allocator3.Allocator3();
+
+        allocator.createAssignmentInstances(req.params.assignmentid, req.params.sectionIDs, req.params.startDate, req.params.wf_timing).then(function(done) {
+            console.log('/getAssignToSection/submit/   All Done!');
+        }).catch(function(err) {
+            console.log(err);
+            res.status(404).end();
+        });
+
+        // allocator.createInstances(sectionid, ai_id).then(function(done){
+        //   console.log('/getAssignToSection/submit     All Done!');
+        // }).catch(function(err){
+        //   console.log(err);
+        // });
+
     });
 
 }
