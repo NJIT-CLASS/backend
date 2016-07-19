@@ -194,8 +194,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var alloc3 = new Allocator3.Allocator3();
 
         //alloc3.getNumberParticipants(23);
-        //alloc3.createInstances(3, 13);
-        alloc3.updatePreviousAndNextTasks(13);
+        alloc3.createInstances(3, 13);
+        //alloc3.createAssignment(3, 13);
+        //alloc3.updatePreviousAndNextTasks(13);
         // alloc3.createAssignmentInstances(1, 3, '2016-07-12', {
         //     'workflows': [{
         //         'id': 10,
@@ -262,7 +263,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
 
             WorkflowInstance.getAssignment().then(function(assignment) {
-                console.log("Assignment Found : " + assignment.Title);
+                console.log("Assignment Found : " + assignment.Name);
             });
         });
 
@@ -276,7 +277,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
 
         Assignment.findById(req.params.userID).then(function(assignment) {
-            console.log("Assignment Found : " + assignment.Title);
+            console.log("Assignment Found : " + assignment.Name);
 
             assignment.getWorkflowInstances().then(function(workflows) {
                 console.log("workflows Found ");
@@ -323,7 +324,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
 
             Section.getCourse().then(function(Course) {
-                console.log("Course Title : " + Course.Title);
+                console.log("Course Name : " + Course.Name);
                 //res.status(200).end();
             });
             Section.getSectionUsers().then(function(Users) {
@@ -339,7 +340,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
 
         Course.findById(req.params.userID).then(function(course) {
-            console.log("User Course : " + course.Title);
+            console.log("User Course : " + course.Name);
 
             course.getUser().then(function(Creator) {
                 console.log("Creator Name : " + Creator.FirstName);
@@ -569,8 +570,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(400).end();
             return;
         }
-        if (req.body.title == null) {
-            console.log("/course/create : Title cannot be null");
+        if (req.body.Name == null) {
+            console.log("/course/create : Name cannot be null");
             res.status(400).end();
             return;
         }
@@ -588,7 +589,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var course = Course.build({
             CreatorID: req.body.userid,
             Number: req.body.number,
-            Title: req.body.title,
+            Name: req.body.Name,
             OrganizationID: req.body.organizationid //new
 
         }).save().then(function(response) {
@@ -744,7 +745,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             where: {
                 CourseID: req.params.courseId
             },
-            attributes: ["CourseID", "Number", "Title"]
+            attributes: ["CourseID", "Number", "Name"]
         }).then(function(result) {
             Section.findAll({
                 where: {
@@ -802,8 +803,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     router.put("/course/update", function(req, res) {
 
-        if (req.body.Title == null) {
-            console.log("course/create : Title cannot be null");
+        if (req.body.Name == null) {
+            console.log("course/create : Name cannot be null");
             res.status(400).end();
             return;
         }
@@ -814,7 +815,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         }
 
         Course.update({
-            Title: req.body.Title,
+            Name: req.body.Name,
             Number: req.body.Number
         }, {
             where: {
@@ -1351,7 +1352,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 }).then(function(courseResult) {
                     Assignment.find({
                         where: {
-                            UserID: req.query.userID
+                            AssignmentID: taskActivityResult.AssignmentID
                         }
                     }).then(function(assignmentResult) {
                         Section.find({
@@ -1369,9 +1370,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                     "Message": "Success",
                                     "taskActivityID": taskInstanceResult.TaskActivityID,
                                     "taskActivityType": taskActivityResult.Type,
-                                    "courseName": courseResult.Title,
+                                    "courseName": courseResult.Name,
                                     "courseNumber": courseResult.Number,
-                                    "assignmentTitle": assignmentResult.Title,
+                                    "assignmentName": assignmentResult.Name,
                                     "assignmentID": assignmentResult.AssignmentID,
                                     "semesterID": sectionResult.SemesterID,
                                     "semesterName": semesterResult.Name
@@ -1994,12 +1995,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         attributes: ["SectionID"],
                         include: [{
                             model: Course,
-                            attributes: ["Title", "CourseID"]
+                            attributes: ["Name", "CourseID"]
                         }]
 
                     }, {
                         model: Assignment,
-                        attributes: ["Title"]
+                        attributes: ["Name"]
                     }]
                 },
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
@@ -2017,10 +2018,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.json({
                 "Error": false,
                 "PendingTaskInstances": taskInstances
-            }).catch(function(err) {
-                console.log('/getPendingTaskInstances: ' + err);
-                res.status(404).end();
             });
+        }).catch(function(err) {
+            console.log('/getPendingTaskInstances: ' + err);
+            res.status(404).end();
         });
 
 
@@ -2042,12 +2043,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         attributes: ["SectionID"],
                         include: [{
                             model: Course,
-                            attributes: ["Title", "CourseID"]
+                            attributes: ["Name", "CourseID"]
                         }]
 
                     }, {
                         model: Assignment,
-                        attributes: ["Title"]
+                        attributes: ["Name"]
                     }]
                 },
                 /*, {
@@ -2055,7 +2056,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                        attributes: ['SectionID'],
                                        include: [{
                                            model: Course,
-                                           attributes: ["Title"]
+                                           attributes: ["Name"]
                                        }]
                                    } */
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
@@ -2073,10 +2074,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.json({
                 "Error": false,
                 "CompletedTaskInstances": taskInstances
-            }).catch(function(err) {
-                console.log('/getCompletedTaskInstances: ' + err);
-                res.status(404).end();
             });
+        }).catch(function(err) {
+            console.log('/getCompletedTaskInstances: ' + err);
+            res.status(404).end();
         });
     });
 
@@ -2086,7 +2087,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             where: {
                 AssignmentInstanceID: req.params.assignmentInstanceid
             },
-            attributes: ['Title']
+            attributes: ['Name']
         }).then(function(AI_Result) {
             WorkflowInstance.findAll({
                 where: {
