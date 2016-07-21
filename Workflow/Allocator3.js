@@ -394,7 +394,7 @@ Allocator3.prototype.getWorkflowTiming = function(ai_id) {
 Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
 
         //Finding all workflow instances using ai_id
-        WorkflowInstance.findAll({
+        return WorkflowInstance.findAll({
             where: {
                 AssignmentInstanceID: ai_id
             }
@@ -423,6 +423,7 @@ Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
                             TaskInstanceID: task
                         }
                     });
+                    
                     previousTasks.push(taskRemoved);
                 }).catch(function(err) {
                     console.log(err);
@@ -490,8 +491,10 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
     var x = this;
     var users;
     var workflowTiming;
+
     //creates seperate array to store all the workflow instances created
     var workflowArray = [];
+
     // this.getUsersFromSection(sectionid) - returns all users from section(sectionid)
     // this.getWorkflowTiming(ai_id) - returns WorkflowTiming from Assignment Instance.
     return Promise.all([this.getUsersFromSection(sectionid), this.getWorkflowTiming(ai_id)]).then(function(result) {
@@ -506,6 +509,7 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
             //console.log('Creating Workflow Instances for User: ', user);
             //iterate through all the workflows
             return Promise.map(workflowTiming.workflows, function(workflow, index) {
+
                 //creates seperate array to store all task instances created within the workflow
                 var taskArray = [];
                 //Store the current WorkflowInstanceID once it is created

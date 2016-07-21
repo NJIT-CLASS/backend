@@ -193,8 +193,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/allocate", function(req, res) {
         var alloc3 = new Allocator3.Allocator3();
 
-        //alloc3.createInstances(3, 13);
-        alloc3.createAssignmentInstances(1, [2, 3, 4], '2015-07-24', {});
+        alloc3.createInstances(3, 13);
+        //alloc3.createAssignmentInstances(1, [2, 3, 4], '2015-07-24', {});
 
     });
 
@@ -2200,26 +2200,166 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-    router.get('/getAssignToSection/:assignmentid', function(req, res) {
-        TaskActivity.findAll({
-            where: {
-                AssignmentID: req.params.assignmentid
-            },
-            attributes: ["TaskActivityID", "Name", "Type", "VisualID"],
-            include: [{
-                model: WorkflowActivity,
-                attributes: ["WorkflowActivityID", "Name"]
-            }]
+    router.get('/getAssignToSection/', function(req, res) {
 
-        }).then(function(result) {
+        /* var workflowArray = {};
+        var sectionIDs = [];
+        var taskArray = [];
+
+        WorkflowActivity.findAll({
+            where: {
+                AssignmentID: req.query.assignmentid
+            }
+        }).then(function(workflowActivity) {
+
+            Section.findAll({
+                where: {
+                    CourseID: req.query.courseid
+                }
+            }).then(function(sections) {
+                sections.forEach(function(section) {
+                    sectionIDs.push(section.SectionID);
+                });
+                console.log("sectionIDs ", sectionIDs);
+                return workflowArray["sectionIDs"] = sectionIDs;
+
+            });
+
+            return Promise.map(workflowActivity, function(workflow) {
+                return Promise.map(JSON.parse(workflow.TaskActivityCollection), function(taskActivity) {
+                    console.log("taskActivity:", taskActivity);
+                    TaskActivity.find({
+                        where: {
+                            TaskActivityID: taskActivity
+                        }
+                    }).then(function(task) {
+                        taskArray.push({
+                            "taskActivityID": task.TaskActivityID,
+                            "name": task.Name
+                        });
+                        console.log('taskArray', taskArray);
+                    }).catch(function(err) {
+                        console.log(err);
+                    });
+                });
+
+            }).then(function(done) {
+                console.log('done', done);
+                return Promise.map(workflowActivity, function(workflow) {
+                    workflowArray[workflow.WorkflowActivityID] = {
+                        "name": workflow.Name,
+                        "tasks": taskArray
+                    };
+                });
+            }).catch(function(err) {
+                console.log(err);
+            });
+            // .then(function() {
+            //     return Promise.map(workflowActivity, function(workflow) {
+            //         workflowArray[workflow.WorkflowActivityID] = {
+            //             "name": workflow.Name,
+            //             "tasks": taskArray
+            //         };
+            //
+            //     });
+            // });
+
+        }).then(function(done) {
             res.json({
-                "Error": false,
-                "AssignToSection": result
+                'Workflow': workflowArray
             });
         }).catch(function(err) {
-            console.log('/getAssignToSection: ' + err);
+            console.log(err);
             res.status(404).end();
         });
+
+        // TaskActivity.findAll({
+        //     where: {
+        //         AssignmentID: req.params.assignmentid
+        //     },
+        //     attributes: ["TaskActivityID", "Name", "Type", "VisualID"],
+        //     include: [{
+        //         model: WorkflowActivity,
+        //         attributes: ["WorkflowActivityID", "Name"]
+        //     }]
+        //
+        // }).then(function(result) {
+        //     res.json({
+        //         "Error": false,
+        //         "AssignToSection": result
+        //     });
+        // }).catch(function(err) {
+        //     console.log('/getAssignToSection: ' + err);
+        //     res.status(404).end();
+        // }); */
+
+        var promises = [];
+        var sectionIDs = [];
+        var taskArray = [];
+        var workflowArray = {};
+
+        var workflowActivity = WorkflowActivity.findAll({
+            where: {
+                AssignmentID: req.query.assignmentid
+            },
+            raw: true
+        });
+
+        var sections = Section.findAll({
+            where: {
+                CourseID: req.query.courseid
+            },
+            raw: true
+        });
+
+        Promise.all([workflowActivity, sections]).then(function(result) {
+            console.log('done ', result);
+            result[1].forEach(function(section) {
+                sectionIDs.push(section.SectionID);
+            });
+            workflowArray['SectionIDs'] = sectionIDs;
+            console.log('sectionIDs', sectionIDs);
+
+            return result;
+        }).then(function(result) {
+            console.log('result', result);
+            return Promise.map(result[0], function(workflow) {
+                return Promise.map(JSON.parse(workflow.TaskActivityCollection), function(taskActivity) {
+                    console.log("taskActivity:", taskActivity);
+                    return TaskActivity.find({
+                        where: {
+                            TaskActivityID: taskActivity
+                        }
+                    }).then(function(task) {
+                        taskArray.push({
+                            "taskActivityID": task.TaskActivityID,
+                            "name": task.Name
+                        });
+                        console.log('taskArray', taskArray);
+                        return taskArray;
+                    }).catch(function(err) {
+                        console.log(err);
+                    });
+                });
+            });
+        }).then(function(done) {
+            console.log('workflowActivity', workflowActivity);
+            return Promise.map(workflowActivity, function(workflow) {
+                workflowArray[workflow.WorkflowActivityID] = {
+                    "name": workflow.Name,
+                    "tasks": taskArray
+                };
+            });
+        }).then(function(done) {
+            //console.log('done 1111', done);
+            res.json({
+                'Workflow': workflowArray
+            });
+        }).catch(function(err) {
+            console.log(err);
+            res.status(404).end();
+        });;
+
     });
 
     router.post('/getAssignToSection/submit/', function(req, res) {
@@ -2232,12 +2372,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             console.log(err);
             res.status(404).end();
         });
-
-        // allocator.createInstances(sectionid, ai_id).then(function(done){
-        //   console.log('/getAssignToSection/submit     All Done!');
-        // }).catch(function(err){
-        //   console.log(err);
-        // });
 
     });
 
