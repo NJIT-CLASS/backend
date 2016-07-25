@@ -2093,7 +2093,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
             //Create an array of all the sections associate with courseid
             result.forEach(function(section) {
-                sectionIDs.push(section.SectionID);
+                sectionIDs.push({id: section.SectionID, name: section.Name});
             });
 
             isDone = true;
@@ -2140,6 +2140,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         taskCollection[workflow.WorkflowActivityID].push({
                             "taskActivityID": taskActivity.TaskActivityID,
                             "name": taskActivity.Name
+                        });
+                        taskCollection[workflow.WorkflowActivityID].sort(function(a, b) {
+                            var x = a.taskActivityID < b.taskActivityID ? -1 : 1;
+                            return x;
                         });
 
                     }).catch(function(err) {
