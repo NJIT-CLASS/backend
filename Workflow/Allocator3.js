@@ -43,25 +43,24 @@ Allocator3.prototype.getAssignmentsFromAcitivity = function() {
 //-------------------------------------------------------------------------------------
 
 Allocator3.prototype.getWorkflowsFromActivity = function(a_id) {
-        var workflows = [];
-        WorkflowActivity.findAll({
-            where: {
-                AssignmentID: a_id
-            }
-        }).then(function(results) {
-            results.forEach(function(workflow) {
-                workflows.push(workflow.WorkflowActivityID);
-            }, this);
+    var workflows = [];
+    WorkflowActivity.findAll({
+        where: {
+            AssignmentID: a_id
+        }
+    }).then(function(results) {
+        results.forEach(function(workflow) {
+            workflows.push(workflow.WorkflowActivityID);
+        }, this);
 
-            console.log('WorkflowActivity', workflows);
+        console.log('WorkflowActivity', workflows);
 
-        }).catch(function(err) {
-            console.log(err);
-        });
+    }).catch(function(err) {
+        console.log(err);
+    });
 
-        return workflows;
-    }
-    //-------------------------------------------------------------------------------------
+    return workflows;
+}
 
 //-------------------------------------------------------------------------------------
 
@@ -369,6 +368,7 @@ Allocator3.prototype.createAssignmentInstances = function(a_id, sectionIDs, star
     });
 }
 
+
 /*
   Obtain workflowTiming through Assignment Instance ID
 */
@@ -391,51 +391,53 @@ Allocator3.prototype.getWorkflowTiming = function(ai_id) {
     });
 }
 
+
 Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
+    //Finding all workflow instances using ai_id
+    return WorkflowInstance.findAll({
+        where: {
+            AssignmentInstanceID: ai_id
+        }
+    }).then(function(workflows) {
+        //Iterate through all the workflow instances returned
+        return Promise.map(workflows, function(workflow, index) {
+            //console.log('Workflow: ', index, workflow.TaskCollection);
+            //Empty list of previous tasks
+            var previousTasks = [];
+            //All the next tasks stored in TaskCollection
+            var nextTasks = JSON.parse(workflow.TaskCollection);
+            var taskRemoved;
+            //Iterate through all the workflow Taskcollection
+            return Promise.map(JSON.parse(workflow.TaskCollection), function(task, index) {
+                //console.log('PreviousTasks: ', previousTasks);
+                //console.log('NextTasks: ', nextTasks);
+                //console.log('PreviousTasks: ', previousTasks);
+                taskRemoved = nextTasks.shift();
 
-        //Finding all workflow instances using ai_id
-        return WorkflowInstance.findAll({
-            where: {
-                AssignmentInstanceID: ai_id
-            }
-        }).then(function(workflows) {
-            //Iterate through all the workflow instances returned
-            return Promise.map(workflows, function(workflow, index) {
-                //console.log('Workflow: ', index, workflow.TaskCollection);
-                //Empty list of previous tasks
-                var previousTasks = [];
-                //All the next tasks stored in TaskCollection
-                var nextTasks = JSON.parse(workflow.TaskCollection);
-                var taskRemoved;
-                //Iterate through all the workflow Taskcollection
-                return Promise.map(JSON.parse(workflow.TaskCollection), function(task, index) {
-                    //console.log('PreviousTasks: ', previousTasks);
-                    //console.log('NextTasks: ', nextTasks);
-                    //console.log('PreviousTasks: ', previousTasks);
-                    taskRemoved = nextTasks.shift();
-
-                    //console.log('Updating Previous and Next Tasks...')
-                    TaskInstance.update({
-                        PreviousTasks: JSON.stringify(previousTasks),
-                        NextTasks: JSON.stringify(nextTasks)
-                    }, {
-                        where: {
-                            TaskInstanceID: task
-                        }
-                    });
-                    
-                    previousTasks.push(taskRemoved);
-                }).catch(function(err) {
-                    console.log(err);
+                //console.log('Updating Previous and Next Tasks...')
+                TaskInstance.update({
+                    PreviousTasks: JSON.stringify(previousTasks),
+                    NextTasks: JSON.stringify(nextTasks)
+                }, {
+                    where: {
+                        TaskInstanceID: task
+                    }
                 });
+
+                previousTasks.push(taskRemoved);
+            }).catch(function(err) {
+                console.log(err);
             });
         });
+    });
 
-    }
-    /*
-        Get function for NumberParticipants attributes in TaskActivity
+}
 
-    */
+
+/*
+    Get function for NumberParticipants attributes in TaskActivity
+
+*/
 Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
     return TaskActivity.find({
         where: {
@@ -482,7 +484,101 @@ Allocator3.prototype.asyncLoop = function(iterations, func, callback) {
     return loop;
 }
 
+Allocator3.prototype.createAssignment = function(assignment) {
 
+    console.log('Creating assignment activity...');
+
+    return Assignment.create({
+        UserID: assignment.AA_userID,
+        Name: assignment.AA_name,
+        CourseID: assignment.AA_course,
+        Instructions: assignment.AA_instructions,
+        Type: assignment.AA_type,
+        DisplayName: assignment.AA_display_name,
+        SectionID: assignment.AA_section,
+        SemesterID: assignment.AA_semester,
+        GradeDistribution: assignment.AA_grade_distribution,
+        Documentation: assignment.AA_documentation
+    }).then(function(assignmentResult) {
+
+        console.log('Assignment creation successful!');
+        console.log('AssignmentID: ', assignmentResult.AssignmentID);
+
+        return Promise.map(assignment.WorkflowActivity, function(workflow, index) {
+            console.log('Creating workflow activity...');
+
+            WorkflowActivity.create({
+                AssignmentID: assignmentResult.AssignmentID,
+                Type: workflow.WA_type,
+                Name: workflow.WA_name,
+                GradeDistribution: workflow.WA_grade_distribution,
+                NumberOfSets: workflow.WA_number_of_sets,
+                Documentation: workflow.WA_documentation,
+                GroupSize: workflow.WA_default_group_size
+            }).then(function(workflowResult) {
+                console.log('Workflow creation successful!');
+                console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
+
+                return Promise.map(assignment.WorkflowActivity[index].TaskActivity, function(task) {
+                    console.log('Creating task activity...');
+                    TaskActivity.create({
+                        WorkflowActivityID: workflowResult.WorkflowActivityID,
+                        AssignmentID: workflowResult.AssignmentID,
+                        Type: task.TA_type,
+                        Name: task.TA_name,
+                        FileUpload: task.TA_file_upload,
+                        DueType: task.TA_due_type,
+                        StartDelay: task.TA_start_delay,
+                        AtDurationEnd: task.TA_at_duration_end,
+                        WhatIfLate: task.TA_what_if_late,
+                        DisplayName: task.TA_display_name,
+                        Documentation: task.TA_documentation,
+                        OneOrSeparate: task.TA_one_or_separate,
+                        AssigneeConstraints: task.TA_assignee_constraints,
+                        SimpleGrade: task.TA_simple_grade,
+                        IsFinalGradingTask: task.TA_is_final_grading_task,
+                        Instructions: task.TA_overall_instructions,
+                        Rubric: task.TA_rubric,
+                        Fields: task.TA_fields,
+                        AllowReflection: task.TA_allow_reflection,
+                        AllowRevision: task.TA_allow_revisions,
+                        AllowAssessment: task.TA_allow_assessment,
+                        NumberParticipants: task.TA_number_participants,
+                        TriggerConsolidationThreshold: task.TA_trigger_consolidation_threshold,
+                        FunctionType: task.TA_function_type,
+                        AllowDispute: task.TA_allow_dispute,
+                        LeadsToNewProblem: task.TA_leads_to_new_problem,
+                        LeadsToNewSolution: task.TA_leads_to_new_solution,
+                        VisualID: task.TA_visual_id
+                    }).then(function(taskResult) {
+                        console.log('Task creation successful!');
+                        console.log('TaskActivityID: ', taskResult.TaskActivityID);
+
+                    }).catch(function(err) {
+                        console.log("Workflow creation failed");
+                        //Loggin error
+                        console.log(err);
+                        //res.status(400).end();
+                    });
+                });
+            }).catch(function(err) {
+                console.log("Workflow creation failed");
+                //Loggin error
+                console.log(err);
+                //res.status(400).end();
+            });
+        });
+
+    }).catch(function(err) {
+        // err is the reason why rejected the promise chain returned to the transaction callback
+        console.log("Assignment creation failed");
+        //Loggin error
+        console.log(err);
+        //res.status(400).end();
+
+
+    });
+}
 /*
   Create WorkflowInstances, and TaskInstances
 */

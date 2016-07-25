@@ -22,7 +22,6 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
-var Allocator2 = require('./WorkFlow/Allocator2.js');
 var Allocator3 = require('./WorkFlow/Allocator3.js');
 var sequelize = require("./Model/index.js").sequelize;
 //var server = require('./Server.js');
@@ -43,138 +42,32 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to Create an Assignment
     router.post("/assignment/create", function(req, res) {
+        var allocator = new Allocator3.Allocator3();
 
-        /*******************************
-         *     Exectuing Transaction   *
-         *      if something fails,    *
-         *  changes will be rolledback *
-         *******************************/
-
-        sequelize.transaction(function(t) {
-            "use strict";
-            /**
-             * Defining assignment
-             */
-            var assignment = Assignment.build({
-                UserID: req.body.assignment.UserID,
-                Name: req.body.assignment.AA_name,
-                Course: req.body.assignment.AA_course,
-                Instructions: req.body.assignment.AA_instructions,
-                Type: req.body.assignment.AA_type,
-                DisplayName: req.body.assignment.AA_display_name,
-                Section: req.body.assignment.AA_section,
-                Semester: req.body.assignment.AA_semester,
-                GradeDistribution: req.body.assignment.AA_grade_distribution,
-                Documentation: req.body.assignment.AA_documentation
-            });
-            /**
-             * save changes for assignment
-             */
-            return assignment.save({
-                transaction: t
-            }).then(function(assignment) {
-                //for (let workflow of req.body.assignment.WorkflowActivity) {
-                /**
-                 * Getting  workflow for assignment
-                 */
-                var workflow = req.body.assignment.WorkflowActivity;
-                console.log("creating workflow");
-                /**
-                 * Defining Workflow
-                 */
-                var workFlow = WorkflowActivity.build({
-                    AssignmentID: assignment.AssignmentID,
-                    Type: workflow.WA_type,
-                    Name: workflow.WA_name,
-                    GradeDistribution: workflow.WA_grade_distribution,
-                    NumberOfSets: workflow.WA_number_of_sets,
-                    Documentation: workflow.WA_documentation,
-                    GroupSize: workflow.WA_default_group_size,
-                    StartTaskActivity: workflow.WA_starting_TA
-                });
-                var promises = [];
-                /**
-                 * Saving Changes
-                 */
-                return workFlow.save({
-                    transaction: t
-                }).then(function(workflow) {
-                    "use strict";
-                    console.log("Succesfully creation of wokflow activity");
-                    /**
-                     * Creating each TaskActivity for the assignment
-                     */
-                    for (var taskactivity in req.body.assignment.TaskActivity) {
-
-                        console.log("Creating taskActivity");
-
-                        var taskActivity = TaskActivity.build({
-                            WorkflowActivityID: workflow.WorkflowActivityID,
-                            AssignmentID: assignment.AssignmentID,
-                            Type: workflow.tasks.TA_type,
-                            Name: workflow.tasks.TA_name,
-                            FileUpload: workflow.tasks.TA_file_upload,
-                            DueType: workflow.tasks.TA_due_type,
-                            StartDelay: workflow.tasks.TA_start_delay,
-                            AtDurationEnd: workflow.tasks.TA_at_duration_end,
-                            WhatIfLate: workflow.tasks.TA_what_if_late,
-                            DisplayName: workflow.tasks.TA_display_name,
-                            Documentation: workflow.tasks.TA_documentation,
-                            OneOrSeparate: workflow.tasks.TA_one_or_separate,
-                            AssigneeConstraints: workflow.tasks.TA_assignee_constraints,
-                            Difficulty: workflow.tasks.TA_difficulty,
-                            SimpleGrade: workflow.tasks.TA_simple_grade,
-                            IsFinalGradingTask: workflow.tasks.TA_is_final_grading_task,
-                            Instructions: workflow.tasks.TA_overall_instructions,
-                            Rubric: workflow.tasks.TA_rubric,
-                            Fields: workflow.tasks.TA_fields,
-                            AllowReflection: workflow.tasks.TA_allow_reflection,
-                            AllowRevision: workflow.tasks.TA_allow_revisions,
-                            AllowAssessment: workflow.tasks.TA_allow_assessment,
-                            NumberParticipants: workflow.tasks.TA_number_participants,
-                            TriggerConsolidationThreshold: workflow.tasks.TA_trigger_consolidation_threshold,
-                            FunctionType: workflow.tasks.TA_function_type,
-                            Function: workflow.tasks.TA_function,
-                            AllowDispute: workflow.tasks.TA_allow_dispute,
-                            LeadsToNewProblem: workflow.tasks.TA_leads_to_new_problem,
-                            LeadsToNewSolution: workflow.tasks.TA_leads_to_new_solution,
-                            VisualID: workflow.tasks.TA_visual_id
-                        });
-                        /**
-                         * Adding Promises to array
-                         * for just one time execution
-                         */
-                        promises.push(taskActivity.save({
-                            transaction: t
-                        }));
-                    }
-                    /**
-                     * Executing task creation changes all at once
-                     */
-                    return Promise.all(promises, {
-                        transaction: t
-                    });
-                });
-            })
-        }).then(function(result) {
-            /**
-             * Transcation has been succesful
-             * Changes have been commited
-             */
-            //Loggin error
-            console.log("Assignment Creation succesfully");
+        allocator.createAssignment(req.body.assignment).then(function(done) {
             res.status(200).end();
-
         }).catch(function(err) {
-            // Transaction has been rolled back
-            // err is the reason why rejected the promise chain returned to the transaction callback
-            console.log("Assignment Creation has failed");
-            //Loggin error
-            console.log(err);
             res.status(400).end();
-
-
         });
+    });
+
+    router.get("/assignment/get/:assignmentid", function(req,res){
+
+      Assignment.findAll({
+        where:{
+          AssignmentID: req.params.assignmentid
+        },
+        attributes:['CourseID']
+      }).then(function(courses){
+          console.log("/assignment/get: Succesful!");
+          res.json({
+            "Courses": courses
+          });
+      }).catch(function(err){
+          console.log("/assignment/get: Error!");
+          res.status(400).end();
+      });
+
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -2101,55 +1994,13 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     router.get('/superCall/:taskInstanceid', function(req, res) {
-        //     var superTask = [];
-        //
-        //     TaskInstance.find({
-        //         where: {
-        //             TaskInstanceID: req.params.taskInstanceid
-        //         }
-        //     }).then(function(result) {
-        //         var taskArray = JSON.parse(JSON.parse(result.PreviousTasks));
-        //         taskArray.push(req.params.taskInstanceid);
-        //         return taskArray;
-        //     }).then(function(taskarray) {
-        //         console.log(taskarray);
-        //         return Promise.map(taskarray, function(task) {
-        //             TaskInstance.find({
-        //                 where: {
-        //                     TaskInstanceID: task
-        //                 },
-        //                 attributes: ["Data", "Status"],
-        //                 include: [{
-        //                     model: TaskActivity,
-        //                     attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
-        //                 }],
-        //                 raw: true
-        //             }).then(function(result) {
-        //                 console.log('result ', result);
-        //                 superTask.push(result);
-        //             }).catch(function(err) {
-        //                 console.log(err);
-        //             });
-        //         });
-        //
-        //     }).then(function(done) {
-        //         console.log('done', done);
-        //         if (done.length === superTask.length) {
-        //             console.log('superTask.length', superTask.length)
-        //             res.json({
-        //                 "superTask": superTask
-        //             });
-        //         }
-        //     }).catch(function(err) {
-        //         console.log(err);
-        //     });
-        // });
 
         var superTask = [];
 
         sequelize.transaction(function(t) {
             "use strict";
 
+            //finds the TaskInstance with provided id
             return TaskInstance.find({
                 where: {
                     TaskInstanceID: req.params.taskInstanceid
@@ -2157,12 +2008,20 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }, {
                 transaction: t
             }).then(function(result) {
+
+                //List of all the tasks instances in workflow
                 var taskArray = JSON.parse(JSON.parse(result.PreviousTasks));
                 taskArray.push(JSON.parse(req.params.taskInstanceid));
                 return taskArray;
+
             }).then(function(taskarray) {
+
                 console.log(taskarray);
+
+                //Iterate through all the tasks
                 return Promise.map(taskarray, function(task) {
+
+                    //find each and return attributes
                     return TaskInstance.find({
                         where: {
                             TaskInstanceID: task
@@ -2176,7 +2035,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     }, {
                         transaction: t
                     }).then(function(result) {
+
                         console.log('result ', result);
+                        //push what is found back to superTask array
                         superTask.push(result);
                     }).catch(function(err) {
                         console.log(err);
@@ -2186,7 +2047,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
             }).then(function(done) {
                 console.log('superTask.length', superTask.length)
+
                 res.json({
+                    //sort all the tasks in ascending order by TaskInstanceID
                     "superTask": superTask.sort(function(a, b) {
                         var x = a.TaskInstanceID < b.TaskInstanceID ? -1 : 1;
                         return x;
@@ -2205,11 +2068,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         console.log("/getAssignToSection: Initiating... ")
 
         var sectionIDs = [];
-        var workflowArray = {};
         var taskCollection = {};
         var isDone = false;
-
-        var count = 0;
 
         //Find all WorkflowActivities associate with assignmentid
         var workflowActivity = WorkflowActivity.findAll({
@@ -2236,7 +2096,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 sectionIDs.push(section.SectionID);
             });
 
-            workflowArray['SectionIDs'] = sectionIDs;
+            isDone = true;
 
             console.log('sectionIDs', sectionIDs);
         }).catch(function(err) {
@@ -2249,63 +2109,70 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
             //Check if result is empty
             if (result !== null || typeof result !== undefined) {
+                //WorkflowActivityID -- key
                 result.forEach(function(workflow) {
                     taskCollection[workflow.WorkflowActivityID] = [];
                 });
             }
 
             return [taskCollection, result];
-        }).then(function(resultArray) {
 
-            //resultArray[1].forEach(function(workflow) {
+        }).then(function(resultArray) {
+            console.log('Finding all workflows and its task collection...')
+                //promise all instances in resultArray have returned
             return Promise.map(resultArray[1], function(workflow) {
 
-                console.log('workflow: ', workflow.WorkflowActivityID);
+                console.log('WorkflowActivityID: ', workflow.WorkflowActivityID);
+
+                //Loop through TaskActivityCollection in each workflowActivity
                 return Promise.map(JSON.parse(workflow.TaskActivityCollection), function(taskActivityID) {
 
-                    console.log('taskActivityID:', taskActivityID)
+                    console.log('TaskActivityID:', taskActivityID)
+
+                    //Find TaskActivity object and return
                     return TaskActivity.find({
                         where: {
                             TaskActivityID: taskActivityID
                         }
                     }).then(function(taskActivity) {
 
+                        //Push the resulting name and TaskActivityID on to javascript object
                         taskCollection[workflow.WorkflowActivityID].push({
                             "taskActivityID": taskActivity.TaskActivityID,
                             "name": taskActivity.Name
                         });
 
-                    });
-                }).then(function(done) {
-                    console.log('TaskActivityCollection: ', taskCollection);
+                    }).catch(function(err) {
+                        console.log('/getAssignToSection: ', err);
+                        res.status(404).end();
+                    });;
                 });
             });
 
-
-
         }).then(function(done) {
-          res.json({
-              "sectionIDs": sectionIDs,
-              "taskActivityCollection": taskCollection
-          });
+            //if sectionIDs are set then return
+
+            if (isDone === true) {
+                res.json({
+                    "sectionIDs": sectionIDs,
+                    "taskActivityCollection": taskCollection //returns workflow id follows by task act
+                });
+            }
         }).catch(function(err) {
             console.log('/getAssignToSection: ', err);
             res.status(404).end();
         });
 
-        // if (isDone === true) {
-//     res.json({
-//         "sectionIDs": sectionIDs,
-//         "taskActivityCollection": taskCollection
-//     });
-// }
 
     });
 
     router.post('/getAssignToSection/submit/', function(req, res) {
-
+        //creates new allocator object
         var allocator = new Allocator3.Allocator3();
 
+        console.log('/getAssignToSection/submit/    Creating Assignment Instance...');
+
+        //create assignment instance
         allocator.createAssignmentInstances(req.params.assignmentid, req.params.sectionIDs, req.params.startDate, req.params.wf_timing).then(function(done) {
             console.log('/getAssignToSection/submit/   All Done!');
         }).catch(function(err) {
@@ -2314,6 +2181,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
 
     });
+
+    router.post('')
 
 }
 

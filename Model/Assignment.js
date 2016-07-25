@@ -13,7 +13,7 @@ module.exports = function(sequelize, DataTypes) {
             //The assignment’s owner.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'OwnerID',
+            field: 'UserID',
             allowNull: false
         },
         WorkflowActivityIDs: { //*
