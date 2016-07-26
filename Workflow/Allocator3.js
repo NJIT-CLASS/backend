@@ -439,9 +439,9 @@ Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
 
 */
 Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
-    return TaskActivity.find({
+    TaskActivity.find({
         where: {
-            taskActivityID: taskActivityID
+            TaskActivityID: taskActivityID
         }
     }).then(function(result) {
         //console.log('NumberParticipants ', result.NumberParticipants);
@@ -486,102 +486,102 @@ Allocator3.prototype.asyncLoop = function(iterations, func, callback) {
 
 Allocator3.prototype.createAssignment = function(assignment) {
 
-    console.log('Creating assignment activity...');
+        console.log('Creating assignment activity...');
 
-    return Assignment.create({
-        UserID: assignment.AA_userID,
-        Name: assignment.AA_name,
-        CourseID: assignment.AA_course,
-        Instructions: assignment.AA_instructions,
-        Type: assignment.AA_type,
-        DisplayName: assignment.AA_display_name,
-        SectionID: assignment.AA_section,
-        SemesterID: assignment.AA_semester,
-        GradeDistribution: assignment.AA_grade_distribution,
-        Documentation: assignment.AA_documentation
-    }).then(function(assignmentResult) {
+        return Assignment.create({
+            UserID: assignment.AA_userID,
+            Name: assignment.AA_name,
+            CourseID: assignment.AA_course,
+            Instructions: assignment.AA_instructions,
+            Type: assignment.AA_type,
+            DisplayName: assignment.AA_display_name,
+            SectionID: assignment.AA_section,
+            SemesterID: assignment.AA_semester,
+            GradeDistribution: assignment.AA_grade_distribution,
+            Documentation: assignment.AA_documentation
+        }).then(function(assignmentResult) {
 
-        console.log('Assignment creation successful!');
-        console.log('AssignmentID: ', assignmentResult.AssignmentID);
+            console.log('Assignment creation successful!');
+            console.log('AssignmentID: ', assignmentResult.AssignmentID);
 
-        return Promise.map(assignment.WorkflowActivity, function(workflow, index) {
-            console.log('Creating workflow activity...');
+            return Promise.map(assignment.WorkflowActivity, function(workflow, index) {
+                console.log('Creating workflow activity...');
 
-            WorkflowActivity.create({
-                AssignmentID: assignmentResult.AssignmentID,
-                Type: workflow.WA_type,
-                Name: workflow.WA_name,
-                GradeDistribution: workflow.WA_grade_distribution,
-                NumberOfSets: workflow.WA_number_of_sets,
-                Documentation: workflow.WA_documentation,
-                GroupSize: workflow.WA_default_group_size
-            }).then(function(workflowResult) {
-                console.log('Workflow creation successful!');
-                console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
+                WorkflowActivity.create({
+                    AssignmentID: assignmentResult.AssignmentID,
+                    Type: workflow.WA_type,
+                    Name: workflow.WA_name,
+                    GradeDistribution: workflow.WA_grade_distribution,
+                    NumberOfSets: workflow.WA_number_of_sets,
+                    Documentation: workflow.WA_documentation,
+                    GroupSize: workflow.WA_default_group_size
+                }).then(function(workflowResult) {
+                    console.log('Workflow creation successful!');
+                    console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
 
-                return Promise.map(assignment.WorkflowActivity[index].TaskActivity, function(task) {
-                    console.log('Creating task activity...');
-                    TaskActivity.create({
-                        WorkflowActivityID: workflowResult.WorkflowActivityID,
-                        AssignmentID: workflowResult.AssignmentID,
-                        Type: task.TA_type,
-                        Name: task.TA_name,
-                        FileUpload: task.TA_file_upload,
-                        DueType: task.TA_due_type,
-                        StartDelay: task.TA_start_delay,
-                        AtDurationEnd: task.TA_at_duration_end,
-                        WhatIfLate: task.TA_what_if_late,
-                        DisplayName: task.TA_display_name,
-                        Documentation: task.TA_documentation,
-                        OneOrSeparate: task.TA_one_or_separate,
-                        AssigneeConstraints: task.TA_assignee_constraints,
-                        SimpleGrade: task.TA_simple_grade,
-                        IsFinalGradingTask: task.TA_is_final_grading_task,
-                        Instructions: task.TA_overall_instructions,
-                        Rubric: task.TA_rubric,
-                        Fields: task.TA_fields,
-                        AllowReflection: task.TA_allow_reflection,
-                        AllowRevision: task.TA_allow_revisions,
-                        AllowAssessment: task.TA_allow_assessment,
-                        NumberParticipants: task.TA_number_participants,
-                        TriggerConsolidationThreshold: task.TA_trigger_consolidation_threshold,
-                        FunctionType: task.TA_function_type,
-                        AllowDispute: task.TA_allow_dispute,
-                        LeadsToNewProblem: task.TA_leads_to_new_problem,
-                        LeadsToNewSolution: task.TA_leads_to_new_solution,
-                        VisualID: task.TA_visual_id
-                    }).then(function(taskResult) {
-                        console.log('Task creation successful!');
-                        console.log('TaskActivityID: ', taskResult.TaskActivityID);
+                    return Promise.map(assignment.WorkflowActivity[index].TaskActivity, function(task) {
+                        console.log('Creating task activity...');
+                        TaskActivity.create({
+                            WorkflowActivityID: workflowResult.WorkflowActivityID,
+                            AssignmentID: workflowResult.AssignmentID,
+                            Type: task.TA_type,
+                            Name: task.TA_name,
+                            FileUpload: task.TA_file_upload,
+                            DueType: task.TA_due_type,
+                            StartDelay: task.TA_start_delay,
+                            AtDurationEnd: task.TA_at_duration_end,
+                            WhatIfLate: task.TA_what_if_late,
+                            DisplayName: task.TA_display_name,
+                            Documentation: task.TA_documentation,
+                            OneOrSeparate: task.TA_one_or_separate,
+                            AssigneeConstraints: task.TA_assignee_constraints,
+                            SimpleGrade: task.TA_simple_grade,
+                            IsFinalGradingTask: task.TA_is_final_grading_task,
+                            Instructions: task.TA_overall_instructions,
+                            Rubric: task.TA_rubric,
+                            Fields: task.TA_fields,
+                            AllowReflection: task.TA_allow_reflection,
+                            AllowRevision: task.TA_allow_revisions,
+                            AllowAssessment: task.TA_allow_assessment,
+                            NumberParticipants: task.TA_number_participants,
+                            TriggerConsolidationThreshold: task.TA_trigger_consolidation_threshold,
+                            FunctionType: task.TA_function_type,
+                            AllowDispute: task.TA_allow_dispute,
+                            LeadsToNewProblem: task.TA_leads_to_new_problem,
+                            LeadsToNewSolution: task.TA_leads_to_new_solution,
+                            VisualID: task.TA_visual_id
+                        }).then(function(taskResult) {
+                            console.log('Task creation successful!');
+                            console.log('TaskActivityID: ', taskResult.TaskActivityID);
 
-                    }).catch(function(err) {
-                        console.log("Workflow creation failed");
-                        //Loggin error
-                        console.log(err);
-                        //res.status(400).end();
+                        }).catch(function(err) {
+                            console.log("Workflow creation failed");
+                            //Loggin error
+                            console.log(err);
+                            //res.status(400).end();
+                        });
                     });
+                }).catch(function(err) {
+                    console.log("Workflow creation failed");
+                    //Loggin error
+                    console.log(err);
+                    //res.status(400).end();
                 });
-            }).catch(function(err) {
-                console.log("Workflow creation failed");
-                //Loggin error
-                console.log(err);
-                //res.status(400).end();
             });
+
+        }).catch(function(err) {
+            // err is the reason why rejected the promise chain returned to the transaction callback
+            console.log("Assignment creation failed");
+            //Loggin error
+            console.log(err);
+            //res.status(400).end();
+
+
         });
-
-    }).catch(function(err) {
-        // err is the reason why rejected the promise chain returned to the transaction callback
-        console.log("Assignment creation failed");
-        //Loggin error
-        console.log(err);
-        //res.status(400).end();
-
-
-    });
-}
-/*
-  Create WorkflowInstances, and TaskInstances
-*/
+    }
+    /*
+      Create WorkflowInstances, and TaskInstances
+    */
 
 Allocator3.prototype.createInstances = function(sectionid, ai_id) {
     var x = this;
@@ -599,7 +599,7 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
         users = result[0];
         workflowTiming = JSON.parse(result[1]);
 
-        //iterate through all usersn
+        //iterate through all users
         users.forEach(function(user) {
 
             //console.log('Creating Workflow Instances for User: ', user);
@@ -627,56 +627,46 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                     //console.log('Creating TaskInstances for WorkflowInstance:', workflowInstance.WorkflowInstanceID);
                     //iterate through all the tasks stored under workflows
                     return Promise.map(workflowTiming.workflows[index].tasks, function(task) {
-                        // Promise.all([x.getNumberParticipants(task.id)]).then(function(result) {
-                        //     x.asyncLoop(result[0], function(loop) {
-                        //     return Promise.all(x.getNumberParticipants(task.id)).then(function(numParticipants) {
-                        //
-                        //         promises = [];
-                        //
-                        //         for (var n = 0; n < numParticipants; n++) {
-                        //             promises.push(task.id);
-                        //         }
-                        //
-                        //         Promise.all(promises);
-                        //
-                        //         console.log("Promises ", promises);
-                        //
-                        //         return promises;
-                        //     });
-                        // }).then(function(tasks) {
-                        //     console.log("Promises ", tasks);
-                        //     return Promise.map(tasks, function(task) {
-                        //for (var n = 0; n < x.getNumberParticipants(task.id); n++) {
-                        //console.log('Creating TaskInstance...');
-                        //create individual task instances
-                        return TaskInstance.create({
-                            //create attributes
-                            UserID: user,
-                            TaskActivityID: task.id,
-                            WorkflowInstanceID: workflowInstance.WorkflowInstanceID,
-                            AssignmentInstanceID: ai_id,
-                            Status: 'not_yet_started',
-                            Data: task.DueType
-                        }).then(function(taskInstance) {
-                            //push the resulting workflowInstance object from callback to workflow Array
-                            taskArray.push(taskInstance.TaskInstanceID);
+                        var taskInstanceArray = [];
+                        var numParticipants = x.getNumberParticipants(task.id);
+                        for (var i = 0; i < numParticipants; i++) {
+                            TaskInstance.create({
+                                //create attributes
+                                UserID: user,
+                                TaskActivityID: task.id,
+                                WorkflowInstanceID: workflowInstance.WorkflowInstanceID,
+                                AssignmentInstanceID: ai_id,
+                                Status: 'not_yet_started',
+                                Data: task.DueType
 
-                            //Update TaskCollection
-                            WorkflowInstance.update({
-                                TaskCollection: taskArray.sort() //Promise does not guarantee the object result are in order so sorted
-                            }, {
-                                where: {
-                                    WorkflowInstanceID: wi_id
-                                }
+                            }).then(function(taskInstance) {
+
+                                taskInstanceArray.push(taskInstance);
+                                //push the resulting workflowInstance object from callback to workflow Array
+                                taskArray.push(taskInstance.TaskInstanceID);
+
+                                //Update TaskCollection
+                                WorkflowInstance.update({
+
+                                    TaskCollection: taskArray.sort() //Promise does not guarantee the object result are in order so sorted
+                                }, {
+                                    where: {
+                                        WorkflowInstanceID: wi_id
+                                    }
+                                });
+
+                            }).catch(function(err) {
+                                console.log(err);
                             });
+                        }
 
-                        }).catch(function(err) {
-                            console.log(err);
-                        });
-                        // });
+                        return Promise.all(taskInstanceArray);
+
                     }).then(function(done) {
                         //Update WorkflowCollection
                         AssignmentInstance.update({
+
+
                             WorkflowCollection: workflowArray.sort() //Promise does not guarantee the object result are in order so sorted
                         }, {
                             where: {

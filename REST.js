@@ -51,27 +51,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    router.get("/assignment/get/:assignmentid", function(req,res){
-
-      Assignment.findAll({
-        where:{
-          AssignmentID: req.params.assignmentid
-        },
-        attributes:['CourseID']
-      }).then(function(courses){
-          console.log("/assignment/get: Succesful!");
-          res.json({
-            "Courses": courses
-          });
-      }).catch(function(err){
-          console.log("/assignment/get: Error!");
-          res.status(400).end();
-      });
-
-    });
-
     //-----------------------------------------------------------------------------------------------------
-
 
     //Endpoint for Assignment Allocator
     router.get("/allocator", function(req, res) {
@@ -2093,7 +2073,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
             //Create an array of all the sections associate with courseid
             result.forEach(function(section) {
-                sectionIDs.push({id: section.SectionID, name: section.Name});
+                sectionIDs.push({
+                    value: section.SectionID,
+                    label: section.Name
+                });
             });
 
             isDone = true;
@@ -2177,7 +2160,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         console.log('/getAssignToSection/submit/    Creating Assignment Instance...');
 
         //create assignment instance
-        allocator.createAssignmentInstances(req.params.assignmentid, req.params.sectionIDs, req.params.startDate, req.params.wf_timing).then(function(done) {
+        allocator.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(function(done) {
             console.log('/getAssignToSection/submit/   All Done!');
         }).catch(function(err) {
             console.log(err);

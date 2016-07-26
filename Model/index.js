@@ -16,6 +16,7 @@ var sequelize = new Sequelize(process.env.database, process.env.dbUser, process.
         min: 0,
         idle: 10000
     },
+    logging: false
 });
 
 var models = ['Assignment','AssignmentInstance', 'Course', 'Group',
