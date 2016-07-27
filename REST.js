@@ -51,6 +51,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    router.get('/getAssignments/:courseId', function(req, res) {
+        Assignment.findAll({
+            where: {
+                CourseID: req.params.courseId
+            },
+            attributes: ['AssignmentID', 'Name', 'DisplayName', 'Type', 'Documentation', 'CourseID']
+        }).then(function(result) {
+            console.log(result);
+            res.json({
+                "Error": false,
+                "Assignments": result
+            });
+        }).catch(function(err) {
+            console.log('/getCompletedTaskInstances: ' + err);
+            res.status(404).end();
+        });
+    });
+
+
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint for Assignment Allocator

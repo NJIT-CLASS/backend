@@ -439,17 +439,22 @@ Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
 
 */
 Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
-    TaskActivity.find({
+    var numParticipants = []
+    return TaskActivity.find({
         where: {
             TaskActivityID: taskActivityID
         }
     }).then(function(result) {
         //console.log('NumberParticipants ', result.NumberParticipants);
-        return result.NumberParticipants;
+        for (var i = 0; i < result.NumberParticipants; i++) {
+            numParticipants.push(0);
+        }
+
+        return numParticipants;
     }).catch(function(err) {
         console.log(err);
-        res.status(401).end();
     });
+
 }
 
 Allocator3.prototype.asyncLoop = function(iterations, func, callback) {
@@ -558,6 +563,7 @@ Allocator3.prototype.createAssignment = function(assignment) {
                             console.log("Workflow creation failed");
                             //Loggin error
                             console.log(err);
+
                             //res.status(400).end();
                         });
                     });
@@ -584,6 +590,8 @@ Allocator3.prototype.createAssignment = function(assignment) {
     */
 
 Allocator3.prototype.createInstances = function(sectionid, ai_id) {
+
+    console.log('Initiating create instances function...')
     var x = this;
     var users;
     var workflowTiming;
@@ -595,85 +603,105 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
     // this.getWorkflowTiming(ai_id) - returns WorkflowTiming from Assignment Instance.
     return Promise.all([this.getUsersFromSection(sectionid), this.getWorkflowTiming(ai_id)]).then(function(result) {
 
+        console.log('Found number of users: ', users);
+
         //Store the resulting object
         users = result[0];
         workflowTiming = JSON.parse(result[1]);
 
+        console.log('Going through each user...');
         //iterate through all users
         users.forEach(function(user) {
+
 
             //console.log('Creating Workflow Instances for User: ', user);
             //iterate through all the workflows
             return Promise.map(workflowTiming.workflows, function(workflow, index) {
+                console.log('workflow: ', workflow.id);
 
                 //creates seperate array to store all task instances created within the workflow
                 var taskArray = [];
                 //Store the current WorkflowInstanceID once it is created
                 var wi_id;
 
+                console.log('Creating workflow instance...');
                 //console.log('Creating WorkflowInstance...');
                 //creating workflow instances for each user
                 return WorkflowInstance.create({
+
+
                     //create attributes.
                     WorkflowActivityID: workflow.id,
                     AssignmentInstanceID: ai_id,
                     StartDate: workflow.startDate
+
+
                 }).then(function(workflowInstance) {
+
+
                     //push the resulting workflowInstance object from callback to workflow Array
                     workflowArray.push(workflowInstance.WorkflowInstanceID);
                     //store WorkflowInstanceID created
                     wi_id = workflowInstance.WorkflowInstanceID;
 
+                    console.log('Going through individual tasks...');
                     //console.log('Creating TaskInstances for WorkflowInstance:', workflowInstance.WorkflowInstanceID);
                     //iterate through all the tasks stored under workflows
                     return Promise.map(workflowTiming.workflows[index].tasks, function(task) {
-                        var taskInstanceArray = [];
-                        var numParticipants = x.getNumberParticipants(task.id);
-                        for (var i = 0; i < numParticipants; i++) {
-                            console.log('numParticipants: ', numParticipants);
 
-                            TaskInstance.create({
-                                //create attributes
-                                UserID: user,
-                                TaskActivityID: task.id,
-                                WorkflowInstanceID: workflowInstance.WorkflowInstanceID,
-                                AssignmentInstanceID: ai_id,
-                                Status: 'not_yet_started',
-                                Data: task.DueType
+                        console.log('task: ', task.id);
 
-                            }).then(function(taskInstance) {
+                        return Promise.all(x.getNumberParticipants(task.id)).then(function(numParticipants) {
 
-                                taskInstanceArray.push(taskInstance);
-                                //push the resulting workflowInstance object from callback to workflow Array
-                                taskArray.push(taskInstance.TaskInstanceID);
+                            //console.log('numParticipants: ', numParticipants);
 
-                                //Update TaskCollection
-                                WorkflowInstance.update({
+                            return Promise.map(numParticipants, function(participant) {
 
-                                    TaskCollection: taskArray.sort() //Promise does not guarantee the object result are in order so sorted
-                                }, {
-                                    where: {
-                                        WorkflowInstanceID: wi_id
-                                    }
+                                console.log('Creating task instance...');
+                                return TaskInstance.create({
+                                    //create attributes
+                                    UserID: user,
+                                    TaskActivityID: task.id,
+                                    WorkflowInstanceID: workflowInstance.WorkflowInstanceID,
+                                    AssignmentInstanceID: ai_id,
+                                    Status: 'not_yet_started',
+                                    Data: task.DueType
+
+                                }).then(function(taskInstance) {
+
+                                    //taskInstanceArray.push(taskInstance);
+                                    //push the resulting workflowInstance object from callback to workflow Array
+                                    taskArray.push(taskInstance.TaskInstanceID);
+
+                                    //Update TaskCollection
+                                    WorkflowInstance.update({
+
+                                        TaskCollection: taskArray.sort() //Promise does not guarantee the object result are in order so sorted
+                                    }, {
+                                        where: {
+                                            WorkflowInstanceID: wi_id
+                                        }
+                                    });
+
+                                }).catch(function(err) {
+                                    console.log(err);
                                 });
-
-                            }).catch(function(err) {
-                                console.log(err);
                             });
-                        }
-                        return Promise.all(taskInstanceArray);
+                        });
+
                     }).then(function(done) {
                         //Update WorkflowCollection
+                        workflowArray.sort();
                         AssignmentInstance.update({
 
-                            WorkflowCollection: workflowArray.sort() //Promise does not guarantee the object result are in order so sorted
+                            WorkflowCollection: workflowArray //Promise does not guarantee the object result are in order so sorted
                         }, {
                             where: {
                                 AssignmentInstanceID: ai_id
                             }
                         }).then(function(done) {
-                            //console.log("Updating previous and next tasks.....");
-                            //return x.updatePreviousAndNextTasks(ai_id);
+                            console.log("Updating previous and next tasks.....");
+                            return x.updatePreviousAndNextTasks(ai_id);
                         }).catch(function(err) {
                             console.log(err);
                         });
