@@ -440,6 +440,7 @@ Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
 */
 Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
     var numParticipants = []
+
     return TaskActivity.find({
         where: {
             TaskActivityID: taskActivityID
@@ -460,6 +461,7 @@ Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
 Allocator3.prototype.asyncLoop = function(iterations, func, callback) {
     var index = 0;
     var done = false;
+    var err = true;
     var loop = {
         next: function() {
             if (done) {
@@ -494,7 +496,7 @@ Allocator3.prototype.createAssignment = function(assignment) {
         console.log('Creating assignment activity...');
 
         return Assignment.create({
-            UserID: assignment.AA_userID,
+            OwnerID: assignment.AA_userID,
             Name: assignment.AA_name,
             CourseID: assignment.AA_course,
             Instructions: assignment.AA_instructions,
@@ -506,13 +508,14 @@ Allocator3.prototype.createAssignment = function(assignment) {
             Documentation: assignment.AA_documentation
         }).then(function(assignmentResult) {
 
+            var WA_array = [];
             console.log('Assignment creation successful!');
             console.log('AssignmentID: ', assignmentResult.AssignmentID);
 
             return Promise.map(assignment.WorkflowActivity, function(workflow, index) {
                 console.log('Creating workflow activity...');
 
-                WorkflowActivity.create({
+                return WorkflowActivity.create({
                     AssignmentID: assignmentResult.AssignmentID,
                     Type: workflow.WA_type,
                     Name: workflow.WA_name,
@@ -523,10 +526,13 @@ Allocator3.prototype.createAssignment = function(assignment) {
                 }).then(function(workflowResult) {
                     console.log('Workflow creation successful!');
                     console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
+                    WA_array.push(workflowResult.WorkflowActivityID);
+
+                    TA_array = [];
 
                     return Promise.map(assignment.WorkflowActivity[index].Workflow, function(task) {
                         console.log('Creating task activity...');
-                        TaskActivity.create({
+                        return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
                             AssignmentID: workflowResult.AssignmentID,
                             Type: task.TA_type,
@@ -558,29 +564,56 @@ Allocator3.prototype.createAssignment = function(assignment) {
                         }).then(function(taskResult) {
                             console.log('Task creation successful!');
                             console.log('TaskActivityID: ', taskResult.TaskActivityID);
+                            TA_array.push(taskResult.TaskActivityID);
 
                         }).catch(function(err) {
                             console.log("Workflow creation failed");
                             //Loggin error
                             console.log(err);
-
+                            err = false;
+                            return err;
                             //res.status(400).end();
                         });
+                    }).then(function(done) {
+                        WorkflowActivity.update({
+                            TaskActivityCollection: TA_array.sort()
+                        }, {
+                            where: {
+                                WorkflowActivityID: workflowResult.WorkflowActivityID
+                            }
+                        });
+
+                        TA_array =[];
                     });
                 }).catch(function(err) {
                     console.log("Workflow creation failed");
                     //Loggin error
                     console.log(err);
+                    err = false;
+                    return err;
                     //res.status(400).end();
                 });
+            }).then(function(done) {
+                Assignment.update({
+                    WorkflowActivityIDs: WA_array.sort()
+                }, {
+                    where: {
+                        AssignmentID: assignmentResult.AssignmentID
+                    }
+                });
+                TA_array = []
             });
 
         }).catch(function(err) {
             // err is the reason why rejected the promise chain returned to the transaction callback
             console.log("Assignment creation failed");
             //Loggin error
+
             console.log(err);
             //res.status(400).end();
+
+            err = false;
+            return err;
 
 
         });

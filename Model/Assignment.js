@@ -18,7 +18,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         WorkflowActivityIDs: { //*
             //WorkflowActivity_Assignment_IDs
-            type: DataTypes.BLOB,
+            type: DataTypes.JSON,
             field: 'WorkflowActivityIDs',
             allowNull: true
         },

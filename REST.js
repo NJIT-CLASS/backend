@@ -45,9 +45,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var allocator = new Allocator3.Allocator3();
 
         allocator.createAssignment(req.body.assignment).then(function(done) {
-            res.status(200).end();
-        }).catch(function(err) {
-            res.status(400).end();
+            if (done === false) {
+                res.status(400).end();
+            } else {
+                res.status(200).end();
+            }
         });
     });
 
@@ -2177,6 +2179,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //create assignment instance
         allocator.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(function(done) {
             console.log('/getAssignToSection/submit/   All Done!');
+            res.status(200).end();
         }).catch(function(err) {
             console.log(err);
             res.status(404).end();
