@@ -9,11 +9,11 @@ module.exports = function(sequelize, DataTypes) {
             autoIncrement: true,
             unique: true
         },
-        UserID: {
+        OwnerID: {
             //The assignment’s owner.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'UserID',
+            field: 'OwnerID',
             allowNull: false
         },
         WorkflowActivityIDs: { //*
@@ -56,7 +56,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         SectionID: {
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.BLOB,
             field: 'SectionID',
             allowNull: true
         },

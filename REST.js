@@ -1918,31 +1918,28 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    router.get('/getAssignmentRecord/:assignmentInstanceid', function(req, req) {
+    router.get('/getAssignmentRecord/:assignmentInstanceid', function(req, res) {
 
-        AssignmentInstance.find({
+        console.log('/getAssignmentRecord/:assignmentInstanceid: Initiating...');
+
+        var tasks = [];
+
+        WorkflowInstance.findAll({
             where: {
                 AssignmentInstanceID: req.params.assignmentInstanceid
-            },
-            attributes: ['Name']
-        }).then(function(AI_Result) {
-            WorkflowInstance.findAll({
-                where: {
-                    AssignmentInstanceID: AI_Result.AssignmentInstanceID
-                }
-                // include: [{
-                //     model: WorkflowActivity,
-                //     attributes: ['Type']
-                // }]
-            }).then(function(WI_Result) {
-                var tasks = [];
-
-                for (var workflowInstance in WI_Result) {
+            }
+        }).then(function(WI_Result) {
+            if (WI_Result === null || typeof WI_Result === undefined) {
+                console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
+            } else {
+                return Promise.map(WI_Result, function(workflowInstance) {
+                    console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
                     var tempTasks = [];
 
-                    for (var task in workflowInstance.TaskCollection) {
+                    return Promise.map(JSON.parse(workflowInstance.TaskCollection), function(task) {
+                        console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
                         //each task is TaskInstanceID
-                        TaskInstance.find({
+                        return TaskInstance.find({
                             where: {
                                 TaskInstanceID: task
                             },
@@ -1957,19 +1954,21 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         }).then(function(taskInstanceResult) {
                             tempTasks.push(taskInstanceResult);
                         });
-                    }
-                    tasks.push(tempTasks);
-                }
-
-                res.json({
-                    "Error": false,
-                    "AssignmentRecords": tasks
+                    }).then(function(result) {
+                        tasks.push(tempTasks);
+                    });
                 });
+            }
 
-            }).catch(function(err) {
-                console.log('/getAssignmentRecord: ' + err);
-                res.status(404).end();
+        }).then(function(done) {
+            console.log('/getAssignmentRecord/:assignmentInstanceid: Done!');
+            res.json({
+                "Error": false,
+                "AssignmentRecords": tasks
             });
+        }).catch(function(err) {
+            console.log('/getAssignmentRecord: ' + err);
+            res.status(404).end();
         });
     });
 
@@ -2010,8 +2009,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         include: [{
                             model: TaskActivity,
                             attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
-                        }],
-                        raw: true
+                        }]
                     }, {
                         transaction: t
                     }).then(function(result) {
@@ -2055,16 +2053,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var workflowActivity = WorkflowActivity.findAll({
             where: {
                 AssignmentID: req.query.assignmentid
-            },
-            raw: true
+            }
         });
 
         //Find all Sections associate with courseid
         var sections = Section.findAll({
             where: {
                 CourseID: req.query.courseid
-            },
-            raw: true
+            }
         });
 
         //Promise sections has all the data returned

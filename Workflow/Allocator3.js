@@ -519,7 +519,7 @@ Allocator3.prototype.createAssignment = function(assignment) {
                     console.log('Workflow creation successful!');
                     console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
 
-                    return Promise.map(assignment.WorkflowActivity[index].TaskActivity, function(task) {
+                    return Promise.map(assignment.WorkflowActivity[index].Workflow, function(task) {
                         console.log('Creating task activity...');
                         TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
@@ -630,6 +630,8 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                         var taskInstanceArray = [];
                         var numParticipants = x.getNumberParticipants(task.id);
                         for (var i = 0; i < numParticipants; i++) {
+                            console.log('numParticipants: ', numParticipants);
+
                             TaskInstance.create({
                                 //create attributes
                                 UserID: user,
@@ -659,13 +661,10 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                                 console.log(err);
                             });
                         }
-
                         return Promise.all(taskInstanceArray);
-
                     }).then(function(done) {
                         //Update WorkflowCollection
                         AssignmentInstance.update({
-
 
                             WorkflowCollection: workflowArray.sort() //Promise does not guarantee the object result are in order so sorted
                         }, {
@@ -674,7 +673,7 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                             }
                         }).then(function(done) {
                             //console.log("Updating previous and next tasks.....");
-                            return x.updatePreviousAndNextTasks(ai_id);
+                            //return x.updatePreviousAndNextTasks(ai_id);
                         }).catch(function(err) {
                             console.log(err);
                         });
