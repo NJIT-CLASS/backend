@@ -1,58 +1,75 @@
-/**
- * Created by cesarsalazar on 3/29/16.
- */
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('User', {
         UserID: {
-            type: DataTypes.INTEGER,
-            field: 'UserID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique identifier for the user.
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'UserID',
             allowNull: false,
             autoIncrement: true,
-            primaryKey: true
-        },
-        FirstName: {
-            type: DataTypes.STRING,
-            field: 'FirstName',
-            allowNull: false
-        },
-        LastName: {
-            type: DataTypes.STRING,
-            field: 'LastName', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: false
-        },
-        MiddleInitial: {
-            type: DataTypes.STRING,
-            field: 'MiddleInitial',
-            validate: { len: [1,1] }
-        },
-        OrganizationGroup: {
-            type: DataTypes.JSON,
-            field: 'OrganizationGroup', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowTrue: false
+            primaryKey: true,
+            unique: true
         },
         UserContactID: {
-            type: DataTypes.INTEGER,
+            //Unique contact identifier
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
             field: 'UserContactID',
-            allowNull: false,
+            allowNull: false
         },
-        UserType: {
+        UserName: {
+            //UserName
+            type: DataTypes.STRING(30),
+            field: 'UserName',
+            allowNull: true
+        },
+        FirstName: {
+            //First name of the user
+            type: DataTypes.STRING(40),
+            field: 'FirstName',
+            allowNull: true
+        },
+        LastName: {
+            //Last name of the user
+            type: DataTypes.STRING(40),
+            field: 'LastName',
+            allowNull: true
+        },
+        MiddleInitial: {
+            //Single Character for the user’s middle initial
+            type: DataTypes.STRING(1),
+            field: 'MiddleInitial',
+            allowNull: true
+        },
+        Suffix: {
+            //User’s suffix
+            type: DataTypes.STRING(10),
+            field: 'Suffix',
+            allowNull: true
+        },
+        OrganizationGroup: {
+            //Array of organization IDs to which the user is part of
+            type: DataTypes.JSON,
+            field: 'OrganizationGroup',
+            allowTrue: true
+        },
+        UserType: { //**
+            //User type either instructor or student
+            //Instructor Boolean?????
             type: DataTypes.STRING,
-            allowNull: false,
-            field: 'UserType', // Will result in an attribute that is firstName when user facing but first_name in the database
+            allowNull: true,
+            field: 'UserType',
             validate: {
-                isIn: [['Student', 'Instructor']]
+                isIn: [
+                    ['Student', 'Instructor']
+                ]
             }
         },
         Admin: {
+            //Indicate whether the user is Admin
             type: DataTypes.BOOLEAN,
             field: 'Admin'
         }
-    },
-    {
+    }, {
         timestamps: false,
 
         // don't delete database entries but set the newly added attribute deletedAt
@@ -75,7 +92,3 @@ module.exports = function(sequelize, DataTypes) {
 
     });
 };
-
-///var User =
-
-///module.exports = User;

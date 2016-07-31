@@ -1,38 +1,37 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('Course', {
         CourseID: {
-            type: DataTypes.INTEGER,
-            field: 'CourseID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique identifier for the course
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
             allowNull: false,
-            primaryKey: true
+            primaryKey: true,
+            autoIncrement: true,
+            unique: true
         },
         Number: {
-            type: DataTypes.STRING,
-            field: 'Number', // Will result in an attribute that is firstName when user facing but first_name in the database
-            allowNull: true,
-        },
-        Title: {
-            type: DataTypes.STRING,
-            field: 'Title',
-            allowNull: false
-        },
-        OrganizationID: {
-            type: DataTypes.STRING,
-            field: 'OrganizationID',
+            //Number of the course (e.g. Chem101,Math101)
+            type: DataTypes.STRING(50),
+            field: 'Number',
             allowNull: true
         },
-        CreatorID: {
-            type: DataTypes.INTEGER,
-            field: 'CreatorID',
+        Name: {
+            //Name of the course
+            type: DataTypes.STRING(150),
+            field: 'Name',
+            allowNull: true
+        },
+        OrganizationID: {
+            //Unique identifier for the organization
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'OrganizationID',
             allowNull: false
+        },
+        CreatorID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CreatorID',
+            allowNull: true
         }
     }, {
         timestamps: false,
@@ -55,7 +54,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'Course'
     });
 };
-
-///var User =
-
-///module.exports = User;

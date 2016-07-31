@@ -11,28 +11,29 @@ var Section = models.Section;
 var SectionUser = models.SectionUser;
 
 var Semester = models.Semester;
-var Task = models.Task;
+var TaskInstance = models.TaskInstance;
 var TaskActivity= models.TaskActivity;
 var Assignment= models.Assignment;
-var AssignmentSection= models.AssignmentSection;
+var AssignmentInstance= models.AssignmentInstance;
 
-var Workflow= models.Workflow;
+var WorkflowInstance= models.WorkflowInstance;
 var WorkflowActivity= models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 
+
 function TaskFactory(workflow, tasks)
 {
-    var Workflow = workflow;
-    var Tasks = tasks;
+    var WorkflowInstance = workflow;
+    var TaskInstances = tasks;
 
-    this.getWorkflow = function ()
+    this.getWorkflowInstance = function ()
     {
-        return Workflow;
+        return WorkflowInstance;
     }
 
-    this.getTasks = function ()
+    this.getTaskInstances = function ()
     {
-        return Tasks;
+        return TaskInstances;
     }
 }
 

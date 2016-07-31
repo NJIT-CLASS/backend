@@ -1,58 +1,58 @@
-/**
- * Created by cesarsalazar on 3/29/16.
- */
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('Semester', {
-            SemesterID: {
-                type: DataTypes.INTEGER,
-                field: 'SemesterID', // Will result in an attribute that is firstName when user facing but first_name in the database
-                allowNull: false,
-                primaryKey: true
-            },
-            Name: {
-                type: DataTypes.STRING,
-                field: 'Name',
-                allowNull: false
-            },
-            StartDate: {
-                type: DataTypes.DATE,
-                field: 'StartDate', // Will result in an attribute that is firstName when user facing but first_name in the database
-                allowNull: true
-            },
-            EndDate: {
-                type: DataTypes.DATE,
-                field: 'EndDate',
-                allowNull:true
-            },
-            OrganizationID: {
-                type: DataTypes.STRING,
-                field: 'OrganizationID', // Will result in an attribute that is firstName when user facing but first_name in the database
-                allowNull: true
-            }
-
+        SemesterID: {
+            //Unique identifier for the semester
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SemesterID',
+            allowNull: false,
+            primaryKey: true,
+            autoIncrement: true,
+            unique: true
         },
-        {
-            timestamps: false,
+        OrganizationID: {
+            //Unique identifier for the organization
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'OrganizationID',
+            allowNull: false
+        },
+        Name: {
+            //Name of the semester (e.g. Fall2017,Winter2016)
+            type: DataTypes.STRING(25),
+            field: 'Name',
+            allowNull: true
+        },
+        StartDate: {
+            //Start date of the semester
+            type: DataTypes.DATE,
+            field: 'StartDate',
+            allowNull: true
+        },
+        EndDate: {
+            //End date of the semester
+            type: DataTypes.DATE,
+            field: 'EndDate',
+            allowNull: true
+        }
 
-            // don't delete database entries but set the newly added attribute deletedAt
-            // to the current date (when deletion was done). paranoid will only work if
-            // timestamps are enabled
-            paranoid: true,
+    }, {
+        timestamps: false,
 
-            // don't use camelcase for automatically added attributes but underscore style
-            // so updatedAt will be updated_at
-            underscored: true,
+        // don't delete database entries but set the newly added attribute deletedAt
+        // to the current date (when deletion was done). paranoid will only work if
+        // timestamps are enabled
+        paranoid: true,
 
-            // disable the modification of table names; By default, sequelize will automatically
-            // transform all passed model names (first parameter of define) into plural.
-            // if you don't want that, set the following
-            freezeTableName: true,
+        // don't use camelcase for automatically added attributes but underscore style
+        // so updatedAt will be updated_at
+        underscored: true,
 
-            // define the table's name
-            tableName: 'Semester'
-        });
+        // disable the modification of table names; By default, sequelize will automatically
+        // transform all passed model names (first parameter of define) into plural.
+        // if you don't want that, set the following
+        freezeTableName: true,
+
+        // define the table's name
+        tableName: 'Semester'
+    });
 };
-
-///var User =
-
-///module.exports = User;

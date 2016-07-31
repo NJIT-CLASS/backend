@@ -1,28 +1,22 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('UserContact', {
         UserContactID: {
-            type: DataTypes.INTEGER,
-            field: 'UserContactID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique contact identifier
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'UserContactID',
             allowNull: false,
             autoIncrement: true,
             primaryKey: true
         },
-        Email: {
-            type: DataTypes.STRING,
+        Email: {//Email and Phone move to user table
+            //Primary email
+            type: DataTypes.STRING(70),
             field: 'Email',
-            allowNull: true
-        }
-        ,
+            allowNull: false
+        },
         Phone: {
-            type: DataTypes.STRING,
+            //Primary Phone Number
+            type: DataTypes.STRING(15),
             field: 'Phone',
             allowNull: false
         }
@@ -47,7 +41,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'UserContact'
     });
 };
-
-///var User =
-
-///module.exports = User;

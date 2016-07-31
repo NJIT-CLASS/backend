@@ -12,7 +12,9 @@
     "express": "*",
     "guid": "*",
     "mysql": "*",
-    "sequelize": "*"
+    "sendgrid": "^2.0.0",
+    "sequelize": "*",
+    "xoauth2": "^1.1.0"
   },
   "repository": {
     "type": "git",

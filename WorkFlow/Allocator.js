@@ -1,6 +1,3 @@
-/**
- * Created by cesarsalazar on 4/17/16.
- */
 var models = require('../Model');
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -10,13 +7,13 @@ var Section = models.Section;
 var SectionUser = models.SectionUser;
 
 var Semester = models.Semester;
-var Task = models.Task;
-var TaskActivity= models.TaskActivity;
-var Assignment= models.Assignment;
-var AssignmentSection= models.AssignmentSection;
+var TaskInstance = models.TaskInstance;
+var TaskActivity = models.TaskActivity;
+var Assignment = models.Assignment;
+var AssignmentInstance = models.AssignmentInstance;
 
-var Workflow= models.Workflow;
-var WorkflowActivity= models.WorkflowActivity;
+var WorkflowInstance = models.WorkflowInstance;
+var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 
 
@@ -24,19 +21,27 @@ var ResetPasswordRequest = models.ResetPasswordRequest;
  *
  * @constructor
  */
-function Allocator()
-{
+function Allocator() {
     /**
      * Get the workflows base in the asignment ID.
      * It pulls also the Tasks, and TaskActivities..
      * @param assignment
      * @returns {*}
      */
-    this.getWorkflows = function(assignment)
-    {
+    this.getWorkflowInstances = function(assignment) {
 
-        return Workflow.findAll({ where : { AssignmentID : assignment},  include : [  { model : Task , as: 'Tasks', include :[ { model : TaskActivity }]}]}).then(function(workflows)
-        {
+        return WorkflowInstance.findAll({
+            where: {
+                AssignmentID: assignment
+            },
+            include: [{
+                model: TaskInstance,
+                as: 'TaskInstances',
+                include: [{
+                    model: TaskActivity
+                }]
+            }]
+        }).then(function(workflows) {
             return workflows;
         });
 
@@ -48,28 +53,48 @@ function Allocator()
      * @param assignment
      * @returns {*}
      */
-    this.getWorkflowActivities = function(assignment)
-    {
+    this.getWorkflowActivities = function(assignment) {
 
-        return WorkflowActivity.findAll({ where : { WA_A_id : assignment}, include :[{ model : Workflow, as : 'Workflows', include :[{ model : Task , as: 'Tasks', include :[ { model : TaskActivity }]}]}]/*,  include : [  { model : Workflow, as: 'Workflows'}]*/}).then(function(workflows)
-        {
-            return workflows;
-        });/*.catch(function (e)
-        {
-            console.log(e);
-        });*/
+            return WorkflowActivity.findAll({
+                where: {
+                    WorkflowActivityID: assignment
+                },
+                include: [{
+                    model: WorkflowInstance,
+                    as: 'WorkflowInstances',
+                    include: [{
+                        model: TaskInstance,
+                        as: 'TaskInstances',
+                        include: [{
+                            model: TaskActivity
+                        }]
+                    }]
+                }] /*,  include : [  { model : WorkflowInstance, as: 'WorkflowInstances'}]*/
+            }).then(function(workflows) {
+                return workflows;
+            });
+            /*.catch(function (e)
+                    {
+                        console.log(e);
+                    });*/
 
-    }
-    /**
-     * this method gets the list of sectionUsers with the User object
-     * base on the section ID.
-     * @param sectionID
-     * @returns {*}
-     */
-    this.getStudents = function (sectionID)
-    {
+        }
+        /**
+         * this method gets the list of sectionUsers with the User object
+         * base on the section ID.
+         * @param sectionID
+         * @returns {*}
+         */
+    this.getStudents = function(sectionID) {
         //var options = {include : [User], where : ['User.UserType = ?','Student']};
-        return SectionUser.findAll({ where : { SectionID : sectionID},  include : [  { model : User }] }).then(function(users){
+        return SectionUser.findAll({
+            where: {
+                SectionID: sectionID
+            },
+            include: [{
+                model: User
+            }]
+        }).then(function(users) {
             return users;
         });
     }
@@ -80,10 +105,13 @@ function Allocator()
      * @param binding
      * @returns {*}
      */
-    this.getTasks = function (workflow, binding)
-    {
-        return Task.findAll({ where : { WorkflowID : workflow}}).bind(binding).then(function(tasks){
-            return [this,tasks];
+    this.getTaskInstances = function(workflow, binding) {
+        return TaskInstance.findAll({
+            where: {
+                WorkflowInstanceID: workflow
+            }
+        }).bind(binding).then(function(tasks) {
+            return [this, tasks];
         });;
     }
 
@@ -96,15 +124,12 @@ function Allocator()
      * @param Users
      * @returns {*}
      */
-    this.getInstructorFromUserList = function(Users)
-    {
-        for(var i = 0; i < Users.length; i++)
-        {
-            if(Users[i].UserRole == 'Instructor')
-            {
+    this.getInstructorFromUserList = function(Users) {
+        for (var i = 0; i < Users.length; i++) {
+            if (Users[i].UserRole == 'Instructor') {
                 var instructor = Users[i];
-                Users.splice(i,1);
-                return  instructor.UserID;
+                Users.splice(i, 1);
+                return instructor.UserID;
             }
         }
     }
@@ -115,14 +140,11 @@ function Allocator()
      * @param userID
      * @constructor
      */
-    this.UpdateUser = function(Task, userID)
-    {
-        Task.UserID = userID;
-        Task.save().then(function()
-        {
-            console.log('User ID assigned to task');
-        }).catch(function(e)
-        {
+    this.UpdateUser = function(TaskInstance, userID) {
+        TaskInstance.UserID = userID;
+        TaskInstance.save().then(function() {
+            console.log('User ID assigned to TaskInstance');
+        }).catch(function(e) {
             console.log(e);
         });
 
@@ -136,16 +158,17 @@ function Allocator()
      * @param newUser User ID to add to the history
      * @constructor
      */
-    this.UpdateUH = function(Task, newUser){
+    this.UpdateUH = function(TaskInstance, newUser) {
 
         var newUH = [];
         /**
          * Checking if the user_history exists or not.
          */
-        if(typeof Task.user_history === 'undefined' || Task.user_history == null)
-        {
-            var user_history;
-            var arr = {'regular' : newUser};
+        if (typeof TaskInstance.UserHistory === 'undefined' || TaskInstance.UserHistory == null) {
+            var UserHistory;
+            var arr = {
+                'regular': newUser
+            };
             //arr['regular'] =  newUser;
             newUH.push(arr);
 
@@ -154,30 +177,29 @@ function Allocator()
             /**
              * Updating user_history
              */
-            Task.user_history = JSON.stringify(newUH);
+            TaskInstance.UserHistory = JSON.stringify(newUH);
 
             /**
              * Saving in the Database
              */
-            Task.save().then(function(){
-                console.log("Saving user_history in task");
+            TaskInstance.save().then(function() {
+                console.log("Saving User History in task");
             });
-        }
-        else
-        {
-            var aJson =  JSON.parse(Task.user_history.toString());
+        } else {
+            var aJson = JSON.parse(TaskInstance.UserHistory.toString());
 
-            for(var i = 0; i < aJson.length; i++)
-            {
+            for (var i = 0; i < aJson.length; i++) {
                 newUH.push(aJson[i]);
             }
 
-            var arr = {'regular' : newUser};
+            var arr = {
+                'regular': newUser
+            };
 
             newUH.push(arr);
-            Task.user_history = JSON.stringify(newUH);
+            TaskInstance.UserHistory = JSON.stringify(newUH);
 
-            Task.save().then(function(){
+            TaskInstance.save().then(function() {
                 console.log("Saving user_history in task");
             });
 
@@ -192,13 +214,12 @@ function Allocator()
  * @param assignments array with all the assignments
  * @constructor
  */
-Allocator.prototype.Allocate = function(assignments, section)
-{
+Allocator.prototype.Allocate = function(assignments, section) {
     //var allocation = {};
 
     var allocator = this;
-    for (var  i = 0; i < assignments.length; i++) {
-        Promise.all([this.getWorkflowActivities(assignments[i]),this.getStudents(section[i])]).then(function(results){
+    for (var i = 0; i < assignments.length; i++) {
+        Promise.all([this.getWorkflowActivities(assignments[i]), this.getStudents(section[i])]).then(function(results) {
             console.log(results)
 
             /**
@@ -215,82 +236,71 @@ Allocator.prototype.Allocate = function(assignments, section)
              */
             var instructorID = allocator.getInstructorFromUserList(Students);
 
-            for (var i = 0; i < workflowsActivities.length; i++)
-            {
+            for (var i = 0; i < workflowsActivities.length; i++) {
 
                 /**
                  * Holding the list of workflows for the current WorkflowActivity
                  */
-                var workflows = workflowsActivities[i].Workflows;
+                var workflows = workflowsActivities[i].WorkflowInstances;
 
                 /*
                  * Holding the allocation for the current workflowActivity
                  */
                 var allocation = new Array(workflows.length);
-                for(var w = 0; w < workflows.length;w++)
-                {
-                    var w_id = workflows[w].WorkflowID;
-                    var Tasks = workflows[w].Tasks;
+                for (var w = 0; w < workflows.length; w++) {
+                    var w_id = workflows[w].WorkflowInstanceID;
+                    var TaskInstances = workflows[w].TaskInstances;
 
                     //for each workflow instance, the last student in the array will be move all the way up to
                     // be at index = 0. This way students will get the same amount of tasks per assignment.
                     var s = Students.length;
-                    var tempStudent = Students[s-1];
-                    Students.splice(s - 1,1);
+                    var tempStudent = Students[s - 1];
+                    Students.splice(s - 1, 1);
                     Students.unshift(tempStudent);
 
 
-                    if(typeof allocation[w] === 'undefined')
+                    if (typeof allocation[w] === 'undefined')
                         allocation[w] = {};
 
 
                     /**
-                     * Here we will be going through each task
+                     * Here we will be going through each TaskInstance
                      */
                     var stCounter = 0;
-                    for(var t = 0; t < Tasks.length; t++)
-                    {
+                    for (var t = 0; t < TaskInstances.length; t++) {
 
-                        var taskActivity = Tasks[t].TaskActivity;
+                        var taskActivity = TaskInstances[t].TaskActivity;
 
                         /**
                          * Retrieving constrains information
                          */
-                        var aJson = JSON.parse(taskActivity.Assignee_constraints.toString());
+                        var aJson = JSON.parse(taskActivity.AssigneeConstraints.toString());
                         var aConst = aJson.constraints;
                         var aRole = aJson.role;
 
 
-                        if(aRole == 'nobody')
-                        {
+                        if (aRole == 'nobody') {
                             /**
                              * User ID : 8 is nobody by default in the current users table
                              */
-                            allocation[w][taskActivity.Visual_ID] = 8;
-                            var user = allocation[w][taskActivity.Visual_ID];
-                            allocator.UpdateUser(Tasks[t],8);
+                            allocation[w][taskActivity.VisualID] = 8;
+                            var user = allocation[w][taskActivity.VisualID];
+                            allocator.UpdateUser(TaskInstances[t], 8);
 
-                        }
-                        else if(aRole == 'instructor')
-                        {
-                            allocation[w][taskActivity.Visual_ID] = instructorID;
+                        } else if (aRole == 'instructor') {
+                            allocation[w][taskActivity.VisualID] = instructorID;
 
-                            var user = allocation[w][taskActivity.Visual_ID]
-                            allocator.UpdateUser(Tasks[t],user);
-                        }
-                        else
-                        {
-                            if(typeof aConst !== 'undefined' && aConst != null && typeof aConst['same as'] !== 'undefined')
-                            {
+                            var user = allocation[w][taskActivity.VisualID]
+                            allocator.UpdateUser(TaskInstances[t], user);
+                        } else {
+                            if (typeof aConst !== 'undefined' && aConst != null && typeof aConst['same as'] !== 'undefined') {
 
-                                allocation[w][taskActivity.Visual_ID] = allocation[w][aConst['same as']];
+                                allocation[w][taskActivity.VisualID] = allocation[w][aConst['same as']];
                                 var id = allocation[w][aConst['same as']];
 
-                                allocator.UpdateUser(Tasks[t],id);
-                                allocator.UpdateUH(Tasks[t],id);
-                            }
-                            else if(typeof aConst !== 'undefined' && aConst != null &&  typeof aConst['not'] !== 'undefined')
-                            {
+                                allocator.UpdateUser(TaskInstances[t], id);
+                                allocator.UpdateUH(TaskInstances[t], id);
+                            } else if (typeof aConst !== 'undefined' && aConst != null && typeof aConst['not'] !== 'undefined') {
                                 var notThese = aConst['not'];
                                 var avoidThese = [];
                                 var ChooseMe = [];
@@ -299,51 +309,43 @@ Allocator.prototype.Allocate = function(assignments, section)
                                 var visual = {};
                                 var alloc = {};
 
-                                for(var i = 0 ; i < notThese.length;i++)
-                                {
+                                for (var i = 0; i < notThese.length; i++) {
                                     var vid = notThese[i];
                                     avoidThese.push(allocation[w][vid]);
                                 }
 
 
-                                for(var i = 0 ; i < Students.length;i++)
-                                {
+                                for (var i = 0; i < Students.length; i++) {
                                     var st = Students[i].UserID;
-                                    if(avoidThese.indexOf(st) == -1)
+                                    if (avoidThese.indexOf(st) == -1)
                                         ChooseMe.push(st);
                                 }
 
-                                allocation[w][taskActivity.Visual_ID] = ChooseMe[0];
+                                allocation[w][taskActivity.VisualID] = ChooseMe[0];
                                 var id = ChooseMe[0];
 
-                                allocator.UpdateUser(Tasks[t],id);
-                                allocator.UpdateUH(Tasks[t],id);
+                                allocator.UpdateUser(TaskInstances[t], id);
+                                allocator.UpdateUH(TaskInstances[t], id);
 
-                            }
-                            else if(typeof aConst !== 'undefined' && aConst != null &&  typeof aConst['new to subwf'] !== 'undefined')
-                            {
-                                allocation[w][taskActivity.Visual_ID] = Students[stCounter].UserID;
+                            } else if (typeof aConst !== 'undefined' && aConst != null && typeof aConst['new to subwf'] !== 'undefined') {
+                                allocation[w][taskActivity.VisualID] = Students[stCounter].UserID;
                                 var id = Students[stCounter].UserID;;
 
-                                allocator.UpdateUser(Tasks[t],id);
-                                allocator.UpdateUH(Tasks[t],id);
+                                allocator.UpdateUser(TaskInstances[t], id);
+                                allocator.UpdateUH(TaskInstances[t], id);
 
-                            }
-                            else if(typeof aConst !== 'undefined' && aConst != null && typeof aConst['new to wf'] !== 'undefined')
-                            {
-                                allocation[w][taskActivity.Visual_ID] = Students[stCounter].UserID;
+                            } else if (typeof aConst !== 'undefined' && aConst != null && typeof aConst['new to wf'] !== 'undefined') {
+                                allocation[w][taskActivity.VisualID] = Students[stCounter].UserID;
                                 var id = Students[stCounter].UserID;;
 
-                                allocator.UpdateUser(Tasks[t],id);
-                                alloc.UpdateUH(Tasks[t],id);
-                            }
-                            else
-                            {
-                                allocation[w][taskActivity.Visual_ID] = Students[stCounter].UserID;
+                                allocator.UpdateUser(TaskInstances[t], id);
+                                alloc.UpdateUH(TaskInstances[t], id);
+                            } else {
+                                allocation[w][taskActivity.VisualID] = Students[stCounter].UserID;
                                 var id = Students[stCounter].UserID;
 
-                                allocator.UpdateUser(Tasks[t],id);
-                                allocator.UpdateUH(Tasks[t],id);
+                                allocator.UpdateUser(TaskInstances[t], id);
+                                allocator.UpdateUH(TaskInstances[t], id);
                             }
 
                         }
@@ -362,7 +364,7 @@ Allocator.prototype.Allocate = function(assignments, section)
                 /!**
                  * Now we have all the information together
                  * we can now loop through each task to allocate
-                 * result[][0] workflows
+                 * result[][0] WorkflowInstances
                  * result[][1] Students
                  * result[][2] index
                  *!/
@@ -374,7 +376,7 @@ Allocator.prototype.Allocate = function(assignments, section)
     /*var allocation = [];
  for (var  i = 0; i < assignments.length; i++)
  {
- this.getWorkflows(assignments[i], function(assignment,workflows)
+ this.getWorkflowInstances(assignments[i], function(assignment,workflows)
  {
  this.getStudents(assignment, workflows,function(assignment, workflows,users)
  {
@@ -428,8 +430,8 @@ Allocator.prototype.runAssignment = function()
     if(count(this.getRoles()) == 0)
         throw new Error("Allocator: Roles are not defined for Allocator ");
 
-    if(count(this.getWorkflows()) == 0)
-        throw Error("Allocator: No Workflows to allocate to");
+    if(count(this.getWorkflowInstances()) == 0)
+        throw Error("Allocator: No WorkflowInstances to allocate to");
 
 
     //ONLY GOOD FOR USE CASE 1A (is it?)
@@ -505,14 +507,14 @@ Allocator.prototype.defaultPool = function()
 }
 
 /!**
- * Get the Workflows
+ * Get the WorkflowInstances
  *
  * @return array
  *!/
 
-Allocator.prototype.getWorkflows = function ()
+Allocator.prototype.getWorkflowInstances = function ()
 {
-    return this.getWorkflows();
+    return this.getWorkflowInstances();
 }
 */
 

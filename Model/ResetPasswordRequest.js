@@ -1,12 +1,8 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('ResetPasswordRequest', {
         UserID: {
-            type: DataTypes.INTEGER,
-            field: 'UserID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'UserID',
             allowNull: false,
             primaryKey: true
         },
@@ -16,7 +12,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false,
             primaryKey: true
         }
-    },{
+    }, {
         timestamps: false,
 
         // don't delete database entries but set the newly added attribute deletedAt
@@ -37,7 +33,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'ResetPasswordRequest'
     });
 };
-
-///var User =
-
-///module.exports = User;

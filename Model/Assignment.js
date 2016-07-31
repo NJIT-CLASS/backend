@@ -1,56 +1,79 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('Assignment', {
         AssignmentID: {
-            type: DataTypes.INTEGER,
-            field: 'AssignmentID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            //Unique identifier for Assignment (activity)
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'AssignmentID',
             allowNull: false,
             primaryKey: true,
-            autoIncrement: true
+            autoIncrement: true,
+            unique: true
         },
-        Description: {
-            type: DataTypes.STRING,
-            field: 'Description',
-            allowNull: true
-        }
-        ,
-        Settings: {
-            type: DataTypes.JSON,
-            field: 'Settings',
+        OwnerID: {
+            //The assignment’s owner.
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'OwnerID',
             allowNull: false
+        },
+        WorkflowActivityIDs: { //*
+            //WorkflowActivity_Assignment_IDs
+            type: DataTypes.JSON,
+            field: 'WorkflowActivityIDs',
+            allowNull: true
+        },
+        Instructions: {
+            type: DataTypes.TEXT,
+            field: 'Instructions',
+            allowNull: true
+        },
+        Documentation: {
+            //Description of the Assignment
+            type: DataTypes.TEXT,
+            field: 'Documentation',
+            allowNull: true
         },
         GradeDistribution: {
-            type: DataTypes.JSON,
+            //Describes the percentage given for every workflow and distribution of grade for every task
+            type: DataTypes.BLOB,
             field: 'GradeDistribution',
-            allowNull: false
-        }
-        ,
-        Title: {
+            allowNull: true
+        },
+        Name: {
+            //Name of the assignment.
             type: DataTypes.STRING,
-            field: 'Title',
+            field: 'Name',
+            allowNull: true
+        },
+        Type: {
+            type: DataTypes.STRING,
+            field: 'Type',
+            allowNull: true
+        },
+        DisplayName: {
+            type: DataTypes.STRING,
+            field: 'DisplayName',
+            allowNull: true
+        },
+        SectionID: {
+            type: DataTypes.BLOB,
+            field: 'SectionID',
+            allowNull: true
+        },
+        CourseID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
             allowNull: false
         },
-        UserID: {
-            type: DataTypes.INTEGER,
-            field: 'UserID',
-            allowNull: false
+        SemesterID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SemesterID',
+            allowNull: true
         },
-        GroupSize: {
-            type: DataTypes.INTEGER,
-            field: 'GroupSize',
-            allowNull: false
-        },
-        UseCase: {
-            type: DataTypes.INTEGER,
-            field: 'UseCase',
-            allowNull: false
+        VersionHistory: {
+            type: DataTypes.JSON,
+            field: 'VersionHistory',
+            allowNull: true
         }
     }, {
         timestamps: false,
@@ -73,7 +96,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'Assignment'
     });
 };
-
-///var User =
-
-///module.exports = User;

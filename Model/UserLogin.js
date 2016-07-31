@@ -1,28 +1,16 @@
-/**
- * Created by cesarsalazar on 3/30/16.
- */
-/**
- * Created by cesarsalazar on 3/29/16.
- */
-//var Sequelize = require("sequelize");
-//var sequelize = require("./index.js");
-
-
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('UserLogin', {
         UserID: {
-            type: DataTypes.INTEGER,
-            field: 'UserID', // Will result in an attribute that is firstName when user facing but first_name in the database
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'UserID',
             allowNull: false,
-            primaryKey: true,
-            autoIncrement: true
+            primaryKey: true
         },
         Email: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(70),
             field: 'Email',
-            allowNull: true
-        }
-        ,
+            allowNull: false
+        },
         Password: {
             type: DataTypes.STRING,
             field: 'Password',
@@ -49,7 +37,3 @@ module.exports = function(sequelize, DataTypes) {
         tableName: 'UserLogin'
     });
 };
-
-///var User =
-
-///module.exports = User;
