@@ -42,6 +42,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to Create an Assignment
     router.post("/assignment/create", function(req, res) {
+
         var allocator = new Allocator3.Allocator3();
 
         allocator.createAssignment(req.body.assignment).then(function(done) {
@@ -53,21 +54,32 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
+    //Endpoint to get an assignment associate with courseId
     router.get('/getAssignments/:courseId', function(req, res) {
+
+        console.log('Finding assignments...');
+
         Assignment.findAll({
+
             where: {
                 CourseID: req.params.courseId
             },
             attributes: ['AssignmentID', 'Name', 'DisplayName', 'Type', 'Documentation', 'CourseID']
+
         }).then(function(result) {
-            console.log(result);
+
+            console.log('Assignments have been found!');
+
             res.json({
                 "Error": false,
                 "Assignments": result
             });
+
         }).catch(function(err) {
+
             console.log('/getCompletedTaskInstances: ' + err);
             res.status(404).end();
+
         });
     });
 
@@ -84,13 +96,32 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //alloc.count(a);
     });
 
+    //Endpoint to allocate students
     router.get("/allocate", function(req, res) {
-        var alloc3 = new Allocator3.Allocator3();
 
-        alloc3.createInstances(3, 13);
-        //alloc3.createAssignmentInstances(1, [2, 3, 4], '2015-07-24', {});
+        var allocator = new Allocator3.Allocator3();
+
+        allocator.createInstances(3, 13)
+
+        //allocator.updatePreviousAndNextTasks(13);
 
     });
+
+    router.get("/findPreviousTasks/:taskInstanceId", function(req, res) {
+        var allocator = new Allocator3.Allocator3();
+
+        allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
+            console.log('done!', done);
+
+            res.json({
+                "previousTasks": done
+            })
+
+        }).catch(function(err) {
+            console.log(err);
+            res.status(401).end();
+        });
+    })
 
 
     //-----------------------------------------------------------------------------------------------------
@@ -421,6 +452,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    //Endpoint to create course
     router.post("/course/create", function(req, res) {
 
         if (req.body.userid == null) {
@@ -465,6 +497,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    //End point to create section for course
     router.post("/course/createsection", function(req, res) {
 
 
@@ -526,58 +559,64 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to add a user to a course
-    //****Need to look over
-    router.put("/course/adduser", function(req, res) {
-        if (req.body.email == null || req.body.courseid == null || req.body.coursesectionid == null) {
+    router.post("/course/adduser", function(req, res) {
+        if (req.body.email == null || req.body.courseid == null || req.body.sectionid == null) {
             console.log("course/adduser : Email cannot be null");
             res.status(400).end();
+            return;
         }
 
         UserLogin.find({
             where: {
-                UserID: req.body.UserID
+                Email: req.body.email
             },
             attributes: ['UserID']
         }).then(function(userLogin) {
-            if (userLogin.UserID == null) {
+            if (userLogin == null || userLogin.UserID == null) {
                 UserContact.create({
-                    Email: email,
+                    Email: req.body.email,
                     Phone: 'XXX-XXX-XXXX'
                 }).catch(function(err) {
                     console.log(err);
                 }).then(function(userCon) {
-                    User.create({
-                        FirstName: 'Temp',
-                        LastName: 'Temp',
-                        OrganizationGroup: {
-                            "OrganizationID": []
-                        },
-                        UserContactID: userCon.UserContactID,
-                        UserType: 'Student',
-                        Admin: 0
-                    }).catch(function(err) {
-                        console.log(err);
-                    }).then(function(user) {
-                        UserLogin.create({
-                            UserID: user.UserID,
-                            Email: email,
-                            Password: md5('pass123')
-                        }).catch(function(err) {
-                            console.log(err);
-                        }).then(function(userLogin) {
-                            //Email User With Password
-                            SectionUser.create({
-                                SectionID: req.body.sectionid,
-                                UserID: userLogin.UserID,
-                                UserRole: 'Student',
-                                UserStatus: 'Active'
+                    sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                        .then(function() {
+                            sequelize.sync({});
+                            User.create({
+                                FirstName: 'Temp',
+                                LastName: 'Temp',
+                                OrganizationGroup: {
+                                    "OrganizationID": []
+                                },
+                                UserContactID: userCon.UserContactID,
+                                UserType: 'Student',
+                                Admin: 0
                             }).catch(function(err) {
                                 console.log(err);
-                            }).then(function(sectionUser) {
-                                res.status(200).end();
-                            })
-                        })
-                    });
+                            }).then(function(user) {
+                                UserLogin.create({
+                                    UserID: user.UserID,
+                                    Email: req.body.email,
+                                    Password: md5('pass123')
+                                }).catch(function(err) {
+                                    console.log(err);
+                                }).then(function(userLogin) {
+                                    //Email User With Password
+                                    SectionUser.create({
+                                        SectionID: req.body.sectionid,
+                                        UserID: userLogin.UserID,
+                                        UserRole: 'Student',
+                                        UserStatus: 'Active'
+                                    }).catch(function(err) {
+                                        console.log(err);
+                                    }).then(function(sectionUser) {
+                                        res.status(200).end();
+                                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+
+                                    });
+                                });
+                            });
+                        });
                 });
             } else {
                 SectionUser.create({
@@ -598,6 +637,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    //Endpoint to find all courses
     router.get("/course/:courseId", function(req, res) {
         Course.find({
             where: {
@@ -659,6 +699,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    //Endpoint to update a course
     router.put("/course/update", function(req, res) {
 
         if (req.body.Name == null) {
@@ -702,6 +743,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    //Endpoint to update a section
     router.put("/course/updatesection", function(req, res) {
 
         if (req.body.semesterid == null) {
@@ -765,6 +807,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    //Endpoint to delete user
     router.delete("/course/deleteuser", function(req, res) {
 
         SectionUser.destroy({
@@ -820,7 +863,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get start a password reset request
-
     router.post("/resetPassword", function(req, res) {
         if (req.body.email == null) {
             console.log("/resetPassword : Email not sent");
@@ -1176,14 +1218,18 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     //-----------------------------------------------------------------------------------------------------
-
+    //Endpoint to create an assignment instance based on assignment and section
     router.post("assignment/section", function(req, res) {
+
         AssignmentInstance.create({
             AssignmentID: req.body.assignmentid,
             SectionID: req.body.sectionid
+
         }).save().then(function() {
+
             console.log('/assignment/section success');
             res.status(200).end();
+
         }).catch(function(e) {
             console.log('/assignment/section ' + e);
             res.status(400).end();
@@ -1192,6 +1238,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
+    //Endpoint to get task instance header data for front end
     router.get("/taskInstanceTemplate/main/:taskInstanceID", function(req, res) {
         TaskInstance.find({
             where: {
@@ -1247,50 +1294,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-
-    router.get("/taskInstanceTemplate/create/:taskInstanceid", function(req, res) {
-
-        //Find TaskInstance.AssignmentInstanceID from TaskInstance
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceid
-            }
-        }).then(function(taskInstanceResult) {
-            //Find the particular AssignmentInstance using AssignmentInstanceID retrieved from TaskInstance.
-            AssignmentInstance.find({
-                where: {
-                    AssignmentInstanceID: taskInstanceResult.AssignmentInstanceID
-                }
-            }).then(function(assignmentInstanceResult) {
-                //Access Assignment through AssignmentInstance.AssignmentID.
-                Assignment.find({
-                    where: {
-                        AssignmentID: assignmentInstanceResult.AssignmentID
-                    }
-                }).then(function(assignmentResult) {
-                    //Access TaskActivity through TaskInstance.TaskActivityID.
-                    TaskActivity.find({
-                        where: {
-                            TaskActivityID: taskInstanceResult.TaskActivityID
-                        }
-                    }).then(function(taskActivityResult) {
-                        //Returns json
-                        res.json({
-                            "Error": false,
-                            "Message": "Success",
-                            "assignmentDescription": assignmentResult.Description,
-                            "taskInstruction": taskActivityResult.Instructions
-                        });
-                    }).catch(function(err) {
-                        console.log('/taskInstanceTemplate/create/ ' + err);
-                        res.status(404).end();
-                    });
-                });
-            });
-        });
-    });
-
+    //Endpoint to submit the taskInstance input and sync into database
     router.post("/taskInstanceTemplate/create/submit", function(req, res) {
         if (req.body.taskInstanceid == null) {
             console.log("/taskInstanceTemplate/create/submit : TaskInstanceID cannot be null");
@@ -1341,6 +1345,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //Endpoint to save the task instance input
     router.post("/taskInstanceTemplate/create/save", function(req, res) {
         if (req.body.taskInstanceid == null) {
             console.log("/taskInstanceTemplate/create/save : TaskInstanceID cannot be null");
@@ -1390,445 +1395,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-
-    router.get("/taskInstanceTemplate/edit/:taskInstanceid", function(req, res) {
-        //Find TaskInstance.AssignmentInstanceID from TaskInstance
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceid
-            }
-        }).then(function(taskInstanceResult) {
-            //Find the particular AssignmentInstance using AssignmentInstanceID retrieved from TaskInstance.
-            AssignmentInstance.find({
-                where: {
-                    AssignmentInstanceID: taskInstanceResult.AssignmentInstanceID
-                }
-            }).then(function(assignmentInstanceResult) {
-                //Access Assignment through AssignmentInstance.AssignmentID.
-                Assignment.find({
-                    where: {
-                        AssignmentID: assignmentInstanceResult.AssignmentID
-                    }
-                }).then(function(assignmentResult) {
-                    //Access TaskActivity through TaskInstance.TaskActivityID.
-                    TaskActivity.find({
-                        where: {
-                            TaskActivityID: taskInstanceResult.TaskActivityID
-                        }
-                    }).then(function(taskActivityResult) {
-                        TaskInstance.find({
-                            where: {
-                                TaskInstanceID: taskInstanceResult.ReferencedTask
-                            }
-                        }).then(function(createdProblemTaskResult) {
-                            //Returns json
-                            res.json({
-                                "Error": false,
-                                "Message": "Success",
-                                "ProblemText": createdProblemTaskResult.Data,
-                                "assignmentDescription": assignmentResult.Description,
-                                "taskInstruction": taskActivityResult.Instructions,
-                                "problem": taskInstanceResult.Data
-                            });
-                        }).catch(function(err) {
-                            console.log('/taskInstanceTemplate/edit/ ' + err);
-                            res.status(404).end();
-                        });
-                    });
-
-                });
-            });
-        });
-    });
-
-    router.post("/taskInstanceTemplate/edit/submit", function(req, res) {
-        if (req.body.taskInstanceid == null) {
-            console.log("/taskInstanceTemplate/edit/submit : TaskInstanceID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.userid == null) {
-            console.log("/taskInstanceTemplate/edit/submit : UserID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.taskInstanceData == null) {
-            console.log("/taskInstanceTemplate/edit/submit : Data cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.body.taskInstanceid,
-                UserID: req.body.userid
-            }
-        }).then(function(result) {
-            //Ensure userid input matches TaskInstance.UserID
-            if (req.body.userid != result.UserID) {
-                console.log("/taskInstanceTemplate/edit/submit : UserID Incorrect Match");
-                res.status(400).end();
-                return;
-            }
-
-            //Change Task_Status to Complete and store userCreatedProblem
-            result.update({
-                Status: 'Complete',
-                Data: req.body.taskInstanceData
-
-            }).then(function(response) {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": response
-                });
-            }).catch(function(err) {
-                console.log('/taskInstanceTemplate/edit/submit ' + err);
-                res.status(400).end();
-            });
-
-        });
-    });
-
-    router.post("/taskInstanceTemplate/edit/save", function(req, res) {
-        if (req.body.taskInstanceid == null) {
-            console.log("/taskInstanceTemplate/edit/save : TaskInstanceID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.userid == null) {
-            console.log("/taskInstanceTemplate/edit/save : UserID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.taskInstanceData == null) {
-            console.log("/taskInstanceTemplate/edit/save : Data cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.body.taskInstanceid,
-                UserID: req.body.userid
-            }
-        }).then(function(result) {
-            //Ensure userid input matches TaskInstance.UserID
-            if (req.body.userid != result.UserID) {
-                console.log("/taskInstanceTemplate/edit/save : UserID Incorrect Match");
-                res.status(400).end();
-                return;
-            }
-
-            //Change Task_status to Complete and store userCreatedProblem
-            result.update({
-                Data: req.body.taskInstanceData
-
-            }).then(function(response) {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": response
-                });
-            }).catch(function(err) {
-                console.log('/taskInstanceTemplate/edit/save ' + err);
-                res.status(400).end();
-            });
-
-        });
-    });
-
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-
-    router.get("/taskInstanceTemplate/solve/:taskInstanceid", function(req, res) {
-        //Find TaskInstance.AssignmentInstanceID from TaskInstance
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceid
-            }
-        }).then(function(taskInstanceResult) {
-            //Find the particular AssignmentInstance using AssignmentInstanceID retrieved from TaskInstance.
-            AssignmentInstance.find({
-                where: {
-                    AssignmentInstanceID: taskInstanceResult.AssignmentInstanceID
-                }
-            }).then(function(assignmentInstanceResult) {
-                //Access Assignment through AssignmentInstance.AssignmentID.
-                Assignment.find({
-                    where: {
-                        AssignmentID: assignmentInstanceResult.AssignmentID
-                    }
-                }).then(function(assignmentResult) {
-                    //Access TaskActivity through Task.TaskActivityID.
-                    TaskActivity.find({
-                        where: {
-                            TaskActivityID: taskInstanceResult.TaskActivityID
-                        }
-                    }).then(function(taskActivityResult) {
-                        TaskInstance.find({
-                            where: {
-                                TaskInstanceID: taskInstanceResult.ReferencedTask
-                            }
-                        }).then(function(editProblemTaskResult) {
-                            //Returns json
-                            res.json({
-                                "Error": false,
-                                "Message": "Success",
-                                "ProblemText": editProblemTaskResult.Data,
-                                "assignmentDescription": assignmentResult.Description,
-                                "taskInstruction": taskActivityResult.Instructions,
-                                "problem": taskInstanceResult.Data
-                            });
-                        }).catch(function(err) {
-                            console.log('/taskInstanceTemplate/edit/ ' + err);
-                            res.status(404).end();
-                        });
-                    });
-
-                });
-            });
-        });
-    });
-
-    router.post("/taskInstanceTemplate/solve/submit", function(req, res) {
-        if (req.body.taskInstanceid == null) {
-            console.log("/taskInstanceTemplate/solve/submit : TaskInstanceID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.userid == null) {
-            console.log("/taskInstanceTemplate/solve/submit : UserID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.taskInstanceData == null) {
-            console.log("/taskInstanceTemplate/solve/submit : Data cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.body.taskInstanceid,
-                UserID: req.body.userid
-            }
-        }).then(function(result) {
-            //Ensure userid input matches TaskInstance.UserID
-            if (req.body.userid != result.UserID) {
-                console.log("/taskInstanceTemplate/solve/submit : UserID Incorrect Match");
-                res.status(400).end();
-                return;
-            }
-
-            //Change Task_Status to Complete and store userCreatedProblem
-            result.update({
-                Status: 'Complete',
-                Data: req.body.taskInstanceData
-
-            }).then(function(response) {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": response
-                });
-            }).catch(function(err) {
-                console.log('/taskInstanceTemplate/solve/submit ' + err);
-                res.status(400).end();
-            });
-
-        });
-    });
-
-    router.post("/taskInstanceTemplate/solve/save", function(req, res) {
-        if (req.body.taskInstanceid == null) {
-            console.log("/taskInstanceTemplate/solve/save : TaskInstanceID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.userid == null) {
-            console.log("/taskInstanceTemplate/solve/save : UserID cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.taskInstanceData == null) {
-            console.log("/taskInstanceTemplate/solve/save : Data cannot be null");
-            res.status(400).end();
-            return;
-        }
-
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.body.taskInstanceid,
-                UserID: req.body.userid
-            }
-        }).then(function(result) {
-            //Ensure userid input matches TaskInstance.UserID
-            if (req.body.userid != result.UserID) {
-                console.log("/TaskInstanceTemplate/solve/save : UserID Incorrect Match");
-                res.status(400).end();
-                return;
-            }
-
-            //Change Task_Status to Complete and store userCreatedProblem
-            result.update({
-                Data: req.body.taskInstanceData
-
-            }).then(function(response) {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": response
-                });
-            }).catch(function(err) {
-                console.log('/taskInstanceTemplate/solve/save ' + err);
-                res.status(400).end();
-            });
-
-        });
-    });
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-
-    router.get("/taskInstanceTemplate/grade/:taskInstanceid", function(req, res) {
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceid
-            }
-        }).then(function(taskInstanceResult) {
-            TaskInstance.find({
-                where: {
-                    TaskInstanceID: taskInstanceResult.ReferencedTask
-                }
-            }).then(function(solvedProblemResult) {
-                TaskInstance.find({
-                    where: {
-                        TaskInstanceID: solvedProblemResult.ReferencedTask
-                    }
-                }).then(function(editProblemTaskResult) {
-                    TaskActivity.find({
-                        where: {
-                            TaskActivityID: taskInstanceResult.TaskActivityID
-                        }
-                    }).then(function(taskActivityResult) {
-                        res.json({
-                            "Error": false,
-                            "Message": "Success",
-                            "editProblem": editProblemTaskResult.Data,
-                            "sovledProblem": solvedProblemResult.Data,
-                            "taskInstruction": taskActivityResult.Instructions,
-                            "problem": taskInstanceResult.Data
-                        });
-                    }).catch(function(err) {
-                        console.log('/taskInstanceTemplate/grade/ ' + err);
-                        res.status(404).end();
-                    });
-                });
-            });
-        });
-    });
-
-
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-
-    router.get("/taskInstanceTemplate/dispute/:taskInstanceid", function(req, res) {
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceid
-            }
-        }).then(function(taskInstanceResult) {
-            TaskInstance.find({
-                where: {
-                    TaskInstanceID: taskInstanceResult.ReferencedTask
-                }
-            }).then(function(gradeResult) {
-                TaskInstance.find({
-                    where: {
-                        TaskInstanceID: gradeResult.ReferencedTask
-                    }
-                }).then(function(solvedProblemResult) {
-                    TaskInstance.find({
-                        where: {
-                            TaskInstanceID: solvedProblemResult.ReferencedTask
-                        }
-                    }).then(function(editProblemTaskResult) {
-                        TaskActivity.find({
-                            where: {
-                                TaskActivityID: taskInstanceResult.TaskActivityID
-                            }
-                        }).then(function(taskActivityResult) {
-                            res.json({
-                                "Error": false,
-                                "Message": "Success",
-                                "editProblem": editProblemTaskResult.Data,
-                                "sovledProblem": solvedProblemResult.Data,
-                                "gradeProblem": gradeResult.Data,
-                                "taskInstruction": taskActivityResult.Instructions,
-                                "problem": taskInstanceResult.Data
-                            });
-                        }).catch(function(err) {
-                            console.log('/taskInstanceTemplate/dispute/ ' + err);
-                            res.status(404).end();
-                        });
-                    });
-                });
-            });
-        });
-    });
-
-
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-
-    router.get("/taskInstanceTemplate/resolve/:taskInstanceid", function(req, res) {
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceid
-            }
-        }).then(function(taskInstanceResult) {
-            TaskInstance.find({
-                where: {
-                    TaskInstanceID: taskInstanceResult.ReferencedTask
-                }
-            }).then(function(disputedResult) {
-                TaskInstance.find({
-                    where: {
-                        TaskInstanceID: disputedResult.ReferencedTask
-                    }
-                }).then(function(gradeResult) {
-                    TaskInstance.find({
-                        where: {
-                            TaskInstanceID: gradeResult.ReferencedTask
-                        }
-                    }).then(function(solvedProblemResult) {
-                        TaskInstance.find({
-                            where: {
-                                TaskInstanceID: solvedProblemResult.ReferencedTask
-                            }
-                        }).then(function(editProblemTaskResult) {
-                            TaskActivity.find({
-                                where: {
-                                    TaskActivityID: taskInstanceResult.TaskActivityID
-                                }
-                            }).then(function(taskActivityResult) {
-                                res.json({
-                                    "Error": false,
-                                    "Message": "Success",
-                                    "editProblem": editProblemTaskResult.Data,
-                                    "sovledProblem": solvedProblemResult.Data,
-                                    "gradeProblem": gradeResult.Data,
-                                    "disputedProblem": disputedProblem.Data,
-                                    "taskInstruction": taskActivityResult.Instructions,
-                                    "problem": taskInstanceResult.Data
-                                });
-                            }).catch(function(err) {
-                                console.log('/taskInstanceTemplate/dispute/ ' + err);
-                                res.status(404).end();
-                            });
-                        });
-                    });
-                });
-            });
-        });
-    });
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -1872,20 +1438,26 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 }
             ]
         }).then(function(taskInstances) {
+
             console.log("/getPendingTaskInstances/ TaskInstances found");
             res.json({
                 "Error": false,
                 "PendingTaskInstances": taskInstances
             });
+
         }).catch(function(err) {
+
             console.log('/getPendingTaskInstances: ' + err);
             res.status(404).end();
+
         });
 
 
     });
 
+    //Endpoint to get completed task instances for user
     router.get("/getCompletedTaskInstances/:userID", function(req, res) {
+
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
@@ -1908,17 +1480,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         model: Assignment,
                         attributes: ["Name"]
                     }]
-                },
-                /*, {
-                                       model: Section,
-                                       attributes: ['SectionID'],
-                                       include: [{
-                                           model: Course,
-                                           attributes: ["Name"]
-                                       }]
-                                   } */
-                /*TaskInstance - > AssignmentInstance - > Section - > Course */
-                {
+                }, {
                     model: TaskActivity,
                     attributes: ["Name", "Type", "VisualID"],
                     include: [{
@@ -1928,17 +1490,22 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 }
             ]
         }).then(function(taskInstances) {
+
             console.log("/getCompletedTaskInstances/ TaskInstances found");
+
             res.json({
                 "Error": false,
                 "CompletedTaskInstances": taskInstances
             });
         }).catch(function(err) {
+
             console.log('/getCompletedTaskInstances: ' + err);
             res.status(404).end();
+
         });
     });
 
+    //Endpoint to retrieve all the assignment and its current state
     router.get('/getAssignmentRecord/:assignmentInstanceid', function(req, res) {
 
         console.log('/getAssignmentRecord/:assignmentInstanceid: Initiating...');
@@ -1950,14 +1517,18 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 AssignmentInstanceID: req.params.assignmentInstanceid
             }
         }).then(function(WI_Result) {
+
             if (WI_Result === null || typeof WI_Result === undefined) {
                 console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
             } else {
+                //Iterate through all workflow instances found
                 return Promise.map(WI_Result, function(workflowInstance) {
+
                     console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
                     var tempTasks = [];
 
                     return Promise.map(JSON.parse(workflowInstance.TaskCollection), function(task) {
+
                         console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
                         //each task is TaskInstanceID
                         return TaskInstance.find({
@@ -1973,26 +1544,35 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 attributes: ['Type']
                             }]
                         }).then(function(taskInstanceResult) {
+
+                            //Array of all the task instances found within taskcollection
                             tempTasks.push(taskInstanceResult);
                         });
                     }).then(function(result) {
+
+                        //Array of arrays of all task instance collection
                         tasks.push(tempTasks);
                     });
                 });
             }
 
         }).then(function(done) {
+
             console.log('/getAssignmentRecord/:assignmentInstanceid: Done!');
+
             res.json({
                 "Error": false,
                 "AssignmentRecords": tasks
             });
+
         }).catch(function(err) {
+
             console.log('/getAssignmentRecord: ' + err);
             res.status(404).end();
         });
     });
 
+    //Endpoint for all current task data and previous task data and put it in an array
     router.get('/superCall/:taskInstanceid', function(req, res) {
 
         var superTask = [];
@@ -2062,6 +1642,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //Endpoint to get all the sections assoicate with course and all the task activities within the workflow activities
     router.get('/getAssignToSection/', function(req, res) {
 
         console.log("/getAssignToSection: Initiating... ")
@@ -2091,7 +1672,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             //Create an array of all the sections associate with courseid
             result.forEach(function(section) {
                 sectionIDs.push({
-                    value: section.SectionID,
+                    value: section.SectionID.toString(),
                     label: section.Name
                 });
             });
@@ -2170,6 +1751,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //Endopint to assign an assignment to a section
     router.post('/getAssignToSection/submit/', function(req, res) {
         //creates new allocator object
         var allocator = new Allocator3.Allocator3();

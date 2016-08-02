@@ -102,16 +102,16 @@ module.exports = function(sequelize, DataTypes) {
             field: 'ReferencedTask',
             allowNull: true
         },
-        NextTasks: {
+        NextTask: {
             //Array of possible next
-            type: DataTypes.JSON,
-            field: 'NextTasks',
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'NextTask',
             allowNull: true
         },
-        PreviousTasks: {
+        PreviousTask: {
             //Array of possible previous
-            type: DataTypes.JSON,
-            field: 'PreviousTasks',
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'PreviousTask',
             allowNull: true
         },
         // PreviousTask: {

@@ -108,7 +108,7 @@ sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
     console.log(err);
 });
 
-
+//Email system (not complete)
 
 /*var rule = new schedule.RecurrenceRule();
 rule.minute = 00;
