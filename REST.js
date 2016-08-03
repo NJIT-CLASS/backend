@@ -20,13 +20,14 @@ var AssignmentInstance = models.AssignmentInstance;
 var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
+var EmailNotification = models.EmailNotification;
+
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var Allocator3 = require('./WorkFlow/Allocator3.js');
 var sequelize = require("./Model/index.js").sequelize;
-//var server = require('./Server.js');
 
-//var User = server.app.get('models').User;
+var Email = require('./WorkFlow/Email.js');
 
 //-----------------------------------------------------------------------------------------------------
 
@@ -86,16 +87,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint for Assignment Allocator
-    router.get("/allocator", function(req, res) {
-
-        var alloc = new Allocator.Allocator();
-        alloc.Allocate([1], [1]);
-        //alloc.createRole('test');
-        //var a = [];
-        //alloc.count(a);
-    });
-
     //Endpoint to allocate students
     router.get("/allocate", function(req, res) {
 
@@ -121,7 +112,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             console.log(err);
             res.status(401).end();
         });
-    })
+    });
+
+    router.get("/sendEmailNotification/:taskInstanceId", function(req, res) {
+        var email = new Email.Email();
+
+        email.send(req.body.opts);
+
+    });
 
 
     //-----------------------------------------------------------------------------------------------------
@@ -560,10 +558,17 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to add a user to a course
     router.post("/course/adduser", function(req, res) {
-        if (req.body.email == null || req.body.courseid == null || req.body.sectionid == null) {
+        if (req.body.email === null) {
             console.log("course/adduser : Email cannot be null");
             res.status(400).end();
-            return;
+        }
+        if (req.body.courseid === null) {
+            console.log("course/adduser : CourseID cannot be null");
+            res.status(400).end();
+        }
+        if (req.body.sectionid === null) {
+            console.log("course/adduser : SectionID cannot be null");
+            res.status(400).end();
         }
 
         UserLogin.find({
@@ -1573,73 +1578,75 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     //Endpoint for all current task data and previous task data and put it in an array
-    router.get('/superCall/:taskInstanceid', function(req, res) {
+    router.get('/superCall/:taskInstanceId', function(req, res) {
+        var allocator = new Allocator3.Allocator3();
 
-        var superTask = [];
+        allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
 
-        sequelize.transaction(function(t) {
-            "use strict";
+            //console.log('done!', done);
+            var ar = new Array();
+            if (done == null) {
 
-            //finds the TaskInstance with provided id
-            return TaskInstance.find({
-                where: {
-                    TaskInstanceID: req.params.taskInstanceid
-                }
-            }, {
-                transaction: t
-            }).then(function(result) {
-
-                //List of all the tasks instances in workflow
-                var taskArray = JSON.parse(JSON.parse(result.PreviousTasks));
-                taskArray.push(JSON.parse(req.params.taskInstanceid));
-                return taskArray;
-
-            }).then(function(taskarray) {
-
-                console.log(taskarray);
-
-                //Iterate through all the tasks
-                return Promise.map(taskarray, function(task) {
-
-                    //find each and return attributes
-                    return TaskInstance.find({
+                return TaskInstance.find({
                         where: {
-                            TaskInstanceID: task
+                            TaskInstanceID: req.params.taskInstanceId
                         },
                         attributes: ["TaskInstanceID", "Data", "Status"],
                         include: [{
                             model: TaskActivity,
                             attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
                         }]
-                    }, {
-                        transaction: t
-                    }).then(function(result) {
-
-                        console.log('result ', result);
-                        //push what is found back to superTask array
-                        superTask.push(result);
-                    }).catch(function(err) {
-                        console.log(err);
-                    });
-                });
-
-
-            }).then(function(done) {
-                console.log('superTask.length', superTask.length)
-
-                res.json({
-                    //sort all the tasks in ascending order by TaskInstanceID
-                    "superTask": superTask.sort(function(a, b) {
-                        var x = a.TaskInstanceID < b.TaskInstanceID ? -1 : 1;
-                        return x;
                     })
+                    .then((result) => {
+                        //console.log(result);
+                        ar.push(result);
+                        res.json({
+                            "previousTasksList": done,
+                            "superTask": ar
+                        });
+                    });
+            }
+
+
+            Promise.mapSeries(done, function(task) {
+                return TaskInstance.find({
+                    where: {
+                        TaskInstanceID: task
+                    },
+                    attributes: ["TaskInstanceID", "Data", "Status"],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                    }]
+                }).then((result) => {
+                    //console.log(result);
+                    ar.push(result);
                 });
-            }).catch(function(err) {
-                console.log(err);
+            }).then(function() {
+                return TaskInstance.find({
+                        where: {
+                            TaskInstanceID: req.params.taskInstanceId
+                        },
+                        attributes: ["TaskInstanceID", "Data", "Status"],
+                        include: [{
+                            model: TaskActivity,
+                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                        }]
+                    })
+                    .then((result) => {
+                        //console.log(result);
+                        ar.push(result);
+                        res.json({
+                            "previousTasksList": done,
+                            "superTask": ar
+                        });
+                    });
             });
 
-        })
-
+        }).catch(function(err) {
+            console.log(err);
+            res.status(401).end();
+        });
     });
 
     //Endpoint to get all the sections assoicate with course and all the task activities within the workflow activities

@@ -65,7 +65,6 @@ REST.prototype.stop = function(err) {
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
-var sendgrid = require('sendgrid')('njitplamaster', 'plamaster123');
 var schedule = require('node-schedule');
 
 
@@ -76,6 +75,9 @@ var models = require('./Model');
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var sequelize = require("./Model/index.js").sequelize;
+
+var Email = require('./WorkFlow/Email.js');
+
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -91,6 +93,7 @@ var AssignmentInstance = models.AssignmentInstance;
 var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
+var EmailNotification = models.EmailNotification;
 
 
 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
@@ -106,6 +109,14 @@ sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
     console.log('Database synchronised.');
 }, function(err){
     console.log(err);
+});
+
+var rule = new schedule.RecurrenceRule();
+rule.minute = 00;
+var email = new Email.Email();
+//'1 * * * * *' 1 minute.
+var job = schedule.scheduleJob('1 * * * * *', function(time) {
+    email.check();
 });
 
 //Email system (not complete)

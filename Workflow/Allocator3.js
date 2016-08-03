@@ -17,6 +17,7 @@ var AssignmentInstance = models.AssignmentInstance;
 var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
+var EmailNotification = models.EmailNotification;
 
 
 
@@ -55,7 +56,6 @@ Allocator3.prototype.getAssignmentsFromAcitivity = function() {
     });
 
 }
-
 
 //-------------------------------------------------------------------------------------
 
@@ -161,7 +161,6 @@ Allocator3.prototype.getTasksFromActivity = function(wa_id) {
 
 }
 
-
 //-------------------------------------------------------------------------------------
 
 /*
@@ -195,9 +194,7 @@ Allocator3.prototype.getTaskInstances = function(wi_id) {
 
 }
 
-
 //-------------------------------------------------------------------------------------
-//
 
 /*
     Update UserHistory .. Have not been tasted
@@ -264,6 +261,7 @@ Allocator3.prototype.updateUH = function(taskid, newUser) {
 }
 
 //-------------------------------------------------------------------------------------
+
 /*
   Replace the ownership of the task instance to another Student
 */
@@ -383,6 +381,8 @@ Allocator3.prototype.getUsersFromSection = function(sectionid) {
     });
 }
 
+//-------------------------------------------------------------------------------------
+
 /*
   Find the list of WorkflowActivities associated with the Assignment
 */
@@ -409,6 +409,8 @@ Allocator3.prototype.getWorkflowActivities = function(a_id) {
 
     });
 }
+
+//-------------------------------------------------------------------------------------
 
 /*
   Find the list of TaskActivities associated with the WorkflowActivity
@@ -440,6 +442,8 @@ Allocator3.prototype.getTaskActivityCollection = function(wa_id) {
     });
 }
 
+//-------------------------------------------------------------------------------------
+
 /*
   Create AssignmentInstances
 */
@@ -469,6 +473,7 @@ Allocator3.prototype.createAssignmentInstances = function(a_id, sectionIDs, star
     });
 }
 
+//-------------------------------------------------------------------------------------
 
 /*
   retrieve workflowTiming through Assignment Instance ID
@@ -496,6 +501,8 @@ Allocator3.prototype.getWorkflowTiming = function(ai_id) {
         });
     });
 }
+
+//-------------------------------------------------------------------------------------
 
 /*
     Update the PreviousTasks and NextTasks attributes in each task instance.
@@ -580,6 +587,8 @@ Allocator3.prototype.updatePreviousAndNextTasks = function(ai_id) {
 
 }
 
+//-------------------------------------------------------------------------------------
+
 /*
   Find previous tasks according to task instance id.
 */
@@ -609,6 +618,8 @@ Allocator3.prototype.findPreviousTasks = function(ti_id, previousTasks) {
     });
 }
 
+//-------------------------------------------------------------------------------------
+
 /*
     Finds and returns NumberParticipants
 */
@@ -635,6 +646,8 @@ Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
     });
 
 }
+
+//-------------------------------------------------------------------------------------
 
 /*
   Create assignment. Use for assignment editor
@@ -789,6 +802,11 @@ Allocator3.prototype.createAssignment = function(assignment) {
       Create WorkflowInstances, and TaskInstances
     */
 
+//-------------------------------------------------------------------------------------
+
+/*
+  Create workflow instance
+*/
 Allocator3.prototype.createWorkflowInstance = function(workflow, ai_id) {
 
     return new Promise(function(resolve, reject) {
@@ -807,6 +825,11 @@ Allocator3.prototype.createWorkflowInstance = function(workflow, ai_id) {
 
 }
 
+//-------------------------------------------------------------------------------------
+
+/*
+  Create task instance
+*/
 Allocator3.prototype.createTaskInstance = function(task, userid, wi_id, ai_id) {
     return new Promise(function(resolve, reject) {
         TaskInstance.create({
@@ -827,7 +850,11 @@ Allocator3.prototype.createTaskInstance = function(task, userid, wi_id, ai_id) {
 
 }
 
+//-------------------------------------------------------------------------------------
 
+/*
+  Create workflow and task instances
+*/
 Allocator3.prototype.createInstances = function(sectionid, ai_id) {
 
     console.log('Initiating create instances function...')

@@ -19,6 +19,7 @@ var AssignmentInstance= models.AssignmentInstance;
 var WorkflowInstance= models.WorkflowInstance;
 var WorkflowActivity= models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
+var EmailNotification = models.EmailNotification;
 
 
 function TaskFactory(workflow, tasks)

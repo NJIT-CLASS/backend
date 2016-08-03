@@ -67,17 +67,6 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Data',
             allowNull: true
         },
-        // Settings: {
-        //     //??
-        //     type: DataTypes.JSON,
-        //     field: 'Settings',
-        //     allowNull: true
-        // },
-        // Type: {
-        //     type: DataTypes.STRING,
-        //     field: 'Type',
-        //     allowNull: true
-        // },
         UserHistory: {
             //Prior users assigned to this task instance, if reallocated (will be refined in future versions)
             type: DataTypes.JSON,
@@ -114,12 +103,6 @@ module.exports = function(sequelize, DataTypes) {
             field: 'PreviousTask',
             allowNull: true
         },
-        // PreviousTask: {
-        //     //Ignore this (not currently used);
-        //     type: DataTypes.INTEGER.UNSIGNED,
-        //     field: 'PreviousTask',
-        //     allowNull: true
-        // },
         EmailLastSent: {
             //The Record of when the last email was sent.
             //Keep a whole array of email history

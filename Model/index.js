@@ -19,7 +19,7 @@ var sequelize = new Sequelize(process.env.database, process.env.dbUser, process.
     logging: false
 });
 
-var models = ['Assignment','AssignmentInstance', 'Course', 'Group',
+var models = ['Assignment','AssignmentInstance', 'Course', 'EmailNotification', 'Group',
     'GroupUser','Organization', 'ResetPasswordRequest', 'Section',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance'
