@@ -37,7 +37,7 @@ function Email() {
 */
 Email.prototype.add = function(taskInstanceID) {
 
-    console.log("Adding TaskInstanceID", taskInstanceID, " To Eail Notification List...");
+    console.log("Adding TaskInstanceID", taskInstanceID, " To Email Notification List...");
 
     EmailNotification.create({
         TaskInstanceID: taskInstanceID
@@ -64,7 +64,7 @@ Email.prototype.delete = function(taskInstanceID) {
 }
 
 /*
-  Send an email
+  Send an email, provide an opts will allow you to send any email to anyone.
 */
 Email.prototype.send = function(opts) {
     var mailOpts, smtpTransporter;
@@ -87,10 +87,9 @@ Email.prototype.send = function(opts) {
         replyTo: opts.from,
         to: opts.to,
         subject: opts.subject,
+        text: opts.text,
         html: opts.body
     };
-
-    //console.log('mailOpts: ', mailOpts);
 
     console.log('Sending Mail...');
 
@@ -108,60 +107,58 @@ Email.prototype.send = function(opts) {
 }
 
 /*
-  Send an email now
+  Send an email now given userid and type of email needs to be sent.
 */
 Email.prototype.sendNow = function(userid, type) {
 
     var x = this;
 
-    User.find({
+    UserLogin.find({
         where: {
             UserID: userid
         }
     }).then(function(result) {
 
-        UserContact.find({
-            where: {
-                UserContactID: result.UserContactID
-            }
-        }).then(function(contact) {
+        console.log("Sending Email To: ", result.Email, "...");
 
-            console.log("Sending Email To: ", contact.Email, "...");
-
-            switch (type) {
-                case 'create user':
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: contact.Email,
-                        subject: "Welcome to PLA!",
-                        html: "You have succesfully created an account at PLA"
-                    });
-                    break;
-                case 'due less than one day':
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: contact.Email,
-                        subject: "Participatory Learning Approach- Assignment Due In 1 Day!",
-                        html: "You have an assignment due within one day. Please check the website and complete immediately!"
-                    });
-                    break;
-                case 'due less than seven days':
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: contact.Email,
-                        subject: "Participatory Learning Approach- Assignment Due In A Week!",
-                        html: "You have an assignment due within a week. Please careful check the due time!"
-                    });
-                    break;
-                default:
-                    return null;
-            }
-        });
+        switch (type) {
+            case 'create user':
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: "Welcome to PLA!",
+                    text: "You have succesfully created an account on PLA",
+                    html: '<p> You have succesfully created an account on PLA! Here is the temperary password for your account: </p>'
+                });
+                break;
+            case 'due less than one day':
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: "Participatory Learning Approach- Assignment Due In 1 Day!",
+                    text: "You have an assignment due within one day. Please check the website and complete immediately!",
+                    html: ""
+                });
+                break;
+            case 'due less than seven days':
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: "Participatory Learning Approach- Assignment Due In A Week!",
+                    text: "You have an assignment due within a week. Please careful check the due time!",
+                    html: ""
+                });
+                break;
+            default:
+                return null;
+        }
     });
 }
+
+//Update Email Last Sent in Task Instance to Now.
 
 var updateEmailLastSent = function(taskInstanceId) {
     TaskInstance.update({
@@ -180,6 +177,7 @@ var updateEmailLastSent = function(taskInstanceId) {
 
 
 //Goes through entire EmailNotification table and check their time
+//Asynchrounious, sending email does not need to wait for anything
 Email.prototype.check = function() {
 
     var x = this;
@@ -190,10 +188,12 @@ Email.prototype.check = function() {
 
     console.log("Checking Email Notification List...");
 
+    //Retrieve entire Email Notification table
     EmailNotification.findAll({
         attributes: ['TaskInstanceID'],
     }).then(function(list) {
 
+        //Check through each item in the list
         list.forEach(function(result) {
 
             TaskInstance.find({
@@ -218,7 +218,7 @@ Email.prototype.check = function() {
                     x.delete(taskInstance.TaskInstanceID);
 
                 }
-                //check if email last sent is more than 7 days and if task has started and it's due less than 7 days, send an email to user
+                //if email last sent is more than 7 days and if task has started and it's due less than 7 days, send an email to user
                 else if ((((now - taskInstance.EmailLastSent) > sevenDays) && (taskInstance.StartDate < now)) && ((taskInstance.EndDate - now) < sevenDays)) {
 
                     console.log('Assignment due less than seven days! User: ', taskInstance.UserID, ' TaskInstanceID: ', taskInstance.TaskInstanceID);

@@ -117,9 +117,21 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/sendEmailNotification/:taskInstanceId", function(req, res) {
         var email = new Email.Email();
 
-        email.send(req.body.opts);
+        
+        //email.sendNow(req.body.opts);
+        // opts = {
+        //   from: "qxl2@njit.edu",
+        //   replyTo: "qxl2@njit.edu",
+        //   to: "njitplamaster@gmail.com",
+        //   subject: "Test",
+        //   html: "Test"
+        // };
+        //
+        // email.send(opts);
+
 
     });
+
 
 
     //-----------------------------------------------------------------------------------------------------
@@ -558,6 +570,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to add a user to a course
     router.post("/course/adduser", function(req, res) {
+
+        var email = new Email.Email();
+
         if (req.body.email === null) {
             console.log("course/adduser : Email cannot be null");
             res.status(400).end();
@@ -607,6 +622,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                     console.log(err);
                                 }).then(function(userLogin) {
                                     //Email User With Password
+                                    email.sendNow(userLogin.UserID, 'create user');
+
                                     SectionUser.create({
                                         SectionID: req.body.sectionid,
                                         UserID: userLogin.UserID,
