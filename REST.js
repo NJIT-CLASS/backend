@@ -45,7 +45,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.post("/assignment/create", function(req, res) {
 
         var allocator = new Allocator3.Allocator3();
-
+        console.log('assignment: ', req.body.assignment);
         allocator.createAssignment(req.body.assignment).then(function(done) {
             if (done === false) {
                 res.status(400).end();
@@ -117,7 +117,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/sendEmailNotification/:taskInstanceId", function(req, res) {
         var email = new Email.Email();
 
-        
+
         //email.sendNow(req.body.opts);
         // opts = {
         //   from: "qxl2@njit.edu",
@@ -1780,7 +1780,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //creates new allocator object
         var allocator = new Allocator3.Allocator3();
 
-        console.log('/getAssignToSection/submit/    Creating Assignment Instance...');
+        console.log('/getAssignToSection/submit/  Creating Assignment Instance...');
 
         //create assignment instance
         allocator.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(function(done) {

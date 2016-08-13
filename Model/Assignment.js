@@ -35,7 +35,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         GradeDistribution: {
             //Describes the percentage given for every workflow and distribution of grade for every task
-            type: DataTypes.BLOB,
+            type: DataTypes.JSON,
             field: 'GradeDistribution',
             allowNull: true
         },

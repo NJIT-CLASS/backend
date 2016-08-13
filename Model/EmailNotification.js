@@ -32,9 +32,5 @@ module.exports = function(sequelize, DataTypes) {
 
         // define the table's name
         tableName: 'EmailNotification'
-
-        // instanceMethods: {
-        //   check: function()
-        // }
     });
 };
