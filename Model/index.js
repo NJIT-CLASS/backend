@@ -2,7 +2,7 @@ var Sequelize = require("sequelize");
 
 process.env.dbHost = 'localhost';
 process.env.dbUser = 'root';
-process.env.dbPass = '123456';
+process.env.dbPass = '123';
 process.env.database = 'CLASS/PLA';
 process.env.serverPort = '4000';
 

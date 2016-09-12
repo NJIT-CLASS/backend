@@ -7,13 +7,11 @@ var UserContact = models.UserContact;
 var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
-
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
 var TaskActivity = models.TaskActivity;
 var Assignment = models.Assignment;
 var AssignmentInstance = models.AssignmentInstance;
-
 var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
@@ -25,6 +23,7 @@ var EmailNotification = models.EmailNotification;
 function Allocator3() {
 
 };
+
 //-------------------------------------------------------------------------------------
 
 /*
@@ -628,51 +627,70 @@ Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
 
 //-------------------------------------------------------------------------------------
 
+/*
+    Update Assignee Constraints givent an array of task activity IDs and an object of all the fake IDs with real IDs
+    **in use**
+*/
 Allocator3.prototype.updateAssigneeConstraints = function(ta_array, ta_keys) {
 
-        console.log('Updating Assignee Constraints...');
-        return Promise.mapSeries(ta_array, function(task) {
+    console.log('Updating Assignee Constraints...');
 
-            return TaskActivity.find({
-                where: {
-                    TaskActivityID: task
-                }
-            }).then(function(result) {
+    //Iterate through ta_array
+    return Promise.mapSeries(ta_array, function(task) {
 
-                var assigneeConstraints = JSON.parse(result.AssigneeConstraints);
-                for (var item in JSON.parse(result.AssigneeConstraints)) {
-                    var temp = [];
-                    //console.log("AssigneeConstraints", assigneeConstraints[item]);
-                    assigneeConstraints[item].forEach(function(key) {
+        return TaskActivity.find({
+            where: {
+                TaskActivityID: task
+            }
+        }).then(function(result) {
+
+            var assigneeConstraints = JSON.parse(result.AssigneeConstraints);
+
+            //Loop through Assignee Constraints
+            for (var item in JSON.parse(result.AssigneeConstraints)) {
+
+                var temp = [];
+                assigneeConstraints[item].forEach(function(key) {
+                    if (ta_keys[key] === null || typeof ta_keys[key] === undefined || ta_keys[key] === undefined) {
+                        temp.push(0);
+                    } else {
                         temp.push(ta_keys[key]);
-                    });
-                    assigneeConstraints[item] = temp;
-                    console.log("AssigneeConstraints", temp);
-                }
-
-                return TaskActivity.update({
-                    AssigneeConstraints: assigneeConstraints
-                }, {
-                    where: {
-                        TaskActivityID: result.TaskActivityID
                     }
                 });
+
+                assigneeConstraints[item] = temp;
+
+                console.log("AssigneeConstraints", temp);
+            }
+
+            return TaskActivity.update({
+                AssigneeConstraints: assigneeConstraints
+            }, {
+                where: {
+                    TaskActivityID: result.TaskActivityID
+                }
             });
-        }).catch(function(err) {
-            console.log("Updating Assignee Constraint Failure")
-            console.log(err);
         });
-    }
-    /*
-      Create assignment. Use for assignment editor
-      **in use**
-    */
+    }).catch(function(err) {
+
+        console.log("Updating Assignee Constraint Failure")
+        console.log(err);
+
+    });
+}
+
+
+/*
+  Create assignment. Use for assignment editor
+  **in use**
+*/
 
 Allocator3.prototype.createAssignment = function(assignment) {
 
     var x = this;
     console.log('Creating assignment activity...');
 
+    //Create assignment activity
     return Assignment.create({
         OwnerID: assignment.AA_userID,
         Name: assignment.AA_name,
@@ -686,13 +704,15 @@ Allocator3.prototype.createAssignment = function(assignment) {
         Documentation: assignment.AA_documentation
     }).then(function(assignmentResult) {
 
+        //Keep track all the workflow activities created under assignment
         var WA_array = [];
 
         console.log('Assignment creation successful!');
         console.log('AssignmentID: ', assignmentResult.AssignmentID);
 
-        //Iterate through array of workflow activities
+        //Iterate through array of workflow activities (Created WorkflowActivity in order)
         return Promise.mapSeries(assignment.WorkflowActivity, function(workflow, index) {
+
             console.log('Creating workflow activity...');
 
             return WorkflowActivity.create({
@@ -710,9 +730,10 @@ Allocator3.prototype.createAssignment = function(assignment) {
 
                 WA_array.push(workflowResult.WorkflowActivityID);
 
+                //Keep track all the task activities within each workflow
                 TA_array = [];
 
-                //Iterate through TaskActivity array in each WorkflowActivity
+                //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
                 return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function(task) {
                     console.log('Creating task activity...');
                     return TaskActivity.create({
@@ -747,20 +768,19 @@ Allocator3.prototype.createAssignment = function(assignment) {
                     }).then(function(taskResult) {
                         console.log('Task creation successful!');
                         console.log('TaskActivityID: ', taskResult.TaskActivityID);
+
                         TA_array.push(taskResult.TaskActivityID);
 
                     }).catch(function(err) {
                         console.log("Workflow creation failed");
                         //Loggin error
                         console.log(err);
-                        err = false;
-                        return err;
+                        return false;
                     });
                 }).then(function(done) {
 
-                    //After all TaskActivities are created update the list of TaskActivities in WorkflowActivity
-                    //console.log('TA_array: ', TA_array);
-
+                    //Replace all fake IDs within workflow activity grade distribution with real WorkflowActivityID
+                    //(Assumed all task activities are created in order)
                     var WA_gradeDistribution = {};
                     var WA_count = 0;
                     var TA_keys = {};
@@ -771,7 +791,7 @@ Allocator3.prototype.createAssignment = function(assignment) {
                         WA_count++;
                     }
 
-                    //console.log('TA_keys: ', TA_keys);
+                    //Update the list of TaskActivities in WorkflowActivity and Grade Distribution
 
                     WorkflowActivity.update({
 
@@ -783,9 +803,10 @@ Allocator3.prototype.createAssignment = function(assignment) {
                         }
                     });
 
+                    //Update AssigneeConstraints replace fake IDs with real TaskActivityID
                     x.updateAssigneeConstraints(TA_array, TA_keys);
 
-                    //reset the TA_array
+                    //reset TA_array
                     TA_array = [];
 
 
@@ -794,9 +815,7 @@ Allocator3.prototype.createAssignment = function(assignment) {
                     console.log("Workflow creation failed");
                     //Loggin error
                     console.log(err);
-                    err = false;
-                    return err;
-                    //res.status(400).end();
+                    return false;
                 });
             }).then(function(done) {
 
@@ -825,14 +844,8 @@ Allocator3.prototype.createAssignment = function(assignment) {
             // err is the reason why rejected the promise chain returned to the transaction callback
             console.log("Assignment creation failed");
             //Loggin error
-
             console.log(err);
-            //res.status(400).end();
-
-            err = false;
-            return err;
-
-
+            return false;
         });
     });
 }
@@ -854,7 +867,7 @@ Allocator3.prototype.createWorkflowInstance = function(workflow, ai_id) {
             //create attributes.
             WorkflowActivityID: workflow.id,
             AssignmentInstanceID: ai_id,
-            StartDate: workflow.startDate
+            StartTime: workflow.startDate
         }).then(function(result) {
             resolve(result.WorkflowInstanceID);
         }).catch(function(err) {
@@ -916,11 +929,9 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
         console.log('Found number of users: ', users);
         console.log('Found workflowTiming: ', JSON.parse(workflowTiming));
 
-
-
         console.log('Going through each user...');
 
-        //iterate through all users
+        //iterate through all users from section
         return Promise.mapSeries(users, function(user) {
 
             return Promise.mapSeries(JSON.parse(workflowTiming).workflows, function(workflow, index) {
@@ -931,6 +942,7 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                 var taskArray = [];
                 //Store the current WorkflowInstanceID once it is created
                 var wi_id;
+
 
                 console.log('Creating workflow instance...');
 
@@ -980,8 +992,8 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                         WorkflowInstance.update({
 
                             TaskCollection: taskArray.sort(function(a, b) {
-                                    return a - b;
-                                }) //Promise does not guarantee the object result are in order so sorted
+                                return a - b;
+                            })
                         }, {
                             where: {
                                 WorkflowInstanceID: wi_id
@@ -994,25 +1006,26 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
     }).then(function(done) {
 
         console.log('Updating workflow collection in assignment instance...');
+
         //Update WorkflowCollection
-
-        workflowArray.sort(function(a, b) {
-            return a - b;
-        });
-
         AssignmentInstance.update({
-
-            WorkflowCollection: workflowArray //Promise does not guarantee the object result are in order so sorted
+            WorkflowCollection: workflowArray.sort(function(a, b) {
+                return a - b;
+            })
         }, {
             where: {
                 AssignmentInstanceID: ai_id
             }
         }).then(function(done) {
+
             return x.updatePreviousAndNextTasks(ai_id);
+
         }).catch(function(err) {
+
             console.log(err);
         });
     }).catch(function(err) {
+
         console.log(err);
     });;
 }

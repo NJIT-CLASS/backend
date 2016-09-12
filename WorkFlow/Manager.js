@@ -42,11 +42,14 @@ Manager.check = function(){
     }
   }).then(function(taskInstances){
     taskInstances.forEach(function(task){
-        
+        Manager.check(task);
     });
   });
 }
 
+Manager.check = function(task){
+
+}
 
 
 // Manager.checkTimeoutTaskInstances = function() {

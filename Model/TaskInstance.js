@@ -145,6 +145,7 @@ module.exports = function(sequelize, DataTypes) {
                     console.log("Trigger added");
                 });
             },
+
             getTriggerConditions: function() {
                 settings = JSON.parse(this.Settings);
 
@@ -153,6 +154,7 @@ module.exports = function(sequelize, DataTypes) {
 
                 return settings.trigger;
             },
+
             addExpireCondition: function(data) {
                 settings = JSON.parse(this.Settings);
 
@@ -164,6 +166,7 @@ module.exports = function(sequelize, DataTypes) {
                     console.log("Expired Condition added");
                 });
             },
+
             getExpireConditions: function() {
                 settings = JSON.parse(this.Settings);
 
@@ -173,6 +176,7 @@ module.exports = function(sequelize, DataTypes) {
                 return settings.expire;
 
             },
+
             triggerConditionsAreMet: function(callback) {
                 //this.getTriggerConditions();
                 if (this.Status == 'triggered' || this.Status == 'started')

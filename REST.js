@@ -92,8 +92,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
         var allocator = new Allocator3.Allocator3();
 
-        allocator.createInstances(3, 13)
-
+        allocator.createInstances(3, 13);
+        //allocator.createInstances(3, 14);
         //allocator.updatePreviousAndNextTasks(13);
 
     });
@@ -1533,6 +1533,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         console.log('/getAssignmentRecord/:assignmentInstanceid: Initiating...');
 
         var tasks = [];
+        var info = {};
+
 
         WorkflowInstance.findAll({
             where: {
@@ -1574,6 +1576,39 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
                         //Array of arrays of all task instance collection
                         tasks.push(tempTasks);
+
+                        return AssignmentInstance.find({
+                            where: {
+                                AssignmentInstanceID: req.params.assignmentInstanceid
+                            }
+                        }).then(function(AI_Result) {
+                            return Assignment.find({
+                                where: {
+                                    AssignmentID: AI_Result.AssignmentID
+                                },
+                                attributes: ['OwnerID', 'SemesterID','CourseID']
+                            }).then(function(A_Result) {
+                                info.Assignment = A_Result;
+                                //console.log("A_Result", A_Result);
+                                return User.find({
+                                    where: {
+                                        UserID: A_Result.OwnerID
+                                    },
+                                    attributes: ['FirstName', 'MiddleInitial', 'LastName']
+                                }).then(function(user) {
+                                    info.User = user;
+
+                                    return Course.find({
+                                      where:{
+                                        CourseID: A_Result.CourseID
+                                      },
+                                      attributes: ['Name']
+                                    }).then(function(course){
+                                      info.Course = course;
+                                    });
+                                });
+                            });
+                        });
                     });
                 });
             }
@@ -1584,6 +1619,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
             res.json({
                 "Error": false,
+                "Info": info,
                 "AssignmentRecords": tasks
             });
 
