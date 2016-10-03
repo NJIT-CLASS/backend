@@ -60,7 +60,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         WhatIfLate: {
             //drop down menu: Keep same participant, Allocate new participant, Allocate to instructor, Allocate to different group member, Consider resolved; fixed as Consider resolved if TA_at_duration_end = "resolved" (*See Notes document)
-            type: DataTypes.STRING,
+            type: DataTypes.JSON,
             field: 'WhatIfLate',
             allowNull: true
         },

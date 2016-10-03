@@ -884,9 +884,9 @@ Allocator3.prototype.createWorkflowInstance = function(workflow, ai_id) {
   Create task instance
   **in use**
 */
-Allocator3.prototype.createTaskInstance = function(task, userid, wi_id, ai_id, startDate) {
+Allocator3.prototype.createTaskInstance = function(task, userid, wi_id, ai_id) {
     return new Promise(function(resolve, reject) {
-        var endDate = new Date(new Date(startDate).getTime() + task.DueType[1]);
+        //var endDate = new Date(new Date(startDate).getTime() + task.DueType[1]);
         TaskInstance.create({
             //create attributes
             UserID: userid,
@@ -894,11 +894,11 @@ Allocator3.prototype.createTaskInstance = function(task, userid, wi_id, ai_id, s
             WorkflowInstanceID: wi_id,
             AssignmentInstanceID: ai_id,
             Status: 'not_yet_started',
-            StartDate: startDate,
-            EndDate: endDate,
+            //StartDate: startDate,
+            //EndDate: endDate,
             Data: task.DueType
         }).then(function(result) {
-            resolve([result.TaskInstanceID, endDate]);
+            resolve([result.TaskInstanceID]);
         }).catch(function(err) {
             console.log(err);
             reject(err);
@@ -954,26 +954,36 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                     wi_id = workflowInstanceId;
 
                     var startTime = JSON.parse(workflowTiming).workflows[index].startDate;
-                    var newStartTime = null;
+                    //var newStartTime = null;
 
                     console.log('Going through individual tasks...');
 
                     //iterate through all the tasks stored under workflows
-                    return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task) {
+                    return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
 
                         console.log('task: ', task.id);
                         return x.getNumberParticipants(task.id).then(function(numParticipants) {
 
                             return Promise.mapSeries(numParticipants, function(iteration) {
 
-                                return x.createTaskInstance(task, user, workflowInstanceId, ai_id, startTime).then(function(createTaskResult) {
+                                return x.createTaskInstance(task, user, workflowInstanceId, ai_id).then(function(createTaskResult) {
 
                                     console.log('taskInstanceId: ', createTaskResult[0]);
                                     //push the resulting workflowInstance object from callback to workflow Array
                                     taskArray.push(createTaskResult[0]);
 
+                                    if (num === 0) {
+                                        TaskInstance.update({
+                                            StartDate: JSON.parse(workflowTiming).workflows[index].startDate
+                                        }, {
+                                            where: {
+                                                TaskInstanceID: createTaskResult[0]
+                                            }
+                                        });
+                                    }
+
                                     //provide as medium to temporary store endDate value so numParticipants wouldn't affect;
-                                    newStartTime = createTaskResult[1];
+                                    //newStartTime = createTaskResult[1];
 
 
                                 }).catch(function(err) {
@@ -982,7 +992,7 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                             });
                         }).then(function(done) {
                             //now set startTime to the newStartTime
-                            startTime = newStartTime;
+                            //startTime = newStartTime;
                         });
                     }).then(function(done) {
 

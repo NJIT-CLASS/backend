@@ -1,6 +1,7 @@
 var models = require('../Model');
 var TaskFactory = require('./TaskFactory.js');
-var Allocator = require('./Allocator.js');
+var Allocator3 = require('./Allocator3.js');
+var Promise = require('bluebird');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -20,7 +21,7 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-
+var allocator = new Allocator3.Allocator3();
 
 /**
  *
@@ -31,26 +32,112 @@ function Manager() {
 
 };
 
-Manager.check = function(){
-  TaskInstance.findAll({
-    where:{
-      $or: [{
-        Status: "not_yet_started"
-      }, {
-        Status: "started"
-      }]
-    }
-  }).then(function(taskInstances){
-    taskInstances.forEach(function(task){
-        Manager.check(task);
+Manager.check = function() {
+    TaskInstance.findAll({
+        where: {
+            Status: "started"
+        }
+    }).then(function(taskInstances) {
+        taskInstances.forEach(function(task) {
+            Manager.check(task);
+            //check for started task instances
+        });
     });
-  });
 }
 
-Manager.check = function(task){
-
+Manager.check = function(task) {
+    //only check for started
+    task.timeOutTime(function(date) {
+        var now = new Date();
+        if (date < now) {
+            task.timeOut();
+        }
+    });
 }
 
+Manager.checkAssignments = function() {
+    AssignmentInstance.findAll({
+        where: {
+            EndDate: null
+        }
+    }).then(function(AIs) {
+        AIs.forEach(function(assignmentInstance) {
+            console.log("checkAssginments: AssignmentInstanceID", assignmentInstance.AssignmentInstanceID);
+            Manager.checkAssignment(assignmentInstance);
+        });
+    });
+}
+
+Manager.checkAssignment = function(assignmentInstance) {
+    var startDate = assignmentInstance.StartDate;
+
+    var now = new Date();
+
+    if (startDate < now) {
+        console.log("checkAssginment: Start Date has past ", assignmentInstance.AssignmentInstanceID)
+        Manager.isStarted(assignmentInstance, function(result) {
+            console.log("checkAssignment: ", assignmentInstance.AssignmentInstanceID, result);
+            if (!result)
+                allocator.createInstances(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
+        });
+    }
+}
+
+Manager.isStarted = function(assignmentInstance, callback) {
+    WorkflowInstance.count({
+        where: {
+            AssignmentInstanceID: assignmentInstance.AssignmentInstanceID
+        }
+    }).then(function(count) {
+        callback(count > 0 ? true : false);
+    });
+}
+
+
+//TaskInstance set EndDate, and Start NextTask.
+Manager.triggerNext = function(taskInstance, data) {
+
+    var date = new Date();
+    var stat = 'complete';
+
+    TaskActivity.find({
+        where: {
+            TaskActivityID: taskInstance.TaskActivityID
+        }
+    }).then(function(ta_result) {
+
+        if (ta_result.StartDelay > 0) {
+            date += ta_result.StartDelay;
+        }
+        if (taskInstance.Status === 'late') {
+            stat = 'late_complete';
+        }
+
+    }).then(function(done) {
+
+        taskInstance.update({
+            Status: stat,
+            Data: data,
+            EndDate: date
+        }).then(function() {
+
+            TaskInstance.update({
+              StartDate: date
+            },{
+              where:{
+                TaskInstanceID: taskInstance.NextTask
+              }
+            });
+
+            return true;
+
+        }).then(function(err) {
+            console.log(err);
+            return false;
+        });
+    });
+
+}
 
 // Manager.checkTimeoutTaskInstances = function() {
 //     TaskInstance.findAll({

@@ -140,12 +140,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/manager", function(req, res) {
 
         //Manager.Manager.checkTimeoutTasks();
-        AssignmentInstance.findById(1).then(
-            function(asection) {
-                Manager.Manager.trigger(asection);
+        // AssignmentInstance.findById(1).then(
+        //     function(asection) {
+        //         Manager.Manager.trigger(asection);
+        //
+        //     }
+        // );
 
-            }
-        );
+        Manager.Manager.checkAssignments();
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -1347,21 +1349,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 return;
             }
 
-            //Change Task_status to Complete and store userCreatedProblem
-            result.update({
-                Status: 'Complete',
-                Data: req.body.taskInstanceData
-
-            }).then(function(response) {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": response
-                });
-            }).catch(function(err) {
-                console.log('/taskInstanceTemplate/create/submit ' + err);
-                res.status(400).end();
-            });
+            //Trigger next task to start
+            if(Manager.Manager.triggerNext(result, req.body.taskInstanceData)) {
+              res.status(200).end();
+            } else {
+              res.status(400).end();
+            }
 
         });
 
@@ -1582,11 +1575,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 AssignmentInstanceID: req.params.assignmentInstanceid
                             }
                         }).then(function(AI_Result) {
+                            info.SectionID = AI_Result;
                             return Assignment.find({
                                 where: {
                                     AssignmentID: AI_Result.AssignmentID
                                 },
-                                attributes: ['OwnerID', 'SemesterID','CourseID']
+                                attributes: ['OwnerID', 'SemesterID','CourseID','DisplayName', 'SectionID']
                             }).then(function(A_Result) {
                                 info.Assignment = A_Result;
                                 //console.log("A_Result", A_Result);
