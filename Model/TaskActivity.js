@@ -25,7 +25,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         Name: {
             //Name of the task activity (Create question quiz, Create question exam)
-            type: DataTypes.STRING(50),
+            type: DataTypes.STRING,
             field: 'Name',
             allowNull: true
         },
@@ -48,7 +48,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         StartDelay: { //*StartDelay
             //Earlier start time in minutes. “0” means no delay, do when triggered.
-            type: DataTypes.DATE,
+            type: DataTypes.INTEGER.UNSIGNED,
             field: 'StartDelay',
             allowNull: true
         },
@@ -66,7 +66,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         DisplayName: {
             // The default should be a name that makes sense to the user and also conveys our intent, such as “Optionally decide to dispute” for the dispute task.  (*See Notes document)
-            type: DataTypes.STRING(25),
+            type: DataTypes.STRING,
             field: 'DisplayName',
             allowNull: true
         },

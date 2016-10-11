@@ -631,7 +631,7 @@ Allocator3.prototype.getNumberParticipants = function(taskActivityID) {
     Update Assignee Constraints givent an array of task activity IDs and an object of all the fake IDs with real IDs
     **in use**
 */
-Allocator3.prototype.updateAssigneeConstraints = function(ta_array, ta_keys) {
+Allocator3.prototype.updateAssigneeConstraints = function(ta_array) {
 
     console.log('Updating Assignee Constraints...');
 
@@ -647,18 +647,21 @@ Allocator3.prototype.updateAssigneeConstraints = function(ta_array, ta_keys) {
             var assigneeConstraints = JSON.parse(result.AssigneeConstraints);
 
             //Loop through Assignee Constraints
-            for (var item in JSON.parse(result.AssigneeConstraints)) {
+            for (var item in assigneeConstraints[2]) {
 
                 var temp = [];
-                assigneeConstraints[item].forEach(function(key) {
-                    if (ta_keys[key] === null || typeof ta_keys[key] === undefined || ta_keys[key] === undefined) {
-                        temp.push(0);
-                    } else {
-                        temp.push(ta_keys[key]);
-                    }
+
+                assigneeConstraints[2][item].forEach(function(index) {
+                    temp.push(ta_array[index]);
+                    // if (ta_keys[key] === null || typeof ta_keys[key] === undefined || ta_keys[key] === undefined) {
+                    //     temp.push(0);
+                    // } else {
+                    //     temp.push(ta_keys[key]);
+                    // }
+
                 });
 
-                assigneeConstraints[item] = temp;
+                assigneeConstraints[2][item] = temp;
 
                 console.log("AssigneeConstraints", temp);
             }
@@ -783,11 +786,9 @@ Allocator3.prototype.createAssignment = function(assignment) {
                     //(Assumed all task activities are created in order)
                     var WA_gradeDistribution = {};
                     var WA_count = 0;
-                    var TA_keys = {};
 
                     for (var item in assignment.WorkflowActivity[index].WA_grade_distribution) {
                         WA_gradeDistribution[TA_array[WA_count]] = assignment.WorkflowActivity[index].WA_grade_distribution[item];
-                        TA_keys[item] = TA_array[WA_count];
                         WA_count++;
                     }
 
@@ -804,7 +805,7 @@ Allocator3.prototype.createAssignment = function(assignment) {
                     });
 
                     //Update AssigneeConstraints replace fake IDs with real TaskActivityID
-                    x.updateAssigneeConstraints(TA_array, TA_keys);
+                    x.updateAssigneeConstraints(TA_array);
 
                     //reset TA_array
                     TA_array = [];
@@ -893,10 +894,7 @@ Allocator3.prototype.createTaskInstance = function(task, userid, wi_id, ai_id) {
             TaskActivityID: task.id,
             WorkflowInstanceID: wi_id,
             AssignmentInstanceID: ai_id,
-            Status: 'not_yet_started',
-            //StartDate: startDate,
-            //EndDate: endDate,
-            Data: task.DueType
+            Status: 'not_yet_started'
         }).then(function(result) {
             resolve([result.TaskInstanceID]);
         }).catch(function(err) {
@@ -928,11 +926,13 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
 
         console.log('Found number of users: ', users);
         console.log('Found workflowTiming: ', JSON.parse(workflowTiming));
-
         console.log('Going through each user...');
+
+        var candidates = users;
 
         //iterate through all users from section
         return Promise.mapSeries(users, function(user) {
+
 
             return Promise.mapSeries(JSON.parse(workflowTiming).workflows, function(workflow, index) {
 
@@ -943,7 +943,6 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                 //Store the current WorkflowInstanceID once it is created
                 var wi_id;
 
-
                 console.log('Creating workflow instance...');
 
                 return x.createWorkflowInstance(workflow, ai_id).then(function(workflowInstanceId) {
@@ -952,9 +951,6 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                     workflowArray.push(workflowInstanceId);
                     //store WorkflowInstanceID created
                     wi_id = workflowInstanceId;
-
-                    var startTime = JSON.parse(workflowTiming).workflows[index].startDate;
-                    //var newStartTime = null;
 
                     console.log('Going through individual tasks...');
 
@@ -982,21 +978,12 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                                         });
                                     }
 
-                                    //provide as medium to temporary store endDate value so numParticipants wouldn't affect;
-                                    //newStartTime = createTaskResult[1];
-
-
                                 }).catch(function(err) {
                                     console.log(err);
                                 });
                             });
-                        }).then(function(done) {
-                            //now set startTime to the newStartTime
-                            //startTime = newStartTime;
                         });
                     }).then(function(done) {
-
-
                         console.log('Updating task collection in workflow instance...');
                         //Update TaskCollection
                         WorkflowInstance.update({
