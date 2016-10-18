@@ -228,6 +228,12 @@ module.exports = function(sequelize, DataTypes) {
         // if you don't want that, set the following
         freezeTableName: true,
 
+        // getterMethods:{
+        //   getTaskActivity: function(){
+        //     return this;
+        //   }
+        // }
+
         // define the table's name
         tableName: 'TaskActivity'
     });

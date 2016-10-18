@@ -11,6 +11,7 @@
     "dateformat": "*",
     "express": "*",
     "guid": "*",
+    "moment": "^2.15.1",
     "mysql": "*",
     "sendgrid": "^2.0.0",
     "sequelize": "*",

@@ -91,8 +91,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.get("/allocate", function(req, res) {
 
         var allocator = new Allocator3.Allocator3();
-
-        allocator.createInstances(3, 13);
+        //allocator.createInstances(1, 16);
+        allocator.createInstances(3, 13).then(function(done) {
+            console.log('/getAssignToSection/allocate   All Done!');
+            res.status(200).end();
+        }).catch(function(err) {
+            console.log(err);
+            res.status(404).end();
+        });
         //allocator.createInstances(3, 14);
         //allocator.updatePreviousAndNextTasks(13);
 
@@ -147,7 +153,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //     }
         // );
 
-        Manager.Manager.checkAssignments();
+        //Manager.Manager.checkAssignments();
+        Manager.Manager.check();
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -1336,27 +1343,26 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             return;
         }
 
-        TaskInstance.find({
+        TaskInstance.update({
+            Data: req.body.taskInstanceData
+        }, {
             where: {
                 TaskInstanceID: req.body.taskInstanceid,
                 UserID: req.body.userid
             }
-        }).then(function(result) {
+        }).then(function(ti_result) {
             //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != result.UserID) {
-                console.log("/taskInstanceTemplate/create/submit : UserID Incorrect Match");
+                console.log("/taskInstanceTemplate/create/submit : UserID Not Matched!");
                 res.status(400).end();
-                return;
             }
-
             //Trigger next task to start
-            if(Manager.Manager.triggerNext(result, req.body.taskInstanceData)) {
-              res.status(200).end();
-            } else {
-              res.status(400).end();
-            }
+            ti_result.triggerNext();
+            res.status(200).end();
 
-        });
+        }).catch(function(err) {
+            res.status(400).end();
+        });;
 
     });
 
@@ -1422,7 +1428,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
-                Status: "Incomplete"
+                Status: "incomplete"
             },
             attributes: ["TaskInstanceID", "UserID", "WorkflowInstanceID", "StartDate", "EndDate", "Status"],
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
@@ -1476,7 +1482,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
-                Status: "Complete"
+                Status: "complete"
             },
             attributes: ["TaskInstanceID", "UserID", "WorkflowInstanceID", "StartDate", "EndDate", "Status"],
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
@@ -1580,7 +1586,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 where: {
                                     AssignmentID: AI_Result.AssignmentID
                                 },
-                                attributes: ['OwnerID', 'SemesterID','CourseID','DisplayName', 'SectionID']
+                                attributes: ['OwnerID', 'SemesterID', 'CourseID', 'DisplayName', 'SectionID']
                             }).then(function(A_Result) {
                                 info.Assignment = A_Result;
                                 //console.log("A_Result", A_Result);
@@ -1593,12 +1599,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                     info.User = user;
 
                                     return Course.find({
-                                      where:{
-                                        CourseID: A_Result.CourseID
-                                      },
-                                      attributes: ['Name']
-                                    }).then(function(course){
-                                      info.Course = course;
+                                        where: {
+                                            CourseID: A_Result.CourseID
+                                        },
+                                        attributes: ['Name']
+                                    }).then(function(course) {
+                                        info.Course = course;
                                     });
                                 });
                             });
@@ -1704,10 +1710,21 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var sectionIDs = [];
         var taskCollection = {};
         var isDone = false;
+        var DisplayName;
+
+        Assignment.find({
+            where: {
+                AssignmentID: req.query.assignmentid
+            },
+            attributes: ["DisplayName"]
+        }).then(function(AI_Result) {
+            DisplayName = AI_Result;
+        })
 
         //Find all WorkflowActivities associate with assignmentid
         var workflowActivity = WorkflowActivity.findAll({
             where: {
+
                 AssignmentID: req.query.assignmentid
             }
         });
@@ -1793,6 +1810,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
             if (isDone === true) {
                 res.json({
+                    "assignment": DisplayName,
                     "sectionIDs": sectionIDs,
                     "taskActivityCollection": taskCollection //returns workflow id follows by task act
                 });

@@ -1,5 +1,6 @@
 var models = require('../Model');
 var Promise = require('bluebird');
+var moment=require('moment');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -450,6 +451,7 @@ Allocator3.prototype.getUsersFromSection = function(sectionid) {
 */
 
 Allocator3.prototype.createAssignmentInstances = function(a_id, sectionIDs, startDate, wf_timing) {
+    var x = this;
 
     console.log('Creating assignment instance...');
     //Iterate through all sectionIDs passed in and promise each is returned before next execution
@@ -465,6 +467,7 @@ Allocator3.prototype.createAssignmentInstances = function(a_id, sectionIDs, star
         }).then(function(assignmentInstance) {
 
             console.log('Assignment instance created! : ', assignmentInstance.AssignmentInstanceID);
+            x.updateWorkflowTiming(wf_timing);
             //return AssignmentInstanceID
 
         }).catch(function(err) {
@@ -472,6 +475,29 @@ Allocator3.prototype.createAssignmentInstances = function(a_id, sectionIDs, star
             console.log(err);
         });
     });
+}
+
+Allocator3.prototype.updateWorkflowTiming = function(wf_timing) {
+
+    return Promise.mapSeries(wf_timing.workflows, function(workflow, index) {
+
+
+        return Promise.mapSeries(wf_timing.workflows[index].tasks, function(task) {
+
+            TaskActivity.update({
+                DueType: task.DueType
+            }, {
+                where: {
+                    TaskActivityID: task.id
+                }
+            }).catch(function(err) {
+                console.log('Update WorkflowTiming Failed!');
+                console.log(err);
+            });
+
+        });
+    });
+
 }
 
 //-------------------------------------------------------------------------------------
@@ -894,7 +920,7 @@ Allocator3.prototype.createTaskInstance = function(task, userid, wi_id, ai_id) {
             TaskActivityID: task.id,
             WorkflowInstanceID: wi_id,
             AssignmentInstanceID: ai_id,
-            Status: 'not_yet_started'
+            Status: 'not_yet_started',
         }).then(function(result) {
             resolve([result.TaskInstanceID]);
         }).catch(function(err) {
@@ -942,6 +968,7 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                 var taskArray = [];
                 //Store the current WorkflowInstanceID once it is created
                 var wi_id;
+                var startDate = new Date(JSON.parse(workflowTiming).workflows[index].startDate);
 
                 console.log('Creating workflow instance...');
 
@@ -959,18 +986,27 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
 
                         console.log('task: ', task.id);
                         return x.getNumberParticipants(task.id).then(function(numParticipants) {
-
                             return Promise.mapSeries(numParticipants, function(iteration) {
-
                                 return x.createTaskInstance(task, user, workflowInstanceId, ai_id).then(function(createTaskResult) {
 
                                     console.log('taskInstanceId: ', createTaskResult[0]);
                                     //push the resulting workflowInstance object from callback to workflow Array
                                     taskArray.push(createTaskResult[0]);
 
+                                    console.log("DueType", task.DueType);
                                     if (num === 0) {
+
+                                        var endDate = moment(JSON.parse(workflowTiming).workflows[index].startDate);
+                                        if(task.DueType[0] === "duration"){
+                                          endDate.add(task.DueType[1], 'minutes');
+                                        } else if(task.DueType[0] === "specificTime"){
+                                          endDate = task.DueType[1];
+                                        }
+
                                         TaskInstance.update({
-                                            StartDate: JSON.parse(workflowTiming).workflows[index].startDate
+                                            StartDate: startDate,
+                                            EndDate: endDate,
+                                            Status: 'started'
                                         }, {
                                             where: {
                                                 TaskInstanceID: createTaskResult[0]

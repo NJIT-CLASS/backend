@@ -38,21 +38,35 @@ Manager.check = function() {
             Status: "started"
         }
     }).then(function(taskInstances) {
+        if(taskInstances.length === 0){
+          console.log("No Task Instance Found!");
+        }
         taskInstances.forEach(function(task) {
-            Manager.check(task);
+            console.log('Checking Task Instance', task.TaskInstanceID);
+            Manager.checkTask(task);
             //check for started task instances
         });
     });
 }
 
-Manager.check = function(task) {
+Manager.checkTask = function(task) {
     //only check for started
-    task.timeOutTime(function(date) {
+    var taskActivity;
+    TaskActivity.find({
+        where: {
+            TaskActivityID: task.TaskActivityID
+        }
+    }).then(function(ta_result) {
+
+        var date = task.timeOutTime();
+        //console.log('date', date);
+
         var now = new Date();
         if (date < now) {
-            task.timeOut();
+            task.timeOut(ta_result);
         }
     });
+
 }
 
 Manager.checkAssignments = function() {
@@ -91,52 +105,6 @@ Manager.isStarted = function(assignmentInstance, callback) {
     }).then(function(count) {
         callback(count > 0 ? true : false);
     });
-}
-
-
-//TaskInstance set EndDate, and Start NextTask.
-Manager.triggerNext = function(taskInstance, data) {
-
-    var date = new Date();
-    var stat = 'complete';
-
-    TaskActivity.find({
-        where: {
-            TaskActivityID: taskInstance.TaskActivityID
-        }
-    }).then(function(ta_result) {
-
-        if (ta_result.StartDelay > 0) {
-            date += ta_result.StartDelay;
-        }
-        if (taskInstance.Status === 'late') {
-            stat = 'late_complete';
-        }
-
-    }).then(function(done) {
-
-        taskInstance.update({
-            Status: stat,
-            Data: data,
-            EndDate: date
-        }).then(function() {
-
-            TaskInstance.update({
-              StartDate: date
-            },{
-              where:{
-                TaskInstanceID: taskInstance.NextTask
-              }
-            });
-
-            return true;
-
-        }).then(function(err) {
-            console.log(err);
-            return false;
-        });
-    });
-
 }
 
 // Manager.checkTimeoutTaskInstances = function() {
