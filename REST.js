@@ -1344,7 +1344,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         }
 
         TaskInstance.update({
-            Data: req.body.taskInstanceData
+            Data: req.body.taskInstanceData,
+            EndDate: new Date()
         }, {
             where: {
                 TaskInstanceID: req.body.taskInstanceid,
