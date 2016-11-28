@@ -66,9 +66,9 @@ REST.prototype.stop = function(err) {
 }
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
-var schedule = require('node-schedule');
-var Email = require('./WorkFlow/Email.js');
-
+// var schedule = require('node-schedule');
+// var Email = require('./WorkFlow/Email.js');
+//
 // var Sequelize = require("sequelize");
 // var dateFormat = require('dateformat');
 // var Guid = require('guid');
@@ -76,7 +76,7 @@ var Email = require('./WorkFlow/Email.js');
 // var Manager = require('./WorkFlow/Manager.js');
 // var Allocator = require('./WorkFlow/Allocator.js');
 // var sequelize = require("./Model/index.js").sequelize;
-
+//
 // var User = models.User;
 // var UserLogin = models.UserLogin;
 // var UserContact = models.UserContact;
@@ -97,7 +97,7 @@ var Email = require('./WorkFlow/Email.js');
 // sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 // .then(function(){
 //     return sequelize.sync({
-//       //force: true
+//       force: true
 //     });
 // })
 // .then(function(){
@@ -109,21 +109,21 @@ var Email = require('./WorkFlow/Email.js');
 //     console.log(err);
 // });
 
-var rule = new schedule.RecurrenceRule();
-rule.minute = 00;
-var email = new Email.Email();
-//'1 * * * * *' 1 minute.
-var job = schedule.scheduleJob('1 * * * * *', function(time) {
-    // email.check();
-    // email.send({
-    //   from: "njitplamaster@gmail.com",
-    //   replyTo: "njitplamaster@gmail.com",
-    //   to: "ka267@njit.edu",
-    //   subject: "Hey Krzysztof!- WE LOVE YOU!",
-    //   text: "How are you??? How Rutgers??? How's girl friend? How's PLA?",
-    //   html: ""
-    // })
-});
+// var rule = new schedule.RecurrenceRule();
+// rule.minute = 00;
+// var email = new Email();
+// //'1 * * * * *' 1 minute.
+// var job = schedule.scheduleJob('1 * * * * *', function(time) {
+//     // email.check();
+//     // email.send({
+//     //   from: "njitplamaster@gmail.com",
+//     //   replyTo: "njitplamaster@gmail.com",
+//     //   to: "ka267@njit.edu",
+//     //   subject: "Hey Krzysztof!- WE LOVE YOU!",
+//     //   text: "How are you??? How Rutgers??? How's girl friend? How's PLA?",
+//     //   html: ""
+//     // })
+// });
 
 
 //-----------------------------------------------------------------------------------------------------------------------------------------

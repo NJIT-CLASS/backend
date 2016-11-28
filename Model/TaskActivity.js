@@ -210,6 +210,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.JSON,
             field: 'NextTasks',
             allowNull: true
+        },
+        MinimumDuration: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'MinimumDuration',
+            allowNull: true
         }
     }, {
         timestamps: false,

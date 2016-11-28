@@ -1,5 +1,8 @@
 var moment = require('moment');
 var models = require('../Model');
+var email = require('../WorkFlow/Email.js');
+var Promise = require('bluebird');
+
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('TaskInstance', {
         TaskInstanceID: {
@@ -63,6 +66,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'EndDate',
             allowNull: true
         },
+        ActualEndDate: {
+            type: DataTypes.DATE,
+            field: 'ActualEndDate',
+            allowNull: true
+        },
         Data: {
             //User’s input is stored here. For non-display tasks, this will hold the value calculated by the task’s function.
             type: DataTypes.JSON,
@@ -95,13 +103,13 @@ module.exports = function(sequelize, DataTypes) {
         },
         NextTask: {
             //Array of possible next
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.JSON,
             field: 'NextTask',
             allowNull: true
         },
         PreviousTask: {
             //Array of possible previous
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.JSON,
             field: 'PreviousTask',
             allowNull: true
         },
@@ -132,7 +140,7 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         instanceMethods: {
-            timeOut: function(taskActivity) {
+            timeOut: function() {
                 var x = this;
                 //check the option whether keep the same person or allocate to a new person
                 //extended date is in DueType second postion
@@ -144,50 +152,81 @@ module.exports = function(sequelize, DataTypes) {
                 //Change parameter WhatIfLate to Array of [action, number(days)];
 
                 //decision point to decide change the status whether late, abandon, or complete
-
-                switch (taskActivity.AtDurationEnd) {
-                    case '"late"':
-                        //check WhatIfLate action
-                        this.Status = 'late';
-                        switch (taskActivity.WhatIfLate) {
-                            case '"Keep same participant"':
-                                this.EndDate = moment(this.EndDate).add(3, 'days').toDate(); //extend due date.
+                if (this.Type == 'dispute') {
+                    this.Status = 'complete';
+                    return Promise.map(JSON.parse(x.NextTask), function(task) {
+                        TaskInstance.find({
+                            where: {
+                                TaskInstanceID: task
+                            }
+                        }).then(function(nextTask) {
+                            nextTask.Status = 'bypassed';
+                            //need an algorithm that checks for all subworkflow/workflow complete. Triverse the tree to find all subworkflow.
+                        }).then(function(err) {
+                            console.log("Resolve dispute failed to bypass. TaskInstanceID: ", nextTask.TaskInstanceID);
+                            console.log(err);
+                        });
+                    });
+                } else {
+                    models.TaskActivity.find({
+                        where: {
+                            TaskActivityID: this.TaskActivityID
+                        }
+                    }).then(function(taskActivity) {
+                        switch (taskActivity.AtDurationEnd) {
+                            case 'late':
+                                //check WhatIfLate action
+                                this.Status = 'late';
+                                switch (taskActivity.WhatIfLate) {
+                                    case '"keep_same_participant"':
+                                        //email.sendNow(x.UserID, 'late');
+                                        break;
+                                    case "allocate_new_person_from_contingency_pool":
+                                        this.Status = 'late_reallocated';
+                                        //Run allocation algorithm, extend due date.
+                                        //send email to notify user about allocation
+                                        break;
+                                    case "allocate_to_different_person_in_same_group":
+                                        this.Status = 'late_reallocated';
+                                        //Run allocation algorithm specifiy with team, extend due date.
+                                        //send email to notify user about allocation
+                                        break;
+                                    case "allocate_to_instructor":
+                                        this.Status = 'late_reallocated';
+                                        //Run allocation algorithm specifiy with team, extend due date
+                                        //send email to notify user about allocation
+                                        break;
+                                        // case "abandon_task":
+                                        //     this.Status = "complete";
+                                        //     break;
+                                        // case "resolved_task":
+                                        //     this.Status = "complete";
+                                        //     break;
+                                    default:
+                                }
+                                break;
+                            case "resolve":
+                                this.Status = 'complete';
+                                //submitted. Stop task instance and continue subworkflow task status = complete
+                                break;
+                            case "abandon":
+                                this.Status = 'abandoned';
+                                //abandoning subworkflow. status = complete
+                                //*add subworkflow complete.
+                                //Skip to subworkflow complete
+                                break;
+                            case "complete":
+                                //change status to complete
+                                this.Status = 'complete';
                                 x.triggerNext();
-                                break;
-                            case "allocate_new_person_from_contingency_pool":
-                                //Run allocation algorithm, extend due date.
-                                break;
-                            case "allocate_to_different_person_in_same_group":
-                                //Run allocation algorithm specifiy with team, extend due date.
-                                break;
-                            case "allocate_to_instructor":
-                                //Run allocation algorithm specifiy with team, extend due date
-                                break;
-                            case "abandon_task":
-                                break;
-                            case "resolved_task":
+                                //start nexttask
                                 break;
                             default:
+                                console.log('AtDurationEnd does not fall into any category.')
                         }
-                        break;
-                    case "resolve":
-                        //submitted. Stop task instance and continue subworkflow task status = complete
-                        break;
-                    case "abandon":
-                        //abandoning subworkflow. status = complete
-                        //*add subworkflow complete.
-                        //Skip to subworkflow complete
-                        break;
-                    case "complete":
-                        //change status to complete
-                        this.Status = 'complete';
-                        x.triggerNext();
-                        //start nexttask
-                        break;
-                    default:
-                        console.log('AtDurationEnd does not fall into any category.')
+                        x.save();
+                    });
                 }
-                this.save();
             },
 
             timeOutTime: function() {
@@ -200,52 +239,63 @@ module.exports = function(sequelize, DataTypes) {
             },
 
             triggerNext: function() {
-                if (this.StartDate === null) {
-                    throw Error('Task has not yet started!  TaskInstanceID:', this.TaskInstanceID);
-                    return null;
-                }
-                if (this.EndDate === null) {
-                    throw Error('Task has not yet ended TaskInstanceID:', this.TaskInstanceID);
+                x = this;
+                if ((x.StartDate === null || x.EndDate === null) && x.Status !== 'automatic') {
+                    throw Error('Missing attributes!  TaskInstanceID:', x.TaskInstanceID);
                     return null;
                 }
 
-                startDate = moment(this.EndDate);
 
-                models.TaskInstance.find({
-                    where: {
-                        TaskInstanceID: this.NextTask
-                    }
-                }).then(function(nextTask) {
-
-                    //findNewDates return an array of [newStartDate, newEndDate]
-                    var dates = nextTask.findNewDates(startDate, function(dates) {
-                        models.TaskInstance.update({
-                            Status: 'started',
-                            StartDate: dates[0],
-                            EndDate: dates[1]
-                        }, {
+                return Promise.mapSeries(JSON.parse(x.NextTask), function(task, index) {
+                    models.TaskInstance.find({
+                        where: {
+                            TaskInstanceID: task
+                        }
+                    }).then(function(nextTask) {
+                        models.TaskActivity.find({
                             where: {
-                                TaskInstanceID: nextTask.TaskInstanceID
+                                TaskActivityID: nextTask.TaskActivityID
                             }
-                        }).catch(function(err) {
-                            console.log(err);
-                            throw Error("Cannot start next task!");
-                            return null;
+                        }).then(function(ta_result) {
+
+                            if (ta_result.Type === 'needs_consolidation') {
+                                nextTask.consolidate();
+                            } else if(ta_result.Type === 'complete') {
+                                nextTask.complete();
+                            } else {
+                                //findNewDates return an array of [newStartDate, newEndDate]
+                                console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
+                                var dates = nextTask.findNewDates(function(dates) {
+                                    models.TaskInstance.update({
+                                        Status: 'started',
+                                        StartDate: dates[0],
+                                        EndDate: dates[1]
+                                    }, {
+                                        where: {
+                                            TaskInstanceID: nextTask.TaskInstanceID
+                                        }
+                                    }).catch(function(err) {
+                                        console.log(err);
+                                        throw Error("Cannot start next task!");
+                                        return null;
+                                    });
+                                });
+                            }
                         });
                     });
                 });
             },
 
             //findNewDates computes the startDate passed in and find newStartDate and newEndDate
-            findNewDates: function(startDate, callback) {
+            findNewDates: function(callback) {
                 models.TaskActivity.find({
                     where: {
                         TaskActivityID: this.TaskActivityID
                     }
                 }).then(function(ta_result) {
                     //console.log('ta_result', ta_result);
-                    var newStartDate = startDate.add(JSON.parse(ta_result.StartDelay), 'minutes');
-                    var newEndDate = startDate;
+                    var newStartDate = moment().add(JSON.parse(ta_result.StartDelay), 'minutes');
+                    var newEndDate = moment().add(JSON.parse(ta_result.StartDelay), 'minutes');
                     if (JSON.parse(ta_result.DueType)[0] === "duration") {
                         newEndDate.add(JSON.parse(ta_result.DueType)[1], 'minutes');
                     } else if (JSON.parse(ta_result.DueType)[0] === "specificTime") {
@@ -256,6 +306,19 @@ module.exports = function(sequelize, DataTypes) {
                     console.log(err);
                     throw Error("Cannot find Date!");
                 });
+            },
+
+            getTaskActivity: function(callback) {
+                models.TaskActivity.find({
+                    where: {
+                        TaskActivityID: this.TaskActivityID
+                    }
+                }).then(function(ta_result) {
+                    callback(ta_result);
+                }).catch(function(err) {
+                    console.log(err);
+                    throw Error("Cannot find TaskActivity!");
+                })
             },
 
             findDueType: function(callback) {
@@ -269,7 +332,42 @@ module.exports = function(sequelize, DataTypes) {
                 }).catch(function(err) {
                     console.log(err);
                     throw Error("Cannot find DueType!");
-                })
+                });
+            },
+
+            consolidate: function() {
+                var x = this;
+                var isAllCompleted = true;
+                console.log('Checking all grading solution complete...');
+                return Promise.map(JSON.parse(x.PreviousTask), function(ti_id) {
+                    return models.TaskInstance.find({
+                        where: {
+                            TaskInstanceID: ti_id
+                        }
+                    }).then(function(ti_result) {
+                        if (ti_result.Status != 'complete') {
+                            isAllCompleted = false;
+                        }
+                    });
+                }).then(function(done) {
+                    if (isAllCompleted) {
+                        console.log("Consolidating Tasks...");
+                        console.log('All tasks completed!');
+                        x.triggerNext();
+                        //consolidate calculation
+                        //if the difference exceed threshold, open consolidate task, otherwise, bypass consolidation.
+                    }
+                });
+            },
+            complete() {
+                var x = this;
+                var isAllCompleted = true;
+                console.log('Checking all subworkflows are completed...');
+
+                //when a workflow has reached complete. This function will be called
+                //It will go through the workflow structure and triverse the tree to see if all other
+                //subworkflows are completed.
+                //If everything has been completed, collect the grades.
             }
 
 

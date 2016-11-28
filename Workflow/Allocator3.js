@@ -480,10 +480,7 @@ Allocator3.prototype.createAssignmentInstances = function(a_id, sectionIDs, star
 Allocator3.prototype.updateWorkflowTiming = function(wf_timing) {
 
     return Promise.mapSeries(wf_timing.workflows, function(workflow, index) {
-
-
         return Promise.mapSeries(wf_timing.workflows[index].tasks, function(task) {
-
             TaskActivity.update({
                 DueType: task.DueType
             }, {
@@ -955,54 +952,39 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
         console.log('Going through each user...');
 
         var candidates = users;
-
         //iterate through all users from section
         return Promise.mapSeries(users, function(user) {
-
-
             return Promise.mapSeries(JSON.parse(workflowTiming).workflows, function(workflow, index) {
-
                 console.log('workflow: ', workflow.id);
-
                 //creates seperate array to store all task instances created within the workflow
                 var taskArray = [];
                 //Store the current WorkflowInstanceID once it is created
                 var wi_id;
                 var startDate = new Date(JSON.parse(workflowTiming).workflows[index].startDate);
-
                 console.log('Creating workflow instance...');
-
                 return x.createWorkflowInstance(workflow, ai_id).then(function(workflowInstanceId) {
-
                     //push the resulting workflowInstance object from callback to workflow Array
                     workflowArray.push(workflowInstanceId);
                     //store WorkflowInstanceID created
                     wi_id = workflowInstanceId;
-
                     console.log('Going through individual tasks...');
-
                     //iterate through all the tasks stored under workflows
                     return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
-
                         console.log('task: ', task.id);
                         return x.getNumberParticipants(task.id).then(function(numParticipants) {
                             return Promise.mapSeries(numParticipants, function(iteration) {
                                 return x.createTaskInstance(task, user, workflowInstanceId, ai_id).then(function(createTaskResult) {
-
                                     console.log('taskInstanceId: ', createTaskResult[0]);
                                     //push the resulting workflowInstance object from callback to workflow Array
                                     taskArray.push(createTaskResult[0]);
-
                                     console.log("DueType", task.DueType);
                                     if (num === 0) {
-
                                         var endDate = moment(JSON.parse(workflowTiming).workflows[index].startDate);
                                         if(task.DueType[0] === "duration"){
                                           endDate.add(task.DueType[1], 'minutes');
                                         } else if(task.DueType[0] === "specificTime"){
                                           endDate = task.DueType[1];
                                         }
-
                                         TaskInstance.update({
                                             StartDate: startDate,
                                             EndDate: endDate,
@@ -1013,7 +995,6 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                                             }
                                         });
                                     }
-
                                 }).catch(function(err) {
                                     console.log(err);
                                 });
@@ -1023,7 +1004,6 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                         console.log('Updating task collection in workflow instance...');
                         //Update TaskCollection
                         WorkflowInstance.update({
-
                             TaskCollection: taskArray.sort(function(a, b) {
                                 return a - b;
                             })
@@ -1037,9 +1017,7 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
             });
         });
     }).then(function(done) {
-
         console.log('Updating workflow collection in assignment instance...');
-
         //Update WorkflowCollection
         AssignmentInstance.update({
             WorkflowCollection: workflowArray.sort(function(a, b) {
@@ -1050,18 +1028,16 @@ Allocator3.prototype.createInstances = function(sectionid, ai_id) {
                 AssignmentInstanceID: ai_id
             }
         }).then(function(done) {
-
             return x.updatePreviousAndNextTasks(ai_id);
 
         }).catch(function(err) {
-
             console.log(err);
         });
     }).catch(function(err) {
-
         console.log(err);
-    });;
+    });
 }
+
 
 
 module.exports.Allocator3 = Allocator3;

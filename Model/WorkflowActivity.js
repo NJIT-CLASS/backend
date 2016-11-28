@@ -61,6 +61,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'StartTaskActivity',
             allowNull: true
         },
+        WorkflowStructure: {
+            type: DataTypes.JSON,
+            field: 'WorkflowStructure',
+            allowNull: true
+        },
         VersionHistory:{
           type: DataTypes.JSON,
           field: 'VersionHistory',

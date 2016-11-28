@@ -18,45 +18,66 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-class Allocator { //constructor
+function allocateUsers() { //constructor
 
-    //this function will get the assignmentActivityIDs in the DB
-    getAssignments() {
-        return new Promise(function(resolve, reject) {
-            //console.log('Finding all assignments...');
-            var assignmentIds = [];
-            return Assignment.findAll({
-                raw: true
-            }).then(function(results) {
-                results.forEach(function(assignment) {
-                    //console.log(assignment.AssignmentID);
-                    assignmentIds.push(assignment.AssignmentID);
-                });
-                //console.log('All assignments have been found!');
-                resolve(assignmentIds);
-            }).catch(function(err) {
-                console.log('Find assignments failed!');
-                reject(err);
+};
+
+//this function will get the assignmentActivityIDs in the DB
+allocateUsers.prototype.getAssignments = function() {
+
+
+    return new Promise(function(resolve, reject) {
+        //console.log('Finding all assignments...');
+
+        var assignmentIds = [];
+
+        return Assignment.findAll({
+            raw: true
+        }).then(function(results) {
+
+            results.forEach(function(assignment) {
+                //console.log(assignment.AssignmentID);
+                assignmentIds.push(assignment.AssignmentID);
             });
-        });
-    }
 
-    //-----------------------------------------------------------------------------------------------------------
-    //this function will get the workflowActivityIDs in the DB
-    getWorkflows(a_id) {
+            //console.log('All assignments have been found!');
+
+            resolve(assignmentIds);
+
+
+        }).catch(function(err) {
+            console.log('Find assignments failed!');
+            reject(err);
+        });
+
+    });
+
+
+}
+
+//-----------------------------------------------------------------------------------------------------------
+//this function will get the workflowActivityIDs in the DB
+allocateUsers.prototype.getWorkflows = function(a_id) {
+
         return new Promise(function(resolve, reject) {
             //console.log('Finding all workflow activities associate with assignment ', a_id, '...');
+
             var workflowActivityIds = [];
+
             return WorkflowActivity.findAll({
                 where: {
                     AssignmentID: a_id
                 }
             }).then(function(results) {
+
                 results.forEach(function(workflow) {
                     workflowActivityIds.push(workflow.WorkflowActivityID);
                 }, this);
+
                 //console.log('All workflow activities have been found!');
+
                 resolve(workflowActivityIds);
+
             }).catch(function(err) {
                 console.log('Find workflow activities failed!');
                 reject(err);
@@ -65,38 +86,48 @@ class Allocator { //constructor
 
 
     }
-
     //------------------------------------------------------------------------------------------------------------
     //this function will get the taskActivityIDs in the DB
-    getTasks(wa_id, a_id) {
-        return new Promise(function(resolve, reject) {
-            //console.log('Finding task activities associate with workflow activity ', wa_id, '...');
-            var taskActivityIds = [];
-            return TaskActivity.findAll({
-                where: {
-                    WorkflowActivityID: wa_id,
-                    AssignmentID: a_id
-                }
-            }).then(function(results) {
-                results.forEach(function(task) {
-                    //tasks.push(task.TaskActivityID);
-                    taskActivityIds.push(task.TaskActivityID);
-                }, this);
-                //console.log('All task activities have been found!');
-                resolve(taskActivityIds);
-            }).catch(function(err) {
-                console.log('Find task activities failed!');
-                reject(err);
-            });
-        });
-    }
+allocateUsers.prototype.getTasks = function(wa_id, a_id) {
+    return new Promise(function(resolve, reject) {
 
-    //-------------------------------------------------------------------------------------------------------------
-    //this function will get the AssignmentInstanceIDs in the DB
-    getAssignmentInstances(a_id, sectionID) {
+        //console.log('Finding task activities associate with workflow activity ', wa_id, '...');
+
+        var taskActivityIds = [];
+
+        return TaskActivity.findAll({
+            where: {
+                WorkflowActivityID: wa_id,
+                AssignmentID: a_id
+            }
+        }).then(function(results) {
+
+            results.forEach(function(task) {
+                //tasks.push(task.TaskActivityID);
+                taskActivityIds.push(task.TaskActivityID);
+            }, this);
+
+            //console.log('All task activities have been found!');
+
+            resolve(taskActivityIds);
+
+        }).catch(function(err) {
+            console.log('Find task activities failed!');
+            reject(err);
+        });
+    });
+}
+
+//-------------------------------------------------------------------------------------------------------------
+//this function will get the AssignmentInstanceIDs in the DB
+allocateUsers.prototype.getAssignmentInstances = function(a_id, sectionID) {
+
         return new Promise(function(resolve, reject) {
+
             //console.log('Finding all assignment instances associate with assignment ', a_id, 'and section ', sectionID);
+
             var AssignmentInstanceIds = [];
+
             return AssignmentInstance.findAll({
                 where: {
                     AssignmentID: a_id,
@@ -115,37 +146,46 @@ class Allocator { //constructor
         });
 
     }
-
     //-------------------------------------------------------------------------------------------------------------
     //this function will get the workflowInstanceIDs in the DB
-    getWorkflowInstances(wa_id, ai_id) {
-        return new Promise(function(resolve, reject) {
-            //console.log('Finding all workflow instances associate with assignment ', ai_id, '...');
-            var workflowInstanceIds = [];
-            return WorkflowInstance.findAll({
-                where: {
-                    WorkflowActivityID: wa_id,
-                    AssignmentInstanceID: ai_id
-                }
-            }).then(function(results) {
-                results.forEach(function(workflow) {
-                    workflowInstanceIds.push(workflow.WorkflowInstanceID);
-                }, this);
-                //console.log('All workflow instances have been found!');
-                resolve(workflowInstanceIds);
-            }).catch(function(err) {
-                console.log('Finding workflow instances failed!');
-                reject(err);
-            });
-        });
-    }
+allocateUsers.prototype.getWorkflowInstances = function(wa_id, ai_id) {
+    return new Promise(function(resolve, reject) {
+        //console.log('Finding all workflow instances associate with assignment ', ai_id, '...');
 
-    //-------------------------------------------------------------------------------------------------------------
-    //this function will get the taskInstanceIDs in the DB
-    getTaskInstances(ai_id, wi_id, ta_id) {
+        var workflowInstanceIds = [];
+
+        return WorkflowInstance.findAll({
+            where: {
+                WorkflowActivityID: wa_id,
+                AssignmentInstanceID: ai_id
+            }
+        }).then(function(results) {
+            results.forEach(function(workflow) {
+                workflowInstanceIds.push(workflow.WorkflowInstanceID);
+            }, this);
+
+            //console.log('All workflow instances have been found!');
+
+            resolve(workflowInstanceIds);
+
+        }).catch(function(err) {
+            console.log('Finding workflow instances failed!');
+            reject(err);
+        });
+    });
+
+
+}
+
+//-------------------------------------------------------------------------------------------------------------
+//this function will get the taskInstanceIDs in the DB
+allocateUsers.prototype.getTaskInstances = function(ai_id, wi_id, ta_id) {
         return new Promise(function(resolve, reject) {
+
             //console.log('Finding task instances associate with workflow instances ', wi_id, '...');
+
             var taskInstanceIds = [];
+
             return TaskInstance.findAll({
                 where: {
                     WorkflowInstanceID: wi_id,
@@ -153,11 +193,15 @@ class Allocator { //constructor
                     TaskActivityID: ta_id
                 }
             }).then(function(results) {
+
                 results.forEach(function(task) {
                     taskInstanceIds.push(task.TaskInstanceID);
                 }, this);
+
                 //console.log('All task instances have been found!');
+
                 resolve(taskInstanceIds);
+
             }).catch(function(err) {
                 console.log('Find task instances failed!');
                 reject(err);
@@ -166,10 +210,9 @@ class Allocator { //constructor
 
 
     }
-
     //--------------------------------------------------------------------------------------------------------------
     //get constraints per TA_id (TaskActivity_id)
-    getConstraints(TA_id) {
+allocateUsers.prototype.getConstraints = function(TA_id) {
         return new Promise(function(resolve, reject) {
             var constraints;
             return TaskActivity.find({
@@ -180,6 +223,7 @@ class Allocator { //constructor
                 constraints = JSON.parse(result.AssigneeConstraints);
                 //console.log(constraints);
                 //console.log('All constraints were saved!');
+
                 resolve(constraints);
             }).catch(function(err) {
                 console.log('Find constraints failed!');
@@ -188,24 +232,28 @@ class Allocator { //constructor
         });
 
     }
-
     //-------------------------------------------------------------------------------------------------------------
     //get all users from a particular section
-    getUsersFromSection(sectionID, userStatus) {
+allocateUsers.prototype.getUsersFromSection = function(sectionID, userStatus) {
         return new Promise(function(resolve, reject) {
+
             //console.log('Retrieving all users from section: ', sectionID, '...');
+
             var users = [];
+
             return SectionUser.findAll({
                 where: {
                     SectionID: sectionID,
                     UserStatus: userStatus
                 }
             }).then(function(results) {
+
                 results.forEach(function(user) {
                     users.push(user.UserID);
                 });
                 resolve(users)
                     //console.log('All users have been found!');
+
             }).catch(function(err) {
                 console.log('Cannot find all users!');
                 reject(err);
@@ -213,7 +261,6 @@ class Allocator { //constructor
         });
 
     }
-
     //-------------------------------------------------------------------------------------------------------------
     //updating users array
     // allocateUsers.prototype.updateUsers = function(users){
@@ -224,7 +271,7 @@ class Allocator { //constructor
     // }
     //-----------------------------------------------------------------------------------------------------------------
     //get the right user to the task instance following the constraints in the according task activity
-    getUser(ta_id, task, users, constraints, allocRecord) { //getting the user according to constraints
+allocateUsers.prototype.getUser = function(ta_id, task, users, constraints, allocRecord) { //getting the user according to constraints
         var i = 0; //???
         var user = -1; // there is not userID = 0;
         var avoid_users = [];
@@ -280,31 +327,42 @@ class Allocator { //constructor
                                 return user;
                             }
                         });
+                        console.log('============');
                     }
                 });
             }
         }
     }
-
     //------------------------------------------------------------------------------------------------------------------------------------------
     //this function will write to DB
-    updateDB(user, ti_id) {
-        return new Promise(function(resolve, reject) {
-            return TaskInstance.update({
-                UserID: user
-            }, {
-                where: {
-                    TaskInstanceID: ti_id
-                }
-            }).then(function(result) {
-                console.log('DB was updated!');
-                resolve(result);
-            }).catch(function(err) {
-                reject(err);
-            });
+allocateUsers.prototype.updateDB = function(user, ti_id) {
+
+    return new Promise(function(resolve, reject) {
+
+        return TaskInstance.update({
+            UserID: user
+        }, {
+            where: {
+                TaskInstanceID: ti_id
+            }
+        }).then(function(result) {
+            console.log('DB was updated!');
+            resolve(result);
+        }).catch(function(err) {
+            reject(err);
         });
-    }
-};
+
+    });
+}
 
 
-module.exports = Allocator;
+
+
+
+
+
+
+
+//-----------------------------------------------------------------------------------------------------------------------------------------------------
+
+module.exports.allocateUsers = allocateUsers;
