@@ -260,7 +260,7 @@ module.exports = function(sequelize, DataTypes) {
 
                             if (ta_result.Type === 'needs_consolidation') {
                                 nextTask.consolidate();
-                            } else if(ta_result.Type === 'complete') {
+                            } else if (ta_result.Type === 'complete') {
                                 nextTask.complete();
                             } else {
                                 //findNewDates return an array of [newStartDate, newEndDate]
@@ -335,6 +335,7 @@ module.exports = function(sequelize, DataTypes) {
                 });
             },
 
+            //Consolidate grading tasks
             consolidate: function() {
                 var x = this;
                 var isAllCompleted = true;
@@ -345,13 +346,36 @@ module.exports = function(sequelize, DataTypes) {
                             TaskInstanceID: ti_id
                         }
                     }).then(function(ti_result) {
+                        //Check if all grading solution are completed
                         if (ti_result.Status != 'complete') {
+                            console.log('Grading tasks pending...');
                             isAllCompleted = false;
                         }
                     });
                 }).then(function(done) {
                     if (isAllCompleted) {
+                        //if isAllCompleted = true then find the grades in previous grading solution tasks
                         console.log("Consolidating Tasks...");
+                        x.findGrades(function(grades) {
+                            var max = Math.max.apply(null, grades);
+                            var min = Math.min.apply(null, grades);
+                            //if ((max - min) > ) {}
+                            models.TaskActivity.find({
+                                where: {
+                                    TaskActivityID: x.TaskActivityID
+                                }
+                            }).then(function(ta_result) {
+                                if (ta_result.FunctionType === 'max') {
+                                    x.FinalGrade = max
+                                } else if (ta_result.FunctionType === 'min') {
+                                    x.FinalGrade = min
+                                } else if (ta_result.FunctionType === 'average') {
+                                    x.FinalGrade = (max + min) / 2;
+                                }
+                            });
+                        });
+
+
                         console.log('All tasks completed!');
                         x.triggerNext();
                         //consolidate calculation
@@ -359,7 +383,30 @@ module.exports = function(sequelize, DataTypes) {
                     }
                 });
             },
-            complete() {
+
+            findGrades: function(callback) {
+                var grades = []
+                Promise.map(JSON.parse(x.PreviousTask), function(ti_id) {
+                    models.TaskInstance.find({
+                        where: {
+                            TaskInstanceID: ti_id
+                        }
+                    }).then(function(ti_result) {
+                        var total = 0;
+                        //Adding all grades together
+                        for (var i = 0; i < ti_result.Data.number_of_fields; i++) {
+                            total += ti_result.Data[i];
+                        }
+                        grades.push(total);
+                    });
+                }).then(function(done) {
+                    callback(grades);
+                }).catch(function(err) {
+                    console.log(err);
+                });
+            },
+
+            complete: function() {
                 var x = this;
                 var isAllCompleted = true;
                 console.log('Checking all subworkflows are completed...');

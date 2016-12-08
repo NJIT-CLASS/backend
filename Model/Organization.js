@@ -14,6 +14,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.STRING(40),
             field: 'Name',
             allowNull: true,
+        },
+        UserID: {
+            type: DataTypes.INTEGER,
+            field: 'UserID',
+            allowNull: true
         }
         // Address: {
         //     //Address of the organization.

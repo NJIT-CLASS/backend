@@ -601,11 +601,13 @@ Allocator3.prototype.findPreviousTasks = function(ti_id, previousTasks) {
                 TaskInstanceID: ti_id
             }
         }).then(function(taskInstance) {
-            var p = previousTasks
+            var p = previousTasks;
             if (taskInstance.PreviousTask === null || typeof taskInstance.PreviousTask === undefined) {
                 resolve(null);
             } else {
                 console.log('Previous Task', taskInstance.PreviousTask);
+
+                Promise.map()
                 x.findPreviousTasks(taskInstance.PreviousTask, p).then(function(result) {
                     p.push(taskInstance.PreviousTask);
                     resolve(p);

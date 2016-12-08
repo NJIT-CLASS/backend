@@ -28,6 +28,7 @@ var Allocator3 = require('./WorkFlow/Allocator3.js');
 var TaskFactory = require('./WorkFlow/TaskFactory.js');
 var sequelize = require("./Model/index.js").sequelize;
 var allocateUsers = require('./Workflow/allocateUsers.js');
+var reallocation = require('./Workflow/reallocation.js');
 
 var Email = require('./WorkFlow/Email.js');
 
@@ -103,28 +104,79 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //Endpoint to allocate students
     router.get("/allocate", function(req, res) {
 
-        var taskFactory = new TaskFactory();
-        //allocator.createInstances(1, 16);
-        taskFactory.createInstances(3, 13).then(function(done) {
-            console.log('/getAssignToSection/allocate   All Done!');
-            res.status(200).end();
-        }).catch(function(err) {
-            console.log(err);
-            res.status(404).end();
-        });
+        // var taskFactory = new TaskFactory();
+        // //allocator.createInstances(1, 16);
+        // taskFactory.createInstances(3, 13).then(function(done) {
+        //     console.log('/getAssignToSection/allocate   All Done!');
+        //     res.status(200).end();
+        // }).catch(function(err) {
+        //     console.log(err);
+        //     res.status(404).end();
+        // });
         //allocator.createInstances(3, 14);
         //allocator.updatePreviousAndNextTasks(13);
-
+        var allocator = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], {
+            "id": "1",
+            "tasks": [{
+                "id": 1,
+                "DueType": ["duration", 4320]
+            }, {
+                "id": 2,
+                "DueType": ["duration", 4320]
+            }, {
+                "id": 3,
+                "DueType": ["duration", 4320]
+            }, {
+                "id": 4,
+                "DueType": ["duration", 4320]
+            }, {
+                "id": 5,
+                "DueType": ["duration", 4320]
+            }, {
+                "id": 6,
+                "DueType": ["duration", 4320]
+            }, {
+                "id": 7,
+                "DueType": ["duration", 4320]
+            }, {
+                "id": 8,
+                "DueType": ["duration", 4320]
+            }, {
+                "id": 9,
+                "DueType": ["duration", 4320]
+            }],
+            "startDate": "2016-12-01 17:46:24"
+        });
+        Promise.all([allocator.getUser()]).then(function(done) {
+            console.log(done[0]);
+        }).then(function() {
+            Promise.all([allocator.getUser()]).then(function(done) {
+                console.log(done[0]);
+            }).then(function() {
+                Promise.all([allocator.getUser()]).then(function(done) {
+                    console.log(done[0]);
+                }).then(function() {
+                    Promise.all([allocator.getUser()]).then(function(done) {
+                        console.log(done[0]);
+                    }).then(function() {
+                        Promise.all([allocator.getUser()]).then(function(done) {
+                            console.log(done[0]);
+                        });
+                    });
+                });
+            });
+        });
     });
 
     router.get("/findPreviousTasks/:taskInstanceId", function(req, res) {
-        var allocator = new Allocator3.Allocator3();
+        var allocator = new TaskFactory();
 
         allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
             console.log('done!', done);
+            previousTasks = done.sort();
 
             res.json({
-                "previousTasks": done
+                "previousTasks": previousTasks
             })
 
         }).catch(function(err) {
@@ -1532,7 +1584,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
-                Status: "incomplete"
+                $or: [{
+                    Status: "incomplete"
+                }, {
+                    Status: "started"
+                }]
             },
             attributes: ["TaskInstanceID", "UserID", "WorkflowInstanceID", "StartDate", "EndDate", "Status"],
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
@@ -1667,7 +1723,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 where: {
                                     TaskInstanceID: task
                                 },
-                                attributes: ['TaskInstanceID', 'Status'],
+                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status'],
                                 include: [{
                                     model: User,
                                     attributes: ['UserID', 'UserName']
@@ -1729,7 +1785,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 res.json({
                     "Error": false,
                     "Info": info,
-                    "Workflows" : AI_Result.WorkflowCollection,
+                    "Workflows": JSON.parse(AI_Result.WorkflowCollection),
                     "AssignmentRecords": tasks
                 });
 
@@ -1743,7 +1799,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint for all current task data and previous task data and put it in an array
     router.get('/superCall/:taskInstanceId', function(req, res) {
-        var allocator = new Allocator3.Allocator3();
+        var allocator = new TaskFactory();
 
         allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
 
@@ -2063,9 +2119,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     router.get('/test/testing', function(req, res) {
         // var realloc = new reallocation.reallocation();
-        // Promise.all([realloc.getConstraints(1)]).spread(function(constraints){
-        //   var constraint = constraints.pop();
+        // Promise.all([realloc.getConstraints(1)]).spread(function(constraints) {
+        //     var constraint = constraints.pop();
         // });
+        //-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
         var alloc = new allocateUsers.allocateUsers();
         alloc.getAssignments();
         Promise.all([alloc.getAssignments()]).then(function(done) {
@@ -2076,22 +2133,19 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             var TaskInstances;
             var constraint;
             var constraints;
-            var user;
+            var user=0;
             var student;
             var sectionID = 1;
             var userStatus = 'Active';
             var users;
+            var allocRecord = [];
             // = alloc.getUsersFromSection(sectionID,userStatus);
             Promise.all([alloc.getUsersFromSection(sectionID, userStatus)]).then(function(done) {
-                users = done[0];
-                //console.log(users);
-            });
-
-            //console.log(assignments);
+                    users = done[0];
+                    //console.log(users);
+                })
+                //console.log(assignments);
             assignments.map(function(assignment) {
-                //console.log(assignment);
-                // AssignmentInstances = alloc.getAssignmentInstances(assignment,sectionID);
-                // WorkflowActivityIds = alloc.getWorkflows(assignment);
                 Promise.all([alloc.getAssignmentInstances(assignment, sectionID), alloc.getWorkflows(assignment)]).spread(function(AssignmentInstances, WorkflowActivityIds) {
                     AssignmentInstances.map(function(ai_id) {
                         WorkflowActivityIds.map(function(wa_id) {
@@ -2099,7 +2153,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                             // WorkflowInstances=alloc.getWorkflowInstances(wa_id,ai_id);
                             Promise.all([alloc.getTasks(wa_id, assignment), alloc.getWorkflowInstances(wa_id, ai_id)]).spread(function(TaskActivityIds, WorkflowInstances) {
                                 WorkflowInstances.map(function(wi_id) {
-                                    var allocRecord = [];
+                                    //var allocRecord = [];
+                                    allocRecord.length = 0;
                                     TaskActivityIds.map(function(ta_id) {
                                         // TaskInstances = alloc.getTaskInstances(ai_id,wi_id,ta_id);
                                         // constraint = alloc.getConstraints(ta_id);
@@ -2108,6 +2163,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                             TaskInstances.map(function(ti_id) {
                                                 constraint = constraints.pop();
                                                 student = constraints.shift();
+                                                constraints.push(student);
+                                                console.log('student', student);
                                                 if (student.localeCompare("student") === 0) {
                                                     user = alloc.getUser(ta_id, ti_id, users, constraint, allocRecord);
                                                     //users = alloc.updateUsers(users);
@@ -2116,7 +2173,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                                 }
                                                 //console.log(user);
                                                 //console.log(ta_id);
-                                                //alloc.updateDB(user, ti_id);
+                                                //console.log(ti_id);
+
+                                                alloc.updateDB(ti_id, user);
                                                 //users = alloc.updateUsers(users);
                                             });
                                         });
@@ -2128,7 +2187,44 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 });
             });
         });
+        //-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+        //reallocation testing
+        // var task = 1; //task instance needs to be given
+        // var constraint;
+        // var lateUser;
+        // var newUser;
+        // var avoid_users = [];
+        // var users = [1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; // users need to be given
+        // //console.log(users);
+        // var realloc = new reallocation.reallocation();
+        // Promise.all([realloc.getLateUser(task)]).then(function(done) {
+        //     lateUser = done[0];
+        //     //console.log(lateUser);
+        // });
+        // Promise.all([realloc.getTaskActivityID(task), realloc.getWorkflowInstanceID(task)]).spread(function(taskActivityIDs, workflowInstanceIDs) {
+        //     taskActivityIDs.map(function(ta_id) {
+        //         //console.log(ta_id);
+        //         workflowInstanceIDs.map(function(wi_id) {
+        //             //console.log(wi_id);
+        //             //console.log('im here......');
+        //             Promise.all([realloc.getUsersFromWorkflowInstance(wi_id), realloc.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
+        //                 //console.log(avoid_users);
+        //                 avoidUsers.map(function(user) {
+        //                     avoid_users.push(user);
+        //                 });
+        //                 //console.log(avoid_users);
+        //                 newUser = realloc.getUser(avoid_users, users);
+        //                 TaskInstances.map(function(task) {
+        //                     realloc.updateUSER(task, newUser);
+        //                 });
+        //                 //console.log(newUser);
+        //             });
+        //         });
+        //     });
+        // });
+        //------------------------------------------------------------------------------------------------------------------------------------------------------------------
     });
+
 
 }
 

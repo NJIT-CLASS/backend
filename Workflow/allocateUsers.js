@@ -1,6 +1,6 @@
 var models = require('../Model');
 var Promise = require('bluebird');
-var moment = require('moment');
+var moment=require('moment');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -18,37 +18,37 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-function allocateUsers() { //constructor
+function allocateUsers(){ //constructor
 
 };
 
 //this function will get the assignmentActivityIDs in the DB
-allocateUsers.prototype.getAssignments = function() {
+allocateUsers.prototype.getAssignments= function() {
 
 
-    return new Promise(function(resolve, reject) {
-        //console.log('Finding all assignments...');
+    return new Promise(function(resolve, reject){
+      //console.log('Finding all assignments...');
 
-        var assignmentIds = [];
+      var assignmentIds = [];
 
-        return Assignment.findAll({
-            raw: true
-        }).then(function(results) {
+      return   Assignment.findAll({
+          raw: true
+      }).then(function(results) {
 
-            results.forEach(function(assignment) {
-                //console.log(assignment.AssignmentID);
-                assignmentIds.push(assignment.AssignmentID);
-            });
+          results.forEach(function(assignment) {
+              //console.log(assignment.AssignmentID);
+              assignmentIds.push(assignment.AssignmentID);
+          });
 
-            //console.log('All assignments have been found!');
+          //console.log('All assignments have been found!');
 
-            resolve(assignmentIds);
+          resolve(assignmentIds);
 
 
-        }).catch(function(err) {
-            console.log('Find assignments failed!');
-            reject(err);
-        });
+      }).catch(function(err) {
+          console.log('Find assignments failed!');
+          reject(err);
+      });
 
     });
 
@@ -59,120 +59,120 @@ allocateUsers.prototype.getAssignments = function() {
 //this function will get the workflowActivityIDs in the DB
 allocateUsers.prototype.getWorkflows = function(a_id) {
 
-        return new Promise(function(resolve, reject) {
-            //console.log('Finding all workflow activities associate with assignment ', a_id, '...');
+  return new Promise(function(resolve, reject){
+    //console.log('Finding all workflow activities associate with assignment ', a_id, '...');
 
-            var workflowActivityIds = [];
+    var workflowActivityIds = [];
 
-            return WorkflowActivity.findAll({
-                where: {
-                    AssignmentID: a_id
-                }
-            }).then(function(results) {
+  return  WorkflowActivity.findAll({
+        where: {
+            AssignmentID: a_id
+        }
+    }).then(function(results) {
 
-                results.forEach(function(workflow) {
-                    workflowActivityIds.push(workflow.WorkflowActivityID);
-                }, this);
+        results.forEach(function(workflow) {
+            workflowActivityIds.push(workflow.WorkflowActivityID);
+        }, this);
 
-                //console.log('All workflow activities have been found!');
+        //console.log('All workflow activities have been found!');
 
-                resolve(workflowActivityIds);
+        resolve(workflowActivityIds);
 
-            }).catch(function(err) {
-                console.log('Find workflow activities failed!');
-                reject(err);
-            });
-        });
-
-
-    }
-    //------------------------------------------------------------------------------------------------------------
-    //this function will get the taskActivityIDs in the DB
-allocateUsers.prototype.getTasks = function(wa_id, a_id) {
-    return new Promise(function(resolve, reject) {
-
-        //console.log('Finding task activities associate with workflow activity ', wa_id, '...');
-
-        var taskActivityIds = [];
-
-        return TaskActivity.findAll({
-            where: {
-                WorkflowActivityID: wa_id,
-                AssignmentID: a_id
-            }
-        }).then(function(results) {
-
-            results.forEach(function(task) {
-                //tasks.push(task.TaskActivityID);
-                taskActivityIds.push(task.TaskActivityID);
-            }, this);
-
-            //console.log('All task activities have been found!');
-
-            resolve(taskActivityIds);
-
-        }).catch(function(err) {
-            console.log('Find task activities failed!');
-            reject(err);
-        });
+    }).catch(function(err) {
+        console.log('Find workflow activities failed!');
+        reject(err);
     });
+  });
+
+
+}
+//------------------------------------------------------------------------------------------------------------
+//this function will get the taskActivityIDs in the DB
+allocateUsers.prototype.getTasks = function(wa_id,a_id) {
+  return new Promise(function(resolve, reject){
+
+    //console.log('Finding task activities associate with workflow activity ', wa_id, '...');
+
+    var taskActivityIds = [];
+
+    return TaskActivity.findAll({
+        where: {
+            WorkflowActivityID: wa_id,
+            AssignmentID: a_id
+        }
+    }).then(function(results) {
+
+        results.forEach(function(task) {
+            //tasks.push(task.TaskActivityID);
+            taskActivityIds.push(task.TaskActivityID);
+        }, this);
+
+        //console.log('All task activities have been found!');
+
+        resolve(taskActivityIds);
+
+    }).catch(function(err) {
+        console.log('Find task activities failed!');
+        reject(err);
+    });
+  });
 }
 
 //-------------------------------------------------------------------------------------------------------------
 //this function will get the AssignmentInstanceIDs in the DB
-allocateUsers.prototype.getAssignmentInstances = function(a_id, sectionID) {
+allocateUsers.prototype.getAssignmentInstances = function(a_id, sectionID){
 
-        return new Promise(function(resolve, reject) {
+return new Promise(function(resolve, reject){
 
-            //console.log('Finding all assignment instances associate with assignment ', a_id, 'and section ', sectionID);
+  //console.log('Finding all assignment instances associate with assignment ', a_id, 'and section ', sectionID);
 
-            var AssignmentInstanceIds = [];
+  var AssignmentInstanceIds = [];
 
-            return AssignmentInstance.findAll({
-                where: {
-                    AssignmentID: a_id,
-                    SectionID: sectionID
-                }
-            }).then(function(results) {
-                results.forEach(function(assignment) {
-                    AssignmentInstanceIds.push(assignment.AssignmentInstanceID);
-                }, this);
-                //console.log('All AssignmentInstanceIds have been found!');
-                resolve(AssignmentInstanceIds);
-            }).catch(function(err) {
-                console.log('Find assignment instances failed!');
-                reject(err);
-            });
-        });
-
+  return AssignmentInstance.findAll({
+    where: {
+      AssignmentID: a_id,
+      SectionID: sectionID
     }
-    //-------------------------------------------------------------------------------------------------------------
-    //this function will get the workflowInstanceIDs in the DB
-allocateUsers.prototype.getWorkflowInstances = function(wa_id, ai_id) {
-    return new Promise(function(resolve, reject) {
-        //console.log('Finding all workflow instances associate with assignment ', ai_id, '...');
+  }).then(function(results){
+    results.forEach(function(assignment){
+      AssignmentInstanceIds.push(assignment.AssignmentInstanceID);
+    },this);
+    //console.log('All AssignmentInstanceIds have been found!');
+    resolve(AssignmentInstanceIds);
+  }).catch(function(err) {
+      console.log('Find assignment instances failed!');
+      reject(err);
+  });
+});
 
-        var workflowInstanceIds = [];
+}
+//-------------------------------------------------------------------------------------------------------------
+//this function will get the workflowInstanceIDs in the DB
+allocateUsers.prototype.getWorkflowInstances = function(wa_id,ai_id) {
+return new Promise(function(resolve, reject){
+  //console.log('Finding all workflow instances associate with assignment ', ai_id, '...');
 
-        return WorkflowInstance.findAll({
-            where: {
-                WorkflowActivityID: wa_id,
-                AssignmentInstanceID: ai_id
-            }
-        }).then(function(results) {
-            results.forEach(function(workflow) {
-                workflowInstanceIds.push(workflow.WorkflowInstanceID);
-            }, this);
+  var workflowInstanceIds = [];
 
-            //console.log('All workflow instances have been found!');
+    return  WorkflowInstance.findAll({
+          where: {
+              WorkflowActivityID: wa_id,
+              AssignmentInstanceID: ai_id
+          }
+      }).then(function(results) {
+          results.forEach(function(workflow) {
+              workflowInstanceIds.push(workflow.WorkflowInstanceID);
+          }, this);
 
-            resolve(workflowInstanceIds);
+          //console.log('All workflow instances have been found!');
 
-        }).catch(function(err) {
-            console.log('Finding workflow instances failed!');
-            reject(err);
-        });
-    });
+          resolve(workflowInstanceIds);
+
+      }).catch(function(err) {
+      console.log('Finding workflow instances failed!');
+      reject(err);
+  });
+});
 
 
 }
@@ -180,66 +180,66 @@ allocateUsers.prototype.getWorkflowInstances = function(wa_id, ai_id) {
 //-------------------------------------------------------------------------------------------------------------
 //this function will get the taskInstanceIDs in the DB
 allocateUsers.prototype.getTaskInstances = function(ai_id, wi_id, ta_id) {
-        return new Promise(function(resolve, reject) {
+    return new Promise(function(resolve, reject){
 
-            //console.log('Finding task instances associate with workflow instances ', wi_id, '...');
+      //console.log('Finding task instances associate with workflow instances ', wi_id, '...');
 
-            var taskInstanceIds = [];
+      var taskInstanceIds = [];
 
-            return TaskInstance.findAll({
-                where: {
-                    WorkflowInstanceID: wi_id,
-                    AssignmentInstanceID: ai_id,
-                    TaskActivityID: ta_id
-                }
-            }).then(function(results) {
+      return TaskInstance.findAll({
+          where: {
+              WorkflowInstanceID: wi_id,
+              AssignmentInstanceID: ai_id,
+              TaskActivityID: ta_id
+          }
+      }).then(function(results) {
 
-                results.forEach(function(task) {
-                    taskInstanceIds.push(task.TaskInstanceID);
-                }, this);
+          results.forEach(function(task) {
+              taskInstanceIds.push(task.TaskInstanceID);
+          }, this);
 
-                //console.log('All task instances have been found!');
+          //console.log('All task instances have been found!');
 
-                resolve(taskInstanceIds);
+          resolve(taskInstanceIds);
 
-            }).catch(function(err) {
-                console.log('Find task instances failed!');
-                reject(err);
-            });
-        });
+      }).catch(function(err) {
+          console.log('Find task instances failed!');
+          reject(err);
+      });
+    });
 
 
-    }
-    //--------------------------------------------------------------------------------------------------------------
-    //get constraints per TA_id (TaskActivity_id)
-allocateUsers.prototype.getConstraints = function(TA_id) {
-        return new Promise(function(resolve, reject) {
-            var constraints;
-            return TaskActivity.find({
-                where: {
-                    TaskActivityID: TA_id
-                }
-            }).then(function(result) {
-                constraints = JSON.parse(result.AssigneeConstraints);
-                //console.log(constraints);
-                //console.log('All constraints were saved!');
+}
+//--------------------------------------------------------------------------------------------------------------
+//get constraints per TA_id (TaskActivity_id)
+allocateUsers.prototype.getConstraints = function(TA_id){
+  return new Promise(function(resolve, reject){
+    var constraints;
+    return TaskActivity.find({
+      where: {
+        TaskActivityID: TA_id
+      }
+    }).then(function(result){
+        constraints = JSON.parse(result.AssigneeConstraints);
+        //console.log(constraints);
+        //console.log('All constraints were saved!');
 
-                resolve(constraints);
-            }).catch(function(err) {
-                console.log('Find constraints failed!');
-                reject(err);
-            });
-        });
+        resolve(constraints);
+      }).catch(function(err) {
+          console.log('Find constraints failed!');
+          reject(err);
+      });
+  });
 
-    }
-    //-------------------------------------------------------------------------------------------------------------
-    //get all users from a particular section
-allocateUsers.prototype.getUsersFromSection = function(sectionID, userStatus) {
-        return new Promise(function(resolve, reject) {
+}
+//-------------------------------------------------------------------------------------------------------------
+//get all users from a particular section
+allocateUsers.prototype.getUsersFromSection = function(sectionID,userStatus) {
+      return new Promise(function(resolve, reject){
 
-            //console.log('Retrieving all users from section: ', sectionID, '...');
+        //console.log('Retrieving all users from section: ', sectionID, '...');
 
-            var users = [];
+        var users = [];
 
             return SectionUser.findAll({
                 where: {
@@ -252,107 +252,110 @@ allocateUsers.prototype.getUsersFromSection = function(sectionID, userStatus) {
                     users.push(user.UserID);
                 });
                 resolve(users)
-                    //console.log('All users have been found!');
+                //console.log('All users have been found!');
 
             }).catch(function(err) {
                 console.log('Cannot find all users!');
                 reject(err);
             });
-        });
+      });
 
-    }
-    //-------------------------------------------------------------------------------------------------------------
-    //updating users array
-    // allocateUsers.prototype.updateUsers = function(users){
-    //   var temp = users.shift();
-    //   users.push(temp);
-    //   //console.log(users);
-    //   return users;
-    // }
-    //-----------------------------------------------------------------------------------------------------------------
-    //get the right user to the task instance following the constraints in the according task activity
-allocateUsers.prototype.getUser = function(ta_id, task, users, constraints, allocRecord) { //getting the user according to constraints
-        var i = 0; //???
-        var user = -1; // there is not userID = 0;
-        var avoid_users = [];
-        //console.log(users);
-        //console.log(constraints);
-        if (Object.keys(constraints).length === 0) {
-            //console.log('constraints are null....');
-            user = users.shift();
-            users.push(user);
-            //console.log(user);
-            allocRecord.push([ta_id, user]);
-        } else {
-            //console.log('we have constraints.....');
-            if (Object.keys(constraints).length > 0) {
-                var constraints_keys = Object.keys(constraints);
-                //console.log(constraints_keys);
-                constraints_keys.forEach(function(key) {
-                    //console.log(key);
-                    if (key.localeCompare('same_as') === 0) {
-                        //console.log(constraints.same_as);
-                        var tmp = constraints.same_as;
-                        tmp.forEach(function(t) {
-                            allocRecord.forEach(function(arr) {
-                                if (arr.indexOf(t) === 0) {
-                                    user = arr[1];
-                                    console.log(user);
-                                    allocRecord.push([ta_id, user]);
-                                    return user;
-                                }
-                            });
-                        });
-                    } else { //not
-                        //console.log(constraints.not);
-                        var temp = constraints.not;
-                        //console.log(temp[0]);
-                        //console.log(allocRecord);
+}
+//-------------------------------------------------------------------------------------------------------------
+//updating users array
+// allocateUsers.prototype.updateUsers = function(users){
+//   var temp = users.shift();
+//   users.push(temp);
+//   //console.log(users);
+//   return users;
+// }
+//-----------------------------------------------------------------------------------------------------------------
+//get the right user to the task instance following the constraints in the according task activity
+allocateUsers.prototype.getUser = function(ta_id, task,users, constraints,allocRecord){ //getting the user according to constraints
+  var i = 0;     //???
+  var user = -1; // there is not userID = 0;
+  var avoid_users = [];
+  //console.log(users);
+  //console.log(constraints);
+  if (Object.keys(constraints).length === 0){
+    //console.log('constraints are null....');
+    user = users.shift();
+    users.push(user);
+    //console.log(user);
+    allocRecord.push([ta_id,user]);
+  }
+  else{
+    //console.log('we have constraints.....');
+    if (Object.keys(constraints).length >0){
+      var constraints_keys = Object.keys(constraints);
+      //console.log(constraints_keys);
+      constraints_keys.forEach(function(key){
+        //console.log(key);
+        if (key.localeCompare('same_as')===0){
+          //console.log(constraints.same_as);
+          var tmp = constraints.same_as;
+          tmp.forEach(function(t){
+            allocRecord.forEach(function(arr){
+              if (arr.indexOf(t)===0){
+                user = arr[1];
+                //console.log(user);
+                allocRecord.push([ta_id,user]);
+                return user;
+              }
+            });
+          });
+        }else{//not
+          //console.log(constraints.not);
+          var temp = constraints.not;
+          //console.log(temp[0]);
+          //console.log(allocRecord);
 
-                        temp.forEach(function(t) {
-                            allocRecord.forEach(function(arr) {
-                                if (arr.indexOf(t) === 0) {
-                                    avoid_users.push(arr[1]);
-                                    //console.log(avoid_users);
-                                }
-                            });
-                        });
-                        users.forEach(function(u) {
-                            console.log(u);
-                            if (avoid_users.indexOf(u) === -1) {
-                                //console.log(u);
-                                user = u;
-                                allocRecord.push([ta_id, user]);
-                                //console.log(allocRecord);
-                                return user;
-                            }
-                        });
-                        console.log('============');
-                    }
-                });
+              temp.forEach(function(t){
+              allocRecord.forEach(function(arr){
+                if (arr.indexOf(t)===0){
+                  avoid_users.push(arr[1]);
+                  console.log(avoid_users);
+                }
+              });
+            });
+            users.forEach(function(u){
+              //console.log(u);
+            if (avoid_users.indexOf(u)===-1){
+              console.log(u);
+              user = u;
+              allocRecord.push([ta_id,user]);
+              console.log('allocRecord: ',allocRecord);
+
+              return user;
             }
+            //console.log('-----');
+          });
         }
-    }
-    //------------------------------------------------------------------------------------------------------------------------------------------
-    //this function will write to DB
-allocateUsers.prototype.updateDB = function(user, ti_id) {
+      });
+     }
+  }
+  return user;
+}
+//------------------------------------------------------------------------------------------------------------------------------------------
+//this function will write to DB
+//updateDB
+allocateUsers.prototype.updateDB = function(taskid, newUser) {
 
-    return new Promise(function(resolve, reject) {
+    console.log('Updating task instance...')
 
-        return TaskInstance.update({
-            UserID: user
-        }, {
-            where: {
-                TaskInstanceID: ti_id
-            }
-        }).then(function(result) {
-            console.log('DB was updated!');
-            resolve(result);
-        }).catch(function(err) {
-            reject(err);
-        });
-
+    TaskInstance.update({
+        UserID: newUser
+    }, {
+        where: {
+            TaskInstanceID: taskid
+        }
+    }).then(function(result) {
+        console.log('User updated! ', result.UserID)
+    }).catch(function(err) {
+        console.log('Cannot update user!');
+        console.log(err);
     });
+
 }
 
 

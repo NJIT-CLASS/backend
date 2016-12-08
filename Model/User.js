@@ -68,6 +68,16 @@ module.exports = function(sequelize, DataTypes) {
             //Indicate whether the user is Admin
             type: DataTypes.BOOLEAN,
             field: 'Admin'
+        },
+        Country: {
+            type: DataTypes.STRING,
+            field: 'Country',
+            allowNull: true
+        },
+        City: {
+            type: DataTypes.STRING,
+            field: 'City',
+            allowNull: true
         }
     }, {
         timestamps: false,

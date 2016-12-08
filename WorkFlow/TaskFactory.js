@@ -82,13 +82,28 @@ class TaskFactory {
     }
 
     updateWorkflowTiming(wf_timing) {
-        return Promise.mapSeries(wf_timing, function(workflow, index) {
-            return Promise.mapSeries(wf_timing[index].Tasks, function(task) {
+        // return Promise.mapSeries(wf_timing, function(workflow, index) {
+        //     return Promise.mapSeries(wf_timing[index].Tasks, function(task) {
+        //         TaskActivity.update({
+        //             DueType: task.TimeArray
+        //         }, {
+        //             where: {
+        //                 TaskActivityID: task.ID
+        //             }
+        //         }).catch(function(err) {
+        //             console.log('Update WorkflowTiming Failed!');
+        //             console.log(err);
+        //         });
+        //
+        //     });
+        // });
+        return Promise.mapSeries(wf_timing.workflows, function(workflow, index) {
+            return Promise.mapSeries(wf_timing.workflows[index].tasks, function(task) {
                 TaskActivity.update({
-                    DueType: task.TimeArray
+                    DueType: task.DueType
                 }, {
                     where: {
-                        TaskActivityID: task.ID
+                        TaskActivityID: task.id
                     }
                 }).catch(function(err) {
                     console.log('Update WorkflowTiming Failed!');
@@ -179,14 +194,17 @@ class TaskFactory {
                     TaskInstanceID: ti_id
                 }
             }).then(function(taskInstance) {
-                var p = previousTasks
+                var p = previousTasks;
                 if (taskInstance.PreviousTask === null || typeof taskInstance.PreviousTask === undefined) {
                     resolve(null);
                 } else {
                     console.log('Previous Task', taskInstance.PreviousTask);
-                    x.findPreviousTasks(taskInstance.PreviousTask, p).then(function(result) {
-                        p.push(taskInstance.PreviousTask);
-                        resolve(p);
+                    Promise.map(JSON.parse(taskInstance.PreviousTask), function(ti_id) {
+                        p.push(ti_id);
+                    }).then(function(done) {
+                        x.findPreviousTasks(JSON.parse(taskInstance.PreviousTask)[0], p).then(function(result) {
+                            resolve(p);
+                        });
                     });
                 }
             }).catch(function(err) {
@@ -418,15 +436,15 @@ class TaskFactory {
             //var endDate = new Date(new Date(startDate).getTime() + task.DueType[1]);
             TaskActivity.find({
                 where: {
-                    TaskActivityID: task.ID
+                    TaskActivityID: task.id
                 }
             }).then(function(ta_result) {
 
-                if (ta_result.Type == 'needs_consolidation' || ta_result.Type == 'complete') {
+                if (ta_result.Type == 'needs_consolidation' || ta_result.Type == 'completed') {
                     TaskInstance.create({
                         //create attributes
                         UserID: userid,
-                        TaskActivityID: task.ID,
+                        TaskActivityID: task.id,
                         WorkflowInstanceID: wi_id,
                         AssignmentInstanceID: ai_id,
                         Status: 'automatic',
@@ -440,7 +458,7 @@ class TaskFactory {
                     TaskInstance.create({
                         //create attributes
                         UserID: userid,
-                        TaskActivityID: task.ID,
+                        TaskActivityID: task.id,
                         WorkflowInstanceID: wi_id,
                         AssignmentInstanceID: ai_id,
                         Status: 'not_yet_started',
@@ -473,13 +491,13 @@ class TaskFactory {
             var candidates = users;
             //iterate through all users from section
             return Promise.mapSeries(users, function(user) {
-                return Promise.mapSeries(JSON.parse(workflowTiming), function(workflow, index) {
+                return Promise.mapSeries(JSON.parse(workflowTiming).workflows, function(workflow, index) {
                     console.log('workflow: ', workflow.id);
                     //creates seperate array to store all task instances created within the workflow
                     var taskArray = [];
                     //Store the current WorkflowInstanceID once it is created
                     var wi_id;
-                    var startDate = new Date(JSON.parse(workflowTiming)[index].Time);
+                    var startDate = new Date(JSON.parse(workflowTiming).workflows[index].startDate);
                     console.log('Creating workflow instance...');
                     return x.createWorkflowInstance(workflow, ai_id).then(function(workflowInstanceId) {
                         //push the resulting workflowInstance object from callback to workflow Array
@@ -488,9 +506,9 @@ class TaskFactory {
                         wi_id = workflowInstanceId;
                         console.log('Going through individual tasks...');
                         //iterate through all the tasks stored under workflows
-                        return Promise.mapSeries(JSON.parse(workflowTiming)[index].Tasks, function(task, num) {
-                            console.log('task: ', task.ID);
-                            return x.getNumberParticipants(task.ID).then(function(numParticipants) {
+                        return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
+                            console.log('task: ', task.id);
+                            return x.getNumberParticipants(task.id).then(function(numParticipants) {
                                 var task_collection = [];
                                 return Promise.mapSeries(numParticipants, function(iteration) {
                                     return x.createTaskInstance(task, user, workflowInstanceId, ai_id).then(function(createTaskResult) {
@@ -498,13 +516,13 @@ class TaskFactory {
                                         //push the resulting workflowInstance object from callback to workflow Array
 
                                         task_collection.push(createTaskResult[0]);
-                                        console.log("DueType", task.TimeArray);
+                                        console.log("DueType", task.DueType);
                                         if (num === 0) {
-                                            var endDate = moment(JSON.parse(workflowTiming)[index].Time);
-                                            if (task.TimeArray[0] === "duration") {
-                                                endDate.add(task.TimeArray[1], 'minutes');
-                                            } else if (task.TimeArray[0] === "specificTime") {
-                                                endDate = task.TimeArray[1];
+                                            var endDate = moment(JSON.parse(workflowTiming).workflows[index].startDate);
+                                            if (task.DueType[0] === "duration") {
+                                                endDate.add(task.DueType[1], 'minutes');
+                                            } else if (task.DueType[0] === "specificTime") {
+                                                endDate = task.DueType[1];
                                             }
                                             TaskInstance.update({
                                                 StartDate: startDate,
@@ -519,8 +537,8 @@ class TaskFactory {
                                     }).catch(function(err) {
                                         console.log(err);
                                     });
-                                }).then(function(done){
-                                  taskArray.push(task_collection);
+                                }).then(function(done) {
+                                    taskArray.push(task_collection);
                                 });
                             });
                         }).then(function(done) {
