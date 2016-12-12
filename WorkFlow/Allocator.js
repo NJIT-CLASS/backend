@@ -23,150 +23,347 @@ var EmailNotification = models.EmailNotification;
 
 class Allocator {
 
-    //constructor
-    constructor(users, workflow) {
+    //constructor, give users and one workflow from WorkflowTiming
+    constructor(users, userIndex) {
         this.users = users;
-        this.workflow = workflow;
-        this.pointer = 0;
+        this.workflow = {};
+        this.pointer = userIndex;
+        this.count = 0;
     }
 
-    getUser() {
+    getUser(ta_id) {
         let x = this;
-        let taskUser = [];
-        let count = 0;
-        return TaskActivity.find({
-            where: {
-                TaskActivityID: x.workflow.tasks[x.pointer].id
-            }
-        }).then(function(ta) {
-            //console.log(x.users);
-            //console.log(ta.TaskActivityID);
-            let constraints = JSON.parse(ta.AssigneeConstraints)[2];
-            console.log(ta.AssigneeConstraints);
-            if (ta.Type === 'needs_consolidation' || ta.Type === 'complete') {
-                //do nothing
-            } else if (_.isEmpty(constraints)) {
-                //return the first one in the user list
-                console.log('here1');
-                taskUser.push(x.users[count]);
-            } else if (_.has(constraints, "same_as") && !(_.has(constraints, "not"))) {
-                console.log('here2');
-                var same = constraints.same_as[0];
-                taskUser.push(x.users[same]);
-            } else if (!(_.has(constraints, "same_as")) && _.has(constraints, "not")) {
-                console.log('here3');
-                while (_.contains(constraints.not, x.users[count])) {
-                    count++;
-                }
-                taskUser.push(x.users[count]);
-            } else if (_.has(constraints, "same_as") && _.has(constraints, "not")) {
-                console.log('here4');
-                while (_.contains(constraints.not, x.users[count])) {
-                    count++;
-                }
-                var same = constraints.same_as[0];
-                taskUser.push(x.users[count]);
-                taskUser.push(x.users[same]);
-            }
-        }).then(function(done) {
-            var first = x.users.shift();
-            x.users.push(first);
-            x.pointer++;
-            return taskUser;
-        });
+        let taskUser = []
 
-
-    }
-
-    // allocate(sectionid, ai_id) {
-    //     var users = factory.getUsersFromSection(sectionid).sort();
-    //     var workflowCollection = getWorkflowCollection(ai_id);
-    //
-    //     return Promise.mapSeries(workflowCollection, function(wi_id) {
-    //
-    //         return getTaskCollection(wi_id).then(function(taskCollection) {
-    //
-    //             return Promise.mapSeries(taskCollection, function(ti_array) {
-    //
-    //                 return Promise.mapSeries(ti_array, function(ti_id) {
-    //
-    //                     return getTask(ti_id).then(function(ti) {
-    //
-    //                         return getConstraints(ti.TaskActivityID).then(function(constraints) {
-    //
-    //                         });
-    //
-    //                     });
-    //
-    //                 });
-    //
-    //             });
-    //
-    //         });
-    //
-    //     });
-    //
-    // }
-
-    getWorkflowCollection(ai_id) {
-        return new Promise(function(resolve, reject) {
-            return AssignmentInstance.find({
-                where: {
-                    AssignmentInstanceID: ai_id
-                }
-            }).then(function(ai_result) {
-                resolve(JSON.parse(ai_result.WorkflowCollection));
-            }).catch(function(err) {
-                console.log("cannot find the workflow collection");
-                reject(err);
-            });
-        });
-    }
-
-    getTaskCollection(wi_id) {
-        return new Promise(function(resolve, reject) {
-            return WorkflowInstance.find({
-                where: {
-                    WorkflowInstance: wi_id
-                }
-            }).then(function(wi_result) {
-                resolve(JSON.parse(wi_result.TaskCollection));
-            }).catch(function(err) {
-                console.log("cannot find the task collection");
-                reject(err);
-            });
-        });
-    }
-
-    getTask(ti_id) {
-        return new Promise(function(resolve, reject) {
-            return TaskInstance.find({
-                where: {
-                    TaskInstanceID: ti_id
-                }
-            }).then(function(ti_result) {
-                resolve(ti_result);
-            }).catch(function(err) {
-                console.log("cannot find the task ", ti_id);
-                reject(err);
-            });
-        });
-    }
-
-    getConstraints(ta_id) {
         return new Promise(function(resolve, reject) {
             return TaskActivity.find({
                 where: {
                     TaskActivityID: ta_id
                 }
-            }).then(function(ta_result) {
-                resolve(ta_result.AssigneeConstraints);
+            }).then(function(ta) {
+
+                let constraints = JSON.parse(ta.AssigneeConstraints)[2];
+
+                if (JSON.parse(ta.AssigneeConstraints)[0] === "instructor") {
+                    return x.getInstructor(ta_id).then(function(instructor) {
+                        taskUser.push(instructor);
+                        resolve(taskUser);
+                    });
+                } else {
+
+                    if (ta.Type === 'needs_consolidation' || ta.Type === 'completed') {
+                        if (Object.keys(x.workflow).length < 1) {
+                            var same = constraints.same_as[0];
+                            taskUser.push(0);
+                        } else {
+                            var same = constraints.same_as[0];
+                            taskUser.push(x.workflow[same][0]);
+                        }
+                    } else if (_.isEmpty(constraints)) {
+                        //return the first one in the user list
+                        taskUser.push(x.user(ta_id));
+                        x.count++;
+                    } else if (_.has(constraints, "same_as") && !(_.has(constraints, "not"))) {
+                        var same = constraints.same_as[0];
+                        taskUser.push(x.workflow[same][0]);
+                    } else if (!(_.has(constraints, "same_as")) && _.has(constraints, "not")) {
+                        while (_.contains(constraints.not, x.users[x.count])) {
+                            x.count++;
+                        }
+                        taskUser.push(x.user(ta_id));
+                        x.count++;
+                    } else if (_.has(constraints, "same_as") && _.has(constraints, "not")) {
+                        while (_.contains(constraints.not, x.users[x.count])) {
+                            x.count++;
+                        }
+                        taskUser.push(x.user(ta_id));
+
+                        if (ta.Type === 'grade_problem' && ta.NumberParticipants > 1) {
+                            var same = constraints.same_as[0];
+                            taskUser.push(x.workflow[same][0]);
+                        }
+                        x.count++;
+                    }
+                }
+            }).then(function(done) {
+                x.workflow[ta_id] = taskUser;
+                resolve(taskUser);
             }).catch(function(err) {
-                console.log("cannot find the task ", ti_id);
+                console.log("Error allocating the users");
                 reject(err);
             });
         });
     }
+
+    user(ta_id) {
+        let x = this;
+        let index = x.pointer + x.count;
+        if (index == x.users.length) {
+            x.count = 0 - x.pointer;
+            index = x.pointer + x.count;
+            return x.users[index];
+        } else {
+            return x.users[index];
+        }
+    }
+
+    getInstructor(ta_id) {
+        return new Promise(function(resolve, reject) {
+
+            return TaskActivity.find({
+                where: {
+                    TaskActivityID: ta_id
+                }
+            }).then(function(ta_result) {
+                return Assignment.find({
+                    where: {
+                        AssignmentID: ta_result.AssignmentID
+                    }
+                }).then(function(assignment) {
+                    resolve(assignment.OwnerID);
+                });
+            }).catch(function(err) {
+                console.log('Error retrieving instructor ID');
+                console.log(err);
+            });
+        });
+    }
+
+
+    //-------------------------------------------------------
+    // get taskActivityID linked to this task
+    getTaskActivityID(task) {
+
+
+
+        return new Promise(function(resolve, reject){
+
+          //console.log('Finding the taskActivityID...');
+
+          var taskActivityID = [];
+
+
+          TaskInstance.findAll({
+              where: {
+                  TaskInstanceID: task
+              }
+          }).then(function(results) {
+
+              //taskActivityID.push(results.TaskActivityID);
+              results.forEach(function(task) {
+                  //tasks.push(task.TaskActivityID);
+                  taskActivityID.push(task.TaskActivityID);
+              }, this);
+
+              //console.log('taskActivityID was found!');
+
+              resolve(taskActivityID);
+
+          }).catch(function(err) {
+              console.log('Find taskActivityID failed!');
+              console.log(err);
+          });
+
+        });
+
+    }
+
+    // get AssigneeConstraints linked to this taskActivityID
+    getConstraints(ta_id){
+
+      return new Promise(function(resolve, reject){
+        var constraints;
+        return TaskActivity.find({
+          where: {
+            TaskActivityID: ta_id
+          }
+        }).then(function(result){
+            constraints = JSON.parse(result.AssigneeConstraints);
+            //console.log(constraints);
+            //console.log('All constraints were saved!');
+
+            resolve(constraints);
+          }).catch(function(err) {
+              console.log('Find constraints failed!');
+              reject(err);
+          });
+      });
+    }
+
+    //get user that will be removed from workflow instance
+    getLateUser(task) {
+
+
+        return new Promise(function(resolve, reject){
+
+          //console.log('Finding the late user...');
+
+          var lateUser;
+
+
+          TaskInstance.findAll({
+              where: {
+                  TaskInstanceID: task
+              }
+          }).then(function(results) {
+
+              results.forEach(function(task) {
+                  lateUser = task.UserID;
+              }, this);
+
+              //console.log('lateUser was found!');
+
+              resolve(lateUser);
+
+          }).catch(function(err) {
+              console.log('Find workflowInstanceID failed!');
+              console.log(err);
+          });
+        });
+    }
+
+
+
+
+
+    // get workflowInstanceID linked to this task
+    getWorkflowInstanceID(task) {
+
+
+        return new Promise(function(resolve, reject){
+
+          //console.log('Finding the workflowInstanceID...');
+
+          var workflowInstanceID = [];
+
+
+          TaskInstance.findAll({
+              where: {
+                  TaskInstanceID: task
+              }
+          }).then(function(results) {
+
+              //workflowInstanceID.push(results.WorkflowInstanceID);
+              results.forEach(function(workflow) {
+                  workflowInstanceID.push(workflow.WorkflowInstanceID);
+              }, this);
+
+              //console.log('workflowInstanceID was found!');
+
+              resolve(workflowInstanceID);
+
+          }).catch(function(err) {
+              console.log('Find workflowInstanceID failed!');
+              console.log(err);
+          });
+        });
+    }
+
+    //get students in the workflowInstanceID - this students will be avoided
+    getUsersFromWorkflowInstance(wi_id) {
+
+
+
+        return new Promise(function(resolve, reject){
+
+          //console.log('Finding the users in the workflowInstanceID...');
+
+          var avoid_users = [];
+
+          TaskInstance.findAll({
+              where: {
+                  WorkflowInstanceID: wi_id
+              }
+          }).then(function(results) {
+
+              results.forEach(function(user) {
+                avoid_users.push(user.UserID);
+              }, this);
+
+
+              //console.log('users in workflowInstanceID were found!');
+
+              resolve(avoid_users);
+
+          }).catch(function(err) {
+              console.log('Find users in workflowInstanceID failed!');
+              console.log(err);
+          });
+        });
+    }
+
+    //get ti_id where user is allocated within a wi_id
+    getTaskInstancesWhereUserAlloc (user,wi_id,ti_id){
+      //console.log('Finding the TaskInstances...');
+
+
+      return new Promise(function(resolve, reject){
+
+        var tempAllocRecord = [];
+        tempAllocRecord.push(ti_id);
+
+        TaskInstance.findAll({
+            where: {
+                WorkflowInstanceID: wi_id,
+                UserID: user
+            }
+        }).then(function(results) {
+
+            results.forEach(function(result) {
+              if (result.TaskInstanceID > ti_id){
+                tempAllocRecord.push(result.TaskInstanceID);
+              }
+            }, this);
+
+            resolve(tempAllocRecord);
+            //console.log('TaskInstances were found!');
+            //tempAllocRecord.push(ti_id);
+
+
+        }).catch(function(err) {
+            console.log('Find TaskInstances failed!');
+            console.log(err);
+        });
+      });
+    }
+
+    //get newUser
+    getUser (avoid_users, users){
+      var new_user;
+      users.forEach(function(user){
+        //console.log(user);
+        if (avoid_users.indexOf(user)===0){
+              users.shift();
+        }
+
+      });
+      new_user = users[0];
+      //console.log(new_user);
+      return new_user;
+
+    }
+
+
+    //updateDB
+    updateUSER(taskid, newUser) {
+
+        console.log('Updating task instance...')
+
+        TaskInstance.update({
+            UserID: newUser
+        }, {
+            where: {
+                TaskInstanceID: taskid
+            }
+        }).then(function(result) {
+            console.log('User updated! ', result.UserID)
+        }).catch(function(err) {
+            console.log('Cannot update user!');
+            console.log(err);
+        });
+
+    }
+
 
 
 

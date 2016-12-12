@@ -26,6 +26,8 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
+var Allocator = require('./Allocator.js');
+
 tree = new TreeModel();
 
 
@@ -82,21 +84,6 @@ class TaskFactory {
     }
 
     updateWorkflowTiming(wf_timing) {
-        // return Promise.mapSeries(wf_timing, function(workflow, index) {
-        //     return Promise.mapSeries(wf_timing[index].Tasks, function(task) {
-        //         TaskActivity.update({
-        //             DueType: task.TimeArray
-        //         }, {
-        //             where: {
-        //                 TaskActivityID: task.ID
-        //             }
-        //         }).catch(function(err) {
-        //             console.log('Update WorkflowTiming Failed!');
-        //             console.log(err);
-        //         });
-        //
-        //     });
-        // });
         return Promise.mapSeries(wf_timing.workflows, function(workflow, index) {
             return Promise.mapSeries(wf_timing.workflows[index].tasks, function(task) {
                 TaskActivity.update({
@@ -488,15 +475,16 @@ class TaskFactory {
             console.log('Found workflowTiming: ', JSON.parse(workflowTiming));
             console.log('Going through each user...');
 
-            var candidates = users;
             //iterate through all users from section
-            return Promise.mapSeries(users, function(user) {
+            return Promise.mapSeries(users, function(user, userIndex) {
                 return Promise.mapSeries(JSON.parse(workflowTiming).workflows, function(workflow, index) {
                     console.log('workflow: ', workflow.id);
                     //creates seperate array to store all task instances created within the workflow
                     var taskArray = [];
                     //Store the current WorkflowInstanceID once it is created
                     var wi_id;
+
+                    var allocator = new Allocator(users, userIndex);
                     var startDate = new Date(JSON.parse(workflowTiming).workflows[index].startDate);
                     console.log('Creating workflow instance...');
                     return x.createWorkflowInstance(workflow, ai_id).then(function(workflowInstanceId) {
@@ -508,10 +496,10 @@ class TaskFactory {
                         //iterate through all the tasks stored under workflows
                         return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
                             console.log('task: ', task.id);
-                            return x.getNumberParticipants(task.id).then(function(numParticipants) {
+                            return allocator.getUser(task.id).then(function(allocUsers) {
                                 var task_collection = [];
-                                return Promise.mapSeries(numParticipants, function(iteration) {
-                                    return x.createTaskInstance(task, user, workflowInstanceId, ai_id).then(function(createTaskResult) {
+                                return Promise.mapSeries(allocUsers, function(a_user) {
+                                    return x.createTaskInstance(task, a_user, workflowInstanceId, ai_id).then(function(createTaskResult) {
                                         console.log('taskInstanceId: ', createTaskResult[0]);
                                         //push the resulting workflowInstance object from callback to workflow Array
 

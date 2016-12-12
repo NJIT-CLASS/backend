@@ -1,6 +1,5 @@
 var models = require('../Model');
 var TaskFactory = require('./TaskFactory.js');
-var Allocator3 = require('./Allocator3.js');
 var Promise = require('bluebird');
 var Email = require('./Email.js')
 
@@ -22,7 +21,6 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-var allocator = new Allocator3.Allocator3();
 var taskFactory = new TaskFactory();
 var email = new Email();
 

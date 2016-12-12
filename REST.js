@@ -24,13 +24,10 @@ var EmailNotification = models.EmailNotification;
 
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
-var Allocator3 = require('./WorkFlow/Allocator3.js');
 var TaskFactory = require('./WorkFlow/TaskFactory.js');
 var sequelize = require("./Model/index.js").sequelize;
-var allocateUsers = require('./Workflow/allocateUsers.js');
-var reallocation = require('./Workflow/reallocation.js');
-
 var Email = require('./WorkFlow/Email.js');
+var FlatToNested = require('flat-to-nested');
 
 //-----------------------------------------------------------------------------------------------------
 
@@ -47,7 +44,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //Endpoint to Create an Assignment
     router.post("/assignment/create", function(req, res) {
 
-        // var allocator = new Allocator3.Allocator3();
+        //
         // console.log('assignment: ', req.body.assignment);
         // allocator.createAssignment(req.body.assignment).then(function(done) {
         //     if (done === false) {
@@ -115,52 +112,37 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         // });
         //allocator.createInstances(3, 14);
         //allocator.updatePreviousAndNextTasks(13);
-        var allocator = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], {
-            "id": "1",
-            "tasks": [{
-                "id": 1,
-                "DueType": ["duration", 4320]
-            }, {
-                "id": 2,
-                "DueType": ["duration", 4320]
-            }, {
-                "id": 3,
-                "DueType": ["duration", 4320]
-            }, {
-                "id": 4,
-                "DueType": ["duration", 4320]
-            }, {
-                "id": 5,
-                "DueType": ["duration", 4320]
-            }, {
-                "id": 6,
-                "DueType": ["duration", 4320]
-            }, {
-                "id": 7,
-                "DueType": ["duration", 4320]
-            }, {
-                "id": 8,
-                "DueType": ["duration", 4320]
-            }, {
-                "id": 9,
-                "DueType": ["duration", 4320]
-            }],
-            "startDate": "2016-12-01 17:46:24"
-        });
-        Promise.all([allocator.getUser()]).then(function(done) {
+        var allocator = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
+        Promise.all([allocator.getUser(1)]).then(function(done) {
             console.log(done[0]);
         }).then(function() {
-            Promise.all([allocator.getUser()]).then(function(done) {
+            Promise.all([allocator.getUser(2)]).then(function(done) {
                 console.log(done[0]);
             }).then(function() {
-                Promise.all([allocator.getUser()]).then(function(done) {
+                Promise.all([allocator.getUser(3)]).then(function(done) {
                     console.log(done[0]);
                 }).then(function() {
-                    Promise.all([allocator.getUser()]).then(function(done) {
+                    Promise.all([allocator.getUser(4)]).then(function(done) {
                         console.log(done[0]);
                     }).then(function() {
-                        Promise.all([allocator.getUser()]).then(function(done) {
+                        Promise.all([allocator.getUser(5)]).then(function(done) {
                             console.log(done[0]);
+                        }).then(function() {
+                            Promise.all([allocator.getUser(6)]).then(function(done) {
+                                console.log(done[0]);
+                            }).then(function() {
+                                Promise.all([allocator.getUser(7)]).then(function(done) {
+                                    console.log(done[0]);
+                                }).then(function() {
+                                    Promise.all([allocator.getUser(8)]).then(function(done) {
+                                        console.log(done[0]);
+                                    }).then(function() {
+                                        Promise.all([allocator.getUser(5)]).then(function(done) {
+                                            console.log(done[0]);
+                                        });
+                                    });
+                                });
+                            });
                         });
                     });
                 });
@@ -356,21 +338,22 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 Email: req.body.emailaddress,
                 Password: md5(req.body.password)
             },
-            attributes: ['UserID']
+            attributes: ['UserID', 'Status']
         }).then(function(user) {
             if (user == null) {
                 console.log('/login : Invalid Credentials');
                 res.status(401).end()
             } else {
+                console.log(user.Status);
                 res.json({
                     "Error": false,
                     "Message": "Success",
-                    "UserID": user.UserID
+                    "UserID": user.UserID,
+                    "Status": user.Status
                 });
             }
         });
     });
-
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a User's Email
@@ -442,7 +425,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['FirstName', 'LastName', 'UserType', 'Admin'],
+            attributes: ['FirstName', 'LastName', 'UserType', 'Admin', 'Country', 'City'],
             include: [{
                 model: UserLogin,
                 attributes: ['Email']
@@ -463,36 +446,49 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to create a semester
+    // JV - contructing the /createSemester where it allows user to create a non existance. return false when new semester already exist
     router.post("/createSemester", function(req, res) {
-
-        var startDate = dateFormat(req.body.startdate, "yyyy-mm-dd");
-        var endDate = dateFormat(req.body.enddate, "yyyy-mm-dd");
-        if (req.body.enddate == null || req.body.startdate == null) {
+        var startDate = dateFormat(req.body.start_sem, "yyyy-mm-dd");
+        var endDate = dateFormat(req.body.end_sem, "yyyy-mm-dd");
+        console.log(req.body.start_sem + " " + req.body.end_sem);
+        if (req.body.end_sem == null || req.body.start_sem == null) {
             console.log("/createSemester : Dates must be defined");
             res.status(400).end();
         } else if (startDate > endDate) {
             console.log("/createSemester : StartDate cannot be grater than EndDate");
             res.status(400).end();
         } else {
-            var semester = Semester.build({
-                Name: req.body.name,
-                StartDate: req.body.startdate,
-                EndDate: req.body.enddate,
-                OrganizationID: req.body.organizationid
+            Semester.find({
+                where: {
+                    OrganizationID: req.body.organizationID,
+                    Name: req.body.semesterName //new
+                },
+                attributes: ['SemesterID']
+            }).then(function(response) {
+                if (response == null || response.SemesterID == null) {
+                    Semester.create({
+                        OrganizationID: req.body.organizationID, //organization ID
+                        Name: req.body.semesterName,
+                        StartDate: req.body.start_sem,
+                        EndDate: req.body.end_sem
+                    }).catch(function(err) {
+                        console.log(err);
+                    }).then(function(result) {
+                        res.json({
+                            "newsemester": result,
+                            "sem_feedback": true
+                        });
+                    });
 
-            }).save().then(function(response) {
-                console.log("/createSemester Succesfully");
-                res.json({
-                    "SemesterID": response
-                });
-            }).catch(function(err) {
-                console.log("/createSemester : " + err.message);
-                res.status(400).end();
+                } else {
+                    console.log("Semester Name and Organization Exist");
+                    res.json({
+                        "newsemester": null,
+                        "sem_feedback": false
+                    });
+                }
             });
         }
-
-
-
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -540,7 +536,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to create course
     router.post("/course/create", function(req, res) {
-
+        console.log("/course/create: called");
         if (req.body.userid == null) {
             console.log("/course/create : UserID cannot be null");
             res.status(400).end();
@@ -562,23 +558,38 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             return;
         }
 
-        var course = Course.build({
-            CreatorID: req.body.userid,
-            Number: req.body.number,
-            Name: req.body.Name,
-            OrganizationID: req.body.organizationid //new
+        Course.find({
+            where: {
+                CreatorID: req.body.userid,
+                Number: req.body.number,
+                Name: req.body.Name,
+                OrganizationID: req.body.organizationid //new
+            },
+            attributes: ['CourseID']
+        }).then(function(response) {
+            if (response == null || response.CourseID == null) {
+                Course.create({
+                    CreatorID: req.body.userid,
+                    Number: req.body.number,
+                    Name: req.body.Name,
+                    OrganizationID: req.body.organizationid,
+                    Abbreviations: req.body.course_abb,
+                    Description: req.body.course_description
+                }).catch(function(err) {
+                    console.log(err);
+                }).then(function(result) {
+                    res.json({
+                        "NewCourse": result,
+                        "Message": true
+                    });
 
-        }).save().then(function(response) {
-            res.json({
-                "NewCourse": response
-            });
-        }).catch(function(err) {
-            console.log("/course/create : " + err.message);
-
-            res.status(400).end();
+                });
+            } else {
+                res.json({
+                    "Message": false
+                });
+            }
         });
-
-
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -602,16 +613,16 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(400).end();
             return;
         }
-        if (req.body.description == null) {
-            console.log("course/createsection : Description cannot be null");
-            res.status(400).end();
-            return;
-        }
-        if (req.body.organizationid == null) {
-            console.log("course/createsection : OrganizationID cannot be null");
-            res.status(400).end();
-            return;
-        }
+        // if (req.body.description == null) {
+        //     console.log("course/createsection : Description cannot be null");
+        //     res.status(400).end();
+        //     return;
+        // }
+        // if (req.body.organizationid == null) {
+        //     console.log("course/createsection : OrganizationID cannot be null");
+        //     res.status(400).end();
+        //     return;
+        // }
 
         //-----------------------------------------------------------------------------------------------------
 
@@ -723,6 +734,170 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         }
 
     });
+
+    // adding the user, called on add user page
+    router.post("/adduser", function(req, res) {
+        console.log("/adduser:called");
+        var email = new Email.Email();
+        if (req.body.email === null) {
+            console.log("/adduser : Email cannot be null");
+            res.status(400).end();
+        }
+        var user_role = "";
+        var useradmin = 0;
+        if (req.body.role == 'Admin') {
+            console.log("/adduser: User is an admin");
+            user_role = "Instructor";
+            useradmin = 1;
+        } else if (req.body.role == 'Instructor') {
+            user_role = "Instructor";
+        } else user_role = "Student";
+
+        UserLogin.find({
+            where: {
+                Email: req.body.email
+            },
+            attributes: ['UserID']
+        }).then(function(userLogin) {
+            if (userLogin == null || userLogin.UserID == null) {
+                UserContact.create({
+                    Email: req.body.email,
+                    Phone: 'XXX-XXX-XXXX'
+                }).catch(function(err) {
+                    console.log(err);
+                }).then(function(userCon) {
+                    sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                        .then(function() {
+                            sequelize.sync({});
+                            User.create({
+                                FirstName: req.body.firstname,
+                                LastName: req.body.lastname,
+                                OrganizationGroup: {
+                                    "OrganizationID": []
+                                },
+                                UserContactID: userCon.UserContactID,
+                                UserType: user_role,
+                                Admin: useradmin,
+                                Country: '',
+                                City: ''
+                            }).catch(function(err) {
+                                console.log(err);
+                            }).then(function(user) {
+                                UserLogin.create({
+                                    UserID: user.UserID,
+                                    Email: req.body.email,
+                                    Password: md5(req.body.password),
+                                    Status: '1'
+                                }).catch(function(err) {
+                                    console.log(err);
+                                }).then(function(userLogin) {
+                                    email.sendNow(userLogin.UserID, 'create user', req.body.password);
+                                    res.json({
+                                        "Message": "User has succesfully added"
+                                    });
+                                });
+                            });
+                        });
+                });
+            } else {
+                res.json({
+                    "Message": "User is currently exist"
+                });
+            }
+        })
+    });
+
+    router.post("/course/adduser", function(req, res) {
+        //console.log("role "+req.body.role);
+        var email = new Email.Email();
+        if (req.body.email === null) {
+            console.log("course/adduser : Email cannot be null");
+            res.status(400).end();
+        }
+        if (req.body.courseid === null) {
+            console.log("course/adduser : CourseID cannot be null");
+            res.status(400).end();
+        }
+        if (req.body.sectionid === null) {
+            console.log("course/adduser : SectionID cannot be null");
+            res.status(400).end();
+        }
+
+        UserLogin.find({
+            where: {
+                Email: req.body.email
+            },
+            attributes: ['UserID']
+        }).then(function(userLogin) {
+            if (userLogin == null || userLogin.UserID == null) {
+                UserContact.create({
+                    Email: req.body.email,
+                    Phone: 'XXX-XXX-XXXX'
+                }).catch(function(err) {
+                    console.log(err);
+                }).then(function(userCon) {
+                    sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                        .then(function() {
+                            sequelize.sync({});
+                            console.log(userCon.UserContactID);
+                            User.create({
+                                FirstName: 'Temp',
+                                LastName: 'Temp',
+                                OrganizationGroup: {
+                                    "OrganizationID": []
+                                },
+                                UserContactID: userCon.UserContactID,
+                                UserType: req.body.role,
+                                Admin: 0,
+                                Country: 'United Stated',
+                                City: 'Temp'
+                            }).catch(function(err) {
+                                console.log(err);
+                            }).then(function(user) {
+                                UserLogin.create({
+                                    UserID: user.UserID,
+                                    Email: req.body.email,
+                                    Password: md5("pass123")
+                                }).catch(function(err) {
+                                    console.log(err);
+                                }).then(function(userLogin) {
+                                    //Email User With Password
+                                    email.sendNow(userLogin.UserID, 'create user', req.body.password);
+                                    SectionUser.create({
+                                        SectionID: req.body.sectionid,
+                                        UserID: userLogin.UserID,
+                                        UserRole: req.body.role,
+                                        UserStatus: 'Active'
+                                    }).catch(function(err) {
+                                        console.log(err);
+                                    }).then(function(sectionUser) {
+                                        res.status(200).end();
+                                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+
+                                    });
+                                });
+                            });
+                        });
+                });
+            } else {
+                SectionUser.create({
+                    SectionID: req.body.sectionid,
+                    UserID: userLogin.UserID,
+                    UserRole: req.body.role,
+                    UserStatus: 'Active'
+                }).catch(function(err) {
+                    console.log(err);
+                }).then(function(sectionUser) {
+                    res.json({
+                        "UserID": sectionUser.UserID,
+                        "Message": "Success"
+                    });
+                })
+            }
+        })
+    });
+
+
 
 
     // router.post("/course/adduser", function(req, res) {
@@ -1296,7 +1471,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         },
                         UserContactID: userCon.UserContactID,
                         UserType: 'Instructor',
-                        Admin: 0
+                        Admin: 0,
+                        Country: 'United Stated',
+                        City: 'Newark'
                     }).catch(function(err) {
                         console.log(err);
                     }).then(function(user) {
@@ -1352,6 +1529,54 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.json({
                 "Instructors": instructors
             });
+        });
+    });
+
+    router.get("/organization", function(req, res) {
+        console.log("/organization: called");
+        Organization.findAll({}).then(function(rows) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Organization": rows
+            });
+        }).catch(function(err) {
+            console.log("/organization: " + err.message);
+            res.status(401).end();
+        });
+    });
+
+
+    //creates organization
+    router.post("/createorganization", function(req, res) {
+        console.log("/createorganization")
+        Organization.find({
+            where: {
+                UserID: req.body.userid,
+                Name: req.body.organizationname //new
+            },
+            attributes: ['OrganizationID']
+        }).then(function(response) {
+            if (response == null || response.OrganizationID == null) {
+                Organization.create({
+                    UserID: req.body.userid,
+                    Name: req.body.organizationname
+                }).catch(function(err) {
+                    console.log(err);
+                }).then(function(result) {
+                    res.json({
+                        "neworganization": result,
+                        "org_feedback": true
+                    });
+                });
+
+            } else {
+                console.log("User and Organization Exist")
+                res.json({
+                    "neworganization": null,
+                    "org_feedback": false
+                });
+            }
         });
     });
 
@@ -1958,7 +2183,8 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         //Push the resulting name and TaskActivityID on to javascript object
                         taskCollection[workflow.WorkflowActivityID].push({
                             "taskActivityID": taskActivity.TaskActivityID,
-                            "name": taskActivity.Name
+                            "name": taskActivity.Name,
+                            "type": taskActivity.Type
                         });
                         taskCollection[workflow.WorkflowActivityID].sort(function(a, b) {
                             var x = a.taskActivityID < b.taskActivityID ? -1 : 1;
@@ -2109,120 +2335,46 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    router.post("/reallocate", function(req, res) {
 
-    //testing purposes - Angelica's work
-    //router.get('/test/:taskActivityID', function(req,res){
-    //  var alloc = new allocateUsers.allocateUsers();
-    //  alloc.getConstraints(req.params.taskActivityID)
-    //});
-
-
-    router.get('/test/testing', function(req, res) {
-        // var realloc = new reallocation.reallocation();
-        // Promise.all([realloc.getConstraints(1)]).spread(function(constraints) {
-        //     var constraint = constraints.pop();
-        // });
-        //-- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -
-        var alloc = new allocateUsers.allocateUsers();
-        alloc.getAssignments();
-        Promise.all([alloc.getAssignments()]).then(function(done) {
-            var assignments = done[0];
-            var AssignmentInstances;
-            var WorkflowInstances;
-            var TaskActivity;
-            var TaskInstances;
-            var constraint;
-            var constraints;
-            var user=0;
-            var student;
-            var sectionID = 1;
-            var userStatus = 'Active';
-            var users;
-            var allocRecord = [];
-            // = alloc.getUsersFromSection(sectionID,userStatus);
-            Promise.all([alloc.getUsersFromSection(sectionID, userStatus)]).then(function(done) {
-                    users = done[0];
-                    //console.log(users);
-                })
-                //console.log(assignments);
-            assignments.map(function(assignment) {
-                Promise.all([alloc.getAssignmentInstances(assignment, sectionID), alloc.getWorkflows(assignment)]).spread(function(AssignmentInstances, WorkflowActivityIds) {
-                    AssignmentInstances.map(function(ai_id) {
-                        WorkflowActivityIds.map(function(wa_id) {
-                            // TaskActivityIds = alloc.getTasks(wa_id,assignment);
-                            // WorkflowInstances=alloc.getWorkflowInstances(wa_id,ai_id);
-                            Promise.all([alloc.getTasks(wa_id, assignment), alloc.getWorkflowInstances(wa_id, ai_id)]).spread(function(TaskActivityIds, WorkflowInstances) {
-                                WorkflowInstances.map(function(wi_id) {
-                                    //var allocRecord = [];
-                                    allocRecord.length = 0;
-                                    TaskActivityIds.map(function(ta_id) {
-                                        // TaskInstances = alloc.getTaskInstances(ai_id,wi_id,ta_id);
-                                        // constraint = alloc.getConstraints(ta_id);
-
-                                        Promise.all([alloc.getTaskInstances(ai_id, wi_id, ta_id), alloc.getConstraints(ta_id)]).spread(function(TaskInstances, constraints) {
-                                            TaskInstances.map(function(ti_id) {
-                                                constraint = constraints.pop();
-                                                student = constraints.shift();
-                                                constraints.push(student);
-                                                console.log('student', student);
-                                                if (student.localeCompare("student") === 0) {
-                                                    user = alloc.getUser(ta_id, ti_id, users, constraint, allocRecord);
-                                                    //users = alloc.updateUsers(users);
-                                                } else {
-                                                    user = 0;
-                                                }
-                                                //console.log(user);
-                                                //console.log(ta_id);
-                                                //console.log(ti_id);
-
-                                                alloc.updateDB(ti_id, user);
-                                                //users = alloc.updateUsers(users);
-                                            });
-                                        });
-                                    });
-                                });
-                            });
-                        }); //ai_id
-                    }); //assignment
+        if (req.body.taskid == null || req.body.users == null) {
+            console.log('/reallocate: missing required fields.');
+            res.status(401).end();
+            return;
+        }
+        var task = req.body.taskid; //task instance needs to be given
+        var constraint;
+        var lateUser;
+        var newUser;
+        var avoid_users = [];
+        var users = req.body.users; // users need to be given
+        //console.log(users);
+        var realloc = new Allocator();
+        Promise.all([realloc.getLateUser(task)]).then(function(done) {
+            lateUser = done[0];
+            //console.log(lateUser);
+        });
+        Promise.all([realloc.getTaskActivityID(task), realloc.getWorkflowInstanceID(task)]).spread(function(taskActivityIDs, workflowInstanceIDs) {
+            taskActivityIDs.map(function(ta_id) {
+                //console.log(ta_id);
+                workflowInstanceIDs.map(function(wi_id) {
+                    //console.log(wi_id);
+                    //console.log('im here......');
+                    Promise.all([realloc.getUsersFromWorkflowInstance(wi_id), realloc.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
+                        //console.log(avoid_users);
+                        avoidUsers.map(function(user) {
+                            avoid_users.push(user);
+                        });
+                        //console.log(avoid_users);
+                        newUser = realloc.getUser(avoid_users, users);
+                        TaskInstances.map(function(task) {
+                            realloc.updateUSER(task, newUser);
+                        });
+                        //console.log(newUser);
+                    });
                 });
             });
         });
-        //-----------------------------------------------------------------------------------------------------------------------------------------------------------------
-        //reallocation testing
-        // var task = 1; //task instance needs to be given
-        // var constraint;
-        // var lateUser;
-        // var newUser;
-        // var avoid_users = [];
-        // var users = [1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20]; // users need to be given
-        // //console.log(users);
-        // var realloc = new reallocation.reallocation();
-        // Promise.all([realloc.getLateUser(task)]).then(function(done) {
-        //     lateUser = done[0];
-        //     //console.log(lateUser);
-        // });
-        // Promise.all([realloc.getTaskActivityID(task), realloc.getWorkflowInstanceID(task)]).spread(function(taskActivityIDs, workflowInstanceIDs) {
-        //     taskActivityIDs.map(function(ta_id) {
-        //         //console.log(ta_id);
-        //         workflowInstanceIDs.map(function(wi_id) {
-        //             //console.log(wi_id);
-        //             //console.log('im here......');
-        //             Promise.all([realloc.getUsersFromWorkflowInstance(wi_id), realloc.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
-        //                 //console.log(avoid_users);
-        //                 avoidUsers.map(function(user) {
-        //                     avoid_users.push(user);
-        //                 });
-        //                 //console.log(avoid_users);
-        //                 newUser = realloc.getUser(avoid_users, users);
-        //                 TaskInstances.map(function(task) {
-        //                     realloc.updateUSER(task, newUser);
-        //                 });
-        //                 //console.log(newUser);
-        //             });
-        //         });
-        //     });
-        // });
-        //------------------------------------------------------------------------------------------------------------------------------------------------------------------
     });
 
 
