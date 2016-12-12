@@ -697,12 +697,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         });
     });
 
-    router.post("/password/reset", function(req, res) {
+    router.put("/update/password", function(req, res) {
         if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
-            console.log("/user/create : Missing attributes");
+            console.log("/update/password : Missing attributes");
             res.status(400).end();
         } else if (req.body.oldPasswd == req.body.newPasswd) {
-            console.log("/user/create : Same password");
+            console.log("/update/password : Same password");
             res.status(400).end();
         } else {
             UserLogin.find({
@@ -719,7 +719,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                             UserID: req.body.userId
                         }
                     }).then(function(done) {
-                        console.log("/password/reset: Password updated successfully");
+                        console.log("/update/password: Password updated successfully");
                         //email.sendNow(user.UserID, 'new password');
                         res.status(200).end();
                     }).catch(function(err) {
@@ -728,7 +728,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     });
 
                 } else {
-                    console.log("/user/create : Password not match");
+                    console.log("/update/password: Password not match");
                 }
             });
         }
