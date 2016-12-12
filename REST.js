@@ -2135,7 +2135,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             //Create an array of all the sections associate with courseid
             result.forEach(function(section) {
                 sectionIDs.push({
-                    value: section.SectionID.toString(),
+                    value: section.SectionID,
                     label: section.Name
                 });
             });
