@@ -738,7 +738,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     // adding the user, called on add user page
     router.post("/adduser", function(req, res) {
         console.log("/adduser:called");
-        var email = new Email.Email();
+        var email = new Email();
         if (req.body.email === null) {
             console.log("/adduser : Email cannot be null");
             res.status(400).end();
@@ -809,7 +809,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     router.post("/course/adduser", function(req, res) {
         //console.log("role "+req.body.role);
-        var email = new Email.Email();
+        var email = new Email();
         if (req.body.email === null) {
             console.log("course/adduser : Email cannot be null");
             res.status(400).end();
