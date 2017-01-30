@@ -11,6 +11,7 @@ var fetch = require('../lib/fetch');
 var http = require('http');
 var https = require('https');
 var zlib = require('zlib');
+var PassThrough = require('stream').PassThrough;
 
 chai.config.includeStack = true;
 
@@ -434,6 +435,36 @@ describe('fetch tests', function () {
             expect(Buffer.concat(buf).toString()).to.equal('hello=world%20%F0%9F%98%AD&another=value');
             done();
         });
+    });
+
+    it('should post stream data', function (done) {
+        var body = new PassThrough();
+        var data = new Buffer('hello=world%20%F0%9F%98%AD&another=value');
+
+        var req = fetch('http://localhost:' + HTTP_PORT + '/post', {
+            method: 'post',
+            body: body
+        });
+        var buf = [];
+        req.on('data', function (chunk) {
+            buf.push(chunk);
+        });
+        req.on('end', function () {
+            expect(Buffer.concat(buf).toString()).to.equal(data.toString());
+            done();
+        });
+
+        var pos = 0;
+        var writeNext = function () {
+            if (pos >= data.length) {
+                return body.end();
+            }
+            var char = data.slice(pos++, pos);
+            body.write(char);
+            setImmediate(writeNext);
+        };
+
+        setImmediate(writeNext);
     });
 
     it('should return error for invalid cert', function (done) {

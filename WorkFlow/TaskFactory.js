@@ -496,7 +496,7 @@ class TaskFactory {
                         //iterate through all the tasks stored under workflows
                         return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
                             console.log('task: ', task.id);
-                            return allocator.getUser(task.id).then(function(allocUsers) {
+                            return allocator.getRightUser(task.id).then(function(allocUsers) {
                                 var task_collection = [];
                                 return Promise.mapSeries(allocUsers, function(a_user) {
                                     return x.createTaskInstance(task, a_user, workflowInstanceId, ai_id).then(function(createTaskResult) {

@@ -10,11 +10,13 @@
     "body-parser": "*",
     "dateformat": "*",
     "express": "*",
+    "flat-to-nested": "^1.0.2",
     "guid": "*",
     "moment": "^2.15.1",
     "mysql": "*",
     "sendgrid": "^2.0.0",
     "sequelize": "*",
+    "tree-model": "^1.0.6",
     "xoauth2": "^1.1.0"
   },
   "repository": {

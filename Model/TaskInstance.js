@@ -2,6 +2,7 @@ var moment = require('moment');
 var models = require('../Model');
 var email = require('../WorkFlow/Email.js');
 var Promise = require('bluebird');
+//var Allocator = require('../WorkFlow/Allocator.js');
 
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('TaskInstance', {
@@ -140,94 +141,106 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         instanceMethods: {
-            timeOut: function() {
-                var x = this;
-                //check the option whether keep the same person or allocate to a new person
-                //extended date is in DueType second postion
-
-                // WhatIfLate: (0 = keep_same_participant, 1 = allocate_new_person_from_contingency_pool,
-                // 2 = allocate_to_different_person_in_same_group, 3 = abandon_task, 4 = resolved_task, 5 = allocate to
-                // new instructor and more. If # > 0 then change status to overtime)
-
-                //Change parameter WhatIfLate to Array of [action, number(days)];
-
-                //decision point to decide change the status whether late, abandon, or complete
-                if (this.Type == 'dispute') {
-                    this.Status = 'complete';
-                    return Promise.map(JSON.parse(x.NextTask), function(task) {
-                        TaskInstance.find({
-                            where: {
-                                TaskInstanceID: task
-                            }
-                        }).then(function(nextTask) {
-                            nextTask.Status = 'bypassed';
-                            //need an algorithm that checks for all subworkflow/workflow complete. Triverse the tree to find all subworkflow.
-                        }).then(function(err) {
-                            console.log("Resolve dispute failed to bypass. TaskInstanceID: ", nextTask.TaskInstanceID);
-                            console.log(err);
-                        });
-                    });
-                } else {
-                    models.TaskActivity.find({
-                        where: {
-                            TaskActivityID: this.TaskActivityID
-                        }
-                    }).then(function(taskActivity) {
-                        switch (taskActivity.AtDurationEnd) {
-                            case 'late':
-                                //check WhatIfLate action
-                                this.Status = 'late';
-                                switch (taskActivity.WhatIfLate) {
-                                    case '"keep_same_participant"':
-                                        //email.sendNow(x.UserID, 'late');
-                                        break;
-                                    case "allocate_new_person_from_contingency_pool":
-                                        this.Status = 'late_reallocated';
-                                        //Run allocation algorithm, extend due date.
-                                        //send email to notify user about allocation
-                                        break;
-                                    case "allocate_to_different_person_in_same_group":
-                                        this.Status = 'late_reallocated';
-                                        //Run allocation algorithm specifiy with team, extend due date.
-                                        //send email to notify user about allocation
-                                        break;
-                                    case "allocate_to_instructor":
-                                        this.Status = 'late_reallocated';
-                                        //Run allocation algorithm specifiy with team, extend due date
-                                        //send email to notify user about allocation
-                                        break;
-                                        // case "abandon_task":
-                                        //     this.Status = "complete";
-                                        //     break;
-                                        // case "resolved_task":
-                                        //     this.Status = "complete";
-                                        //     break;
-                                    default:
-                                }
-                                break;
-                            case "resolve":
-                                this.Status = 'complete';
-                                //submitted. Stop task instance and continue subworkflow task status = complete
-                                break;
-                            case "abandon":
-                                this.Status = 'abandoned';
-                                //abandoning subworkflow. status = complete
-                                //*add subworkflow complete.
-                                //Skip to subworkflow complete
-                                break;
-                            case "complete":
-                                //change status to complete
-                                this.Status = 'complete';
-                                x.triggerNext();
-                                //start nexttask
-                                break;
-                            default:
-                                console.log('AtDurationEnd does not fall into any category.')
-                        }
-                        x.save();
-                    });
-                }
-            },
+            // timeOut: function() {
+            //     var x = this;
+            //     //var alloc = new Allocator();
+            //     //check the option whether keep the same person or allocate to a new person
+            //     //extended date is in DueType second postion
+            //
+            //     // WhatIfLate: (0 = keep_same_participant, 1 = allocate_new_person_from_contingency_pool,
+            //     // 2 = allocate_to_different_person_in_same_group, 3 = abandon_task, 4 = resolved_task, 5 = allocate to
+            //     // new instructor and more. If # > 0 then change status to overtime)
+            //
+            //     //Change parameter WhatIfLate to Array of [action, number(days)];
+            //
+            //     //decision point to decide change the status whether late, abandon, or complete
+            //     if (x.Type == 'dispute') {
+            //         x.Status = 'complete';
+            //         return Promise.map(JSON.parse(x.NextTask), function(task) {
+            //             TaskInstance.find({
+            //                 where: {
+            //                     TaskInstanceID: task
+            //                 }
+            //             }).then(function(nextTask) {
+            //                 nextTask.Status = 'bypassed';
+            //                 //need an algorithm that checks for all subworkflow/workflow complete. Triverse the tree to find all subworkflow.
+            //             }).then(function(err) {
+            //                 console.log("Resolve dispute failed to bypass. TaskInstanceID: ", nextTask.TaskInstanceID);
+            //                 console.log(err);
+            //             });
+            //         });
+            //     } else {
+            //         models.TaskActivity.find({
+            //             where: {
+            //                 TaskActivityID: x.TaskActivityID
+            //             }
+            //         }).then(function(taskActivity) {
+            //             switch (taskActivity.AtDurationEnd) {
+            //                 case 'late':
+            //                     //check WhatIfLate action
+            //                     switch (taskActivity.WhatIfLate) {
+            //                         case '"keep_same_participant"':
+            //                             x.Status = 'late';
+            //                             //email.sendNow(x.UserID, 'late');
+            //                             break;
+            //                         case "allocate_new_person_from_contingency_pool":
+            //                             x.Status = 'late_reallocated';
+            //
+            //                             //Run allocation algorithm, extend due date.
+            //                             // x.findSectionUsers(x.AssignmentInstanceID, function(users) {
+            //                             //     alloc.reallocate(x.TaskInstanceID, users);
+            //                             // });
+            //                             //send email to notify user about allocation
+            //                             break;
+            //                         case "allocate_to_different_person_in_same_group":
+            //                             x.Status = 'late_reallocated';
+            //
+            //                             //Run allocation algorithm specifiy with team, extend due date.
+            //                             // x.findGroupUsers(x.GroupID, function(users) {
+            //                             //     alloc.reallocate(x.TaskInstanceID, users);
+            //                             // });
+            //                             //send email to notify user about allocation
+            //                             break;
+            //                         case "allocate_to_instructor":
+            //                             x.Status = 'late_reallocated';
+            //                             //Run allocation algorithm specifiy with team, extend due date
+            //                             // x.findInstructor(x.AssignmentInstanceID, function(instructor) {
+            //                             //     alloc.reallocate(x.TaskInstanceID, instructor);
+            //                             // });
+            //                             //send email to notify user about allocation
+            //                             break;
+            //                             // case "abandon_task":
+            //                             //     this.Status = "complete";
+            //                             //     break;
+            //                             // case "resolved_task":
+            //                             //     this.Status = "complete";
+            //                             //     break;
+            //                         default:
+            //                     }
+            //                     break;
+            //                 case "resolve":
+            //                     x.Status = 'complete';
+            //                     //submitted. Stop task instance and continue subworkflow task status = complete
+            //                     break;
+            //                 case "abandon":
+            //                     x.Status = 'abandoned';
+            //                     //abandoning subworkflow. status = complete
+            //                     //*add subworkflow complete.
+            //                     //Skip to subworkflow complete
+            //                     break;
+            //                 case "complete":
+            //                     //change status to complete
+            //                     x.Status = 'complete';
+            //                     //start nexttask
+            //                     x.triggerNext();
+            //                     break;
+            //                 default:
+            //                     console.log('AtDurationEnd does not fall into any category.')
+            //             }
+            //             x.save();
+            //         });
+            //     }
+            // },
 
             timeOutTime: function() {
                 if (this.StartDate == null) {
@@ -308,6 +321,66 @@ module.exports = function(sequelize, DataTypes) {
                 });
             },
 
+            extendDate: function(time) {
+                var x = this;
+                var newEndDate = moment().add(time, 'minutes');
+
+                x.EndDate = newEndDate;
+                x.save();
+            },
+
+            // //finds the students from the same section
+            // findSectionUsers: function(ai_id, callback) {
+            //     models.AssignmentInstance.find({
+            //         where: {
+            //             AssignmentInstanceID: ai_id
+            //         }
+            //     }).then(function(result) {
+            //         models.SectionUser.findAll({
+            //             where: {
+            //                 SectionID: result.SectionID
+            //             }
+            //         }).then(function(users) {
+            //             var userArray = [];
+            //             users.forEach(function(user){
+            //               userArray.push(user);
+            //             });
+            //             console.log("Users:",userArray);
+            //             callback(users);
+            //         }).catch(function(err) {
+            //             console.log(err);
+            //             throw Error("Cannot find TaskActivity!");
+            //         });
+            //     });
+            // },
+            //
+            // //finds group members
+            // findGroupUsers: function(g_id, callback) {
+            //
+            // },
+            //
+            // //finds group members
+            // findInstructor: function(ai_id, callback) {
+            //     models.AssignmentInstance.find({
+            //         where: {
+            //             AssignmentInstanceID: ai_id
+            //         }
+            //     }).then(function(result) {
+            //         models.Assignment.find({
+            //             where: {
+            //                 AssignmentID: result.AssignmentID
+            //             },
+            //             attributes: ["OwnerID"]
+            //         }).then(function(instructor) {
+            //             console.log("Inustructor:", instructor.OwnerID);
+            //             callback(instructor.OwnerID);
+            //         }).catch(function(err) {
+            //             console.log(err);
+            //             throw Error("Cannot find TaskActivity!");
+            //         });
+            //     });
+            // },
+
             getTaskActivity: function(callback) {
                 models.TaskActivity.find({
                     where: {
@@ -318,7 +391,7 @@ module.exports = function(sequelize, DataTypes) {
                 }).catch(function(err) {
                     console.log(err);
                     throw Error("Cannot find TaskActivity!");
-                })
+                });
             },
 
             findDueType: function(callback) {

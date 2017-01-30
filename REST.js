@@ -16,6 +16,7 @@ var TaskInstance = models.TaskInstance;
 var TaskActivity = models.TaskActivity;
 var Assignment = models.Assignment;
 var AssignmentInstance = models.AssignmentInstance;
+var Organization = models.Organization;
 
 var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
@@ -57,10 +58,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         var taskFactory = new TaskFactory();
         console.log('assignment: ', req.body.assignment);
         taskFactory.createAssignment(req.body.assignment).then(function(done) {
-            if (done === false) {
-                res.status(400).end();
-            } else {
+            if (done) {
                 res.status(200).end();
+            } else {
+                res.status(400).end();
             }
         });
 
@@ -112,7 +113,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         // });
         //allocator.createInstances(3, 14);
         //allocator.updatePreviousAndNextTasks(13);
-        var allocator = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
+        var allocat
+
+         = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
         Promise.all([allocator.getUser(1)]).then(function(done) {
             console.log(done[0]);
         }).then(function() {
@@ -202,7 +205,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //     }
         // );
 
+        //manager.checkAssignments();
+        manager.check();
+        //Manager.Manager.check();
+    });
+    
+    router.get("/manager/checkAssignments", function(req, res) {
+
+        var manager = new Manager();
+
+        //Manager.Manager.checkTimeoutTasks();
+        // AssignmentInstance.findById(1).then(
+        //     function(asection) {
+        //         Manager.Manager.trigger(asection);
+        //
+        //     }
+        // );
+
         manager.checkAssignments();
+        //manager.check();
         //Manager.Manager.check();
     });
 
@@ -996,7 +1017,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             where: {
                 CourseID: req.params.courseId
             },
-            attributes: ["CourseID", "Number", "Name"]
+            attributes: ["CourseID", "Number", "Name", "Description"]
         }).then(function(result) {
             Section.findAll({
                 where: {
@@ -2163,7 +2184,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
         }).then(function(resultArray) {
             console.log('Finding all workflows and its task collection...')
-                //promise all instances in resultArray have returned
+            //promise all instances in resultArray have returned
             return Promise.map(resultArray[1], function(workflow) {
 
                 console.log('WorkflowActivityID: ', workflow.WorkflowActivityID);
@@ -2342,41 +2363,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(401).end();
             return;
         }
-        var task = req.body.taskid; //task instance needs to be given
-        var constraint;
-        var lateUser;
-        var newUser;
-        var avoid_users = [];
-        var users = req.body.users; // users need to be given
-        //console.log(users);
-        var realloc = new Allocator();
-        Promise.all([realloc.getLateUser(task)]).then(function(done) {
-            lateUser = done[0];
-            //console.log(lateUser);
-        });
-        Promise.all([realloc.getTaskActivityID(task), realloc.getWorkflowInstanceID(task)]).spread(function(taskActivityIDs, workflowInstanceIDs) {
-            taskActivityIDs.map(function(ta_id) {
-                //console.log(ta_id);
-                workflowInstanceIDs.map(function(wi_id) {
-                    //console.log(wi_id);
-                    //console.log('im here......');
-                    Promise.all([realloc.getUsersFromWorkflowInstance(wi_id), realloc.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
-                        //console.log(avoid_users);
-                        avoidUsers.map(function(user) {
-                            avoid_users.push(user);
-                        });
-                        //console.log(avoid_users);
-                        newUser = realloc.getUser(avoid_users, users);
-                        TaskInstances.map(function(task) {
-                            realloc.updateUSER(task, newUser);
-                        });
-                        //console.log(newUser);
-                    });
-                });
-            });
-        });
-    });
 
+        var realloc = new Allocator([],0);
+
+        realloc.reallocate(req.body.taskid, req.body.users);
+    });
 
 }
 

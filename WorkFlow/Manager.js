@@ -1,6 +1,7 @@
 var models = require('../Model');
 var TaskFactory = require('./TaskFactory.js');
 var Promise = require('bluebird');
+var Allocator = require('./Allocator.js');
 var Email = require('./Email.js')
 
 var User = models.User;
@@ -22,6 +23,7 @@ var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
 var taskFactory = new TaskFactory();
+var alloc = new Allocator();
 var email = new Email();
 
 /**
@@ -36,7 +38,11 @@ class Manager {
         var x = this;
         TaskInstance.findAll({
             where: {
-                Status: "started"
+                $or: [{
+                    Status: "started"
+                }, {
+                    Status: "late_reallocated"
+                }]
             }
         }).then(function(taskInstances) {
             if (taskInstances.length === 0) {
@@ -52,25 +58,25 @@ class Manager {
 
     checkTask(task) {
         //only check for started
+        var x = this;
         var date = task.timeOutTime();
         var now = new Date();
-
         if (date < now) {
-            task.timeOut();
+            x.timeOut(task);
         }
     }
 
     checkLate() {
-      var x = this;
-      TaskInstance.findAll({
-          where: {
-              Status: 'late'
-          }
-      }).then(function(taskInstances) {
-          taskInstances.forEach(function(task){
-            email.send(task.UserID, 'late');
-          });
-      });
+        var x = this;
+        TaskInstance.findAll({
+            where: {
+                Status: 'late'
+            }
+        }).then(function(taskInstances) {
+            taskInstances.forEach(function(task) {
+                email.send(task.UserID, 'late');
+            });
+        });
     }
 
     checkAssignments() {
@@ -111,6 +117,110 @@ class Manager {
         }).then(function(count) {
             callback(count > 0 ? true : false);
         });
+    }
+
+    timeOut(task) {
+        //var alloc = new Allocator();
+        //check the option whether keep the same person or allocate to a new person
+        //extended date is in DueType second postion
+
+        // WhatIfLate: (0 = keep_same_participant, 1 = allocate_new_person_from_contingency_pool,
+        // 2 = allocate_to_different_person_in_same_group, 3 = abandon_task, 4 = resolved_task, 5 = allocate to
+        // new instructor and more. If # > 0 then change status to overtime)
+
+        //Change parameter WhatIfLate to Array of [action, number(days)];
+
+        //decision point to decide change the status whether late, abandon, or complete
+        if (task.Type == 'dispute') {
+            task.Status = 'complete';
+            return Promise.map(JSON.parse(task.NextTask), function(task) {
+                TaskInstance.find({
+                    where: {
+                        TaskInstanceID: task
+                    }
+                }).then(function(nextTask) {
+                    nextTask.Status = 'bypassed';
+                    //need an algorithm that checks for all subworkflow/workflow complete. Triverse the tree to find all subworkflow.
+                }).then(function(err) {
+                    console.log("Resolve dispute failed to bypass. TaskInstanceID: ", nextTask.TaskInstanceID);
+                    console.log(err);
+                });
+            });
+        } else {
+            TaskActivity.find({
+                where: {
+                    TaskActivityID: task.TaskActivityID
+                }
+            }).then(function(taskActivity) {
+                switch (taskActivity.AtDurationEnd) {
+                    case '"late"':
+                        //check WhatIfLate action
+                        switch (taskActivity.WhatIfLate) {
+                            case '"keep_same_participant"':
+                                task.Status = 'late';
+                                //email.sendNow(task.UserID, 'late');
+                                break;
+                            case '"allocate_new_person_from_contingency_pool"':
+                                console.log("TaskInstance ", task.TaskInstanceID, ": Allocating new user to the task...");
+                                //task.Status = 'late_reallocated';
+                                task.Status = 'started';
+                                //Run allocation algorithm, extend due date.
+                                alloc.findSectionUsers(task.AssignmentInstanceID, function(users) {
+                                    alloc.reallocate(task.TaskInstanceID, users);
+                                });
+                                //send email to notify user about allocation
+                                break;
+                            case '"allocate_to_different_person_in_same_group"':
+                                //task.Status = 'late_reallocated';
+                                task.Status = 'started';
+                                //Run allocation algorithm specifiy with team, extend due date.
+                                alloc.findGroupUsers(task.GroupID, function(users) {
+                                    //alloc.reallocate(task.TaskInstanceID, users);
+                                });
+                                //send email to notify user about allocation
+                                break;
+                            case '"allocate_to_instructor"':
+                                console.log("TaskInstance ", task.TaskInstanceID, ": Allocating instructor to the task...");
+                                //task.Status = 'late_reallocated';
+                                task.Status = 'started';
+                                //Run allocation algorithm specifiy with team, extend due date
+                                alloc.findInstructor(task.AssignmentInstanceID, function(instructor) {
+                                    alloc.reallocate(task.TaskInstanceID, [instructor]);
+                                    task.extendDate(4320);
+                                });
+                                //send email to notify user about allocation
+                                break;
+                                // case "abandon_task":
+                                //     this.Status = "complete";
+                                //     break;
+                                // case "resolved_task":
+                                //     this.Status = "complete";
+                                //     break;
+                            default:
+                        }
+                        break;
+                    case "resolve":
+                        task.Status = 'complete';
+                        //submitted. Stop task instance and continue subworkflow task status = complete
+                        break;
+                    case "abandon":
+                        task.Status = 'abandoned';
+                        //abandoning subworkflow. status = complete
+                        //*add subworkflow complete.
+                        //Skip to subworkflow complete
+                        break;
+                    case "complete":
+                        //change status to complete
+                        task.Status = 'complete';
+                        //start nexttask
+                        task.triggerNext();
+                        break;
+                    default:
+                        console.log('AtDurationEnd does not fall into any category.')
+                }
+                task.save();
+            });
+        }
     }
 
 

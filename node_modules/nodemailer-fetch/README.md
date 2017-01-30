@@ -33,9 +33,10 @@ Possible options are the following:
   * **maxRedirects** how many redirects to allow (defaults to 5, set to 0 to disable redirects entirely)
   * **method** HTTP method to use, defaults to GET (if `body` is set defaults to POST)
   * **body** HTTP payload to send. If the value is an object it is converted to an *x-www-form-urlencoded* payload, other values are passed as is. Unlike authentication data payload and method is preserved between redirects
-  * **contentType** optional content type for the HTTP payload. Defaults to *x-www-form-urlencoded*
+  * **contentType** optional content type for the HTTP payload. Defaults to *x-www-form-urlencoded*. If the value is `false` then Content-Type header is not set
   * **tls** optional object of TLS options
   * **timeout** (milliseconds) sets timeout for the connection. Returns an error if timeout occurs
+  * **headers** custom headers as an object where key is the header key and value is either a string or an array of strings for multiple values
 
   ```javascript
   var fetch = require('nodemailer-fetch');

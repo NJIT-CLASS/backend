@@ -31,7 +31,7 @@ class Allocator {
         this.count = 0;
     }
 
-    getUser(ta_id) {
+    getRightUser(ta_id) {
         let x = this;
         let taskUser = []
 
@@ -51,12 +51,17 @@ class Allocator {
                     });
                 } else {
 
+
                     if (ta.Type === 'needs_consolidation' || ta.Type === 'completed') {
                         if (Object.keys(x.workflow).length < 1) {
                             var same = constraints.same_as[0];
+                            console.log('same', same);
+                            console.log('workflow', x.workflow);
                             taskUser.push(0);
                         } else {
                             var same = constraints.same_as[0];
+                            console.log('same', same);
+                            console.log('workflow', x.workflow);
                             taskUser.push(x.workflow[same][0]);
                         }
                     } else if (_.isEmpty(constraints)) {
@@ -65,6 +70,8 @@ class Allocator {
                         x.count++;
                     } else if (_.has(constraints, "same_as") && !(_.has(constraints, "not"))) {
                         var same = constraints.same_as[0];
+                        console.log('same', same);
+                        console.log('workflow', x.workflow);
                         taskUser.push(x.workflow[same][0]);
                     } else if (!(_.has(constraints, "same_as")) && _.has(constraints, "not")) {
                         while (_.contains(constraints.not, x.users[x.count])) {
@@ -80,6 +87,8 @@ class Allocator {
 
                         if (ta.Type === 'grade_problem' && ta.NumberParticipants > 1) {
                             var same = constraints.same_as[0];
+                            console.log('same', same);
+                            console.log('workflow', x.workflow);
                             taskUser.push(x.workflow[same][0]);
                         }
                         x.count++;
@@ -136,89 +145,89 @@ class Allocator {
 
 
 
-        return new Promise(function(resolve, reject){
+        return new Promise(function(resolve, reject) {
 
-          //console.log('Finding the taskActivityID...');
+            //console.log('Finding the taskActivityID...');
 
-          var taskActivityID = [];
+            var taskActivityID = [];
 
 
-          TaskInstance.findAll({
-              where: {
-                  TaskInstanceID: task
-              }
-          }).then(function(results) {
+            TaskInstance.findAll({
+                where: {
+                    TaskInstanceID: task
+                }
+            }).then(function(results) {
 
-              //taskActivityID.push(results.TaskActivityID);
-              results.forEach(function(task) {
-                  //tasks.push(task.TaskActivityID);
-                  taskActivityID.push(task.TaskActivityID);
-              }, this);
+                //taskActivityID.push(results.TaskActivityID);
+                results.forEach(function(task) {
+                    //tasks.push(task.TaskActivityID);
+                    taskActivityID.push(task.TaskActivityID);
+                }, this);
 
-              //console.log('taskActivityID was found!');
+                //console.log('taskActivityID was found!');
 
-              resolve(taskActivityID);
+                resolve(taskActivityID);
 
-          }).catch(function(err) {
-              console.log('Find taskActivityID failed!');
-              console.log(err);
-          });
+            }).catch(function(err) {
+                console.log('Find taskActivityID failed!');
+                console.log(err);
+            });
 
         });
 
     }
 
     // get AssigneeConstraints linked to this taskActivityID
-    getConstraints(ta_id){
+    getConstraints(ta_id) {
 
-      return new Promise(function(resolve, reject){
-        var constraints;
-        return TaskActivity.find({
-          where: {
-            TaskActivityID: ta_id
-          }
-        }).then(function(result){
-            constraints = JSON.parse(result.AssigneeConstraints);
-            //console.log(constraints);
-            //console.log('All constraints were saved!');
+        return new Promise(function(resolve, reject) {
+            var constraints;
+            return TaskActivity.find({
+                where: {
+                    TaskActivityID: ta_id
+                }
+            }).then(function(result) {
+                constraints = JSON.parse(result.AssigneeConstraints);
+                //console.log(constraints);
+                //console.log('All constraints were saved!');
 
-            resolve(constraints);
-          }).catch(function(err) {
-              console.log('Find constraints failed!');
-              reject(err);
-          });
-      });
+                resolve(constraints);
+            }).catch(function(err) {
+                console.log('Find constraints failed!');
+                reject(err);
+            });
+        });
     }
 
     //get user that will be removed from workflow instance
     getLateUser(task) {
 
 
-        return new Promise(function(resolve, reject){
+        return new Promise(function(resolve, reject) {
 
-          //console.log('Finding the late user...');
+            //console.log('Finding the late user...');
 
-          var lateUser;
+            var lateUser;
 
 
-          TaskInstance.findAll({
-              where: {
-                  TaskInstanceID: task
-              }
-          }).then(function(results) {
+            TaskInstance.findAll({
+                where: {
+                    TaskInstanceID: task
+                }
+            }).then(function(results) {
 
-              results.forEach(function(task) {
-                  lateUser = task.UserID;
-              }, this);
+                results.forEach(function(task) {
+                    lateUser = task.UserID;
+                }, this);
 
-              //console.log('lateUser was found!');
+                //console.log('lateUser was found!');
 
-              resolve(lateUser);
+                resolve(lateUser);
 
-          }).catch(function(err) {
-              console.log('Find workflowInstanceID failed!');
-              console.log(err);
-          });
+            }).catch(function(err) {
+                console.log('Find workflowInstanceID failed!');
+                console.log(err);
+            });
         });
     }
 
@@ -230,32 +239,32 @@ class Allocator {
     getWorkflowInstanceID(task) {
 
 
-        return new Promise(function(resolve, reject){
+        return new Promise(function(resolve, reject) {
 
-          //console.log('Finding the workflowInstanceID...');
+            //console.log('Finding the workflowInstanceID...');
 
-          var workflowInstanceID = [];
+            var workflowInstanceID = [];
 
 
-          TaskInstance.findAll({
-              where: {
-                  TaskInstanceID: task
-              }
-          }).then(function(results) {
+            TaskInstance.findAll({
+                where: {
+                    TaskInstanceID: task
+                }
+            }).then(function(results) {
 
-              //workflowInstanceID.push(results.WorkflowInstanceID);
-              results.forEach(function(workflow) {
-                  workflowInstanceID.push(workflow.WorkflowInstanceID);
-              }, this);
+                //workflowInstanceID.push(results.WorkflowInstanceID);
+                results.forEach(function(workflow) {
+                    workflowInstanceID.push(workflow.WorkflowInstanceID);
+                }, this);
 
-              //console.log('workflowInstanceID was found!');
+                //console.log('workflowInstanceID was found!');
 
-              resolve(workflowInstanceID);
+                resolve(workflowInstanceID);
 
-          }).catch(function(err) {
-              console.log('Find workflowInstanceID failed!');
-              console.log(err);
-          });
+            }).catch(function(err) {
+                console.log('Find workflowInstanceID failed!');
+                console.log(err);
+            });
         });
     }
 
@@ -264,82 +273,83 @@ class Allocator {
 
 
 
-        return new Promise(function(resolve, reject){
+        return new Promise(function(resolve, reject) {
 
-          //console.log('Finding the users in the workflowInstanceID...');
+            //console.log('Finding the users in the workflowInstanceID...');
 
-          var avoid_users = [];
+            var avoid_users = [];
 
-          TaskInstance.findAll({
-              where: {
-                  WorkflowInstanceID: wi_id
-              }
-          }).then(function(results) {
+            TaskInstance.findAll({
+                where: {
+                    WorkflowInstanceID: wi_id
+                }
+            }).then(function(results) {
 
-              results.forEach(function(user) {
-                avoid_users.push(user.UserID);
-              }, this);
+                results.forEach(function(user) {
+                    avoid_users.push(user.UserID);
+                }, this);
 
 
-              //console.log('users in workflowInstanceID were found!');
+                //console.log('users in workflowInstanceID were found!');
 
-              resolve(avoid_users);
+                resolve(avoid_users);
 
-          }).catch(function(err) {
-              console.log('Find users in workflowInstanceID failed!');
-              console.log(err);
-          });
+            }).catch(function(err) {
+                console.log('Find users in workflowInstanceID failed!');
+                console.log(err);
+            });
         });
     }
 
     //get ti_id where user is allocated within a wi_id
-    getTaskInstancesWhereUserAlloc (user,wi_id,ti_id){
-      //console.log('Finding the TaskInstances...');
+    getTaskInstancesWhereUserAlloc(user, wi_id, ti_id) {
+        //console.log('Finding the TaskInstances...');
 
 
-      return new Promise(function(resolve, reject){
+        return new Promise(function(resolve, reject) {
 
-        var tempAllocRecord = [];
-        tempAllocRecord.push(ti_id);
+            var tempAllocRecord = [];
+            tempAllocRecord.push(ti_id);
 
-        TaskInstance.findAll({
-            where: {
-                WorkflowInstanceID: wi_id,
-                UserID: user
-            }
-        }).then(function(results) {
+            TaskInstance.findAll({
+                where: {
+                    WorkflowInstanceID: wi_id,
+                    UserID: user
+                }
+            }).then(function(results) {
 
-            results.forEach(function(result) {
-              if (result.TaskInstanceID > ti_id){
-                tempAllocRecord.push(result.TaskInstanceID);
-              }
-            }, this);
+                results.forEach(function(result) {
+                    if (result.TaskInstanceID > ti_id) {
+                        tempAllocRecord.push(result.TaskInstanceID);
+                    }
+                }, this);
 
-            resolve(tempAllocRecord);
-            //console.log('TaskInstances were found!');
-            //tempAllocRecord.push(ti_id);
+                resolve(tempAllocRecord);
+                //console.log('TaskInstances were found!');
+                //tempAllocRecord.push(ti_id);
 
 
-        }).catch(function(err) {
-            console.log('Find TaskInstances failed!');
-            console.log(err);
+            }).catch(function(err) {
+                console.log('Find TaskInstances failed!');
+                console.log(err);
+            });
         });
-      });
     }
 
     //get newUser
-    getUser (avoid_users, users){
-      var new_user;
-      users.forEach(function(user){
-        //console.log(user);
-        if (avoid_users.indexOf(user)===0){
-              users.shift();
-        }
+    getUser(avoid_users, users) {
+        console.log(typeof users);
+        var new_user;
+        users.forEach(function(user) {
+            //console.log(user);
+            if (avoid_users.indexOf(user) === 0) {
+                users.shift();
+            }
 
-      });
-      new_user = users[0];
-      //console.log(new_user);
-      return new_user;
+        });
+        new_user = users[0];
+        //console.log(new_user);
+        return new_user;
 
     }
 
@@ -364,7 +374,94 @@ class Allocator {
 
     }
 
+    reallocate(ti_id, userList) {
+        var x = this;
+        var task = ti_id; //task instance needs to be given
+        var constraint;
+        var lateUser;
+        var newUser;
+        var avoid_users = [];
+        var users = userList; // users need to be given
+        //console.log(users);
+        Promise.all([x.getLateUser(task)]).then(function(done) {
+            lateUser = done[0];
+            //console.log(lateUser);
+        });
+        Promise.all([x.getTaskActivityID(task), x.getWorkflowInstanceID(task)]).spread(function(taskActivityIDs, workflowInstanceIDs) {
+            taskActivityIDs.map(function(ta_id) {
+                //console.log(ta_id);
+                workflowInstanceIDs.map(function(wi_id) {
+                    //console.log(wi_id);
+                    //console.log('im here......');
+                    Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
+                        //console.log(avoid_users);
+                        avoidUsers.map(function(user) {
+                            avoid_users.push(user);
+                        });
+                        //console.log(avoid_users);
+                        newUser = x.getUser(avoid_users, users);
+                        TaskInstances.map(function(task) {
+                            x.updateUSER(task, newUser);
+                        });
+                        //console.log(newUser);
+                    });
+                });
+            });
+        });
+    }
 
+
+    //finds the students from the same section
+    findSectionUsers(ai_id, callback) {
+        AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: ai_id
+            }
+        }).then(function(result) {
+            SectionUser.findAll({
+                where: {
+                    SectionID: result.SectionID
+                }
+            }).then(function(users) {
+                var userArray = [];
+                users.forEach(function(user){
+                  userArray.push(user);
+                });
+                console.log("Users:",userArray);
+                callback(users);
+            }).catch(function(err) {
+                console.log(err);
+                throw Error("Cannot find TaskActivity!");
+            });
+        });
+    }
+
+    //finds group members
+    findGroupUsers(g_id, callback) {
+
+    }
+
+    //finds group members
+    findInstructor(ai_id, callback) {
+        AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: ai_id
+            }
+        }).then(function(result) {
+            Assignment.find({
+                where: {
+                    AssignmentID: result.AssignmentID
+                },
+                attributes: ["OwnerID"]
+            }).then(function(instructor) {
+                console.log("Inustructor:", instructor.OwnerID);
+                callback(instructor.OwnerID);
+            }).catch(function(err) {
+                console.log(err);
+                throw Error("Cannot find TaskActivity!");
+            });
+        });
+    }
 
 
 
