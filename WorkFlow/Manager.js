@@ -167,6 +167,7 @@ class Manager {
                                 //Run allocation algorithm, extend due date.
                                 alloc.findSectionUsers(task.AssignmentInstanceID, function(users) {
                                     alloc.reallocate(task.TaskInstanceID, users);
+                                    task.extendDate(4320);
                                 });
                                 //send email to notify user about allocation
                                 break;

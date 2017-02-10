@@ -202,14 +202,9 @@ class Allocator {
     //get user that will be removed from workflow instance
     getLateUser(task) {
 
-
         return new Promise(function(resolve, reject) {
-
             //console.log('Finding the late user...');
-
             var lateUser;
-
-
             TaskInstance.findAll({
                 where: {
                     TaskInstanceID: task
@@ -219,11 +214,8 @@ class Allocator {
                 results.forEach(function(task) {
                     lateUser = task.UserID;
                 }, this);
-
                 //console.log('lateUser was found!');
-
                 resolve(lateUser);
-
             }).catch(function(err) {
                 console.log('Find workflowInstanceID failed!');
                 console.log(err);
@@ -338,26 +330,27 @@ class Allocator {
 
     //get newUser
     getUser(avoid_users, users) {
-        console.log(typeof users);
+        //console.log(typeof users);
+        console.log("getUser() users", users);
         var new_user;
-        users.forEach(function(user) {
-            //console.log(user);
-            if (avoid_users.indexOf(user) === 0) {
-                users.shift();
+        var new_users = [];
+        return Promise.all(Promise.map(users, function(user) {
+            if (!_.contains(avoid_users, user)) {
+                new_users.push(user);
+                console.log('users shift', users);
             }
 
+        })).then(function(done) {
+            new_user = new_users[0];
+            return new_user;
         });
-        new_user = users[0];
-        //console.log(new_user);
-        return new_user;
-
     }
 
 
     //updateDB
     updateUSER(taskid, newUser) {
 
-        console.log('Updating task instance...')
+        //console.log('Updating task instance...')
 
         TaskInstance.update({
             UserID: newUser
@@ -366,7 +359,7 @@ class Allocator {
                 TaskInstanceID: taskid
             }
         }).then(function(result) {
-            console.log('User updated! ', result.UserID)
+            console.log('User updated! ', newUser);
         }).catch(function(err) {
             console.log('Cannot update user!');
             console.log(err);
@@ -374,34 +367,50 @@ class Allocator {
 
     }
 
+    //////////////////////////////////////////////////////////////////
+    ///////////////Reallocate user within a workflow//////////////////
+    //////////////////////////////////////////////////////////////////
+
+    //ti_id = User(TaskInstanceID) to be reallocated
+    //userList = list of users within a section
+    //x.getLateUser(task) = the user that has been late for submitting his/her work; TaskInstance Type has been marked as 'late'
+    //x.getTaskActivityID(task) & x.getWorkflowInstanceID(task) = find TaskActivityID and WorkflowInstanceID associate with the task
+    //Promise.map(list, function(each_index_from_the_list){}) - for details you can check bluebird.js
+    //x.getUsersFromWorkflowInstance(wi_id) = find users within the same workflow, used to find the list of user that should be avoided
+    //x.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task) = find all the TaskInstances within the workflow that have the same UserID
+    //x.getUser(avoidUsers, users) = find the User that's not part of the avoided list and use that user to replace the current user
+    //x.updateUSER(task, newUser) = find the task that needs to allocate and replace the user
+
+    //Needs to fix: The algorithm would always reallocate the first user from the list obtained. Needs to update the list of the users so
+    //the same user won't be reallocated second time.
+
     reallocate(ti_id, userList) {
         var x = this;
         var task = ti_id; //task instance needs to be given
         var constraint;
         var lateUser;
-        var newUser;
         var avoid_users = [];
         var users = userList; // users need to be given
         //console.log(users);
+
         Promise.all([x.getLateUser(task)]).then(function(done) {
             lateUser = done[0];
             //console.log(lateUser);
         });
         Promise.all([x.getTaskActivityID(task), x.getWorkflowInstanceID(task)]).spread(function(taskActivityIDs, workflowInstanceIDs) {
-            taskActivityIDs.map(function(ta_id) {
+            return Promise.map(taskActivityIDs, function(ta_id) {
                 //console.log(ta_id);
-                workflowInstanceIDs.map(function(wi_id) {
+                return Promise.map(workflowInstanceIDs, function(wi_id) {
                     //console.log(wi_id);
-                    //console.log('im here......');
-                    Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
-                        //console.log(avoid_users);
-                        avoidUsers.map(function(user) {
-                            avoid_users.push(user);
-                        });
-                        //console.log(avoid_users);
-                        newUser = x.getUser(avoid_users, users);
-                        TaskInstances.map(function(task) {
-                            x.updateUSER(task, newUser);
+                    return Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
+                        console.log("avoidUsers", avoidUsers);
+                        // avoidUsers.map(function(user) {
+                        //     avoid_users.push(user);
+                        // });
+                        return x.getUser(avoidUsers, users).then(function(newUser) {
+                            TaskInstances.map(function(task) {
+                                x.updateUSER(task, newUser);
+                            });
                         });
                         //console.log(newUser);
                     });
@@ -424,11 +433,12 @@ class Allocator {
                 }
             }).then(function(users) {
                 var userArray = [];
-                users.forEach(function(user){
-                  userArray.push(user);
+                Promise.map(users, function(user) {
+                    userArray.push(user.UserID);
+                }).then(function(done) {
+                    console.log("Users:", userArray);
+                    callback(userArray);
                 });
-                console.log("Users:",userArray);
-                callback(users);
             }).catch(function(err) {
                 console.log(err);
                 throw Error("Cannot find TaskActivity!");

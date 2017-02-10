@@ -3,9 +3,11 @@
  */
 
 var models = require('../Model');
+var Allocator = require('./Allocator.js');
 var Promise = require('bluebird');
 var moment = require('moment');
 var TreeModel = require('tree-model');
+var FlatToNested = require('flat-to-nested');
 
 
 var User = models.User;
@@ -26,9 +28,8 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-var Allocator = require('./Allocator.js');
-
-tree = new TreeModel();
+var tree = new TreeModel();
+var flatToNested = new FlatToNested();
 
 
 class TaskFactory {
@@ -572,14 +573,35 @@ class TaskFactory {
                 WorkflowActivityID: wa_id
             }
         }).then(function(wa_result) {
-            let tree = new TreeModel();
-            let treeRoot = tree.parse(JSON.parse(wa_result.WorkflowStructure).model);
-
+            let treeRoot = tree.parse(flatToNested.convert(JSON.parse(wa_result.WorkflowStructure)));
             callback(treeRoot);
         }).catch(function(err) {
             console.log(err);
             console.log("getTree(wa_id, callback) failed retrieving tree");
         });
+    }
+
+    collectTasks(ai_id){
+      AssignmentInstance.find({
+          where: {
+              AssignmentInstanceID: ai_id
+          }
+      }).then(function(ai) {
+          WorkflowInstance.find({
+              where: {
+                  WorkflowInstanceID: ai.AssignmentInstanceID
+              }
+          }).then(function(wi){
+              where:{
+
+              }
+          })
+      })
+    }
+
+    collectGradesInAssignment(user, ai_id) {
+
+
     }
 }
 

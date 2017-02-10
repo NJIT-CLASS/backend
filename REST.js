@@ -209,7 +209,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         manager.check();
         //Manager.Manager.check();
     });
-    
+
     router.get("/manager/checkAssignments", function(req, res) {
 
         var manager = new Manager();
@@ -2356,6 +2356,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     });
 
+    //Backend router to reallocate students
     router.post("/reallocate", function(req, res) {
 
         if (req.body.taskid == null || req.body.users == null) {
