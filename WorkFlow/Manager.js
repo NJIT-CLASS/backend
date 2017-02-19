@@ -33,9 +33,86 @@ var email = new Email();
 
 class Manager {
 
+    debug() {
+        TaskInstance.findAll({
+            where: {
+                $or: [{
+                    Status: "started"
+                }, {
+                    Status: "late_reallocated"
+                }]
+            },
+            include: [
+                {
+                    model: AssignmentInstance,
+                    attributes: ["AssignmentInstanceID", "AssignmentID"],
+                    include: [{
+                        model: Section,
+                        attributes: ["SectionID"],
+                    },
+                    ]
+                },
+            ],
+            raw: true
+        }).then(function(lst) {
+            var res = {};
+            lst.forEach(function (it) {
+                var secId = it['AssignmentInstance.Section.SectionID']
+                if (!res[secId]) {
+                    res[secId] = {tasks: [], users: []}
+                }
+                res[secId].tasks.push(it.TaskInstanceID);
+                res[secId].users.push(it.UserID);
+                // console.log(it.TaskInstanceID, it['AssignmentInstance.Section.SectionID'], it.UserID)
+                console.log(res);
+            })
+        });
+    }
 
     check() {
-        var x = this;
+        var x = this
+        TaskInstance.findAll({
+            where: {
+                $or: [{
+                    Status: "started"
+                }, {
+                    Status: "late_reallocated"
+                }]
+            },
+            include: [
+                {
+                    model: AssignmentInstance,
+                    attributes: ["AssignmentInstanceID", "AssignmentID"],
+                    include: [{
+                        model: Section,
+                        attributes: ["SectionID"],
+                    }],
+                },
+            ],
+            // raw: true
+        }).then(function(lst) {
+            var res = {}
+            return Promise.map(lst, function (it) {
+                var secId = it['AssignmentInstance.Section.SectionID']
+                if (!res[secId]) {
+                    res[secId] = {tasks: [], users: []}
+                }
+                res[secId].tasks.push(it)
+                res[secId].users.push(it.UserID)
+                // console.log(it.TaskInstanceID, it['AssignmentInstance.Section.SectionID'], it.UserID)
+                // console.log(res)
+            }).then(function (done) {
+                // console.log('then....')
+                return Promise.map(Object.keys(res), function (secId) {
+                    res[secId].tasks.forEach(function (task) {
+                        console.log('Checking Task Instance', task.TaskInstanceID)
+                        x.checkTask(task, res[secId].users)
+                        //check for started task instances
+                    })
+                })
+            })
+        })
+        /*var x = this;
         TaskInstance.findAll({
             where: {
                 $or: [{
@@ -48,21 +125,33 @@ class Manager {
             if (taskInstances.length === 0) {
                 console.log("No Task Instance Found!");
             }
-            taskInstances.forEach(function(task) {
+            else {
+                alloc.groupSectionUsers(taskInstances, function (res) {
+                    console.log('res::', res)
+                });
+                alloc.findSectionUsers(taskInstances[0].AssignmentInstanceID, function (users) {
+                    taskInstances.forEach(function (task) {
+                        console.log('Checking Task Instance', task.TaskInstanceID);
+                        x.checkTask(task, users);
+                        //check for started task instances
+                    });
+                });
+            }
+            /!*taskInstances.forEach(function(task) {
                 console.log('Checking Task Instance', task.TaskInstanceID);
                 x.checkTask(task);
                 //check for started task instances
-            });
-        });
+            });*!/
+        });*/
     }
 
-    checkTask(task) {
+    checkTask(task, users) {
         //only check for started
         var x = this;
         var date = task.timeOutTime();
         var now = new Date();
         if (date < now) {
-            x.timeOut(task);
+            x.timeOut(task, users)
         }
     }
 
@@ -119,7 +208,7 @@ class Manager {
         });
     }
 
-    timeOut(task) {
+    timeOut(task, users) {
         //var alloc = new Allocator();
         //check the option whether keep the same person or allocate to a new person
         //extended date is in DueType second postion
@@ -165,10 +254,12 @@ class Manager {
                                 //task.Status = 'late_reallocated';
                                 task.Status = 'started';
                                 //Run allocation algorithm, extend due date.
-                                alloc.findSectionUsers(task.AssignmentInstanceID, function(users) {
+                                alloc.reallocate(task.TaskInstanceID, users)
+                                task.extendDate(4320)
+                                /*alloc.findSectionUsers(task.AssignmentInstanceID, function(users) {
                                     alloc.reallocate(task.TaskInstanceID, users);
                                     task.extendDate(4320);
-                                });
+                                });*/
                                 //send email to notify user about allocation
                                 break;
                             case '"allocate_to_different_person_in_same_group"':

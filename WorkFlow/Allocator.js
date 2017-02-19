@@ -330,20 +330,28 @@ class Allocator {
 
     //get newUser
     getUser(avoid_users, users) {
-        //console.log(typeof users);
-        console.log("getUser() users", users);
-        var new_user;
-        var new_users = [];
-        return Promise.all(Promise.map(users, function(user) {
+        //console.log(typeof users)
+        console.log("getUser() users", users)
+        var new_user
+        // var new_users = []
+        var idx
+        return Promise.all(Promise.map(users, function(user, i) {
             if (!_.contains(avoid_users, user)) {
-                new_users.push(user);
-                console.log('users shift', users);
+                if (idx == null) {
+                    idx = i
+                }
+                // new_users.push(user)
+                // console.log('users shift', users)
             }
 
         })).then(function(done) {
-            new_user = new_users[0];
-            return new_user;
-        });
+            new_user = users[idx] //new_users[0]
+            // console.log('prev::', users)
+            users.splice(idx, 1)
+            users.push(new_user)
+            // console.log('new::', users)
+            return new_user
+        })
     }
 
 
