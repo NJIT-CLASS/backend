@@ -193,6 +193,13 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint for Assignment Manager
+    router.get("/debug", function(req, res) {
+        var manager = new Manager()
+        manager.debug()
+        res.status(200).end()
+    })
+
+    //Endpoint for Assignment Manager
     router.get("/manager", function(req, res) {
 
         var manager = new Manager();
