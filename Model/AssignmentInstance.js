@@ -46,6 +46,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.JSON,
             field: 'WorkflowTiming',
             allowNull: true
+        },
+        Volunteers: {
+            type: DataTypes.JSON,
+            field: 'Volunteers',
+            default: '[]'
         }
     }, {
         timestamps: false,

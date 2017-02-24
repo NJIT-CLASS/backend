@@ -329,9 +329,9 @@ class Allocator {
     }
 
     //get newUser
-    getUser(avoid_users, users) {
+    getUserPre(avoid_users, users) {
         //console.log(typeof users)
-        console.log("getUser() users", users)
+        // console.log("getUser() users", users)
         var new_user
         // var new_users = []
         var idx
@@ -354,13 +354,39 @@ class Allocator {
         })
     }
 
+    //get newUser
+    getUser(users, volunteers, avoidUsers) {
+        volunteers = volunteers || []
+        var found = false
+        return Promise.map(users, function(user) {
+            if (!found && !_.contains(avoidUsers, user) && !_.contains(volunteers, user)) {
+                volunteers.unshift(user)
+                found = true
+            }
+        }).then(function(done) {
+            var idx = 0
+            return Promise.map(volunteers, function (user, i) {
+                if (!found && idx == null && !_.contains(avoid_users, user)) {
+                    idx = i
+                }
+            }).then(function (done) {
+                var new_user = volunteers[idx] //new_users[0]
+                // console.log('prev::', users)
+                volunteers.splice(idx, 1)
+                volunteers.push(new_user)
+                // console.log('update::', volunteers)
+                return new_user
+            })
+        })
+    }
+
 
     //updateDB
     updateUSER(taskid, newUser) {
 
         //console.log('Updating task instance...')
 
-        TaskInstance.update({
+        return TaskInstance.update({
             UserID: newUser
         }, {
             where: {
@@ -368,11 +394,29 @@ class Allocator {
             }
         }).then(function(result) {
             console.log('User updated! ', newUser);
+            return result
         }).catch(function(err) {
             console.log('Cannot update user!');
             console.log(err);
         });
 
+    }
+
+    getVolunteers(ti) {
+        /*return WorkflowInstance.find({
+            where: {
+                WorkflowInstanceID: ti.WorkflowInstanceID
+            }
+        }).then(function(wfi) {
+            return JSON.parse(wfi.Volunteers)
+        })*/
+        return AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: ti.AssignmentInstanceID
+            }
+        }).then(function(ai) {
+            return JSON.parse(ai.Volunteers)
+        })
     }
 
     //////////////////////////////////////////////////////////////////
@@ -392,32 +436,54 @@ class Allocator {
     //Needs to fix: The algorithm would always reallocate the first user from the list obtained. Needs to update the list of the users so
     //the same user won't be reallocated second time.
 
-    reallocate(ti_id, userList) {
+    reallocate(ti, users) {
+        var ti_id = ti.TaskInstanceID
         var x = this;
         var task = ti_id; //task instance needs to be given
         var constraint;
         var lateUser;
         var avoid_users = [];
-        var users = userList; // users need to be given
+        // var users = userList; // users need to be given
         //console.log(users);
 
-        Promise.all([x.getLateUser(task)]).then(function(done) {
+        /*Promise.all([]).spread(function(lateUsers, volunteers) {
             lateUser = done[0];
             //console.log(lateUser);
-        });
-        Promise.all([x.getTaskActivityID(task), x.getWorkflowInstanceID(task)]).spread(function(taskActivityIDs, workflowInstanceIDs) {
+        });*/
+        return Promise.all([x.getLateUser(task), x.getVolunteers(ti), x.getTaskActivityID(task), x.getWorkflowInstanceID(task)]).spread(function(lateUsers, volunteers, taskActivityIDs, workflowInstanceIDs) {
+            // console.log('vol:' + volunteers)
+            volunteers = volunteers || []
             return Promise.map(taskActivityIDs, function(ta_id) {
                 //console.log(ta_id);
                 return Promise.map(workflowInstanceIDs, function(wi_id) {
                     //console.log(wi_id);
-                    return Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUser, wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
-                        console.log("avoidUsers", avoidUsers);
+                    return Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUsers[0], wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
+                        // console.log("avoidUsers", avoidUsers);
                         // avoidUsers.map(function(user) {
                         //     avoid_users.push(user);
                         // });
-                        return x.getUser(avoidUsers, users).then(function(newUser) {
-                            TaskInstances.map(function(task) {
-                                x.updateUSER(task, newUser);
+                        return x.getUser(users, volunteers, avoidUsers).then(function(newUser) {
+                            return Promise.map(TaskInstances, function(task) {
+                                /*WorkflowInstance.update({
+                                    Volunteers: volunteers
+                                }, {
+                                    where: {
+                                        WorkflowInstanceID: ti.WorkflowInstanceID
+                                    }
+                                })*/
+                                return AssignmentInstance.update({
+                                    Volunteers: volunteers
+                                }, {
+                                    where: {
+                                        AssignmentInstanceID: ti.AssignmentInstanceID
+                                    }
+                                }).then(function(result) {
+                                    console.log('vols updated! ', volunteers)
+                                    return x.updateUSER(task, newUser);
+                                }).catch(function(err) {
+                                    console.log('Cannot update vols!')
+                                    console.log(err)
+                                })
                             });
                         });
                         //console.log(newUser);

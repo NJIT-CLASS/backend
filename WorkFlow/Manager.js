@@ -93,21 +93,20 @@ class Manager {
         }).then(function(lst) {
             var res = {}
             return Promise.map(lst, function (it) {
-                var secId = it['AssignmentInstance.Section.SectionID']
+                // console.log(it.TaskInstanceID, it.AssignmentInstance.Section.SectionID, it.UserID)
+                var secId = it.AssignmentInstance.Section.SectionID
                 if (!res[secId]) {
                     res[secId] = {tasks: [], users: []}
                 }
                 res[secId].tasks.push(it)
                 res[secId].users.push(it.UserID)
-                // console.log(it.TaskInstanceID, it['AssignmentInstance.Section.SectionID'], it.UserID)
                 // console.log(res)
             }).then(function (done) {
-                // console.log('then....')
-                return Promise.map(Object.keys(res), function (secId) {
-                    res[secId].tasks.forEach(function (task) {
+                // console.log('then....' + res)
+                return Object.keys(res).forEach(function (secId) {
+                    Promise.each(res[secId].tasks, function (task) {
                         console.log('Checking Task Instance', task.TaskInstanceID)
-                        x.checkTask(task, res[secId].users)
-                        //check for started task instances
+                        return x.checkTask(task, res[secId].users)
                     })
                 })
             })
@@ -151,7 +150,7 @@ class Manager {
         var date = task.timeOutTime();
         var now = new Date();
         if (date < now) {
-            x.timeOut(task, users)
+            return x.timeOut(task, users)
         }
     }
 
@@ -236,7 +235,7 @@ class Manager {
                 });
             });
         } else {
-            TaskActivity.find({
+            return TaskActivity.find({
                 where: {
                     TaskActivityID: task.TaskActivityID
                 }
@@ -254,8 +253,9 @@ class Manager {
                                 //task.Status = 'late_reallocated';
                                 task.Status = 'started';
                                 //Run allocation algorithm, extend due date.
-                                alloc.reallocate(task.TaskInstanceID, users)
                                 task.extendDate(4320)
+                                task.save()
+                                return alloc.reallocate(task, users)
                                 /*alloc.findSectionUsers(task.AssignmentInstanceID, function(users) {
                                     alloc.reallocate(task.TaskInstanceID, users);
                                     task.extendDate(4320);
@@ -277,7 +277,7 @@ class Manager {
                                 task.Status = 'started';
                                 //Run allocation algorithm specifiy with team, extend due date
                                 alloc.findInstructor(task.AssignmentInstanceID, function(instructor) {
-                                    alloc.reallocate(task.TaskInstanceID, [instructor]);
+                                    alloc.reallocate(task, [instructor], done);
                                     task.extendDate(4320);
                                 });
                                 //send email to notify user about allocation
