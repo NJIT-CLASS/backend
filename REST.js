@@ -30,6 +30,23 @@ var sequelize = require("./Model/index.js").sequelize;
 var Email = require('./WorkFlow/Email.js');
 var FlatToNested = require('flat-to-nested');
 
+const winston = require('winston')
+
+var logger = new (winston.Logger)({
+    transports: [
+        new (winston.transports.File)({
+            name: 'info-file',
+            filename: 'logs/filelog-info.log',
+            level: 'info',
+        }),
+        new (winston.transports.File)({
+            name: 'error-file',
+            filename: 'logs/filelog-error.log',
+            level: 'error',
+        })
+    ]
+})
+
 //-----------------------------------------------------------------------------------------------------
 
 
@@ -193,7 +210,16 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint for Assignment Manager
-    router.get("/debug", function(req, res) {
+    router.get('/debug', function(req, res) {
+        // winston.level = 'debug'
+        logger.log('error', 'both', {
+            someKey: 'some-value'
+        })
+        logger.log('warn', 'only info')
+        logger.log('warn', 'only info', ([1, 2, {k: 'v'}, ['hi'], function (test) {
+            console.log(test)
+        }]).toString())
+
         var manager = new Manager()
         manager.debug()
         res.status(200).end()

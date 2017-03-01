@@ -382,12 +382,16 @@ class Allocator {
 
 
     //updateDB
-    updateUSER(taskid, newUser) {
+    updateUSER(ti, newUser) {
+        var taskid = ti.TaskInstanceID
+        var json = JSON.parse(ti.UserHistory) || {}
+        json[new Date()] = newUser
 
         //console.log('Updating task instance...')
 
         return TaskInstance.update({
-            UserID: newUser
+            UserID: newUser,
+            UserHistory: json,
         }, {
             where: {
                 TaskInstanceID: taskid
@@ -479,7 +483,7 @@ class Allocator {
                                     }
                                 }).then(function(result) {
                                     console.log('vols updated! ', volunteers)
-                                    return x.updateUSER(task, newUser);
+                                    return x.updateUSER(ti, newUser);
                                 }).catch(function(err) {
                                     console.log('Cannot update vols!')
                                     console.log(err)
