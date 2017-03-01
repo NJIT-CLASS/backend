@@ -114,15 +114,7 @@ REST.prototype.stop = function(err) {
 // var email = new Email();
 // //'1 * * * * *' 1 minute.
 // var job = schedule.scheduleJob('1 * * * * *', function(time) {
-//     // email.check();
-//     // email.send({
-//     //   from: "njitplamaster@gmail.com",
-//     //   replyTo: "njitplamaster@gmail.com",
-//     //   to: "ka267@njit.edu",
-//     //   subject: "Hey Krzysztof!- WE LOVE YOU!",
-//     //   text: "How are you??? How Rutgers??? How's girl friend? How's PLA?",
-//     //   html: ""
-//     // })
+
 // });
 
 
