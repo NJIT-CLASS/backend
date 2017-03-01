@@ -2005,7 +2005,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status'],
                                 include: [{
                                     model: User,
-                                    attributes: ['UserID', 'UserName']
+                                    attributes: ['UserID', "UserType" ,'UserName']
                                 }, {
                                     model: TaskActivity,
                                     attributes: ['Type']

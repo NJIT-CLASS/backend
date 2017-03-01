@@ -367,6 +367,7 @@ class TaskFactory {
                         });
                         //Update AssigneeConstraints replace fake IDs with real TaskActivityID
                         x.updateAssigneeConstraints(TA_array);
+                        x.replaceTreeID(workflowResult.WorkflowActivityID, TA_array, workflowResult.WorkflowStructure);
                         //reset TA_array
                         TA_array = [];
                     }).catch(function(err) {
@@ -401,6 +402,26 @@ class TaskFactory {
                 return false;
             });
         });
+    }
+
+    replaceTreeID(wa_id, ta_array, tree){
+
+      var replacedTree = tree;
+      var count = 0;
+
+      return Promise.map(replacedTree, function(node, index){
+        if(node.id != -1 && node.hasOwnProperty('parent')){
+          replacedTree[index]['my_id'] = ta_array[count];
+          replacedTree[index]['my_parent'] = ta_array[replacedTree[index].parent];
+          count++;
+        } else if(node.id != -1){
+          replacedTree[index]['my_id'] = ta_array[count];
+          count++;
+        }
+
+      }).then(function(done){
+          console.log(replacedTree);
+      })
     }
 
     createWorkflowInstance(workflow, ai_id) {
