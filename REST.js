@@ -32,14 +32,14 @@ var FlatToNested = require('flat-to-nested');
 
 const winston = require('winston')
 
-var logger = new (winston.Logger)({
+var logger = new(winston.Logger)({
     transports: [
-        new (winston.transports.File)({
+        new(winston.transports.File)({
             name: 'info-file',
             filename: 'logs/filelog-info.log',
             level: 'info',
         }),
-        new (winston.transports.File)({
+        new(winston.transports.File)({
             name: 'error-file',
             filename: 'logs/filelog-error.log',
             level: 'error',
@@ -132,7 +132,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //allocator.updatePreviousAndNextTasks(13);
         var allocat
 
-         = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
+        = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
         Promise.all([allocator.getUser(1)]).then(function(done) {
             console.log(done[0]);
         }).then(function() {
@@ -216,9 +216,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             someKey: 'some-value'
         })
         logger.log('warn', 'only info')
-        logger.log('warn', 'only info', ([1, 2, {k: 'v'}, ['hi'], function (test) {
-            console.log(test)
-        }]).toString())
+        logger.log('warn', 'only info', ([1, 2, {
+                k: 'v'
+            },
+            ['hi'],
+            function(test) {
+                console.log(test)
+            }
+        ]).toString())
 
         var manager = new Manager()
         manager.debug()
@@ -2005,7 +2010,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status'],
                                 include: [{
                                     model: User,
-                                    attributes: ['UserID', "UserType" ,'UserName']
+                                    attributes: ['UserID', "UserType", 'UserName']
                                 }, {
                                     model: TaskActivity,
                                     attributes: ['Type']
@@ -2398,10 +2403,106 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             return;
         }
 
-        var realloc = new Allocator([],0);
+        var realloc = new Allocator([], 0);
 
         realloc.reallocate(req.body.taskid, req.body.users);
     });
+
+    router.get('/getActiveAssignmentsForSection/:sectionId', function(req, res) {
+        console.log(`Finding Assignments for Section ${req.params.sectionId}`);
+        AssignmentInstance.findAll({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ["AssignmentInstanceID", "StartDate", "EndDate"],
+            include: [{
+                model: Assignment,
+                attributes: ['DisplayName']
+            }]
+        }).then(function(result) {
+            console.log('Assignments have been found!');
+            res.json({
+                "Error": false,
+                "Assignments": result
+            });
+        }).catch(function(err) {
+            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ": " + err);
+            res.status(404).end();
+        });
+    });
+
+    router.get('/getActiveAssignments/:courseId', function(req, res) {
+        console.log('Finding assignments...');
+        Assignment.findAll({
+            where: {
+                CourseID: req.params.courseId
+            },
+            attributes: ['AssignmentID', 'DisplayName', 'Type'],
+            include: [{
+                model: AssignmentInstance,
+                as: 'AssignmentInstances',
+                attributes: ["AssignmentInstanceID", "StartDate", "EndDate", "SectionID"]
+
+            }]
+        }).then(function(result) {
+            console.log('Assignments have been found!');
+            res.json({
+                "Error": false,
+                "Assignments": result
+            });
+        }).catch(function(err) {
+            console.log('/getActiveAssignments/' + req.params.courseId + ": " + err);
+            res.status(404).end();
+        });
+    });
+
+    router.get("/getAllEnrolledCourses/:studentID", function(req, res) {
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.studentID
+            },
+            attributes: ['UserRole', 'UserStatus'],
+            include: [{
+                model: Section,
+                attributes: ['Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['Number', 'Name', 'Abbreviations']
+                }]
+            }]
+        }).then(function(Courses) {
+            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
+            res.json({
+                "Error": false,
+                "Courses": Courses
+            });
+        });
+    });
+
+    router.get("/getActiveEnrolledCourses/:studentID", function(req, res) {
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.studentID,
+                UserStatus: "Active"
+            },
+            attributes: ['UserRole'],
+            include: [{
+                model: Section,
+                attributes: ['Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['Number', 'Name', 'Abbreviations']
+                }]
+            }]
+        }).then(function(Courses) {
+            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
+            res.json({
+                "Error": false,
+                "Courses": Courses
+            });
+        });
+    });
+
 
 }
 
