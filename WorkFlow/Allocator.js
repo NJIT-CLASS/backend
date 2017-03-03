@@ -380,6 +380,12 @@ class Allocator {
         })
     }
 
+    reallocAll(tasks, users) {
+        var x = this
+        return Promise.map(tasks, function (task, i) {
+            return x.updateUSER(task, users[i])
+        })
+    }
 
     //updateDB
     updateUSER(ti, newUser) {

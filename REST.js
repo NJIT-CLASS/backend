@@ -225,8 +225,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         ]).toString())
 
-        var manager = new Manager()
-        manager.debug()
+        // var manager = new Manager()
+        // manager.debug()
+        var a = new Allocator()
+        TaskInstance.findAll({
+            where: {
+                $or: [{
+                    Status: "started"
+                }, {
+                    Status: "late_reallocated"
+                }]
+            },
+        }).then(function (tasks) {
+            var users = []
+            Promise.map(tasks, function (task, i) {
+                users.push(i)
+            }).then(function (done) {
+                a.reallocAll(tasks, users)
+            })
+        })
         res.status(200).end()
     })
 
