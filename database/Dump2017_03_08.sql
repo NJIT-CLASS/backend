@@ -708,4 +708,27 @@ CREATE TABLE `TaskGrade` (
 ) ENGINE=InnoDB AUTO_INCREMENT=229 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
+--
+-- Table structure for table `TaskSimpleGrade`
+--
+
+DROP TABLE IF EXISTS `TaskSimpleGrade`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `TaskSimpleGrade` (
+  `TaskSimpleGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `UserID` int(10) unsigned NOT NULL,
+  `WorkflowInstanceID` int(10) unsigned NOT NULL,
+  `TaskInstanceID` int(10) unsigned NOT NULL,
+  `Grade` float unsigned NOT NULL,
+  `Comments` varchar(255) DEFAULT NULL,
+
+  PRIMARY KEY (`TaskSimpleGradeID`),
+  UNIQUE KEY `ti_userId_unq_idx` (`UserID`, `TaskInstanceID`),
+  FOREIGN KEY (`UserID`) REFERENCES `User` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE,
+  FOREIGN KEY (`WorkflowInstanceID`) REFERENCES `WorkflowInstance` (`WorkflowInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,
+  FOREIGN KEY (`TaskInstanceID`) REFERENCES `TaskInstance` (`TaskInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=229 DEFAULT CHARSET=latin1;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
 -- Dump completed on 2017-01-25 11:08:45

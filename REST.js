@@ -26,6 +26,7 @@ var EmailNotification = models.EmailNotification;
 var AssignmentGrade = models.AssignmentGrade
 var WorkflowGrade = models.WorkflowGrade
 var TaskGrade = models.TaskGrade
+var TaskSimpleGrade = models.TaskSimpleGrade
 
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
@@ -248,14 +249,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 a.reallocAll(tasks, users)
             })
         })*/
-        TaskGrade.create({
+        TaskSimpleGrade.create({
             WorkflowInstanceID: 4,
             TaskInstanceID: 4,
             UserID: 2,
             Grade: 95,
         }).then(function () {
             console.log('1 done')
-            TaskGrade.create({
+            TaskSimpleGrade.create({
                 WorkflowInstanceID: 4,
                 TaskInstanceID: 4,
                 UserID: 1,
