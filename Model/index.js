@@ -22,7 +22,8 @@ var sequelize = new Sequelize(process.env.database, process.env.dbUser, process.
 var models = ['Assignment','AssignmentInstance', 'Course', 'EmailNotification', 'Group',
     'GroupUser','Organization', 'ResetPasswordRequest', 'Section',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
-    'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance'
+    'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance',
+    'AssignmentGrade', 'WorkflowGrade',, 'TaskGrade',
 ];
 
 
@@ -52,6 +53,17 @@ models.forEach(function(model) {
       m.TaskInstance.belongsTo(m.WorkflowInstance,{foreignKey: 'WorkflowInstanceID'});
       m.TaskInstance.belongsTo(m.User,{foreignKey: 'UserID'});
       m.TaskInstance.belongsTo(m.AssignmentInstance,{foreignKey: 'AssignmentInstanceID'});
+
+    m.AssignmentGrade.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'})
+    m.AssignmentGrade.belongsTo(m.User,{foreignKey: 'UserID'})
+
+    m.WorkflowGrade.belongsTo(m.WorkflowInstance,{foreignKey: 'WorkflowInstanceID'})
+    m.WorkflowGrade.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'})
+    m.WorkflowGrade.belongsTo(m.User,{foreignKey: 'UserID'})
+
+    m.TaskGrade.belongsTo(m.TaskInstance, {foreignKey: 'TaskInstanceID'})
+    m.TaskGrade.belongsTo(m.WorkflowInstance,{foreignKey: 'WorkflowInstanceID'})
+    m.TaskGrade.belongsTo(m.User,{foreignKey: 'UserID'})
 
 
 

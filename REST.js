@@ -23,6 +23,10 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
+var AssignmentGrade = models.AssignmentGrade
+var WorkflowGrade = models.WorkflowGrade
+var TaskGrade = models.TaskGrade
+
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var TaskFactory = require('./WorkFlow/TaskFactory.js');
@@ -228,7 +232,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         // var manager = new Manager()
         // manager.debug()
         var a = new Allocator()
-        TaskInstance.findAll({
+        /*TaskInstance.findAll({
             where: {
                 $or: [{
                     Status: "started"
@@ -242,6 +246,22 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 users.push(i)
             }).then(function (done) {
                 a.reallocAll(tasks, users)
+            })
+        })*/
+        TaskGrade.create({
+            WorkflowInstanceID: 4,
+            TaskInstanceID: 4,
+            UserID: 2,
+            Grade: 95,
+        }).then(function () {
+            console.log('1 done')
+            TaskGrade.create({
+                WorkflowInstanceID: 4,
+                TaskInstanceID: 4,
+                UserID: 1,
+                Grade: 55,
+            }).then(function () {
+                console.log('2 done')
             })
         })
         res.status(200).end()
