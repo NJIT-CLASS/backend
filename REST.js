@@ -249,16 +249,16 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 a.reallocAll(tasks, users)
             })
         })*/
-        TaskSimpleGrade.create({
-            WorkflowInstanceID: 4,
-            TaskInstanceID: 4,
+        WorkflowGrade.create({
+            WorkflowActivityID: 1,
+            AssignmentInstanceID: 4,
             UserID: 2,
             Grade: 95,
         }).then(function () {
             console.log('1 done')
-            TaskSimpleGrade.create({
-                WorkflowInstanceID: 4,
-                TaskInstanceID: 4,
+            WorkflowGrade.create({
+                WorkflowActivityID: 2,
+                AssignmentInstanceID: 4,
                 UserID: 1,
                 Grade: 55,
             }).then(function () {

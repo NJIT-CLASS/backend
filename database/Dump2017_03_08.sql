@@ -672,15 +672,15 @@ DROP TABLE IF EXISTS `WorkflowGrade`;
 CREATE TABLE `WorkflowGrade` (
   `WorkflowGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `UserID` int(10) unsigned NOT NULL,
-  `WorkflowInstanceID` int(10) unsigned NOT NULL,
+  `WorkflowActivityID` int(10) unsigned NOT NULL,
   `AssignmentInstanceID` int(10) unsigned NOT NULL,
   `Grade` float unsigned NOT NULL,
   `Comments` varchar(255) DEFAULT NULL,
 
   PRIMARY KEY (`WorkflowGradeID`),
-  UNIQUE KEY `wfi_userId_unq_idx` (`UserID`, `WorkflowInstanceID`),
+  UNIQUE KEY `wf_userId_unq_idx` (`UserID`, `WorkflowActivityID`),
   FOREIGN KEY (`UserID`) REFERENCES `User` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE,
-  FOREIGN KEY (`WorkflowInstanceID`) REFERENCES `WorkflowInstance` (`WorkflowInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,
+  FOREIGN KEY (`WorkflowActivityID`) REFERENCES `WorkflowActivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,
   FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `AssignmentInstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE=InnoDB AUTO_INCREMENT=229 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;

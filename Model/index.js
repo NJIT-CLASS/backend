@@ -57,7 +57,7 @@ models.forEach(function(model) {
     m.AssignmentGrade.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'})
     m.AssignmentGrade.belongsTo(m.User,{foreignKey: 'UserID'})
 
-    m.WorkflowGrade.belongsTo(m.WorkflowInstance,{foreignKey: 'WorkflowInstanceID'})
+    m.WorkflowGrade.belongsTo(m.WorkflowActivity,{foreignKey: 'WorkflowActivityID'})
     m.WorkflowGrade.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'})
     m.WorkflowGrade.belongsTo(m.User,{foreignKey: 'UserID'})
 
