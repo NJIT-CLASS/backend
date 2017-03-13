@@ -1148,6 +1148,22 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     //-----------------------------------------------------------------------------------------------------
+    router.get("/getCourseSections/:courseID", function(req, res) {
+
+        Section.findAll({
+            where: {
+                CourseID: req.params.courseID,
+                SemesterID: req.query.semesterID
+            },
+            attributes: ["SectionID", "Name", "Description"]
+        }).then(function(sections) {
+            res.json({
+                "Sections": sections
+            });
+        })
+    });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a course
     router.put("/course/update", function(req, res) {
@@ -1477,6 +1493,23 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         }).then(function(Courses) {
             console.log("/getCourseCreated/ Courses found");
+            res.json({
+                "Error": false,
+                "Courses": Courses
+            });
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to Get Courses Created by an Instructor
+    router.get("/getOrganizationCourses/:organizationID", function(req, res) {
+        Course.findAll({
+            where: {
+                OrganizationID: req.params.organizationID
+            }
+        }).then(function(Courses) {
+            console.log("/getOrganizationCourses/ Courses found");
             res.json({
                 "Error": false,
                 "Courses": Courses
