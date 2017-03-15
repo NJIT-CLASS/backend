@@ -252,7 +252,7 @@ module.exports = function(sequelize, DataTypes) {
             },
 
             triggerNext: function() {
-                x = this;
+                let x = this;
                 if ((x.StartDate === null || x.EndDate === null) && x.Status !== 'automatic') {
                     throw Error('Missing attributes!  TaskInstanceID:', x.TaskInstanceID);
                     return null;
@@ -287,6 +287,64 @@ module.exports = function(sequelize, DataTypes) {
                                         where: {
                                             TaskInstanceID: nextTask.TaskInstanceID
                                         }
+                                    }).catch(function(err) {
+                                        console.log(err);
+                                        throw Error("Cannot start next task!");
+                                        return null;
+                                    });
+                                });
+                            }
+                        });
+                    });
+                });
+            },
+
+
+            skipDispute: function() {
+                let x = this;
+                if ((x.StartDate === null || x.EndDate === null) && x.Status !== 'automatic') {
+                    throw Error('Missing attributes!  TaskInstanceID:', x.TaskInstanceID);
+                    return null;
+                }
+                //  else if (x.Type !=== 'dispute') {
+                //     throw Error('Not a dispute task! TaskInstanceID:', x.TaskInstanceID);
+                //     return null;
+                // }
+
+                x.ActualEndDate = new Date();
+                x.Status = 'complete';
+                x.save();
+
+                return Promise.mapSeries(JSON.parse(x.NextTask), function(task, index) {
+                    models.TaskInstance.find({
+                        where: {
+                            TaskInstanceID: task
+                        }
+                    }).then(function(nextTask) {
+                        models.TaskActivity.find({
+                            where: {
+                                TaskActivityID: nextTask.TaskActivityID
+                            }
+                        }).then(function(ta_result) {
+
+                            if (ta_result.Type === 'needs_consolidation') {
+                                nextTask.consolidate();
+                            } else if (ta_result.Type === 'complete') {
+                                nextTask.complete();
+                            } else {
+                                //findNewDates return an array of [newStartDate, newEndDate]
+                                console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
+                                var dates = nextTask.findNewDates(function(dates) {
+                                    models.TaskInstance.update({
+                                        Status: 'bypassed',
+                                        StartDate: dates[0],
+                                        EndDate: dates[1]
+                                    }, {
+                                        where: {
+                                            TaskInstanceID: nextTask.TaskInstanceID
+                                        }
+                                    }).then(function() {
+                                        nextTask.triggerNext();
                                     }).catch(function(err) {
                                         console.log(err);
                                         throw Error("Cannot start next task!");

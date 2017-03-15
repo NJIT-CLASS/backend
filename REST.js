@@ -2286,7 +2286,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //create assignment instance
         taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(function(done) {
             console.log('/getAssignToSection/submit/   All Done!');
-            if (req.body.wf_timing.Time >= new Date()) {
+            if (req.body.wf_timing.Time <= new Date()) {
                 manager.checkAssignments();
             };
             res.status(200).end();
@@ -2312,7 +2312,6 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
             res.status(200).end();
         });
-
     });
 
     router.get('/openRevision/:taskInstanceID', function(res, req) {

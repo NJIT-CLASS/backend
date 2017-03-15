@@ -125,52 +125,112 @@ class TaskFactory {
         });
     }
 
-    updatePreviousAndNextTasks(ai_id) {
+    updatePreviousAndNextTasks(wf_list) {
+        var x = this;
         console.log('Updating all previous and next tasks...');
+        console.log('wf_list', wf_list);
 
-        //Finding all workflow instances using ai_id
-        return WorkflowInstance.findAll({
-            where: {
-                AssignmentInstanceID: ai_id
-            }
-        }).then(function(workflows) {
 
-            console.log('All workflows found!');
-            //Iterate through all the workflow instances returned
-            return Promise.mapSeries(workflows, function(workflow, index) {
+        if (wf_list.length == 0) {
+            console.log("TaskFactory.js/updatePreviousAndNextTasks: wf_list length is 0.");
+            return;
+        } else {
+            x.getTree(wf_list[0], function(tree) {
 
-                var taskCollection = JSON.parse(workflow.TaskCollection);
-                var previousTask = null;
+                return Promise.map(wf_list, function(wi_id) {
+                    WorkflowInstance.find({
+                        where: {
+                            WorkflowInstanceID: wi_id
+                        },
+                    }).then(function(wi) {
+                        return Promise.map(JSON.parse(wi.TaskCollection), function(task) {
+                            //Find previous tasks
+                            // var previous = x.listOfPreviousTasks(task, tree);
+                            // //Find next tasks
+                            // var next = x.listOfNextTasks(task, tree);
+                            return Promise.all([tree.first(function(node) {
+                                    return node.model.my_id === task;
+                                }),
+                                tree.all(function(node) {
+                                    return node.model.my_parent === task
+                                })
+                            ]).spread(function(previous, next) {
 
-                console.log('Updating previous and next tasks in workflow: ', workflow.WorkflowInstanceID);
-                return Promise.mapSeries(taskCollection, function(task, index) {
-
-                    if (taskCollection[index + 1] !== null || typeof taskCollection[index + 1] !== undefined) {
-                        return TaskInstance.update({
-                            PreviousTask: previousTask,
-                            NextTask: taskCollection[index + 1]
-                        }, {
-                            where: {
-                                TaskInstanceID: task
-                            }
-                        }).then(function(result) {
-                            previousTask = task;
+                                console.log('Previous ', previous);
+                                console.log('Next ', next);
+                                return TaskInstance.update({
+                                    PreviousTask: [previous],
+                                    NextTask: next
+                                }, {
+                                    where: {
+                                        TaskInstanceID: task
+                                    },
+                                });
+                            });
                         });
-                    } else {
-                        return TaskInstance.update({
-                            PreviousTask: previousTask,
-                            NextTask: null
-                        }, {
-                            where: {
-                                TaskInstanceID: task
-                            }
-                        });
-                    }
+                    });
                 });
             });
-        }).catch(function(err) {
-            console.log('No workflow found!');
-            console.log(err);
+        }
+
+
+
+        //Finding all workflow instances using ai_id
+        // return WorkflowInstance.findAll({
+        //     where: {
+        //         AssignmentInstanceID: ai_id
+        //     }
+        // }).then(function(workflows) {
+        //
+        //     console.log('All workflows found!');
+        //     //Iterate through all the workflow instances returned
+        //     return Promise.mapSeries(workflows, function(workflow, index) {
+        //
+        //         var taskCollection = JSON.parse(workflow.TaskCollection);
+        //         var previousTask = null;
+        //
+        //         console.log('Updating previous and next tasks in workflow: ', workflow.WorkflowInstanceID);
+        //         return Promise.mapSeries(taskCollection, function(task, index) {
+        //
+        //             if (taskCollection[index + 1] !== null || typeof taskCollection[index + 1] !== undefined) {
+        //                 return TaskInstance.update({
+        //                     PreviousTask: previousTask,
+        //                     NextTask: taskCollection[index + 1]
+        //                 }, {
+        //                     where: {
+        //                         TaskInstanceID: task
+        //                     }
+        //                 }).then(function(result) {
+        //                     previousTask = task;
+        //                 });
+        //             } else {
+        //                 return TaskInstance.update({
+        //                     PreviousTask: previousTask,
+        //                     NextTask: null
+        //                 }, {
+        //                     where: {
+        //                         TaskInstanceID: task
+        //                     }
+        //                 });
+        //             }
+        //         });
+        //     });
+        // }).catch(function(err) {
+        //     console.log('No workflow found!');
+        //     console.log(err);
+        // });
+    }
+
+
+    listOfPreviousTasks(ti_id, tree) {
+        return tree.first(function(node) {
+            return node.model.my_id === ti_id;
+        });
+    }
+
+    listOfNextTasks(ti_id, tree) {
+        return tree.all(function(node) {
+            return node.model.my_parent === ti_id
         });
     }
 
@@ -404,24 +464,31 @@ class TaskFactory {
         });
     }
 
-    replaceTreeID(wa_id, ta_array, tree){
+    replaceTreeID(wa_id, ta_array, tree) {
 
-      var replacedTree = tree;
-      var count = 0;
+        var replacedTree = tree;
+        var count = 0;
 
-      return Promise.map(replacedTree, function(node, index){
-        if(node.id != -1 && node.hasOwnProperty('parent')){
-          replacedTree[index]['my_id'] = ta_array[count];
-          replacedTree[index]['my_parent'] = ta_array[replacedTree[index].parent];
-          count++;
-        } else if(node.id != -1){
-          replacedTree[index]['my_id'] = ta_array[count];
-          count++;
-        }
+        return Promise.map(replacedTree, function(node, index) {
+            if (node.id != -1 && node.hasOwnProperty('parent')) {
+                replacedTree[index]['my_id'] = ta_array[count];
+                replacedTree[index]['my_parent'] = ta_array[replacedTree[index].parent];
+                count++;
+            } else if (node.id != -1) {
+                replacedTree[index]['my_id'] = ta_array[count];
+                count++;
+            }
 
-      }).then(function(done){
-          console.log(replacedTree);
-      })
+        }).then(function(done) {
+            WorkflowActivity.update({
+                WorkflowStructure: replacedTree
+            }, {
+                where: {
+                    WorkflowActivityID: wa_id
+                }
+            });
+            console.log(replacedTree);
+        })
     }
 
     createWorkflowInstance(workflow, ai_id) {
@@ -585,7 +652,7 @@ class TaskFactory {
                     AssignmentInstanceID: ai_id
                 }
             }).then(function(done) {
-                return x.updatePreviousAndNextTasks(ai_id);
+                return x.updatePreviousAndNextTasks(workflowArray);
             }).catch(function(err) {
                 console.log(err);
             });
@@ -608,22 +675,22 @@ class TaskFactory {
         });
     }
 
-    collectTasks(ai_id){
-      AssignmentInstance.find({
-          where: {
-              AssignmentInstanceID: ai_id
-          }
-      }).then(function(ai) {
-          WorkflowInstance.find({
-              where: {
-                  WorkflowInstanceID: ai.AssignmentInstanceID
-              }
-          }).then(function(wi){
-              where:{
+    collectTasks(ai_id) {
+        AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: ai_id
+            }
+        }).then(function(ai) {
+            WorkflowInstance.find({
+                where: {
+                    WorkflowInstanceID: ai.AssignmentInstanceID
+                }
+            }).then(function(wi) {
+                where: {
 
-              }
-          })
-      })
+                }
+            })
+        })
     }
 
     collectGradesInAssignment(user, ai_id) {
