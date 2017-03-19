@@ -55,19 +55,22 @@ models.forEach(function(model) {
       m.TaskInstance.belongsTo(m.AssignmentInstance,{foreignKey: 'AssignmentInstanceID'});
 
     m.AssignmentGrade.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'})
-    m.AssignmentGrade.belongsTo(m.User,{foreignKey: 'UserID'})
+    m.AssignmentGrade.belongsTo(m.SectionUser, {foreignKey: 'SectionUserID'})
 
     m.WorkflowGrade.belongsTo(m.WorkflowActivity,{foreignKey: 'WorkflowActivityID'})
     m.WorkflowGrade.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'})
-    m.WorkflowGrade.belongsTo(m.User,{foreignKey: 'UserID'})
+    m.WorkflowGrade.belongsTo(m.SectionUser, {foreignKey: 'SectionUserID'})
 
     m.TaskGrade.belongsTo(m.TaskInstance, {foreignKey: 'TaskInstanceID'})
-    m.TaskGrade.belongsTo(m.WorkflowInstance,{foreignKey: 'WorkflowInstanceID'})
-    m.TaskGrade.belongsTo(m.User,{foreignKey: 'UserID'})
+    m.TaskGrade.belongsTo(m.WorkflowActivity, {foreignKey: 'WorkflowActivityID'})
+    m.TaskGrade.belongsTo(m.SectionUser, {foreignKey: 'SectionUserID'})
 
     m.TaskSimpleGrade.belongsTo(m.TaskInstance, {foreignKey: 'TaskInstanceID'})
-    m.TaskSimpleGrade.belongsTo(m.WorkflowInstance,{foreignKey: 'WorkflowInstanceID'})
-    m.TaskSimpleGrade.belongsTo(m.User,{foreignKey: 'UserID'})
+    m.TaskSimpleGrade.belongsTo(m.WorkflowActivity, {foreignKey: 'WorkflowActivityID'})
+    m.TaskSimpleGrade.belongsTo(m.SectionUser, {foreignKey: 'SectionUserID'})
+
+    // m.AssignmentInstance.hasMany(m.AssignmentGrade, {as:'AssignmentGrades', foreignKey: 'AssignmentInstanceID'});
+    // m.User.hasMany(m.AssignmentGrade, {as:'AssignmentGrades', foreignKey: 'UserID'});
 
 
 

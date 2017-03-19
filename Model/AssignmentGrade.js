@@ -10,20 +10,20 @@ module.exports = function(sequelize, DataTypes) {
             unique: true,
         },
         AssignmentInstanceID: {
-            //Unique with UserID.
+            //Unique with SectionUserID.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'AssignmentInstanceID',
             allowNull: false,
-            unique: 'ai_userId_unq_idx',
+            unique: 'ai_sectionUserId_unq_idx',
         },
-        UserID: {
+        SectionUserID: {
             //Unique with AssignmentInstanceID
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'UserID',
+            field: 'SectionUserID',
             allowNull: false,
-            unique: 'ai_userId_unq_idx',
+            unique: 'ai_sectionUserId_unq_idx',
         },
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,

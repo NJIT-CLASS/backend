@@ -10,25 +10,25 @@ module.exports = function(sequelize, DataTypes) {
             unique: true,
         },
         TaskInstanceID: {
-            //Unique with UserID.
+            //Unique with SectionUserID.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'TaskInstanceID',
             allowNull: false,
-            unique: 'ti_userId_unq_idx',
+            unique: 'ti_sectionUserId_unq_idx',
         },
-        UserID: {
+        SectionUserID: {
             //Unique with TaskInstanceID
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'UserID',
+            field: 'SectionUserID',
             allowNull: false,
-            unique: 'ti_userId_unq_idx',
+            unique: 'ti_sectionUserId_unq_idx',
         },
-        WorkflowInstanceID: {
+        WorkflowActivityID: {
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'WorkflowInstanceID',
+            field: 'WorkflowActivityID',
             allowNull: false,
         },
         /*AssignmentInstanceID: {
