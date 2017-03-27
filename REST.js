@@ -34,7 +34,10 @@ var TaskFactory = require('./WorkFlow/TaskFactory.js');
 var sequelize = require("./Model/index.js").sequelize;
 var Email = require('./WorkFlow/Email.js');
 var FlatToNested = require('flat-to-nested');
+var fs = require('fs');
 
+const multer = require('multer')
+var storage = multer({dest: './files/'})
 const winston = require('winston')
 
 var logger = new(winston.Logger)({
@@ -314,8 +317,30 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         res.status(200).end()
     })
 
+    // router.post('/upload/profile-picture/:userId', multer({dest: './uploads/'}).single('profilePicture'), function(req, res) {
+    router.post('/upload/profile-picture', storage.single('profilePicture'), function(req, res) {
+        console.log('/upload/profile-picture')
+        if (!req.body.userId) {
+            req.body.userId = 2
+        }
+        console.log(req.body)
+        console.log(req.file)
+
+        User.update({
+            ProfilePicture: req.file,
+        }, {
+            where: {
+                UserID: req.body.userId
+            }
+        }).then(function (done) {
+            console.log('done')
+            res.status(200).end()
+        })
+    })
+
+
     //Endpoint for Assignment Manager
-    router.get("/getAssignmentGrades/:ai_id", function(req, res) {
+    router.get("/getAssignmentGrades/:ai_id", function (req, res) {
 
         if (req.params.ai_id == null) {
             console.log("/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null")
