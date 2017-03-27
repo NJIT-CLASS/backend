@@ -34,20 +34,25 @@ var TaskFactory = require('./WorkFlow/TaskFactory.js');
 var sequelize = require("./Model/index.js").sequelize;
 var Email = require('./WorkFlow/Email.js');
 var FlatToNested = require('flat-to-nested');
-var fs = require('fs');
+var fs = require('fs')
 
 const multer = require('multer')
 var storage = multer({dest: './files/'})
-const winston = require('winston')
+const logger = require('winston');
 
-var logger = new(winston.Logger)({
+logger.configure({
     transports: [
-        new(winston.transports.File)({
+        new (logger.transports.Console)({
+            level: 'debug',
+            colorize: true,
+            // json: true,
+        }),
+        new(logger.transports.File)({
             name: 'info-file',
             filename: 'logs/filelog-info.log',
             level: 'info',
         }),
-        new(winston.transports.File)({
+        new(logger.transports.File)({
             name: 'error-file',
             filename: 'logs/filelog-error.log',
             level: 'error',

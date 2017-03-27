@@ -254,8 +254,13 @@ class Manager {
                                 task.Status = 'started';
                                 //Run allocation algorithm, extend due date.
                                 task.extendDate(4320)
-                                task.save()
-                                return alloc.reallocate(task, users)
+                                // task.save()
+                                return alloc.reallocate(task, users).then(function (done) {
+                                    console.log(done)
+                                    if (!done || !done[0]) return
+                                    console.log('now saving')
+                                    return task.save()
+                                })
                                 /*alloc.findSectionUsers(task.AssignmentInstanceID, function(users) {
                                     alloc.reallocate(task.TaskInstanceID, users);
                                     task.extendDate(4320);
