@@ -23,23 +23,36 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
+var AssignmentGrade = models.AssignmentGrade
+var WorkflowGrade = models.WorkflowGrade
+var TaskGrade = models.TaskGrade
+var TaskSimpleGrade = models.TaskSimpleGrade
+
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var TaskFactory = require('./WorkFlow/TaskFactory.js');
 var sequelize = require("./Model/index.js").sequelize;
 var Email = require('./WorkFlow/Email.js');
 var FlatToNested = require('flat-to-nested');
+var fs = require('fs')
 
-const winston = require('winston')
+const multer = require('multer')
+var storage = multer({dest: './files/'})
+const logger = require('winston');
 
-var logger = new(winston.Logger)({
+logger.configure({
     transports: [
-        new(winston.transports.File)({
+        new (logger.transports.Console)({
+            level: 'debug',
+            colorize: true,
+            // json: true,
+        }),
+        new(logger.transports.File)({
             name: 'info-file',
             filename: 'logs/filelog-info.log',
             level: 'info',
         }),
-        new(winston.transports.File)({
+        new(logger.transports.File)({
             name: 'error-file',
             filename: 'logs/filelog-error.log',
             level: 'error',
@@ -225,9 +238,281 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         ]).toString())
 
-        var manager = new Manager()
-        manager.debug()
+        // var manager = new Manager()
+        // manager.debug()
+        var a = new Allocator()
+        /*TaskInstance.findAll({
+            where: {
+                $or: [{
+                    Status: "started"
+                }, {
+                    Status: "late_reallocated"
+                }]
+            },
+        }).then(function (tasks) {
+            var users = []
+            Promise.map(tasks, function (task, i) {
+                users.push(i)
+            }).then(function (done) {
+                a.reallocAll(tasks, users)
+            })
+        })*/
+        AssignmentGrade.create({
+            AssignmentInstanceID: 3,
+            SectionUserID: 2,
+            Grade: 59,
+        }).then(function () {
+            console.log('1 done')
+            AssignmentGrade.create({
+                AssignmentInstanceID: 3,
+                SectionUserID: 1,
+                Grade: 65,
+            }).then(function () {
+                console.log('2 done')
+            })
+        })
+        WorkflowGrade.create({
+            WorkflowActivityID: 1,
+            AssignmentInstanceID: 3,
+            SectionUserID: 2,
+            Grade: 95,
+        }).then(function () {
+            console.log('11 done')
+            WorkflowGrade.create({
+                WorkflowActivityID: 2,
+                AssignmentInstanceID: 3,
+                SectionUserID: 1,
+                Grade: 55,
+            }).then(function () {
+                console.log('22 done')
+            })
+        })
+        TaskGrade.create({
+            WorkflowActivityID: 1,
+            TaskInstanceID: 3,
+            SectionUserID: 2,
+            Grade: 100,
+        }).then(function () {
+            console.log('111 done')
+            TaskGrade.create({
+                WorkflowActivityID: 2,
+                TaskInstanceID: 4,
+                SectionUserID: 1,
+                Grade: 75,
+            }).then(function () {
+                console.log('222 done')
+            })
+        })
+        TaskSimpleGrade.create({
+            WorkflowActivityID: 1,
+            TaskInstanceID: 3,
+            SectionUserID: 2,
+            Grade: 10,
+        }).then(function () {
+            console.log('111 done')
+            TaskSimpleGrade.create({
+                WorkflowActivityID: 2,
+                TaskInstanceID: 4,
+                SectionUserID: 1,
+                Grade: 100,
+            }).then(function () {
+                console.log('222 done')
+            })
+        })
         res.status(200).end()
+    })
+
+    // router.post('/upload/profile-picture/:userId', multer({dest: './uploads/'}).single('profilePicture'), function(req, res) {
+    router.post('/upload/profile-picture', storage.single('profilePicture'), function(req, res) {
+        console.log('/upload/profile-picture')
+        if (!req.body.userId) {
+            req.body.userId = 2
+        }
+        console.log(req.body)
+        console.log(req.file)
+
+        User.update({
+            ProfilePicture: req.file,
+        }, {
+            where: {
+                UserID: req.body.userId
+            }
+        }).then(function (done) {
+            console.log('done')
+            res.status(200).end()
+        })
+    })
+
+
+    //Endpoint for Assignment Manager
+    router.get("/getAssignmentGrades/:ai_id", function (req, res) {
+
+        if (req.params.ai_id == null) {
+            console.log("/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null")
+            res.status(400).end()
+            return
+        }
+
+        return AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.params.ai_id,
+            },
+            // attributes: ['CourseID']
+            include: [
+                {
+                    model: Assignment,
+                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                    /*include: [{
+                        model: Section,
+                    }],*/
+                },
+                {
+                    model: Section,
+                    include: [
+                        {
+                            model: Course,
+                            // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                            /*include: [{
+                             model: Section,
+                             attributes: ["SectionID"],
+                             }],*/
+                        },
+                    ],
+                },
+                /*{
+                    model: AssignmentGrade,
+                }*/
+            ],
+        }).then(function(response) {
+            // console.log('res: ', response)
+            if (response == null) {
+                return res.json({Error: true})
+            }
+            var json = {
+                Error: false,
+                AssignmentInstance: response,
+                SectionUsers: [],
+            }
+            return response.Section.getSectionUsers().then(function (sectionUsers) {
+                if (!sectionUsers) return
+
+                // json.SectionUsers = sectionUsers
+                return Promise.map(sectionUsers, function (sectionUser) {
+                    console.log('ww')
+                    var su = sectionUser.toJSON()
+                    json.SectionUsers.push(su)
+
+                    User.find({
+                        where: {
+                            UserID: sectionUser.UserID
+                        }
+                    }).then(function (user) {
+                        if (!user) return
+
+                        console.log('ww22')
+                        var u = user.toJSON()
+                        su.User = u
+                    })
+                    return AssignmentGrade.find({
+                        where: {
+                            SectionUserID: sectionUser.SectionUserID,
+                            AssignmentInstanceID: req.params.ai_id,
+                        },
+                        /*include: [
+                            {
+                                model: AssignmentInstance,
+                                // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                                /!*include: [{
+                                 model: Section,
+                                 }],*!/
+                            },
+                        ],*/
+                    }).then(function (assignmentGrade) {
+                        if (!assignmentGrade) return
+
+                        console.log('ww11')
+                        var ag = assignmentGrade.toJSON()
+                        su.assignmentGrade = ag
+                        // console.log(assignmentGrade)
+
+                        return WorkflowGrade.findAll({
+                            where: {
+                                SectionUserID: sectionUser.SectionUserID,
+                                AssignmentInstanceID: req.params.ai_id,
+                            },
+                            include: [
+                                {
+                                    model: WorkflowActivity,
+                                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                                    /*include: [{
+                                        model: TaskActivity,
+                                    }],*/
+                                },
+                            ],
+                        }).then(function (workflowGrades) {
+                            if (!workflowGrades) return
+
+                            console.log('ww1.5')
+                            ag.WorkflowActivityGrades = []
+
+                            return Promise.map(workflowGrades, function (workflowGrade) {
+                                if (!workflowGrade) return
+
+                                console.log('ww11.5', workflowGrade)
+                                var wg = workflowGrade.toJSON()
+                                ag.WorkflowActivityGrades.push(wg)
+                                if (!wg.WorkflowActivity) return
+
+                                return TaskGrade.findAll({
+                                    where: {
+                                        SectionUserID: sectionUser.SectionUserID,
+                                        WorkflowActivityID: workflowGrade.WorkflowActivityID,
+                                    },
+                                    include: [
+                                        {
+                                            model: TaskInstance,
+                                            include: [
+                                                {
+                                                    model: TaskActivity,
+                                                },
+                                            ],
+                                        },
+                                    ],
+                                }).then(function (taskGrades) {
+                                    if (!taskGrades) return
+
+                                    console.log('ww1.75')
+                                    wg.WorkflowActivity.users_WA_Tasks = []
+
+                                    return Promise.map(taskGrades, function (taskGrade) {
+                                        if (!taskGrade) return
+
+                                        var tg = taskGrade.toJSON()
+                                        tg.taskGrade = taskGrade
+                                        tg.taskActivity = taskGrade.TaskInstance.TaskActivity
+                                        wg.WorkflowActivity.users_WA_Tasks.push(tg)
+
+                                        return TaskSimpleGrade.find({
+                                            where: {
+                                                SectionUserID: sectionUser.SectionUserID,
+                                                TaskInstanceID: taskGrade.TaskInstanceID
+                                            },
+                                        }).then(function (taskSimpleGrade) {
+                                            if (!taskSimpleGrade) return
+
+                                            tg.taskSimpleGrade = taskSimpleGrade
+                                        })
+                                    })
+                                })
+                            })
+                        })
+                    })
+                }).then(function () {
+                    console.log('then', 'json')
+                    res.json(json)
+                })
+            })
+        })
     })
 
     //Endpoint for Assignment Manager
@@ -1110,6 +1395,22 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     });
 
     //-----------------------------------------------------------------------------------------------------
+    router.get("/getCourseSections/:courseID", function(req, res) {
+
+        Section.findAll({
+            where: {
+                CourseID: req.params.courseID,
+                SemesterID: req.query.semesterID
+            },
+            attributes: ["SectionID", "Name", "Description"]
+        }).then(function(sections) {
+            res.json({
+                "Sections": sections
+            });
+        })
+    });
+
+    //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a course
     router.put("/course/update", function(req, res) {
@@ -1439,6 +1740,23 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         }).then(function(Courses) {
             console.log("/getCourseCreated/ Courses found");
+            res.json({
+                "Error": false,
+                "Courses": Courses
+            });
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to Get Courses Created by an Instructor
+    router.get("/getOrganizationCourses/:organizationID", function(req, res) {
+        Course.findAll({
+            where: {
+                OrganizationID: req.params.organizationID
+            }
+        }).then(function(Courses) {
+            console.log("/getOrganizationCourses/ Courses found");
             res.json({
                 "Error": false,
                 "Courses": Courses

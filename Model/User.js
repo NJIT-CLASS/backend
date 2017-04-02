@@ -78,7 +78,12 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.STRING,
             field: 'City',
             allowNull: true
-        }
+        },
+        ProfilePicture: {
+            type: DataTypes.JSON,
+            field: 'ProfilePicture',
+            allowNull: true
+        },
     }, {
         timestamps: false,
 

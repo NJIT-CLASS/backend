@@ -20,6 +20,7 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
+const logger = require('winston');
 
 class Allocator {
 
@@ -335,7 +336,7 @@ class Allocator {
         var new_user
         // var new_users = []
         var idx
-        return Promise.all(Promise.map(users, function(user, i) {
+        return Promise.all(Promise.map(users, function (user, i) {
             if (!_.contains(avoid_users, user)) {
                 if (idx == null) {
                     idx = i
@@ -344,7 +345,7 @@ class Allocator {
                 // console.log('users shift', users)
             }
 
-        })).then(function(done) {
+        })).then(function (done) {
             new_user = users[idx] //new_users[0]
             // console.log('prev::', users)
             users.splice(idx, 1)
@@ -355,70 +356,95 @@ class Allocator {
     }
 
     //get newUser
-    getUser(users, volunteers, avoidUsers) {
-        volunteers = volunteers || []
+    getUser(u_ids, vol_u_ids, avoid_u_ids) {
+        logger.log('debug', {call: 'getUser'})
+        logger.log('info', 'find a new appropriate user to reallocate', {
+            user_ids: u_ids,
+            volunteer_user_ids_so_far: vol_u_ids,
+            avoid_user_ids: avoid_u_ids,
+        })
+        vol_u_ids = vol_u_ids || []
         var found = false
-        return Promise.map(users, function(user) {
-            if (!found && !_.contains(avoidUsers, user) && !_.contains(volunteers, user)) {
-                volunteers.unshift(user)
+
+        return Promise.map(u_ids, function (u_id) {
+            if (!found && !_.contains(avoid_u_ids, u_id) && !_.contains(vol_u_ids, u_id)) {
+                vol_u_ids.unshift(u_id)
                 found = true
             }
-        }).then(function(done) {
+        }).then(function (done) {
+            logger.log('info', 'found a new user that is not part of volunteers yet ?', {found: found})
             var idx = 0
-            return Promise.map(volunteers, function (user, i) {
-                if (!found && idx == null && !_.contains(avoid_users, user)) {
+            return Promise.map(vol_u_ids, function (u_id, i) {
+                if (!found && idx == null && !_.contains(avoid_u_ids, u_id)) {
                     idx = i
                 }
             }).then(function (done) {
-                var new_user = volunteers[idx] //new_users[0]
-                // console.log('prev::', users)
-                volunteers.splice(idx, 1)
-                volunteers.push(new_user)
-                // console.log('update::', volunteers)
-                return new_user
+                var new_user_id = vol_u_ids[idx] //new_user_id[0]
+                vol_u_ids.splice(idx, 1)
+                vol_u_ids.push(new_user_id)
+
+                logger.log('info', 'volunteers updated & return a new chosen user', {
+                    updated_volunteer_user_ids_so_far: vol_u_ids,
+                    new_user_id: new_user_id,
+                })
+                return new_user_id
             })
         })
     }
 
+    reallocAll(tis, u_ids) {
+        logger.log('debug', {call: 'reallocAll'})
+        logger.log('info', 'reallocate specified users to specified corresponding users', {
+            user_ids: u_ids, task_instances: tis.map(function (it) {
+                return it.toJSON()
+            })
+        })
+
+        var x = this
+        return Promise.map(tis, function (ti, i) {
+            return x.updateUSER(ti, u_ids[i])
+        })
+    }
 
     //updateDB
-    updateUSER(ti, newUser) {
-        var taskid = ti.TaskInstanceID
+    updateUSER(ti, new_u_id) {
+        logger.log('debug', {call: 'updateUSER'})
+        var task_id = ti.TaskInstanceID
         var json = JSON.parse(ti.UserHistory) || {}
-        json[new Date()] = newUser
-
-        //console.log('Updating task instance...')
+        json[new Date()] = new_u_id
+        logger.log('info', 'update a task instance with a new user and user history', {task_instance: ti.toJSON(), new_user_id: new_u_id, user_history: json})
 
         return TaskInstance.update({
-            UserID: newUser,
+            UserID: new_u_id,
             UserHistory: json,
         }, {
             where: {
-                TaskInstanceID: taskid
+                TaskInstanceID: task_id
             }
-        }).then(function(result) {
-            console.log('User updated! ', newUser);
-            return result
-        }).catch(function(err) {
-            console.log('Cannot update user!');
-            console.log(err);
-        });
-
+        }).then(function (res) {
+            logger.log('info', 'task instance updated', {res: res})
+            return res
+        }).catch(function (err) {
+            logger.log('error', 'task instance update failed', err)
+            return
+        })
     }
 
     getVolunteers(ti) {
+        logger.log('debug', {call: 'getVolunteers', ti: ti.toJSON()})
         /*return WorkflowInstance.find({
-            where: {
-                WorkflowInstanceID: ti.WorkflowInstanceID
-            }
-        }).then(function(wfi) {
-            return JSON.parse(wfi.Volunteers)
-        })*/
+         where: {
+         WorkflowInstanceID: ti.WorkflowInstanceID
+         }
+         }).then(function(wfi) {
+         return JSON.parse(wfi.Volunteers)
+         })*/
         return AssignmentInstance.find({
             where: {
                 AssignmentInstanceID: ti.AssignmentInstanceID
             }
-        }).then(function(ai) {
+        }).then(function (ai) {
+            logger.log('debug', 'return', {assignment_instance: ai.toJSON()})
             return JSON.parse(ai.Volunteers)
         })
     }
@@ -440,61 +466,69 @@ class Allocator {
     //Needs to fix: The algorithm would always reallocate the first user from the list obtained. Needs to update the list of the users so
     //the same user won't be reallocated second time.
 
-    reallocate(ti, users) {
+    reallocate(ti, u_ids) {
+        logger.log('debug', {call: 'reallocate'})
+        logger.log('info', 'reallocate new user to a given task instance', {task_instance: ti.toJSON(), user_ids: u_ids})
+
         var ti_id = ti.TaskInstanceID
-        var x = this;
-        var task = ti_id; //task instance needs to be given
-        var constraint;
-        var lateUser;
-        var avoid_users = [];
-        // var users = userList; // users need to be given
-        //console.log(users);
+        var x = this
+        // var task = ti_id //task instance needs to be given
+        // var constraint
+        // var lateUser
+        // var avoid_users = []
+        // var users = userList // users need to be given
+        //console.log(users)
 
         /*Promise.all([]).spread(function(lateUsers, volunteers) {
-            lateUser = done[0];
-            //console.log(lateUser);
-        });*/
-        return Promise.all([x.getLateUser(task), x.getVolunteers(ti), x.getTaskActivityID(task), x.getWorkflowInstanceID(task)]).spread(function(lateUsers, volunteers, taskActivityIDs, workflowInstanceIDs) {
+         lateUser = done[0]
+         //console.log(lateUser)
+         })*/
+        // return Promise.all([x.getLateUser(ti_id), x.getVolunteers(ti), x.getTaskActivityID(ti_id), x.getWorkflowInstanceID(ti_id)]).spread(function (lateUsers, vol_u_ids, ta_ids, workflowInstanceIDs) {
+        return Promise.all([x.getLateUser(ti_id), x.getVolunteers(ti), x.getWorkflowInstanceID(ti_id)]).spread(function (lateUsers, vol_u_ids, wi_ids) {
             // console.log('vol:' + volunteers)
-            volunteers = volunteers || []
-            return Promise.map(taskActivityIDs, function(ta_id) {
-                //console.log(ta_id);
-                return Promise.map(workflowInstanceIDs, function(wi_id) {
-                    //console.log(wi_id);
-                    return Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUsers[0], wi_id, task)]).spread(function(avoidUsers, TaskInstances) {
-                        // console.log("avoidUsers", avoidUsers);
-                        // avoidUsers.map(function(user) {
-                        //     avoid_users.push(user);
-                        // });
-                        return x.getUser(users, volunteers, avoidUsers).then(function(newUser) {
-                            return Promise.map(TaskInstances, function(task) {
-                                /*WorkflowInstance.update({
-                                    Volunteers: volunteers
-                                }, {
-                                    where: {
-                                        WorkflowInstanceID: ti.WorkflowInstanceID
-                                    }
-                                })*/
-                                return AssignmentInstance.update({
-                                    Volunteers: volunteers
-                                }, {
-                                    where: {
-                                        AssignmentInstanceID: ti.AssignmentInstanceID
-                                    }
-                                }).then(function(result) {
-                                    console.log('vols updated! ', volunteers)
-                                    return x.updateUSER(ti, newUser);
-                                }).catch(function(err) {
-                                    console.log('Cannot update vols!')
-                                    console.log(err)
-                                })
-                            });
-                        });
-                        //console.log(newUser);
-                    });
-                });
-            });
-        });
+            vol_u_ids = vol_u_ids || []
+            // return Promise.map(taskActivityIDs, function (ta_id) {
+            //console.log(ta_id)
+            return Promise.map(wi_ids, function (wi_id) {
+                //console.log(wi_id)
+                // return Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUsers[0], wi_id, ti_id)]).spread(function (avoid_u_ids, TaskInstances) {
+                return Promise.all([x.getUsersFromWorkflowInstance(wi_id)]).spread(function (avoid_u_ids) {
+                    // console.log("avoidUsers", avoidUsers)
+                    // avoidUsers.map(function(user) {
+                    //     avoid_users.push(user)
+                    // })
+                    return x.getUser(u_ids, vol_u_ids, avoid_u_ids).then(function (new_u_id) {
+                        // return Promise.map(TaskInstances, function (task) {
+                        /*WorkflowInstance.update({
+                         Volunteers: volunteers
+                         }, {
+                         where: {
+                         WorkflowInstanceID: ti.WorkflowInstanceID
+                         }
+                         })*/
+                        logger.log('debug', 'update assignment instance volunteers', {
+                            assignment_instance_id: ti.AssignmentInstanceID,
+                            volunteer_user_ids: vol_u_ids,
+                        })
+                        return AssignmentInstance.update({
+                            Volunteers: vol_u_ids
+                        }, {
+                            where: {
+                                AssignmentInstanceID: ti.AssignmentInstanceID
+                            }
+                        }).then(function (res) {
+                            logger.log('info', 'assignment instance volunteers updated', {res: res})
+                            return x.updateUSER(ti, new_u_id)
+                        }).catch(function (err) {
+                            logger.log('error', 'assignment instance volunteers update failed', err)
+                            return
+                        })
+                        // })
+                    })
+                })
+            })
+            // })
+        })
     }
 
 

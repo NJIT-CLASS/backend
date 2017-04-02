@@ -215,6 +215,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'MinimumDuration',
             allowNull: true
+        },
+        ViewAccessContraints: {
+            type: DataTypes.JSON,
+            field: 'ViewAccessContraints',
+            allowNull: true
         }
     }, {
         timestamps: false,
