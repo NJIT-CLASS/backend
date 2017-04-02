@@ -1994,12 +1994,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                     console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
                 } else {
                     //Iterate through all workflow instances found
-                    return Promise.map(WI_Result, function(workflowInstance) {
+                    return Promise.mapSeries(WI_Result, function(workflowInstance) {
 
                         console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
                         var tempTasks = [];
 
-                        return Promise.map(JSON.parse(workflowInstance.TaskCollection), function(task) {
+                        return Promise.mapSeries(JSON.parse(workflowInstance.TaskCollection), function(task) {
 
                             console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
                             //each task is TaskInstanceID
@@ -2007,7 +2007,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 where: {
                                     TaskInstanceID: task
                                 },
-                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status'],
+                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
                                 include: [{
                                     model: User,
                                     attributes: ['UserID', "UserType", 'UserName']
@@ -2299,18 +2299,33 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     router.get('/getTree', function(req, res) {
         var taskFactory = new TaskFactory();
+        var node1;
+        var node2;
 
-        taskFactory.getTree(1, function(tree) {
+        Promise.all([taskFactory.getTree(1, function(tree) {
             let ar = [];
             tree.walk(function(node) {
                 console.log(node.model.id);
                 ar.push(node.model.id);
             })
+            node1 = tree.first(function(node) {
+                //console.log("first :", node);
+                return node.model.id === 1;
+            })
+            node2 = tree.all(function(node) {
+                //console.log("all :", node);
+                return node.model.parent === 1
+            })
 
-            res.json({
-                Arra: ar
-            });
-            res.status(200).end();
+            //console.log('nodes',node1, node2);
+            // res.json({
+            //     Arra: ar,
+            //     Node1: node1,
+            //     Node2: node2
+            // });
+            //res.status(200).end();
+        })]).then(function(done) {
+            console.log('nodes', node1, node2);
         });
     });
 
@@ -2484,6 +2499,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 UserID: req.params.studentID,
                 UserStatus: "Active"
             },
+            raw:true,
             attributes: ['UserRole'],
             include: [{
                 model: Section,
@@ -2501,6 +2517,26 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             });
         });
     });
+
+    router.get("/getSubWorkflow/:taskInstanceID", function(req, res) {
+        var taskFactory = new TaskFactory();
+        taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function(subworkflow) {
+            res.json({
+                "Error": false,
+                "SubWorkflow": subworkflow
+            });
+        });
+    })
+
+    router.get("/getNextTask/:taskInstanceID", function(req, res) {
+        var taskFactory = new TaskFactory();
+        taskFactory.getNextTask(req.params.taskInstanceID, new Array()).then(function(NextTask) {
+            res.json({
+                "Error": false,
+                "NextTask": NextTask
+            });
+        });
+    })
 
 
 }

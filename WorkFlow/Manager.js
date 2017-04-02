@@ -92,7 +92,7 @@ class Manager {
             // raw: true
         }).then(function(lst) {
             var res = {}
-            return Promise.map(lst, function (it) {
+            return Promise.mapSeries(lst, function (it) {
                 // console.log(it.TaskInstanceID, it.AssignmentInstance.Section.SectionID, it.UserID)
                 var secId = it.AssignmentInstance.Section.SectionID
                 if (!res[secId]) {
@@ -174,9 +174,9 @@ class Manager {
                 EndDate: null
             }
         }).then(function(AIs) {
-            AIs.forEach(function(assignmentInstance) {
+            return Promise.mapSeries(AIs, function(assignmentInstance){
                 console.log("checkAssginments: AssignmentInstanceID", assignmentInstance.AssignmentInstanceID);
-                x.checkAssignment(assignmentInstance);
+                return x.checkAssignment(assignmentInstance);
             });
         });
     }
@@ -189,10 +189,10 @@ class Manager {
 
         if (startDate < now) {
             console.log("checkAssginment: Start Date has past ", assignmentInstance.AssignmentInstanceID)
-            x.isStarted(assignmentInstance, function(result) {
+            return x.isStarted(assignmentInstance, function(result) {
                 console.log("checkAssignment: ", assignmentInstance.AssignmentInstanceID, result);
                 if (!result)
-                    taskFactory.createInstances(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
+                    return taskFactory.createInstances(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
             });
         }
     }

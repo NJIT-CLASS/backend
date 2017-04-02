@@ -125,46 +125,71 @@ class TaskFactory {
         });
     }
 
-    updatePreviousAndNextTasks(wf_list) {
+    //Finds and updates the list of previous tasks and next tasks of a list of workflow instance
+    updatePreviousAndNextTasks(wi_list) {
+        //wi_list is a list of workflow instance in that assignment
         var x = this;
         console.log('Updating all previous and next tasks...');
-        console.log('wf_list', wf_list);
 
-
-        if (wf_list.length == 0) {
-            console.log("TaskFactory.js/updatePreviousAndNextTasks: wf_list length is 0.");
+        if (wi_list.length == 0) {
+            console.log("TaskFactory.js/updatePreviousAndNextTasks: wi_list length is 0.");
             return;
         } else {
-            x.getTree(wf_list[0], function(tree) {
+            WorkflowInstance.find({
+                where: {
+                    WorkflowInstanceID: wi_list[0]
+                }
+            }).then(function(wi) {
 
-                return Promise.map(wf_list, function(wi_id) {
-                    WorkflowInstance.find({
-                        where: {
-                            WorkflowInstanceID: wi_id
-                        },
-                    }).then(function(wi) {
-                        return Promise.map(JSON.parse(wi.TaskCollection), function(task) {
-                            //Find previous tasks
-                            // var previous = x.listOfPreviousTasks(task, tree);
-                            // //Find next tasks
-                            // var next = x.listOfNextTasks(task, tree);
-                            return Promise.all([tree.first(function(node) {
-                                    return node.model.my_id === task;
-                                }),
-                                tree.all(function(node) {
-                                    return node.model.my_parent === task
-                                })
-                            ]).spread(function(previous, next) {
+                x.getTree(wi.WorkflowActivityID, function(tree, ta_collection, flat_tree) {
+                    //console.log('tree', tree);
+                    return Promise.mapSeries(wi_list, function(wi_id) {
+                        WorkflowInstance.find({
+                            where: {
+                                WorkflowInstanceID: wi_id
+                            }
+                        }).then(function(wi) {
+                            return Promise.all([x.matchNodeToWorkflow(wi.TaskCollection, flat_tree)]).then(function(structureList) {
+                                return Promise.mapSeries(JSON.parse(wi.TaskCollection), function(taskArray) {
+                                    return Promise.mapSeries(taskArray, function(task) {
+                                        return Promise.all([x.listOfPreviousTasks(task, tree, structureList[0]), x.listOfNextTasks(task, tree, structureList[0])]).all().then(function([previous, next]) {
+                                            if (previous == null && next !== null) {
+                                                TaskInstance.update({
+                                                    NextTask: next
+                                                }, {
+                                                    where: {
+                                                        TaskInstanceID: task
+                                                    },
+                                                }).then(function(done) {
+                                                    console.log("Updated")
+                                                });
 
-                                console.log('Previous ', previous);
-                                console.log('Next ', next);
-                                return TaskInstance.update({
-                                    PreviousTask: [previous],
-                                    NextTask: next
-                                }, {
-                                    where: {
-                                        TaskInstanceID: task
-                                    },
+                                            } else if (next == null && previous !== null) {
+                                                TaskInstance.update({
+                                                    PreviousTask: previous,
+                                                }, {
+                                                    where: {
+                                                        TaskInstanceID: task
+                                                    },
+                                                }).then(function(done) {
+                                                    console.log("Updated")
+                                                });
+
+                                            } else if (next !== null && previous !== null) {
+
+                                                TaskInstance.update({
+                                                    PreviousTask: previous,
+                                                    NextTask: next
+                                                }, {
+                                                    where: {
+                                                        TaskInstanceID: task
+                                                    },
+                                                }).then(function(done) {
+                                                    console.log("Updated")
+                                                });
+                                            }
+                                        });
+                                    });
                                 });
                             });
                         });
@@ -221,16 +246,121 @@ class TaskFactory {
         // });
     }
 
+    //construct a JSON of TaskInstance id and corresponding tree structure node
+    // ex) {'1': { id: 166, isSubWorkflow: 0 },'2': { id: 167, parent: 1, isSubWorkflow: 0 }}
+    // '2' and '2' are TaskActivityID and { id: 166, isSubWorkflow: 0 } { id: 167, parent: 1, isSubWorkflow: 0 } are flattened tree node
+    //with actual task instance id
+    matchNodeToWorkflow(ti_collection, flat_tree) {
+        console.log("constructing structure...");
+        var struct = {};
+        //console.log("flat tree", flat_tree);
+        return Promise.mapSeries(JSON.parse(ti_collection), function(taskArray) {
+            return Promise.mapSeries(taskArray, function(task) {
+                return TaskInstance.find({
+                    where: {
+                        TaskInstanceID: task
+                    }
+                }).then(function(ti) {
+                    return Promise.mapSeries(flat_tree, function(node) {
+                        //console.log("node id", node.id);
+                        if (node.id == ti.TaskActivityID && !struct.hasOwnProperty(node.id)) {
+                            struct[node.id] = [{
+                                id: task,
+                                isSubWorkflow: node.isSubWorkflow
+                            }];
 
-    listOfPreviousTasks(ti_id, tree) {
-        return tree.first(function(node) {
-            return node.model.my_id === ti_id;
+                            return TaskInstance.update({
+                                IsSubWorkflow: node.isSubWorkflow
+                            }, {
+                                where: {
+                                    TaskInstanceID: task
+                                }
+                            }).catch(function(err) {
+                                console.log('Error updating the IsSubWorkflow...', err);
+                            });
+                        } else if (node.id == ti.TaskActivityID && struct.hasOwnProperty(node.id)) {
+                            struct[node.id].push({
+                                id: task,
+                                isSubWorkflow: node.isSubWorkflow
+                            })
+
+                            return TaskInstance.update({
+                                IsSubWorkflow: node.isSubWorkflow
+                            }, {
+                                where: {
+                                    TaskInstanceID: task
+                                }
+                            }).catch(function(err) {
+                                console.log('Error updating the IsSubWorkflow...', err);
+                            });
+                        }
+
+                    });
+                });
+            });
+        }).then(function(done) {
+            console.log("matchNodeToWorkflow", struct);
+            return struct;
+        }).catch(function(err) {
+            console.log("Error contructing the structure...", err);
         });
     }
 
-    listOfNextTasks(ti_id, tree) {
-        return tree.all(function(node) {
-            return node.model.my_parent === ti_id
+    //return the find the list of previous tasks that is the parent of the ti_id
+    listOfPreviousTasks(ti_id, tree, structureList) {
+        console.log("collecting previous task for task instance ", ti_id, "...");
+        var parent = null;
+        return TaskInstance.find({
+            where: {
+                TaskInstanceID: ti_id
+            }
+        }).then(function(ti) {
+            return Promise.all([tree.walk(function(node) {
+                //console.log(typeof node.model.id, typeof ti_id);
+                //console.log(node.model.id == ti.TaskActivityID, node.model.id, ti_id);
+                if (node.parent !== undefined && node.model.id == ti.TaskActivityID) {
+                    parent = structureList[node.parent.model.id];
+                };
+            })]).then(function(previous) {
+                return parent;
+            });
+
+            // return Promise.all([nd]).then(function(previous) {
+            //     console.log("Previous in listOfPreviousTasks", previous);
+            //     return previous;
+            // });
+        }).catch(function(err) {
+            console.log("Error finding the previous task...", err);
+        });
+
+        //console.log(node)
+    }
+
+    //return the list next tasks that is prior the ti_id
+    listOfNextTasks(ti_id, tree, structureList) {
+        console.log("collecting a list of next task for task instance ", ti_id, "...");
+        var children = [];
+        return TaskInstance.find({
+            where: {
+                TaskInstanceID: ti_id
+            }
+        }).then(function(ti) {
+            return Promise.all([tree.walk(function(node) {
+                //console.log(typeof node.parent.model, typeof ti_id);
+                //console.log("Lookoing at node:", node.model.id, "Parent is: ", node.parent);
+                if (node.parent !== undefined && node.model.id !== -1 && node.parent.model.id == ti.TaskActivityID) {
+                    children.push(structureList[node.model.id]);
+                }
+            })]).then(function(next) {
+                if (children.length == 0) {
+                    return null;
+                } else {
+                    return children;
+                }
+            });
+
+        }).catch(function(err) {
+            console.log("Error finding the list of next tasks...", err);
         });
     }
 
@@ -247,17 +377,19 @@ class TaskFactory {
                     resolve(null);
                 } else {
                     console.log('Previous Task', taskInstance.PreviousTask);
-                    Promise.map(JSON.parse(taskInstance.PreviousTask), function(ti_id) {
-                        p.push(ti_id);
+                    return Promise.mapSeries(JSON.parse(taskInstance.PreviousTask), function(task) {
+                        // console.log('find previous task ', task)
+                        p.push(task.id);
+                        //p.push(JSON.parse(taskInstance.PreviousTask).id);
                     }).then(function(done) {
-                        x.findPreviousTasks(JSON.parse(taskInstance.PreviousTask)[0], p).then(function(result) {
+                        x.Tasks(JSON.parse(taskInstance.PreviousTask)[0].id, p).then(function(result) {
                             resolve(p);
                         });
                     });
                 }
             }).catch(function(err) {
-                console.log(err);
-                throw new Error('Cannot find previous tasks');
+                console.log('Cannot find previous tasks', err);
+                //throw new Error('Cannot find previous tasks');
             });
         });
     }
@@ -471,11 +603,11 @@ class TaskFactory {
 
         return Promise.map(replacedTree, function(node, index) {
             if (node.id != -1 && node.hasOwnProperty('parent')) {
-                replacedTree[index]['my_id'] = ta_array[count];
-                replacedTree[index]['my_parent'] = ta_array[replacedTree[index].parent];
+                replacedTree[index]['id'] = ta_array[count];
+                replacedTree[index]['parent'] = ta_array[replacedTree[index].parent];
                 count++;
             } else if (node.id != -1) {
-                replacedTree[index]['my_id'] = ta_array[count];
+                replacedTree[index]['id'] = ta_array[count];
                 count++;
             }
 
@@ -566,14 +698,14 @@ class TaskFactory {
         // this.getWorkflowTiming(ai_id) - returns WorkflowTiming from Assignment Instance.
         return Promise.all([x.getUsersFromSection(sectionid), x.getWorkflowTiming(ai_id)]).spread(function(users, workflowTiming) {
 
-            console.log('Found number of users: ', users);
-            console.log('Found workflowTiming: ', JSON.parse(workflowTiming));
-            console.log('Going through each user...');
+            //console.log('Found number of users: ', users);
+            //console.log('Found workflowTiming: ', JSON.parse(workflowTiming));
+            //console.log('Going through each user...');
 
             //iterate through all users from section
             return Promise.mapSeries(users, function(user, userIndex) {
                 return Promise.mapSeries(JSON.parse(workflowTiming).workflows, function(workflow, index) {
-                    console.log('workflow: ', workflow.id);
+                    //console.log('workflow: ', workflow.id);
                     //creates seperate array to store all task instances created within the workflow
                     var taskArray = [];
                     //Store the current WorkflowInstanceID once it is created
@@ -581,25 +713,25 @@ class TaskFactory {
 
                     var allocator = new Allocator(users, userIndex);
                     var startDate = new Date(JSON.parse(workflowTiming).workflows[index].startDate);
-                    console.log('Creating workflow instance...');
+                    //console.log('Creating workflow instance...');
                     return x.createWorkflowInstance(workflow, ai_id).then(function(workflowInstanceId) {
                         //push the resulting workflowInstance object from callback to workflow Array
                         workflowArray.push(workflowInstanceId);
                         //store WorkflowInstanceID created
                         wi_id = workflowInstanceId;
-                        console.log('Going through individual tasks...');
+                        //console.log('Going through individual tasks...');
                         //iterate through all the tasks stored under workflows
                         return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
-                            console.log('task: ', task.id);
+                            //console.log('task: ', task.id);
                             return allocator.getRightUser(task.id).then(function(allocUsers) {
                                 var task_collection = [];
                                 return Promise.mapSeries(allocUsers, function(a_user) {
                                     return x.createTaskInstance(task, a_user, workflowInstanceId, ai_id).then(function(createTaskResult) {
-                                        console.log('taskInstanceId: ', createTaskResult[0]);
+                                        //console.log('taskInstanceId: ', createTaskResult[0]);
                                         //push the resulting workflowInstance object from callback to workflow Array
 
                                         task_collection.push(createTaskResult[0]);
-                                        console.log("DueType", task.DueType);
+                                        //console.log("DueType", task.DueType);
                                         if (num === 0) {
                                             var endDate = moment(JSON.parse(workflowTiming).workflows[index].startDate);
                                             if (task.DueType[0] === "duration") {
@@ -625,7 +757,7 @@ class TaskFactory {
                                 });
                             });
                         }).then(function(done) {
-                            console.log('Updating task collection in workflow instance...');
+                            //console.log('Updating task collection in workflow instance...');
                             //Update TaskCollection
                             WorkflowInstance.update({
                                 TaskCollection: taskArray.sort(function(a, b) {
@@ -641,7 +773,7 @@ class TaskFactory {
                 });
             });
         }).then(function(done) {
-            console.log('Updating workflow collection in assignment instance...');
+            //console.log('Updating workflow collection in assignment instance...');
             //Update WorkflowCollection
             AssignmentInstance.update({
                 WorkflowCollection: workflowArray.sort(function(a, b) {
@@ -668,7 +800,7 @@ class TaskFactory {
             }
         }).then(function(wa_result) {
             let treeRoot = tree.parse(flatToNested.convert(JSON.parse(wa_result.WorkflowStructure)));
-            callback(treeRoot);
+            callback(treeRoot, wa_result.TaskActivityCollection, JSON.parse(wa_result.WorkflowStructure));
         }).catch(function(err) {
             console.log(err);
             console.log("getTree(wa_id, callback) failed retrieving tree");
@@ -696,6 +828,120 @@ class TaskFactory {
     collectGradesInAssignment(user, ai_id) {
 
 
+    }
+
+    //Retrieving all subworkflows that's subsequent to the ti_id
+    getSubWorkflow(ti_id, subworkflow) {
+        var x = this;
+        //subworkflow = [];
+        console.log('finding subworkflow of task instance', ti_id, '...');
+        return new Promise(function(resolve, reject) {
+            TaskInstance.find({
+                where: {
+                    TaskInstanceID: ti_id
+                }
+            }).then(function(ti) {
+                var s = subworkflow;
+                if (ti.NextTask === null || typeof ti.NextTask === undefined) {
+                    resolve(null);
+                } else {
+                    return Promise.mapSeries(JSON.parse(ti.NextTask), function(taskArray) {
+                        return Promise.mapSeries(taskArray, function(task) {
+                            return TaskInstance.find({
+                                where: {
+                                    TaskInstanceID: task.id
+                                },
+                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
+                                include: [{
+                                    model: User,
+                                    attributes: ['UserID', "UserType", 'UserName']
+                                }, {
+                                    model: TaskActivity,
+                                    attributes: ['Type']
+                                }]
+                            }).then(function(nextTask) {
+                                //assumed 0 will not be subworkflow
+                                if (ti.IsSubWorkflow < nextTask.IsSubWorkflow && nextTask.IsSubWorkflow != 0) {
+                                    //new subworkflow
+                                    console.log("found a subworkflow!");
+
+                                    s.push(nextTask);
+                                    return x.getNextTask(nextTask.TaskInstanceID, s).then(function(wf) {
+
+                                        if (wf !== null) {
+                                            s = wf;
+                                            return Promise.mapSeries(s, function(task, index) {
+                                                return x.getSubWorkflow(task.TaskInstanceID, new Array()).then(function(sw) {
+                                                  if(!s[index].hasOwnProperty('SubWorkflow')){
+                                                    s[index].setDataValue('SubWorkflow', sw);
+                                                  } else {
+                                                    console.log('here ', ti.TaskInstanceID)
+                                                    s[index].SubWorkflow.push(sw);
+                                                  }
+                                                })
+                                            });
+                                        }
+                                    }).then(function(done) {
+                                        resolve(s);
+                                    });
+                                }
+                            });
+                        });
+                    }).then(function(done) {
+                        console.log("No subworkflow found", ti.TaskInstanceID, "...");
+                        resolve(null);
+                    });
+                }
+            });
+        });
+    }
+
+    getNextTask(ti_id, workflow) {
+        var x = this;
+        var next = null;
+        //subworkflow = [];
+
+        console.log('finding task instance', ti_id, '...');
+
+        return new Promise(function(resolve, reject) {
+            TaskInstance.find({
+                where: {
+                    TaskInstanceID: ti_id
+                }
+            }).then(function(ti) {
+                var w = workflow;
+                if (ti.NextTask === null || typeof ti.NextTask === undefined) {
+                    resolve(null);
+                } else {
+                    return Promise.mapSeries(JSON.parse(ti.NextTask), function(taskArray) {
+                        return Promise.mapSeries(taskArray, function(task) {
+                            return TaskInstance.find({
+                                where: {
+                                    TaskInstanceID: task.id
+                                },
+                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
+                                include: [{
+                                    model: User,
+                                    attributes: ['UserID', "UserType", 'UserName']
+                                }, {
+                                    model: TaskActivity,
+                                    attributes: ['Type']
+                                }]
+                            }).then(function(nextTask) {
+                                if (nextTask.IsSubWorkflow == ti.IsSubWorkflow) {
+                                    w.push(nextTask);
+                                    next = nextTask.TaskInstanceID;
+                                }
+                            });
+                        });
+                    }).then(function(done) {
+                            x.getNextTask(next, w).then(function(result) {
+                                resolve(w);
+                            });
+                    });
+                }
+            });
+        });
     }
 }
 
