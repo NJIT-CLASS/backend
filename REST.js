@@ -2844,7 +2844,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 "SubWorkflow": subworkflow
             });
         });
-    })
+    });
 
     router.get("/getNextTask/:taskInstanceID", function(req, res) {
         var taskFactory = new TaskFactory();
@@ -2854,7 +2854,17 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 "NextTask": NextTask
             });
         });
-    })
+    });
+
+    router.get("/skipDispute/:taskInstanceID", function(req, res) {
+        TaskInstance.find({
+          where:{
+            TaskInstanceID: req.params.taskInstanceID
+          }
+        }).then(function(ti){
+          ti.skipDispute();
+        });
+    });
 
 
 }

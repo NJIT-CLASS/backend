@@ -382,7 +382,7 @@ class TaskFactory {
                         p.push(task.id);
                         //p.push(JSON.parse(taskInstance.PreviousTask).id);
                     }).then(function(done) {
-                        x.Tasks(JSON.parse(taskInstance.PreviousTask)[0].id, p).then(function(result) {
+                        x.findPreviousTasks(JSON.parse(taskInstance.PreviousTask)[0].id, p).then(function(result) {
                             resolve(p);
                         });
                     });
@@ -861,7 +861,7 @@ class TaskFactory {
                                 }]
                             }).then(function(nextTask) {
                                 if (ti.IsSubWorkflow < nextTask.IsSubWorkflow && nextTask.IsSubWorkflow != 0) {
-                                    
+                                    subworkflow.push(nextTask);
                                 }
                             });
                         });
