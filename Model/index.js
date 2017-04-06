@@ -23,7 +23,7 @@ var models = ['Assignment','AssignmentInstance', 'Course', 'EmailNotification', 
     'GroupUser','Organization', 'ResetPasswordRequest', 'Section',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance',
-    'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade',
+    'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments'
 ];
 
 
@@ -53,6 +53,9 @@ models.forEach(function(model) {
       m.TaskInstance.belongsTo(m.WorkflowInstance,{foreignKey: 'WorkflowInstanceID'});
       m.TaskInstance.belongsTo(m.User,{foreignKey: 'UserID'});
       m.TaskInstance.belongsTo(m.AssignmentInstance,{foreignKey: 'AssignmentInstanceID'});
+
+      m.PartialAssignments.belongsTo(m.User, {foreignKey: 'UserID'});
+      m.PartialAssignments.belongsTo(m.Course, {foreignKey: 'CourseID'});
 
     m.AssignmentGrade.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'})
     m.AssignmentGrade.belongsTo(m.SectionUser, {foreignKey: 'SectionUserID'})

@@ -27,6 +27,7 @@ var AssignmentGrade = models.AssignmentGrade
 var WorkflowGrade = models.WorkflowGrade
 var TaskGrade = models.TaskGrade
 var TaskSimpleGrade = models.TaskSimpleGrade
+var PartialAssignments = models.PartialAssignments;
 
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
@@ -87,6 +88,20 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         //     }
         // });
 
+        if(req.body.partialAssignmentId !== null){
+            PartialAssignments.find({
+                where: {
+                    PartialAssignmentID: req.body.partialAssignmentId,
+                    UserID: req.body.userId,
+                    CourseID: req.body.courseId
+                }
+            }).then((result) => {
+                result.destroy();
+            }).catch((err) => {
+                console.error(err);
+            });
+        }
+
         var taskFactory = new TaskFactory();
         console.log('assignment: ', req.body.assignment);
         taskFactory.createAssignment(req.body.assignment).then(function(done) {
@@ -97,6 +112,97 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         });
 
+    });
+
+    //Endpoint to save partially made assignments from ASA to database
+    router.post('/assignment/save/', function(req,res){
+        if(req.body.partialAssignmentId == null){
+            PartialAssignments.create({
+                PartialAssignmentName: req.body.assignment.AA_name,
+                UserID: req.body.userId,
+                CourseID: req.body.courseId,
+                Data: req.body.assignment
+            }).then((result) => {
+                res.json({
+                    "Error": false,
+                    "PartialAssignmentID": result.PartialAssignmentID
+                })
+            }).catch((err) => {
+                console.error(err);
+                res.status(400).end();
+            });
+        }
+        else{
+            PartialAssignments.update({
+                PartialAssignmentName: req.body.assignment.AA_name,
+                Data: req.body.assignment
+            }, {
+                where: {
+                    PartialAssignmentID: req.body.partialAssignmentId
+                }
+            }).then((result) => {
+                console.log(result);
+                console.log("PartialAssignmentID:", result.PartialAssignmentID)
+                res.json({
+                    "Error": false,
+                    "PartialAssignmentID": req.body.partialAssignmentId
+                })
+            }).catch((result) => {
+                console.error(result);
+                res.status(400).end();
+            });
+        }
+    });
+
+    //Endpoint to load the names and IDs partial assignments by User and/or CourseID
+    router.get('/partialAssignments/all/:userId', function(req, res){
+        var whereConditions = {
+            UserID: req.params.userId
+        };
+
+        if(req.query.courseId !== undefined){
+          whereConditions.CourseID = req.query.courseId;
+        }
+
+        PartialAssignments.findAll({
+            where: whereConditions,
+            attributes: ['PartialAssignmentID', 'PartialAssignmentName']
+        }).then((result) => {
+            res.json({
+                "Error": false,
+                "PartialAssignments": result
+            });
+        }).catch((result) => {
+            console.error(result);
+            res.status(400).end();
+        });
+
+    });
+
+    //Endpoint to get the data from a partial assignment for the assignment editor
+    router.get('/partialAssignments/byId/:partialAssignmentId', function(req, res){
+        console.log(req.query.courseId, req.query.userId);
+        if(req.query.courseId === undefined || req.query.userId === undefined){
+          console.log('/partialAssignments/byId/:partialAssignmentId: UserID and CourseId cann be empty');
+          res.status(400).end();
+          return;
+        }
+        PartialAssignments.find({
+            where: {
+                PartialAssignmentID: req.params.partialAssignmentId,
+                UserID: req.query.userId,
+                CourseID: req.query.courseId
+            }
+        }).then(result => {
+            console.log(result);
+            res.json({
+                "Error": false,
+                "PartialAssignment": result
+            });
+        }).catch(result =>{
+            console.log(result);
+            res.status(400).end();
+        })
     });
 
     //Endpoint to get an assignment associate with courseId
@@ -125,6 +231,57 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             console.log('/getCompletedTaskInstances: ' + err);
             res.status(404).end();
 
+        });
+    });
+
+
+    //Endpoint to get a user's active assignment instances by the section
+    router.get('/getActiveAssignmentsForSection/:sectionId', function(req, res) {
+        console.log(`Finding Assignments for Section ${req.params.sectionId}`);
+        AssignmentInstance.findAll({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ["AssignmentInstanceID", "StartDate", "EndDate"],
+            include:[{
+              model: Assignment,
+              attributes: ['DisplayName']
+            }]
+        }).then(function(result) {
+            console.log('Assignments have been found!');
+            res.json({
+                "Error": false,
+                "Assignments": result
+            });
+        }).catch(function(err) {
+            console.log('/getActiveAssignmentsForSection/'+ req.params.sectionId +": " + err);
+            res.status(404).end();
+        });
+    });
+
+    //Endpoint to get a user's active assignment instances by the course
+    router.get('/getActiveAssignments/:courseId', function(req, res) {
+        console.log('Finding assignments...');
+        Assignment.findAll({
+            where: {
+                CourseID: req.params.courseId
+            },
+            attributes: ['AssignmentID','DisplayName', 'Type'],
+            include:[ {
+              model: AssignmentInstance,
+              as:'AssignmentInstances',
+              attributes: ["AssignmentInstanceID", "StartDate", "EndDate","SectionID"]
+
+            }]
+        }).then(function(result) {
+            console.log('Assignments have been found!');
+            res.json({
+                "Error": false,
+                "Assignments": result
+            });
+        }).catch(function(err) {
+            console.log('/getActiveAssignments/'+req.params.courseId+": " + err);
+            res.status(404).end();
         });
     });
 
@@ -1735,6 +1892,55 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             }
         }).then(function(Courses) {
             console.log("/getCourseCreated/ Courses found");
+            res.json({
+                "Error": false,
+                "Courses": Courses
+            });
+        });
+    });
+
+    //Get all courses that the student has been enrolled in by their ID
+    router.get("/getAllEnrolledCourses/:studentID", function(req, res) {
+      SectionUser.findAll({
+        where: {
+          UserID : req.params.studentID
+        },
+        attributes: ['UserRole', 'UserStatus'],
+        include:[{
+          model: Section,
+          attributes: ['Name'],
+          include:[{
+            model: Course,
+            attributes: ['Number','Name','Abbreviations']
+          }]
+        }]
+      }).then(function(Courses) {
+            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
+            res.json({
+                "Error": false,
+                "Courses": Courses
+            });
+        });
+    });
+
+    //Get the courses that are currently active(eg. in current semester) for a student
+    router.get("/getActiveEnrolledCourses/:studentID", function(req, res) {
+      SectionUser.findAll({
+        where: {
+          UserID : req.params.studentID,
+          UserStatus: "Active"
+        },
+        attributes: ['UserRole'],
+        include:[{
+          model: Section,
+          attributes: ['Name'],
+          include:[{
+            model: Course,
+            attributes: ['Number','Name','Abbreviations']
+          }]
+        }]
+      }).then(function(Courses) {
+            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
             res.json({
                 "Error": false,
                 "Courses": Courses
