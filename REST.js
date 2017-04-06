@@ -37,12 +37,14 @@ var FlatToNested = require('flat-to-nested');
 var fs = require('fs')
 
 const multer = require('multer')
-var storage = multer({dest: './files/'})
+var storage = multer({
+    dest: './files/'
+})
 const logger = require('winston');
 
 logger.configure({
     transports: [
-        new (logger.transports.Console)({
+        new(logger.transports.Console)({
             level: 'debug',
             colorize: true,
             // json: true,
@@ -261,13 +263,13 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             AssignmentInstanceID: 3,
             SectionUserID: 2,
             Grade: 59,
-        }).then(function () {
+        }).then(function() {
             console.log('1 done')
             AssignmentGrade.create({
                 AssignmentInstanceID: 3,
                 SectionUserID: 1,
                 Grade: 65,
-            }).then(function () {
+            }).then(function() {
                 console.log('2 done')
             })
         })
@@ -276,14 +278,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             AssignmentInstanceID: 3,
             SectionUserID: 2,
             Grade: 95,
-        }).then(function () {
+        }).then(function() {
             console.log('11 done')
             WorkflowGrade.create({
                 WorkflowActivityID: 2,
                 AssignmentInstanceID: 3,
                 SectionUserID: 1,
                 Grade: 55,
-            }).then(function () {
+            }).then(function() {
                 console.log('22 done')
             })
         })
@@ -292,14 +294,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             TaskInstanceID: 3,
             SectionUserID: 2,
             Grade: 100,
-        }).then(function () {
+        }).then(function() {
             console.log('111 done')
             TaskGrade.create({
                 WorkflowActivityID: 2,
                 TaskInstanceID: 4,
                 SectionUserID: 1,
                 Grade: 75,
-            }).then(function () {
+            }).then(function() {
                 console.log('222 done')
             })
         })
@@ -308,14 +310,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             TaskInstanceID: 3,
             SectionUserID: 2,
             Grade: 10,
-        }).then(function () {
+        }).then(function() {
             console.log('111 done')
             TaskSimpleGrade.create({
                 WorkflowActivityID: 2,
                 TaskInstanceID: 4,
                 SectionUserID: 1,
                 Grade: 100,
-            }).then(function () {
+            }).then(function() {
                 console.log('222 done')
             })
         })
@@ -337,7 +339,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             where: {
                 UserID: req.body.userId
             }
-        }).then(function (done) {
+        }).then(function(done) {
             console.log('done')
             res.status(200).end()
         })
@@ -345,7 +347,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
 
     //Endpoint for Assignment Manager
-    router.get("/getAssignmentGrades/:ai_id", function (req, res) {
+    router.get("/getAssignmentGrades/:ai_id", function(req, res) {
 
         if (req.params.ai_id == null) {
             console.log("/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null")
@@ -358,8 +360,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 AssignmentInstanceID: req.params.ai_id,
             },
             // attributes: ['CourseID']
-            include: [
-                {
+            include: [{
                     model: Assignment,
                     // attributes: ["AssignmentInstanceID", "AssignmentID"],
                     /*include: [{
@@ -368,16 +369,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 },
                 {
                     model: Section,
-                    include: [
-                        {
-                            model: Course,
-                            // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                            /*include: [{
-                             model: Section,
-                             attributes: ["SectionID"],
-                             }],*/
-                        },
-                    ],
+                    include: [{
+                        model: Course,
+                        // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                        /*include: [{
+                         model: Section,
+                         attributes: ["SectionID"],
+                         }],*/
+                    }, ],
                 },
                 /*{
                     model: AssignmentGrade,
@@ -386,18 +385,20 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
         }).then(function(response) {
             // console.log('res: ', response)
             if (response == null) {
-                return res.json({Error: true})
+                return res.json({
+                    Error: true
+                })
             }
             var json = {
                 Error: false,
                 AssignmentInstance: response,
                 SectionUsers: [],
             }
-            return response.Section.getSectionUsers().then(function (sectionUsers) {
+            return response.Section.getSectionUsers().then(function(sectionUsers) {
                 if (!sectionUsers) return
 
                 // json.SectionUsers = sectionUsers
-                return Promise.map(sectionUsers, function (sectionUser) {
+                return Promise.map(sectionUsers, function(sectionUser) {
                     console.log('ww')
                     var su = sectionUser.toJSON()
                     json.SectionUsers.push(su)
@@ -406,7 +407,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         where: {
                             UserID: sectionUser.UserID
                         }
-                    }).then(function (user) {
+                    }).then(function(user) {
                         if (!user) return
 
                         console.log('ww22')
@@ -427,7 +428,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                  }],*!/
                             },
                         ],*/
-                    }).then(function (assignmentGrade) {
+                    }).then(function(assignmentGrade) {
                         if (!assignmentGrade) return
 
                         console.log('ww11')
@@ -440,22 +441,20 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 SectionUserID: sectionUser.SectionUserID,
                                 AssignmentInstanceID: req.params.ai_id,
                             },
-                            include: [
-                                {
-                                    model: WorkflowActivity,
-                                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                                    /*include: [{
-                                        model: TaskActivity,
-                                    }],*/
-                                },
-                            ],
-                        }).then(function (workflowGrades) {
+                            include: [{
+                                model: WorkflowActivity,
+                                // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                                /*include: [{
+                                    model: TaskActivity,
+                                }],*/
+                            }, ],
+                        }).then(function(workflowGrades) {
                             if (!workflowGrades) return
 
                             console.log('ww1.5')
                             ag.WorkflowActivityGrades = []
 
-                            return Promise.map(workflowGrades, function (workflowGrade) {
+                            return Promise.map(workflowGrades, function(workflowGrade) {
                                 if (!workflowGrade) return
 
                                 console.log('ww11.5', workflowGrade)
@@ -468,23 +467,19 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                         SectionUserID: sectionUser.SectionUserID,
                                         WorkflowActivityID: workflowGrade.WorkflowActivityID,
                                     },
-                                    include: [
-                                        {
-                                            model: TaskInstance,
-                                            include: [
-                                                {
-                                                    model: TaskActivity,
-                                                },
-                                            ],
-                                        },
-                                    ],
-                                }).then(function (taskGrades) {
+                                    include: [{
+                                        model: TaskInstance,
+                                        include: [{
+                                            model: TaskActivity,
+                                        }, ],
+                                    }, ],
+                                }).then(function(taskGrades) {
                                     if (!taskGrades) return
 
                                     console.log('ww1.75')
                                     wg.WorkflowActivity.users_WA_Tasks = []
 
-                                    return Promise.map(taskGrades, function (taskGrade) {
+                                    return Promise.map(taskGrades, function(taskGrade) {
                                         if (!taskGrade) return
 
                                         var tg = taskGrade.toJSON()
@@ -497,7 +492,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                                 SectionUserID: sectionUser.SectionUserID,
                                                 TaskInstanceID: taskGrade.TaskInstanceID
                                             },
-                                        }).then(function (taskSimpleGrade) {
+                                        }).then(function(taskSimpleGrade) {
                                             if (!taskSimpleGrade) return
 
                                             tg.taskSimpleGrade = taskSimpleGrade
@@ -507,7 +502,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                             })
                         })
                     })
-                }).then(function () {
+                }).then(function() {
                     console.log('then', 'json')
                     res.json(json)
                 })
@@ -2290,6 +2285,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     //Endpoint to retrieve all the assignment and its current state
     router.get('/getAssignmentRecord/:assignmentInstanceid', function(req, res) {
+        var taskFactory = new TaskFactory();
 
         console.log('/getAssignmentRecord/:assignmentInstanceid: Initiating...');
 
@@ -2336,7 +2332,14 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                             }).then(function(taskInstanceResult) {
 
                                 //Array of all the task instances found within taskcollection
-                                tempTasks.push(taskInstanceResult);
+                                if (taskInstanceResult.IsSubWorkflow === 0) {
+
+                                    taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function(subworkflow) {
+
+                                    });
+
+                                    tempTasks.push(taskInstanceResult);
+                                }
                             });
                         }).then(function(result) {
 
@@ -2416,7 +2419,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         attributes: ["TaskInstanceID", "Data", "Status"],
                         include: [{
                             model: TaskActivity,
-                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
                         }]
                     })
                     .then((result) => {
@@ -2817,7 +2820,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 UserID: req.params.studentID,
                 UserStatus: "Active"
             },
-            raw:true,
+            raw: true,
             attributes: ['UserRole'],
             include: [{
                 model: Section,
@@ -2858,11 +2861,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
     router.get("/skipDispute/:taskInstanceID", function(req, res) {
         TaskInstance.find({
-          where:{
-            TaskInstanceID: req.params.taskInstanceID
-          }
-        }).then(function(ti){
-          ti.skipDispute();
+            where: {
+                TaskInstanceID: req.params.taskInstanceID
+            }
+        }).then(function(ti) {
+            ti.skipDispute();
         });
     });
 
