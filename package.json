@@ -8,6 +8,7 @@
   "dependencies": {
     "MD5": "*",
     "body-parser": "*",
+    "content-disposition": "^0.5.2",
     "dateformat": "*",
     "express": "*",
     "flat-to-nested": "^1.0.2",

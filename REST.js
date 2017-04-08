@@ -28,18 +28,21 @@ var WorkflowGrade = models.WorkflowGrade
 var TaskGrade = models.TaskGrade
 var TaskSimpleGrade = models.TaskSimpleGrade
 var PartialAssignments = models.PartialAssignments;
+var contentDisposition = require('content-disposition')
+var FileReference = models.FileReference
 
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var TaskFactory = require('./WorkFlow/TaskFactory.js');
 var sequelize = require("./Model/index.js").sequelize;
 var Email = require('./WorkFlow/Email.js');
+var Util = require('./WorkFlow/Util.js');
 var FlatToNested = require('flat-to-nested');
 var fs = require('fs')
 
 const multer = require('multer')
 var storage = multer({dest: './files/'})
-const logger = require('winston');
+const logger = require('winston')
 
 logger.configure({
     transports: [
@@ -474,28 +477,90 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 console.log('222 done')
             })
         })
+        new Util().addFile(4, {Stats: 'stats....'}).then(function (done) {
+            console.log('file done: ', done)
+        })
         res.status(200).end()
     })
 
-    // router.post('/upload/profile-picture/:userId', multer({dest: './uploads/'}).single('profilePicture'), function(req, res) {
-    router.post('/upload/profile-picture', storage.array('files'), function (req, res) {
-        logger.log('info', 'post: /upload/profile-picture, profile pictures uploaded', {
+    // router.post('/upload/files/:userId', storage.array('files'), function (req, res) {
+    router.post('/upload/files', storage.array('files'), function (req, res) {
+        logger.log('info', 'post: /upload/files, files uploaded to file system', {
             req_body: req.body,
-            req_files: req.files
+            req_params: req.params,
+            // req_files: req.files,
         })
         if (!req.body.userId) {
             logger.log('info', 'userId is required but not specified')
             return res.status(400).end()
             // req.body.userId = 2
         }
-        return User.update({ProfilePicture: req.files}, {where: {UserID: req.body.userId}}).then(function (done) {
-            logger.log('info', 'user updated with new profile pictures info', {res: done})
-            return res.status(200).end()
+        return new Util().addFileRefs(req.files, req.body.userId).then(function (file_refs) {
+            res.status(200).end()
+            return file_refs
+        })
+    })
+
+    // router.post('/upload/profile-picture/:userId', multer({dest: './uploads/'}).single('profilePicture'), function(req, res) {
+    router.post('/upload/profile-picture', storage.array('files'), function (req, res) {
+        // router.post('/upload/profile-picture/:userId', storage.array('files'), function (req, res) {
+        logger.log('info', 'post: /upload/profile-picture, profile pictures uploaded to file system', {
+            req_body: req.body,
+            req_params: req.params,
+            // req_files: req.files,
+        })
+        if (!req.body.userId) {
+            logger.log('info', 'userId is required but not specified')
+            return res.status(400).end()
+            // req.body.userId = 2
+        }
+        return new Util().addFileRefs(req.files, req.body.userId).then(function (file_refs) {
+            return Promise.all(file_refs.map(function (it) {
+                return it.FileID
+            })).then(function (file_ids) {
+                logger.log('info', 'new profile picture file ids', file_ids)
+
+                return User.update({ProfilePicture: file_ids}, {where: {UserID: req.body.userId}}).then(function (done) {
+                    logger.log('info', 'user updated with new profile pictures info', {res: done})
+                    res.status(200).end()
+                    return done
+                })
+            })
+        })
+    })
+
+    router.get('/download/file/:fileId', function (req, res) {
+        // router.post('/download/file/:fileId', function (req, res) {
+        // router.get('/download/file', function (req, res) {
+        logger.log('info', 'post: /download/file', {req_body: req.body, req_params: req.params})
+        file_id = req.body.fileId || req.params.fileId
+
+        if (!file_id) {
+            logger.log('info', 'file_id is required but not specified')
+            return res.status(400).end()
+        }
+        return FileReference.find({where: {FileID: file_id}}).then(function (file_ref) {
+            if (!file_ref) {
+                logger.log('error', 'file reference not found', {file_id: file_id})
+                return res.status(400).end()
+            }
+            logger.log('info', 'file reference', file_ref.toJSON())
+            file_ref.Info = JSON.parse(file_ref.Info)
+
+            content_headers = {
+                'Content-Type': file_ref.Info.mimetype,
+                'Content-Length': file_ref.Info.size,
+                'Content-Disposition' : contentDisposition(file_ref.Info.originalname),
+            }
+            logger.log('debug', 'response content file headers', content_headers)
+            res.writeHead(200, content_headers)
+            logger.log('info', 'Sending file to client')
+            fs.createReadStream(file_ref.Info.path).pipe(res)
         })
     })
 
     //Endpoint for Assignment Manager
-    router.get("/getAssignmentGrades/:ai_id", function (req, res) {
+    router.post("/getAssignmentGrades/:ai_id", function (req, res) {
 
         if (req.params.ai_id == null) {
             console.log("/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null")
