@@ -496,7 +496,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             // req.body.userId = 2
         }
         return new Util().addFileRefs(req.files, req.body.userId).then(function (file_refs) {
-            res.status(200).end()
+            res.json(file_refs).end()
             return file_refs
         })
     })
@@ -522,7 +522,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
                 return User.update({ProfilePicture: file_ids}, {where: {UserID: req.body.userId}}).then(function (done) {
                     logger.log('info', 'user updated with new profile pictures info', {res: done})
-                    res.status(200).end()
+                    res.json(file_refs).end()
                     return done
                 })
             })
