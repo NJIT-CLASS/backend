@@ -7,6 +7,7 @@
   },
   "dependencies": {
     "MD5": "*",
+    "argon2": "^0.15.0",
     "body-parser": "*",
     "content-disposition": "^0.5.2",
     "dateformat": "*",
