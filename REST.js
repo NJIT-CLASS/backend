@@ -1046,7 +1046,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //Endpoint to return Semester Information
     router.get("/semester/:semesterid", function(req, res) {
 
-        Semester.findAll({
+        Semester.find({
             where: {
                 SemesterID: req.params.semesterid
             },
@@ -1055,7 +1055,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.json({
                 "Error": false,
                 "Message": "Success",
-                "Course": rows
+                "Semester": rows
             });
         }).catch(function(err) {
             console.log("/semester/email : " + err.message);
@@ -3128,8 +3128,95 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             ti.skipDispute();
         });
     });
+    //-----------------------------------------------------------------------------------------------------
 
+    //Endpoint to return Semester Information
+    router.get("/getOrganizationSemesters/:organizationID", function(req, res) {
+
+        Semester.findAll({
+            where: {
+                OrganizationID: req.params.organizationID
+            },
+            attributes: ['SemesterID', 'Name', 'StartDate', 'EndDate', 'OrganizationID']
+        }).then(function(rows) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Semesters": rows
+            });
+        }).catch(function(err) {
+            console.log("/semester/email : " + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to return Organization Information
+    router.get("/organization/:organizationid", function(req, res) {
+
+        Organization.find({
+            where: {
+                OrganizationID: req.params.organizationid
+            },
+            attributes: ['OrganizationID', 'Name']
+        }).then(function(rows) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Organization": rows
+            });
+        }).catch(function(err) {
+            console.log("/organization: " + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+    //Endpoint to delete organization
+    router.get("/organization/delete/:organizationid", function(req, res) {
+        Organization.destroy({
+            where: {
+                OrganizationID: req.params.organizationid
+            }
+        }).then(function(rows) {
+            console.log("Delete Organization Success");
+            res.status(200).end();
+        }).catch(function(err) {
+            console.log("/organization/delete : " + err.message);
+
+            res.status(400).end();
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to return Section Information
+    router.get("/section/:sectionid", function(req, res) {
+
+        Section.find({
+            where: {
+                SectionID: req.params.sectionid
+            },
+            attributes: ['SectionID', 'Name', 'CourseID', 'OrganizationID', 'SemesterID']
+        }).then(function(rows) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Section": rows
+            });
+        }).catch(function(err) {
+            console.log("/section: " + err.message);
+            res.status(401).end();
+        });
+
+
+    });
 
 }
 
 module.exports = REST_ROUTER;
+
