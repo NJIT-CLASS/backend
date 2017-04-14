@@ -32,17 +32,17 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'CreatorID',
             allowNull: true
-        },
-        Abbreviations: {
-            type: DataTypes.STRING,
-            field: 'Abbreviations',
-            allowNull: true
-        },
-        Description: {
-            type: DataTypes.STRING,
-            field: 'Description',
-            allowNull: true
         }
+        //Abbreviations: {
+        //    type: DataTypes.STRING,
+        //    field: 'Abbreviations',
+        //    allowNull: true
+        //},
+        //Description: {
+        //    type: DataTypes.STRING,
+        //    field: 'Description',
+        //    allowNull: true
+        //}
     }, {
         timestamps: false,
 
