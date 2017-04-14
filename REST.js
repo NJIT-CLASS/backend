@@ -914,14 +914,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
         UserLogin.find({
             where: {
-                UserID: req.body.userid,
-                Password: md5(req.body.password)
+                UserID: req.body.userid
             }
-        }).then(function(user) {
-            if (user == null) {
-                console.log('/update/email : Bad Input');
-                res.status(401).end();
-            } else {
+        }).then(async function(user) {
+            if (user != null && await password.verify(user.Password, req.body.password)) {
                 user.Email = req.body.email;
                 user.save().then(function(used) {
                     res.status(200).end();
@@ -930,6 +926,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         'Email': used.Email
                     });
                 });
+            } else {
+                console.log('/update/email : Bad Input');
+                res.status(401).end();
             }
         });
     });
@@ -1228,11 +1227,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 OrganizationGroup: req.body.organization,
                 UserType: 'Student',
                 Admin: 0
-            }).then(function(user) {
+            }).then(async function(user) {
                 UserLogin.create({
                     UserID: user.UserID,
                     Email: req.body.email,
-                    Password: md5(req.body.passwd)
+                    Password: await password.hash(req.body.passwd)
                 }).then(function(userLogin) {
                     console.log("/user/create: New user added to the system");
                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
@@ -1258,11 +1257,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 where: {
                     UserID: req.body.userId
                 }
-            }).then(function(userLogin) {
-                if (md5(req.body.oldPasswd) == userLogin.Password) {
+            }).then(async function(userLogin) {
+                if (await password.verify(userLogin.Password, req.body.oldPasswd)) {
                     console.log("/user/create : Password matched");
                     UserLogin.update({
-                        Password: md5(req.body.newPasswd)
+                        Password: await password.hash(req.body.newPasswd)
                     }, {
                         where: {
                             UserID: req.body.userId
@@ -1278,6 +1277,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
 
                 } else {
                     console.log("/update/password: Password not match");
+                    res.status(401).end();
                 }
             });
         }
@@ -1331,11 +1331,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 City: ''
                             }).catch(function(err) {
                                 console.log(err);
-                            }).then(function(user) {
+                            }).then(async function(user) {
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
-                                    Password: md5(req.body.password),
+                                    Password: await password.hash(req.body.password),
                                     Status: '1'
                                 }).catch(function(err) {
                                     console.log(err);
@@ -1402,11 +1402,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                                 City: 'Temp'
                             }).catch(function(err) {
                                 console.log(err);
-                            }).then(function(user) {
+                            }).then(async function(user) {
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
-                                    Password: md5("pass123")
+                                    Password: await password.hash("pass123")
                                 }).catch(function(err) {
                                     console.log(err);
                                 }).then(function(userLogin) {
@@ -1493,11 +1493,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     //                             Admin: 0
     //                         }).catch(function(err) {
     //                             console.log(err);
-    //                         }).then(function(user) {
+    //                         }).then(async function(user) {
     //                             UserLogin.create({
     //                                 UserID: user.UserID,
     //                                 Email: req.body.email,
-    //                                 Password: md5('pass123')
+    //                                 Password: await password.hash('pass123')
     //                             }).catch(function(err) {
     //                                 console.log(err);
     //                             }).then(function(userLogin) {
@@ -1914,13 +1914,13 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                 where: {
                     RequestHash: req.body.HashRequest
                 }
-            }).then(function(request) {
+            }).then(async function(request) {
                 if (request == null) {
                     console.log("/resetPassword : HashRequest does not exist");
                     res.status(401).end();
                 } else {
                     UserLogin.update({
-                        Password: md5(req.body.newPassword)
+                        Password: await password.hash(req.body.newPassword)
                     }, {
                         where: {
                             UserID: request.UserID
@@ -2047,14 +2047,10 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
     router.put("/makeUserNotAdmin/", function(req, res) {
         UserLogin.find({
             where: {
-                UserID: req.body.UserID,
-                Password: md5(req.body.password)
+                UserID: req.body.UserID
             }
-        }).then(function(userLogin) {
-            if (userLogin == null) {
-                console.log("/makeUserNoAdmin : Authentication Failed");
-                res.status(401).end();
-            } else {
+        }).then(async function(userLogin) {
+            if (userLogin != null && await password.verify(userLogin.Password, req.body.password)) {
                 User.findById(req.body.UserID).then(function(user) {
                     if (user == null) {
                         console.log("/makeUserNotAdmin/ User not found");
@@ -2071,6 +2067,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         });
                     }
                 });
+            } else {
+                console.log("/makeUserNoAdmin : Authentication Failed");
+                res.status(401).end();
             }
         });
     });
@@ -2107,11 +2106,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
                         City: 'Newark'
                     }).catch(function(err) {
                         console.log(err);
-                    }).then(function(user) {
+                    }).then(async function(user) {
                         UserLogin.create({
                             UserID: user.UserID,
                             Email: email,
-                            Password: md5('pass123')
+                            Password: await password.hash('pass123')
                         }).catch(function(err) {
                             console.log(err);
                         }).then(function(userLogin) {
