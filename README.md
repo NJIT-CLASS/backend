@@ -15,7 +15,7 @@ If you've never used github before [set your ssh key](#github-setup)
 - [Express.js](http://expressjs.com/en/4x/api.html): Web Server Framework
 - [MySQL](https://www.mysql.com): Database
 - [Body Parser](https://github.com/expressjs/body-parser): Parses JSON
-- [MD5](https://en.wikipedia.org/wiki/MD5): Message Digest Algorithm for Security
+- [Argon2](https://password-hashing.net): Cryptographic Hashing Function for Passwords
 - [Sequelize](http://docs.sequelizejs.com/en/latest/) : ORM library to access data base and manipulate data easily.
 
 ##Github Setup
