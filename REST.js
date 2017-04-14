@@ -3,6 +3,7 @@ var dateFormat = require('dateformat');
 var Guid = require('guid');
 var models = require('./Model');
 var Promise = require('bluebird');
+var password = require('./password');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -63,6 +64,7 @@ logger.configure({
         })
     ]
 })
+
 
 //-----------------------------------------------------------------------------------------------------
 
@@ -882,25 +884,22 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection, md5) {
             res.status(401).end();
             return;
         }
-
         UserLogin.find({
             where: {
-                Email: req.body.emailaddress,
-                Password: md5(req.body.password)
+                Email: req.body.emailaddress
             },
-            attributes: ['UserID', 'Status']
-        }).then(function(user) {
-            if (user == null) {
-                console.log('/login : Invalid Credentials');
-                res.status(401).end()
-            } else {
-                console.log(user.Status);
+            attributes: ['UserID', 'Status', 'Password']
+        }).then(async function(user) {
+            if (user != null && await password.verify(user.Password, req.body.password)) {
                 res.json({
                     "Error": false,
                     "Message": "Success",
                     "UserID": user.UserID,
                     "Status": user.Status
                 });
+            } else {
+                console.log('/login : Invalid Credentials');
+                res.status(401).end()
             }
         });
     });
