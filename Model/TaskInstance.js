@@ -2,6 +2,7 @@ var moment = require('moment');
 var models = require('../Model');
 var email = require('../WorkFlow/Email.js');
 var Promise = require('bluebird');
+var _ = require('underscore');
 //var Allocator = require('../WorkFlow/Allocator.js');
 
 module.exports = function(sequelize, DataTypes) {
@@ -177,30 +178,35 @@ module.exports = function(sequelize, DataTypes) {
                                     TaskActivityID: nextTask.TaskActivityID
                                 }
                             }).then(function(ta_result) {
-
-                                if (ta_result.Type === 'needs_consolidation') {
-                                    nextTask.consolidate();
-                                } else if (ta_result.Type === 'complete') {
-                                    nextTask.complete();
-                                } else {
-                                    //findNewDates return an array of [newStartDate, newEndDate]
-                                    console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
-                                    var dates = nextTask.findNewDates(function(dates) {
-                                        models.TaskInstance.update({
-                                            Status: 'started',
-                                            StartDate: dates[0],
-                                            EndDate: dates[1]
-                                        }, {
-                                            where: {
-                                                TaskInstanceID: nextTask.TaskInstanceID
-                                            }
-                                        }).catch(function(err) {
-                                            console.log(err);
-                                            throw Error("Cannot start next task!");
-                                            return null;
+                                return x.findType(function(type) {
+                                    if (ta_result.Type === 'needs_consolidation' && nextTask.FinalGrade == null) {
+                                        nextTask.needsConsolidate();
+                                    } else if (type === 'consolidation' && x.FinalGrade == null) {
+                                        x.consolidate();
+                                    } else if (type === 'resolve_dispute' && x.FinalGrade == null) {
+                                        x.resolveDispute();
+                                    } else if (ta_result.Type === 'completed') {
+                                        nextTask.complete();
+                                    } else {
+                                        //findNewDates return an array of [newStartDate, newEndDate]
+                                        console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
+                                        var dates = nextTask.findNewDates(function(dates) {
+                                            models.TaskInstance.update({
+                                                Status: 'started',
+                                                StartDate: dates[0],
+                                                EndDate: dates[1]
+                                            }, {
+                                                where: {
+                                                    TaskInstanceID: nextTask.TaskInstanceID
+                                                }
+                                            }).catch(function(err) {
+                                                console.log(err);
+                                                throw Error("Cannot start next task!");
+                                                return null;
+                                            });
                                         });
-                                    });
-                                }
+                                    }
+                                });
                             });
                         });
                     });
@@ -257,6 +263,94 @@ module.exports = function(sequelize, DataTypes) {
                             });
                         });
                     });
+                });
+            },
+
+            //After needs consolidation, if the grades do not exceed threshold, skip consolidation
+            skipConsolidation: function() {
+
+                let x = this;
+                //checks if conditions are met
+                if (x.NextTask === null) {
+                    return null;
+                }
+
+                var newDate = new Date();
+
+                return Promise.all([x.save()]).then(function() {
+                    return Promise.mapSeries(JSON.parse(x.NextTask), function(taskArray, index) {
+                        return Promise.mapSeries(taskArray, function(task) {
+                            models.TaskInstance.find({
+                                where: {
+                                    TaskInstanceID: task.id
+                                }
+                            }).then(function(nextTask) {
+                                models.TaskActivity.find({
+                                    where: {
+                                        TaskActivityID: nextTask.TaskActivityID
+                                    }
+                                }).then(function(ta_result) {
+
+                                    //findNewDates return an array of [newStartDate, newEndDate]
+                                    console.log('Skipping consolidation task... Current TaskInstanceID:', x.TaskInstanceID);
+                                    return models.TaskInstance.update({
+                                        Status: 'bypassed',
+                                        StartDate: newDate,
+                                        EndDate: newDate,
+                                        ActualEndDate: newDate
+                                    }, {
+                                        where: {
+                                            TaskInstanceID: nextTask.TaskInstanceID
+                                        }
+                                    }).then(function(done) {
+                                        return Promise.mapSeries(JSON.parse(nextTask.NextTask), function(taskArray, index) {
+                                            return Promise.mapSeries(taskArray, function(task) {
+                                                models.TaskInstance.find({
+                                                    where: {
+                                                        TaskInstanceID: task.id
+                                                    }
+                                                }).then(function(nextNextTask) {
+
+                                                    //findNewDates return an array of [newStartDate, newEndDate]
+                                                    console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
+                                                    var dates = nextTask.findNewDates(function(dates) {
+                                                        models.TaskInstance.update({
+                                                            Status: 'started',
+                                                            StartDate: dates[0],
+                                                            EndDate: dates[1]
+                                                        }, {
+                                                            where: {
+                                                                TaskInstanceID: nextNextTask.TaskInstanceID
+                                                            }
+                                                        }).catch(function(err) {
+                                                            console.log(err);
+                                                            throw Error("Cannot start next task!");
+                                                            return null;
+                                                        });
+                                                    });
+                                                });
+                                            });
+                                        });
+                                    }).catch(function(err) {
+                                        console.log(err);
+                                        throw Error("Cannot start next task!");
+                                        return null;
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
+            },
+
+            findType: function(callback) {
+                var x = this;
+                return models.TaskActivity.find({
+                    where: {
+                        TaskActivityID: x.TaskActivityID
+                    }
+                }).then(function(ta) {
+                    callback(ta.Type);
                 });
             },
 
@@ -370,9 +464,10 @@ module.exports = function(sequelize, DataTypes) {
             },
 
             //Consolidate grading tasks
-            consolidate: function() {
+            needsConsolidate: function() {
                 var x = this;
                 var isAllCompleted = true;
+                var triggerConsolidate = false;
                 console.log('Checking all grading solution complete...');
                 return Promise.map(JSON.parse(x.PreviousTask), function(ti) {
                     return models.TaskInstance.find({
@@ -390,56 +485,216 @@ module.exports = function(sequelize, DataTypes) {
                     if (isAllCompleted) {
                         //if isAllCompleted = true then find the grades in previous grading solution tasks
                         console.log("Consolidating Tasks...");
-                        // x.findGrades(function(grades) {
-                        //     var max = Math.max.apply(null, grades);
-                        //     var min = Math.min.apply(null, grades);
-                        //     //if ((max - min) > ) {}
-                        //     models.TaskActivity.find({
-                        //         where: {
-                        //             TaskActivityID: x.TaskActivityID
-                        //         }
-                        //     }).then(function(ta_result) {
-                        //         if (ta_result.FunctionType === 'max') {
-                        //             x.FinalGrade = max
-                        //         } else if (ta_result.FunctionType === 'min') {
-                        //             x.FinalGrade = min
-                        //         } else if (ta_result.FunctionType === 'average') {
-                        //             x.FinalGrade = (max + min) / 2;
-                        //         }
-                        //     });
-                        // });
+                        return x.findNeedsConsolidationGrades(function(grades, maxGrade) {
+                            console.log('grades', grades);
+                            console.log('maxGrade is: ', maxGrade);
+                            var max = Math.max.apply(null, grades);
+                            var min = Math.min.apply(null, grades);
+                            //
+                            models.TaskActivity.find({
+                                where: {
+                                    TaskActivityID: x.TaskActivityID
+                                }
+                            }).then(function(ta_result) {
 
+                                //checks if the grades exceed threshold
+                                if (JSON.parse(ta_result.TriggerConsolidationThreshold)[1] == 'percent') {
+                                    var percent = (max - min) / maxGrade * 100;
+                                    if (percent > JSON.parse(ta_result.TriggerConsolidationThreshold)[0]) {
+                                        triggerConsolidate = true;
+                                    }
+                                } else if (JSON.parse(ta_result.TriggerConsolidationThreshold)[1] == 'point') {
+                                    var point = max - min;
+                                    if (point > ta_result.JSON.parse(ta_result.TriggerConsolidationThreshold)[0]) {
+                                        triggerConsolidate = true;
+                                    }
+                                }
 
-                        console.log('All tasks completed!');
-                        x.triggerNext();
+                                //insert grade
+                                if (ta_result.FunctionType === 'max') {
+                                    console.log('The needs consolidation grade is: ', max);
+                                    x.FinalGrade = max;
+                                } else if (ta_result.FunctionType === 'min') {
+                                    console.log('The needs consolidation grade is: ', min);
+                                    x.FinalGrade = min;
+                                } else if (ta_result.FunctionType === 'average') {
+                                    console.log('The needs consolidation grade is: ', (max + min) / 2);
+                                    x.FinalGrade = (max + min) / 2;
+                                }
+                                x.save();
+                            }).then(function() {
+                                console.log('All tasks completed!', triggerConsolidate);
+                                if (triggerConsolidate) {
+                                    console.log('Threshold exceed!')
+                                    x.triggerNext();
+                                } else {
+                                    x.skipConsolidation();
+                                }
+                            }).catch(done);
+
+                        });
+
                         //consolidate calculation
                         //if the difference exceed threshold, open consolidate task, otherwise, bypass consolidation.
                     }
                 });
             },
 
-            findGrades: function(callback) {
+            findNeedsConsolidationGrades: function(callback) {
+
+                console.log('computing grades...')
+
                 var x = this;
-                var grades = []
-                Promise.map(JSON.parse(x.PreviousTask), function(ti_id) {
-                    models.TaskInstance.find({
+                var grades = [];
+                var maxGrade = 0;
+                var numParticipants;
+                return Promise.map(JSON.parse(x.PreviousTask), function(ti) {
+                    var grade = 0;
+                    return models.TaskInstance.find({
                         where: {
-                            TaskInstanceID: ti_id
-                        }
+                            TaskInstanceID: ti.id
+                        },
+                        include: [{
+                            model: models.TaskActivity
+                        }]
                     }).then(function(ti_result) {
-                        var total = 0;
-                        //Adding all grades together
-                        for (var i = 0; i < ti_result.Data.number_of_fields; i++) {
-                            total += ti_result.Data[i];
-                        }
-                        grades.push(total);
+                        var keys = Object.keys(JSON.parse(ti_result.Data));
+                        numParticipants = ti_result.TaskActivity.NumberParticipants;
+                        return Promise.mapSeries(keys, function(val) {
+                            if (val !== 'number_of_fields' && JSON.parse(ti_result.TaskActivity.Fields)[val].field_type == 'assessment') {
+                                if (JSON.parse(ti_result.TaskActivity.Fields)[val].assessment_type == 'grade') {
+                                    grade += parseInt(JSON.parse(ti_result.Data)[val][0]);
+                                    maxGrade += JSON.parse(ti_result.TaskActivity.Fields)[val].numeric_max;
+                                } else if (JSON.parse(ti_result.TaskActivity.Fields)[val].assessment_type == 'rating') {
+                                    grade += parseInt(JSON.parse(ti_result.Data)[val][0]) * (100 / JSON.parse(ti_result.TaskActivity.Fields)[val].rating_max);
+                                    maxGrade += 100;
+                                } else if (JSON.parse(ti_result.TaskActivity.Fields)[val].assessment_type == 'evaluation') {
+                                    // How evaluation works?
+                                    // if(JSON.parse(ti_result.Data)[val][0] == 'Easy'){
+                                    //
+                                    // } else if(JSON.parse(ti_result.Data)[val][0] == 'Medium'){
+                                    //
+                                    // } else if(JSON.parse(ti_result.Data)[val][0] == 'Hard'){
+                                    //
+                                    // }
+                                }
+                            }
+                        }).then(function() {
+                            grades.push(grade);
+                        }).catch(function(err) {
+                            console.log(err);
+                        });
                     });
                 }).then(function(done) {
-                    callback(grades);
+                    callback(grades, maxGrade / numParticipants);
                 }).catch(function(err) {
                     console.log(err);
                 });
             },
+
+
+            consolidate: function() {
+                var x = this;
+
+                console.log('searching grades for consolidation...');
+
+                //assume the grades tasks are previous of previous tasks
+                //compute grades based on the highest two grades
+                return x.findConsolidationAndDisputeGrade(function(grade) {
+                    return x.retrieveNeedsConsolidationGrades(function(grades, maxGrade) {
+                        grades.push(grade);
+                        console.log('grades', grades);
+                        var max = Math.max.apply(null, grades);
+                        grades.splice(grades.indexOf(max), 1);
+                        var secondMax = Math.max.apply(null, grades);
+                        models.TaskActivity.find({
+                            where: {
+                                TaskActivityID: x.TaskActivityID
+                            }
+                        }).then(function(ta_result) {
+                            //insert grade
+                            console.log('consolidated grade: ', (max + secondMax) / 2);
+                            x.FinalGrade = (max + secondMax) / 2;
+                            x.save();
+                        }).then(function(done) {
+                            x.triggerNext();
+                        }).catch(function(err){
+                            console.log(err);
+                        })
+                    });
+                });
+            },
+
+            findConsolidationAndDisputeGrade: function(callback) {
+                console.log('computing grades...')
+
+                var x = this;
+
+                var grade = 0;
+                return models.TaskActivity.find({
+                    where: {
+                        TaskActivityID: x.TaskActivityID
+                    },
+                }).then(function(ta_result) {
+                    var keys = Object.keys(JSON.parse(x.Data));
+
+                    return Promise.mapSeries(keys, function(val) {
+                        if (val !== 'number_of_fields' && JSON.parse(ta_result.Fields)[val].field_type == 'assessment') {
+                            if (JSON.parse(ta_result.Fields)[val].assessment_type == 'grade') {
+                                grade += parseInt(JSON.parse(x.Data)[val][0]);
+                            } else if (JSON.parse(ta_result.Fields)[val].assessment_type == 'rating') {
+                                grade += parseInt(JSON.parse(x.Data)[val][0]) * (100 / JSON.parse(ta_result.Fields)[val].rating_max);
+                            } else if (JSON.parse(ta_result.Fields)[val].assessment_type == 'evaluation') {
+                                // How evaluation works?
+                                // if(JSON.parse(x.Data)[val][0] == 'Easy'){
+                                //
+                                // } else if(JSON.parse(x.Data)[val][0] == 'Medium'){
+                                //
+                                // } else if(JSON.parse(x.Data)[val][0] == 'Hard'){
+                                //
+                                // }
+                            }
+                        }
+                    }).then(function() {
+                        callback(grade);
+                    }).catch(function(err) {
+                        console.log(err);
+                    });
+                });
+            },
+
+            retrieveNeedsConsolidationGrades: function(callback) {
+                var x = this;
+                var grade = [];
+
+                return Promise.mapSeries(JSON.parse(x.PreviousTask), function(ti) {
+                    return models.TaskInstance.find({
+                        where: {
+                            TaskInstanceID: ti.id
+                        }
+                    }).then(function(needsConsolidation) {
+                        return needsConsolidation.findNeedsConsolidationGrades(function(grades, maxGrade) {
+                            callback(grades, maxGrade);
+                        });
+                    });
+                });
+            },
+
+            resolveDispute: function(){
+              var x = this;
+              console.log('resolving dispute grade...')
+              return x.findConsolidationAndDisputeGrade(function(grade){
+                console.log('disputed grade: ', grade);
+                x.FinalGrade = grade;
+                x.save();
+              }).then(function(done){
+                x.triggerNext();
+              }).catch(function(err){
+                console.log(err);
+              });
+            },
+
+
 
             complete: function() {
                 var x = this;
