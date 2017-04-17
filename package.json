@@ -6,8 +6,9 @@
     "start": "node Server.js"
   },
   "dependencies": {
-    "MD5": "*",
+    "argon2": "^0.15.0",
     "body-parser": "*",
+    "content-disposition": "^0.5.2",
     "dateformat": "*",
     "express": "*",
     "flat-to-nested": "^1.0.2",

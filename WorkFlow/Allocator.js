@@ -418,15 +418,13 @@ class Allocator {
             UserID: new_u_id,
             UserHistory: json,
         }, {
-            where: {
-                TaskInstanceID: task_id
-            }
-        }).then(function (res) {
+            where: {TaskInstanceID: task_id}}
+        ).then(function (res) {
             logger.log('info', 'task instance updated', {res: res})
             return res
         }).catch(function (err) {
             logger.log('error', 'task instance update failed', err)
-            return
+            return err
         })
     }
 
@@ -439,11 +437,7 @@ class Allocator {
          }).then(function(wfi) {
          return JSON.parse(wfi.Volunteers)
          })*/
-        return AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: ti.AssignmentInstanceID
-            }
-        }).then(function (ai) {
+        return AssignmentInstance.find({where: {AssignmentInstanceID: ti.AssignmentInstanceID}}).then(function (ai) {
             logger.log('debug', 'return', {assignment_instance: ai.toJSON()})
             return JSON.parse(ai.Volunteers)
         })
@@ -521,7 +515,7 @@ class Allocator {
                             return x.updateUSER(ti, new_u_id)
                         }).catch(function (err) {
                             logger.log('error', 'assignment instance volunteers update failed', err)
-                            return
+                            return err
                         })
                         // })
                     })

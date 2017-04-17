@@ -1,4 +1,4 @@
-module.exports = function(sequelize, DataTypes) {
+module.exports = function (sequelize, DataTypes) {
     return sequelize.define('TaskGrade', {
         TaskGradeID: {
             //Task grade ID
@@ -32,11 +32,11 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false,
         },
         /*AssignmentInstanceID: {
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'AssignmentInstanceID',
-            allowNull: false,
-        },*/
+         //Foreign Key
+         type: DataTypes.INTEGER.UNSIGNED,
+         field: 'AssignmentInstanceID',
+         allowNull: false,
+         },*/
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'Grade',

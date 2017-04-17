@@ -1,6 +1,6 @@
-#CLASS Backend
+# CLASS Backend
 
-##Getting Setup
+## Getting Setup
 
 If you've never used github before [set your ssh key](#github-setup)
 
@@ -9,21 +9,21 @@ If you've never used github before [set your ssh key](#github-setup)
 3. Run `npm install` which will install all the third-party packages the project depends on.
 4. Run `npm start` to start the server and start developing.
 
-##Technologies and Tools
+## Technologies and Tools
 
 - [Node.js](https://nodejs.org/docs/v5.6.0/api/): Server
 - [Express.js](http://expressjs.com/en/4x/api.html): Web Server Framework
 - [MySQL](https://www.mysql.com): Database
 - [Body Parser](https://github.com/expressjs/body-parser): Parses JSON
-- [MD5](https://en.wikipedia.org/wiki/MD5): Message Digest Algorithm for Security
+- [Argon2](https://password-hashing.net): Cryptographic Hashing Function for Passwords
 - [Sequelize](http://docs.sequelizejs.com/en/latest/) : ORM library to access data base and manipulate data easily.
 
-##Github Setup
+## Github Setup
 
 1. Create an SSH key. Run `ssh-keygen -t rsa -b 4096 -C "your_email@example.com"`
 2. [Add the new SSH key to Github](https://help.github.com/articles/adding-a-new-ssh-key-to-your-github-account/#platform-mac)
 
-##Git Quickstart
+## Git Quickstart
 
 Here are the git commands that you can use to get by for now (if you don't know how to use it).
 

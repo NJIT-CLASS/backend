@@ -1,44 +1,29 @@
 module.exports = function (sequelize, DataTypes) {
-    return sequelize.define('WorkflowGrade', {
-        WorkflowGradeID: {
-            //Workflow grade ID
+    return sequelize.define('FileReference', {
+        FileID: {
+            //File ID
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'WorkflowGradeID',
+            field: 'FileID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true,
         },
-        WorkflowActivityID: {
-            //Unique with SectionUserID.
+        UserID: {
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'WorkflowActivityID',
-            allowNull: false,
-            unique: 'wf_sectionUserId_unq_idx',
-        },
-        SectionUserID: {
-            //Unique with WorkflowActivityID
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SectionUserID',
-            allowNull: false,
-            unique: 'wf_sectionUserId_unq_idx',
-        },
-        AssignmentInstanceID: {
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'AssignmentInstanceID',
+            field: 'UserID',
             allowNull: false,
         },
-        Grade: {
-            type: DataTypes.FLOAT.UNSIGNED,
-            field: 'Grade',
-            allowNull: false,
+        Info: {
+            type: DataTypes.JSON,
+            field: 'Info',
+            allowNull: true,
         },
-        Comments: {
-            type: DataTypes.STRING,
-            field: 'Comments',
+        LastUpdated: {
+            //File record Last updated/inserted date
+            type: DataTypes.DATE,
+            field: 'LastUpdated',
             allowNull: true,
         },
     }, {
@@ -59,6 +44,6 @@ module.exports = function (sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'WorkflowGrade'
+        tableName: 'FileReference'
     });
 };
