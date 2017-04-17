@@ -6,8 +6,8 @@ var app = express();
 
 process.env.dbHost = 'localhost';
 process.env.dbUser = 'root';
-process.env.dbPass = 'temp';
-process.env.database = 'class';
+process.env.dbPass = '123';
+process.env.database = 'class/pla';
 process.env.serverPort = '4000';
 
 function REST() {
