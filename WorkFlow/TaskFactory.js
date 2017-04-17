@@ -833,53 +833,15 @@ class TaskFactory {
     //Retrieving all subworkflows that's subsequent to the ti_id
     getSubWorkflow(ti_id, subworkflow) {
 
-        var x = this;
-        console.log('finding subworkflow of task instance', ti_id, '...');
-
-        return new Promise(function(resolve, reject) {
-            TaskInstance.find({
-                where: {
-                    TaskInstanceID: ti_id
-                }
-            }).then(function(ti) {
-                if (ti.NextTask === null || typeof ti.NextTask === undefined) {
-                    resolve(null);
-                } else {
-                    return Promise.mapSeries(JSON.parse(NextTask), function(taskArray) {
-                        return Promise.mapSeries(taskArray, function(task) {
-                            return TaskInstance.find({
-                                where: {
-                                    TaskInstanceID: task.id
-                                },
-                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
-                                include: [{
-                                    model: User,
-                                    attributes: ['UserID', "UserType", 'UserName']
-                                }, {
-                                    model: TaskActivity,
-                                    attributes: ['Type']
-                                }]
-                            }).then(function(nextTask) {
-                                if (ti.IsSubWorkflow < nextTask.IsSubWorkflow && nextTask.IsSubWorkflow != 0) {
-                                    subworkflow.push(nextTask);
-                                }
-                            });
-                        });
-                    });
-                }
-            });
-        });
-
         // var x = this;
-        // //subworkflow = [];
         // console.log('finding subworkflow of task instance', ti_id, '...');
+        //
         // return new Promise(function(resolve, reject) {
         //     TaskInstance.find({
         //         where: {
         //             TaskInstanceID: ti_id
         //         }
         //     }).then(function(ti) {
-        //         var s = subworkflow;
         //         if (ti.NextTask === null || typeof ti.NextTask === undefined) {
         //             resolve(null);
         //         } else {
@@ -898,40 +860,78 @@ class TaskFactory {
         //                             attributes: ['Type']
         //                         }]
         //                     }).then(function(nextTask) {
-        //                         //assumed 0 will not be subworkflow
         //                         if (ti.IsSubWorkflow < nextTask.IsSubWorkflow && nextTask.IsSubWorkflow != 0) {
-        //                             //new subworkflow
-        //                             console.log("found a subworkflow!");
-        //
-        //                             s.push(nextTask);
-        //                             return x.getNextTask(nextTask.TaskInstanceID, s).then(function(wf) {
-        //
-        //                                 if (wf !== null) {
-        //                                     s = wf;
-        //                                     return Promise.mapSeries(s, function(task, index) {
-        //                                         return x.getSubWorkflow(task.TaskInstanceID, new Array()).then(function(sw) {
-        //                                           if(!s[index].hasOwnProperty('SubWorkflow')){
-        //                                             s[index].setDataValue('SubWorkflow', sw);
-        //                                           } else {
-        //                                             console.log('here ', ti.TaskInstanceID)
-        //                                             s[index].SubWorkflow.push(sw);
-        //                                           }
-        //                                         })
-        //                                     });
-        //                                 }
-        //                             }).then(function(done) {
-        //                                 resolve(s);
-        //                             });
+        //                             subworkflow.push(nextTask);
         //                         }
         //                     });
         //                 });
-        //             }).then(function(done) {
-        //                 console.log("No subworkflow found", ti.TaskInstanceID, "...");
-        //                 resolve(null);
         //             });
         //         }
         //     });
         // });
+
+        var x = this;
+        //subworkflow = [];
+        console.log('finding subworkflow of task instance', ti_id, '...');
+        return new Promise(function(resolve, reject) {
+            TaskInstance.find({
+                where: {
+                    TaskInstanceID: ti_id
+                }
+            }).then(function(ti) {
+                var s = subworkflow;
+                if (ti.NextTask === null || typeof ti.NextTask === undefined) {
+                    resolve(null);
+                } else {
+                    return Promise.mapSeries(JSON.parse(ti.NextTask), function(taskArray) {
+                        return Promise.mapSeries(taskArray, function(task) {
+                            return TaskInstance.find({
+                                where: {
+                                    TaskInstanceID: task.id
+                                },
+                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
+                                include: [{
+                                    model: User,
+                                    attributes: ['UserID', "UserType", 'UserName']
+                                }, {
+                                    model: TaskActivity,
+                                    attributes: ['Type']
+                                }]
+                            }).then(function(nextTask) {
+                                //assumed 0 will not be subworkflow
+                                if (ti.IsSubWorkflow < nextTask.IsSubWorkflow && nextTask.IsSubWorkflow != 0) {
+                                    //new subworkflow
+                                    console.log("found a subworkflow!");
+
+                                    s.push(nextTask);
+                                    return x.getNextTask(nextTask.TaskInstanceID, s).then(function(wf) {
+
+                                        if (wf !== null) {
+                                            s = wf;
+                                            return Promise.mapSeries(s, function(task, index) {
+                                                return x.getSubWorkflow(task.TaskInstanceID, new Array()).then(function(sw) {
+                                                    if (!s[index].hasOwnProperty('SubWorkflow')) {
+                                                        s[index].setDataValue('SubWorkflow', sw);
+                                                    } else {
+                                                        console.log('here ', ti.TaskInstanceID)
+                                                        s[index].SubWorkflow.push(sw);
+                                                    }
+                                                })
+                                            });
+                                        }
+                                    }).then(function(done) {
+                                        resolve(s);
+                                    });
+                                }
+                            });
+                        });
+                    }).then(function(done) {
+                        console.log("No subworkflow found", ti.TaskInstanceID, "...");
+                        resolve(null);
+                    });
+                }
+            });
+        });
     }
 
     getNextTask(ti_id, workflow) {

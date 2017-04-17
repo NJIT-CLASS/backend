@@ -181,12 +181,12 @@ module.exports = function(sequelize, DataTypes) {
                                 return x.findType(function(type) {
                                     if (ta_result.Type === 'needs_consolidation' && nextTask.FinalGrade == null) {
                                         nextTask.needsConsolidate();
-                                    } else if (type === 'consolidation' && x.FinalGrade == null) {
+                                    } else if (type === 'consolidation' && x.FinalGrade == null && x.Status !== 'bypassed') {
                                         x.consolidate();
-                                    } else if (type === 'resolve_dispute' && x.FinalGrade == null) {
+                                    } else if (type === 'resolve_dispute' && x.FinalGrade == null && x.Status !== 'bypassed') {
                                         x.resolveDispute();
                                     } else if (ta_result.Type === 'completed') {
-                                        nextTask.complete();
+                                        nextTask.completed();
                                     } else {
                                         //findNewDates return an array of [newStartDate, newEndDate]
                                         console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
@@ -618,7 +618,7 @@ module.exports = function(sequelize, DataTypes) {
                             x.save();
                         }).then(function(done) {
                             x.triggerNext();
-                        }).catch(function(err){
+                        }).catch(function(err) {
                             console.log(err);
                         })
                     });
@@ -680,31 +680,56 @@ module.exports = function(sequelize, DataTypes) {
                 });
             },
 
-            resolveDispute: function(){
-              var x = this;
-              console.log('resolving dispute grade...')
-              return x.findConsolidationAndDisputeGrade(function(grade){
-                console.log('disputed grade: ', grade);
-                x.FinalGrade = grade;
-                x.save();
-              }).then(function(done){
-                x.triggerNext();
-              }).catch(function(err){
-                console.log(err);
-              });
+            resolveDispute: function() {
+                var x = this;
+                console.log('resolving dispute grade...')
+                return x.findConsolidationAndDisputeGrade(function(grade) {
+                    console.log('disputed grade: ', grade);
+                    x.FinalGrade = grade;
+                    x.save();
+                }).then(function(done) {
+                    x.triggerNext();
+                }).catch(function(err) {
+                    console.log(err);
+                });
             },
 
 
 
-            complete: function() {
+            completed: function() {
                 var x = this;
                 var isAllCompleted = true;
                 console.log('Checking all subworkflows are completed...');
+
+                return Promise.all([x.triverseWorkflow()]).then(function(grade){
+                  console.log(grade);
+                })
+
 
                 //when a workflow has reached complete. This function will be called
                 //It will go through the workflow structure and triverse the tree to see if all other
                 //subworkflows are completed.
                 //If everything has been completed, collect the grades.
+            },
+
+            triverseWorkflow: function() {
+                var x = this;
+                console.log('traversing the workflow to find final grade...');
+                if (x.Final === null && x.PreviousTask !== null) {
+                    return Promise.map(JSON.parse(x.PreviousTask), ti => {
+                        return models.TaskInstance.find({
+                            where: {
+                                TaskInstanceID: ti.id
+                            }
+                        }).then(ti_result => {
+                            //Check if all grading solution are completed
+                            return ti_result.triverseWorkflow();
+                        });
+                    })
+                } else {
+                  console.log('Final grade found! The final grade is:', x.FinalGrade);
+                  return x.FinalGrade;
+                }
             }
 
 

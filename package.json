@@ -23,7 +23,10 @@
     "supervisor": "^0.12.0",
     "tree-model": "^1.0.6",
     "winston": "^2.3.1",
-    "xoauth2": "^1.1.0"
+    "xoauth2": "^1.1.0",
+    "babel-cli": "^6.24.1",
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-es2017": "^6.24.1"
   },
   "repository": {
     "type": "git",
