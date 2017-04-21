@@ -162,7 +162,8 @@ module.exports = function(sequelize, DataTypes) {
                     throw Error('Missing attributes!  TaskInstanceID:', x.TaskInstanceID);
                     return null;
                 } else if (x.NextTask === null) {
-                    return null;
+                    x.completed();
+                    return null
                 }
 
 
@@ -185,9 +186,11 @@ module.exports = function(sequelize, DataTypes) {
                                         x.consolidate();
                                     } else if (type === 'resolve_dispute' && x.FinalGrade == null && x.Status !== 'bypassed') {
                                         x.resolveDispute();
-                                    } else if (ta_result.Type === 'completed') {
-                                        nextTask.completed();
-                                    } else {
+                                    }
+                                    // else if (ta_result.Type === 'completed') {
+                                    //     nextTask.completed();
+                                    // }
+                                    else {
                                         //findNewDates return an array of [newStartDate, newEndDate]
                                         console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
                                         var dates = nextTask.findNewDates(function(dates) {
@@ -596,33 +599,69 @@ module.exports = function(sequelize, DataTypes) {
             consolidate: function() {
                 var x = this;
 
-                console.log('searching grades for consolidation...');
+                var grade = 0;
+                return models.TaskActivity.find({
+                    where: {
+                        TaskActivityID: x.TaskActivityID
+                    },
+                }).then(function(ta_result) {
+                    var keys = Object.keys(JSON.parse(x.Data));
+
+                    return Promise.mapSeries(keys, function(val) {
+                        if (val !== 'number_of_fields' && JSON.parse(ta_result.Fields)[val].field_type == 'assessment') {
+                            if (JSON.parse(ta_result.Fields)[val].assessment_type == 'grade') {
+                                grade += parseInt(JSON.parse(x.Data)[val][0]);
+                            } else if (JSON.parse(ta_result.Fields)[val].assessment_type == 'rating') {
+                                grade += parseInt(JSON.parse(x.Data)[val][0]) * (100 / JSON.parse(ta_result.Fields)[val].rating_max);
+                            } else if (JSON.parse(ta_result.Fields)[val].assessment_type == 'evaluation') {
+                                // How evaluation works?
+                                // if(JSON.parse(x.Data)[val][0] == 'Easy'){
+                                //
+                                // } else if(JSON.parse(x.Data)[val][0] == 'Medium'){
+                                //
+                                // } else if(JSON.parse(x.Data)[val][0] == 'Hard'){
+                                //
+                                // }
+                            }
+                        }
+                    }).then(function() {
+                        //insert grade
+                        console.log('consolidated grade: ', grade);
+                        x.FinalGrade = grade;
+                        x.save();
+                    }).then(function(done) {
+                        x.triggerNext();
+                    }).catch(function(err) {
+                        console.log(err);
+                    });
+                });
+                // console.log('searching grades for consolidation...');
 
                 //assume the grades tasks are previous of previous tasks
                 //compute grades based on the highest two grades
-                return x.findConsolidationAndDisputeGrade(function(grade) {
-                    return x.retrieveNeedsConsolidationGrades(function(grades, maxGrade) {
-                        grades.push(grade);
-                        console.log('grades', grades);
-                        var max = Math.max.apply(null, grades);
-                        grades.splice(grades.indexOf(max), 1);
-                        var secondMax = Math.max.apply(null, grades);
-                        models.TaskActivity.find({
-                            where: {
-                                TaskActivityID: x.TaskActivityID
-                            }
-                        }).then(function(ta_result) {
-                            //insert grade
-                            console.log('consolidated grade: ', (max + secondMax) / 2);
-                            x.FinalGrade = (max + secondMax) / 2;
-                            x.save();
-                        }).then(function(done) {
-                            x.triggerNext();
-                        }).catch(function(err) {
-                            console.log(err);
-                        })
-                    });
-                });
+                // return x.findConsolidationAndDisputeGrade(function(grade) {
+                //     return x.retrieveNeedsConsolidationGrades(function(grades, maxGrade) {
+                //         grades.push(grade);
+                //         console.log('grades', grades);
+                //         var max = Math.max.apply(null, grades);
+                //         grades.splice(grades.indexOf(max), 1);
+                //         var secondMax = Math.max.apply(null, grades);
+                //         models.TaskActivity.find({
+                //             where: {
+                //                 TaskActivityID: x.TaskActivityID
+                //             }
+                //         }).then(function(ta_result) {
+                //             //insert grade
+                //             console.log('consolidated grade: ', (max + secondMax) / 2);
+                //             x.FinalGrade = (max + secondMax) / 2;
+                //             x.save();
+                //         }).then(function(done) {
+                //             x.triggerNext();
+                //         }).catch(function(err) {
+                //             console.log(err);
+                //         })
+                //     });
+                // });
             },
 
             findConsolidationAndDisputeGrade: function(callback) {
@@ -701,35 +740,122 @@ module.exports = function(sequelize, DataTypes) {
                 var isAllCompleted = true;
                 console.log('Checking all subworkflows are completed...');
 
-                return Promise.all([x.triverseWorkflow()]).then(function(grade){
-                  console.log(grade);
-                })
+                return Promise.all(x.triverseWorkflow()).then(function(result) {
+                    if (result[0] !== null) {
+                        return models.WorkflowInstance.find({
+                            where: {
+                                WorkflowInstanceID: x.WorkflowInstanceID
+                            },
+                            include: [{
+                                model: models.AssignmentInstance
+                            }]
+                        }).then(function(wi) {
+                            console.log('Searching final grade belongs to...');
+                            return Promise.all([x.gradeBelongsTo()]).then(function(userid) {
+                                console.log(userid);
+                                return models.SectionUser.find({
+                                    where: {
+                                        UserID: userid[0],
+                                        SectionID: wi.AssignmentInstance.SectionID
+                                    }
+                                }).then(function(user) {
+                                    console.log('result', user.SectionUserID, result);
+
+                                    return models.TaskGrade.create({
+                                        SectionUserID: user.SectionUserID,
+                                        WorkflowActivityID: result[0],
+                                        TaskInstanceID: result[1],
+                                        Grade: result[2]
+                                    }).then(done => {
+                                        console.log('task grade created');
+                                    }).catch(err => {
+                                        console.log(err);
+                                    });
+                                });
+                            });
+                        });
+                        console.log(grade);
+                        // return TaskGrade.create({
+                        //
+                        // })
+                    }
 
 
-                //when a workflow has reached complete. This function will be called
-                //It will go through the workflow structure and triverse the tree to see if all other
-                //subworkflows are completed.
-                //If everything has been completed, collect the grades.
+                    //when a workflow has reached complete. This function will be called
+                    //It will go through the workflow structure and triverse the tree to see if all other
+                    //subworkflows are completed.
+                    //If everything has been completed, collect the grades.
+                });
             },
 
+
+            //Trace the previous tasks to find the final grade
             triverseWorkflow: function() {
                 var x = this;
                 console.log('traversing the workflow to find final grade...');
-                if (x.Final === null && x.PreviousTask !== null) {
-                    return Promise.map(JSON.parse(x.PreviousTask), ti => {
+                if (x.FinalGrade !== null) {
+
+                    console.log('Final grade found! The final grade is:', x.FinalGrade);
+
+                    return models.WorkflowInstance.find({
+                        where: {
+                            WorkflowInstanceID: x.WorkflowInstanceID
+                        },
+                    }).then(function(wi) {
+                        //[WorkflowActivityID, TaskInstanceID, FinalGrade]
+                        return [wi.WorkflowActivityID, x.TaskInstanceID, x.FinalGrade];
+                    });
+
+                } else if (x.FinalGrade === null && x.PreviousTask != null) {
+                    //return Promise.map(JSON.parse(x.PreviousTask), ti => {
                         return models.TaskInstance.find({
                             where: {
-                                TaskInstanceID: ti.id
+                                TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
                             }
                         }).then(ti_result => {
                             //Check if all grading solution are completed
                             return ti_result.triverseWorkflow();
                         });
-                    })
+                    //})
                 } else {
-                  console.log('Final grade found! The final grade is:', x.FinalGrade);
-                  return x.FinalGrade;
+                    console.log('no grades found.');
+                    return null;
                 }
+            },
+
+            //Find final grade belongs to which user
+            gradeBelongsTo: function() {
+                var x = this;
+
+                return models.TaskActivity.find({
+                    where: {
+                        TaskActivityID: x.TaskActivityID
+                    }
+                }).then(function(ta_result) {
+                    if (ta_result.Type === 'grade_problem') {
+                        //return Promise.map(JSON.parse(x.PreviousTask), ti => {
+                            return models.TaskInstance.find({
+                                where: {
+                                    TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
+                                }
+                            }).then(ti_result => {
+                                console.log('UserID found:', ti_result.UserID);
+                                return ti_result.UserID;
+                            });
+                        //})
+
+                    } else {
+                        //return Promise.map(JSON.parse(x.PreviousTask), ti => {
+                            return models.TaskInstance.find({
+                                where: {
+                                    TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
+                                }
+                            }).then(ti_result => {
+                                return ti_result.gradeBelongsTo();
+                            });
+                        //})
+                    }
+                })
             }
 
 

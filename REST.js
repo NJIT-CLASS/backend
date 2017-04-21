@@ -4,6 +4,7 @@ var Guid = require('guid');
 var models = require('./Model');
 var Promise = require('bluebird');
 var password = require('./password');
+var moment = require('moment');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -551,7 +552,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
             req_body: req.body,
             req_params: req.params
         })
-        file_id = req.body.fileId || req.params.fileId
+        var file_id = req.body.fileId || req.params.fileId
 
         if (!file_id) {
             logger.log('info', 'file_id is required but not specified')
@@ -571,7 +572,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
             logger.log('info', 'file reference', file_ref.toJSON())
             file_ref.Info = JSON.parse(file_ref.Info)
 
-            content_headers = {
+            var content_headers = {
                 'Content-Type': file_ref.Info.mimetype,
                 'Content-Length': file_ref.Info.size,
                 'Content-Disposition': contentDisposition(file_ref.Info.originalname),
@@ -997,7 +998,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['FirstName', 'LastName', 'UserType', 'Admin', 'Country', 'City'],
+            attributes: ['FirstName', 'LastName', 'UserType', 'Admin', 'Country', 'City', 'ProfilePicture'],
             include: [{
                 model: UserLogin,
                 attributes: ['Email']
@@ -2705,7 +2706,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                         attributes: ["TaskInstanceID", "Data", "Status"],
                         include: [{
                             model: TaskActivity,
-                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
+                            attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
                         }]
                     })
                     .then((result) => {
@@ -2727,7 +2728,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                     attributes: ["TaskInstanceID", "Data", "Status"],
                     include: [{
                         model: TaskActivity,
-                        attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                        attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
                     }]
                 }).then((result) => {
                     //console.log(result);
@@ -2741,7 +2742,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                         attributes: ["TaskInstanceID", "Data", "Status"],
                         include: [{
                             model: TaskActivity,
-                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                            attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
                         }]
                     })
                     .then((result) => {
@@ -2893,7 +2894,9 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
         //create assignment instance
         taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(function(done) {
             console.log('/getAssignToSection/submit/   All Done!');
-            if (req.body.wf_timing.Time <= new Date()) {
+            console.log(typeof req.body.wf_timing.startDate, req.body.wf_timing.startDate);
+            if (moment(req.body.wf_timing.startDate) <= new Date()) {
+
                 manager.checkAssignments();
             };
             res.status(200).end();

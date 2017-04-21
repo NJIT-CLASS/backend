@@ -52,8 +52,7 @@ class Allocator {
                     });
                 } else {
 
-
-                    if (ta.Type === 'needs_consolidation' || ta.Type === 'completed') {
+                    if (ta.Type === 'needs_consolidation' ){//|| ta.Type === 'completed') {
                         if (Object.keys(x.workflow).length < 1) {
                             var same = constraints.same_as[0];
                             console.log('same', same);

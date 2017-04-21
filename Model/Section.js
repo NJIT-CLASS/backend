@@ -35,25 +35,25 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.STRING(100),
             field: 'Name',
             allowNull: true
+        },
+        StartDate: {
+           //Beginning date for this section
+           type: DataTypes.DATE,
+           field: 'StartDate',
+           allowNull: true
+        },
+        EndDate: {
+           //Ending date for this section
+           type: DataTypes.DATE,
+           field: 'EndDate',
+           allowNull: true
+        },
+        Description: {
+           //Description of the course (Day Assignment, night Assignment, weekend university)
+           type: DataTypes.STRING,
+           field: 'Description',
+           allowNull: true
         }
-        //StartDate: {
-        //    //Beginning date for this section
-        //    type: DataTypes.DATE,
-        //    field: 'StartDate',
-        //    allowNull: true
-        //},
-        //EndDate: {
-        //    //Ending date for this section
-        //    type: DataTypes.DATE,
-        //    field: 'EndDate',
-        //    allowNull: true
-        //},
-        //Description: {
-        //    //Description of the course (Day Assignment, night Assignment, weekend university)
-        //    type: DataTypes.STRING,
-        //    field: 'Description',
-        //    allowNull: true
-        //}
         // Roster: {
         //     //Array of users in the course
         //     type: DataTypes.BLOB,

@@ -36,7 +36,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         FileUpload: {
-            type: DataTypes.BLOB,
+            type: DataTypes.JSON,
             field: 'FileUpload',
             allowNull: true
         },

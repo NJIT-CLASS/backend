@@ -26,7 +26,8 @@
     "xoauth2": "^1.1.0",
     "babel-cli": "^6.24.1",
     "babel-preset-es2015": "^6.24.1",
-    "babel-preset-es2017": "^6.24.1"
+    "babel-preset-es2017": "^6.24.1",
+    "node-schedule": "^1.2.1"
   },
   "repository": {
     "type": "git",

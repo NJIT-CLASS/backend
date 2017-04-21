@@ -95,7 +95,7 @@ REST.prototype.stop = function(err) {
 // sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 // .then(function(){
 //     return sequelize.sync({
-//       // force: true
+//       force: true
 //     });
 // })
 // .then(function(){
