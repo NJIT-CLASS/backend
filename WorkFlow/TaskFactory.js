@@ -528,7 +528,10 @@ class TaskFactory {
                             LeadsToNewProblem: task.TA_leads_to_new_problem,
                             LeadsToNewSolution: task.TA_leads_to_new_solution,
                             VisualID: task.TA_visual_id,
-                            MinimumDuration: task.TA_minimum_duration
+                            MinimumDuration: task.TA_minimum_duration,
+                            VersionEvaluation: task.VersionEvaluation,
+                            SeeSibblings: task.SeeSibblings,
+                            SeeSameActivity: task.SeeSameActivity,
                         }).then(function(taskResult) {
                             console.log('Task creation successful!');
                             console.log('TaskActivityID: ', taskResult.TaskActivityID);
