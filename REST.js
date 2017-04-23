@@ -2554,7 +2554,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                 logger.log('error', 'UserID Not Matched')
                 return res.status(400).end()
             }
-            ti_data = JSON.parse(ti.Data)
+            var ti_data = JSON.parse(ti.Data)
 
             if (!ti_data) {
                 ti_data = []
