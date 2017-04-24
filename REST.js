@@ -2547,7 +2547,17 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
             logger.log('info', 'Data cannot be null')
             return res.status(400).end()
         }
-        return TaskInstance.find({where: {TaskInstanceID: req.body.taskInstanceid}}).then(function (ti) {
+        return TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.taskInstanceid,
+            },
+            include: [
+                {
+                    model: TaskActivity,
+                    attributes: ['Type'],
+                },
+            ],
+        }).then(function (ti) {
             logger.log('info', 'task instance found', ti.toJSON())
             //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != ti.UserID) {
@@ -2577,8 +2587,36 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                 logger.log('info', 'triggering next task')
                 //Trigger next task to start
                 ti.triggerNext()
-                logger.log('info', 'next task triggered')
-                return res.status(200).end();
+
+                if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
+                    var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id
+                    logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id)
+
+                    TaskInstance.find({where: {TaskInstanceID: pre_ti_id}}).then(function (pre_ti) {
+                        logger.log('info', 'task instance found', pre_ti.toJSON())
+                        ti_data = JSON.parse(pre_ti.Data)
+
+                        if (!ti_data) {
+                            ti_data = []
+                        }
+                        ti_data.push(req.body.taskInstanceData)
+
+                        logger.log('info', 'updating task instance', {ti_data: ti_data})
+
+                        return TaskInstance.update({
+                            Data: ti_data,
+                        }, {
+                            where: {
+                                TaskInstanceID: pre_ti.TaskInstanceID,
+                            },
+                        }).then(function (done) {
+                            logger.log('info', 'task instance updated', {done: done})
+                        }).catch(function (err) {
+                            logger.log('error', 'task instance update failed', {err: err})
+                        })
+                    })
+                }
+                return res.status(200).end()
             }).catch(function (err) {
                 logger.log('error', 'task instance update failed', {err: err})
                 return res.status(400).end();
@@ -2891,7 +2929,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                         attributes: ["TaskInstanceID", "Data", "Status"],
                         include: [{
                             model: TaskActivity,
-                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
+                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload", 'TaskActivityID']
                         }]
                     })
                     .then((result) => {
@@ -2913,7 +2951,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                     attributes: ["TaskInstanceID", "Data", "Status"],
                     include: [{
                         model: TaskActivity,
-                        attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                        attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants", 'FileUpload', 'TaskActivityID', 'VersionEvaluation']
                     }]
                 }).then((result) => {
                     //console.log(result);
@@ -2927,11 +2965,12 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                         attributes: ["TaskInstanceID", "Data", "Status"],
                         include: [{
                             model: TaskActivity,
-                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants"]
+                            attributes: ["Type", "Rubric", "Instructions", "Fields", "NumberParticipants", 'FileUpload', 'TaskActivityID']
                         }]
                     })
                     .then((result) => {
                         //console.log(result);
+                        allocator.applyVersionContstraints(ar, result)
                         ar.push(result);
                         res.json({
                             "previousTasksList": done,
