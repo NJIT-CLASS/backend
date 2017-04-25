@@ -221,20 +221,20 @@ module.exports = function(sequelize, DataTypes) {
             field: 'ViewAccessContraints',
             allowNull: true
         },
-        VersionEvaluation:{
-          type: DataTypes.JSON,
-          field: 'VersionEvaluation',
-          allowNull: true
+        VersionEvaluation: {
+            type: DataTypes.STRING,
+            field: 'VersionEvaluation',
+            allowNull: true
         },
-        SeeSibblings:{
-          type: DataTypes.JSON,
-          field: 'SeeSibblings',
-          allowNull: true
+        SeeSibblings: {
+            type: DataTypes.BOOLEAN,
+            field: 'SeeSibblings',
+            allowNull: true
         },
-        SeeSameActivity:{
-          type: DataTypes.JSON,
-          field: 'SeeSameActivity',
-          allowNull: true
+        SeeSameActivity: {
+            type: DataTypes.BOOLEAN,
+            field: 'SeeSameActivity',
+            allowNull: true
         }
     }, {
         timestamps: false,

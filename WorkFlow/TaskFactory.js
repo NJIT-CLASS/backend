@@ -31,6 +31,7 @@ var EmailNotification = models.EmailNotification;
 var tree = new TreeModel();
 var flatToNested = new FlatToNested();
 
+const logger = require('winston')
 
 class TaskFactory {
 
@@ -394,6 +395,40 @@ class TaskFactory {
         });
     }
 
+    applyVersionContstraints(pre_tis, cur_ti) {
+        logger.log('info', 'apply version constraints to previous task instances based on a current task instance', {task_instance: cur_ti.toJSON()})
+        var x = this
+        pre_tis.forEach(function (ti, i) {
+            if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
+                x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation)
+            }
+            else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) && (i != pre_tis.length - 1)) {
+                x.setDataVersion(ti, 'last')
+            }
+            else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
+                x.setDataVersion(ti, 'last')
+            }
+            else if (!'todo: logic: if cur_ti has good Data and status is revision') { //TODO
+                x.setDataVersion(ti, 'last')
+            }
+        })
+    }
+
+    setDataVersion(ti, version_eval) {
+        logger.log('info', 'update task instance data with appropriate version', {task_instance: ti.toJSON(), version_evaluation: version_eval})
+        if (version_eval == 'whole' || !ti.Data) {
+            return
+        }
+        ti.Data = JSON.parse(ti.Data)
+        ti.Data = ti.Data[(version_eval == 'first') ? 0 : (ti.Data.length - 1)]
+
+        if (!ti.Data) {
+            ti.Data = []
+            return
+        }
+        // ti.Data = [ti.Data]
+    }
+
     getNumberParticipants(taskActivityID) {
         console.log('Finding number of participants in task activity: ', taskActivityID, '...');
         var numParticipants = []
@@ -528,7 +563,10 @@ class TaskFactory {
                             LeadsToNewProblem: task.TA_leads_to_new_problem,
                             LeadsToNewSolution: task.TA_leads_to_new_solution,
                             VisualID: task.TA_visual_id,
-                            MinimumDuration: task.TA_minimum_duration
+                            MinimumDuration: task.TA_minimum_duration,
+                            VersionEvaluation: task.VersionEvaluation,
+                            SeeSibblings: task.SeeSibblings,
+                            SeeSameActivity: task.SeeSameActivity,
                         }).then(function(taskResult) {
                             console.log('Task creation successful!');
                             console.log('TaskActivityID: ', taskResult.TaskActivityID);

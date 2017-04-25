@@ -22,7 +22,7 @@ var sequelize = new Sequelize(process.env.database, process.env.dbUser, process.
 var models = ['Assignment','AssignmentInstance', 'Course', 'EmailNotification', 'Group',
     'GroupUser','Organization', 'ResetPasswordRequest', 'Section',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
-    'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance',
+    'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
     'FileReference',
 ];
@@ -57,6 +57,10 @@ models.forEach(function(model) {
 
       m.PartialAssignments.belongsTo(m.User, {foreignKey: 'UserID'});
       m.PartialAssignments.belongsTo(m.Course, {foreignKey: 'CourseID'});
+
+      m.VolunteerPool.belongsTo(m.User, {foreignKey: 'UserID'});
+      m.VolunteerPool.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'});
+      m.VolunteerPool.belongsTo(m.Section, {foreignKey: 'SectionID'});
 
     m.AssignmentGrade.belongsTo(m.AssignmentInstance, {foreignKey: 'AssignmentInstanceID'})
     m.AssignmentGrade.belongsTo(m.SectionUser, {foreignKey: 'SectionUserID'})
