@@ -739,9 +739,12 @@ module.exports = function(sequelize, DataTypes) {
                 var x = this;
                 var isAllCompleted = true;
                 console.log('Checking all subworkflows are completed...');
+                // check if the workflow of the assignment that belongs to the user is completed
+                // check if all the workflow of the assignment that belongs to the user is completed
 
-                return Promise.all(x.triverseWorkflow()).then(function(result) {
-                    if (result[0] !== null) {
+                return Promise.all([x.triverseWorkflow()]).then(function(result) {
+                  console.log(result)
+                    if (result[0] !== null || result === null) {
                         return models.WorkflowInstance.find({
                             where: {
                                 WorkflowInstanceID: x.WorkflowInstanceID
@@ -763,9 +766,9 @@ module.exports = function(sequelize, DataTypes) {
 
                                     return models.TaskGrade.create({
                                         SectionUserID: user.SectionUserID,
-                                        WorkflowActivityID: result[0],
-                                        TaskInstanceID: result[1],
-                                        Grade: result[2]
+                                        WorkflowActivityID: result[0][0],
+                                        TaskInstanceID: result[0][1],
+                                        Grade: result[0][2]
                                     }).then(done => {
                                         console.log('task grade created');
                                     }).catch(err => {

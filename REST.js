@@ -369,15 +369,15 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
 
 
         //email.sendNow(req.body.opts);
-        // opts = {
-        //   from: "qxl2@njit.edu",
-        //   replyTo: "qxl2@njit.edu",
-        //   to: "njitplamaster@gmail.com",
-        //   subject: "Test",
-        //   html: "Test"
-        // };
-        //
-        // email.send(opts);
+        var opts = {
+          from: "njitplamaster@gmail.com",
+          replyTo: "njitplamaster@gmail.com",
+          to: "qxl2@njit.edu",
+          subject: "Test",
+          html: "Test"
+        };
+
+        email.send(opts);
 
 
     });
