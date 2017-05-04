@@ -499,8 +499,25 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
             // req.body.userId = 2
         }
         return new Util().addFileRefs(req.files, req.body.userId).then(function (file_refs) {
-            res.json(file_refs).end()
-            return file_refs
+
+          return Promise.all(file_refs.map(function (it) {
+              return it.FileID
+          })).then(function (file_ids) {
+              logger.log('info', 'new task file ids', file_ids)
+
+              TaskInstance.find({where: {TaskInstanceID: req.body.taskInstanceId}}).then(ti => {
+                let newFilesArray = JSON.parse(ti.Files) || [];
+                newFilesArray = newFilesArray.concat(file_ids);
+
+                return TaskInstance.update({Files: newFilesArray}, {where: {TaskInstanceID: req.body.taskInstanceId}}).then(done => {
+                    logger.log('info', 'task updated with new files', {res: done})
+                    res.json(file_refs).end()
+                    return done
+                })
+              });
+
+          })
+
         })
     })
 
@@ -552,11 +569,11 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
             }
             logger.log('info', 'file reference', file_ref.toJSON())
             file_ref.Info = JSON.parse(file_ref.Info)
-
+            let contDisp = file_ref.Info.mimetype.match('image') ? 'inline' : contentDisposition(file_ref.Info.originalname);
             var content_headers = {
                 'Content-Type': file_ref.Info.mimetype,
                 'Content-Length': file_ref.Info.size,
-                'Content-Disposition' : contentDisposition(file_ref.Info.originalname),
+                'Content-Disposition' : contDisp,
             }
             logger.log('debug', 'response content file headers', content_headers)
             res.writeHead(200, content_headers)
@@ -2930,7 +2947,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                         where: {
                             TaskInstanceID: req.params.taskInstanceId
                         },
-                        attributes: ["TaskInstanceID", "Data", "Status"],
+                        attributes: ["TaskInstanceID", "Data", "Status", "Files"],
                         include: [{
                             model: TaskActivity,
                             attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
@@ -2952,7 +2969,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                     where: {
                         TaskInstanceID: task
                     },
-                    attributes: ["TaskInstanceID", "Data", "Status"],
+                    attributes: ["TaskInstanceID", "Data", "Status", "Files"],
                     include: [{
                         model: TaskActivity,
                         attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
@@ -2966,7 +2983,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
                         where: {
                             TaskInstanceID: req.params.taskInstanceId
                         },
-                        attributes: ["TaskInstanceID", "Data", "Status"],
+                        attributes: ["TaskInstanceID", "Data", "Status", "Files"],
                         include: [{
                             model: TaskActivity,
                             attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
@@ -3118,6 +3135,7 @@ REST_ROUTER.prototype.handleRoutes = function(router, connection) {
         var manager = new Manager();
 
         console.log('/getAssignToSection/submit/  Creating Assignment Instance...');
+
 
         //create assignment instance
         taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(function(done) {
