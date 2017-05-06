@@ -1,13 +1,9 @@
 var Sequelize = require("sequelize");
+var settings = require("../backend_settings");
 
-process.env.dbHost = 'localhost';
-process.env.dbUser = 'root';
-process.env.dbPass = '123';
-process.env.database = 'class/pla';
-process.env.serverPort = '4000';
 
-var sequelize = new Sequelize(process.env.database, process.env.dbUser, process.env.dbPass, {
-    host: process.env.dbHost,
+var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
+    host: settings.DB_HOST,
     dialect: 'mysql',
     omitNull: true,
 

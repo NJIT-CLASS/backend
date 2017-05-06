@@ -71,14 +71,14 @@ logger.configure({
 //-----------------------------------------------------------------------------------------------------
 
 
-function REST_ROUTER(router, connection) {
+function REST_ROUTER(router) {
     var self = this;
-    self.handleRoutes(router, connection);
+    self.handleRoutes(router);
 }
 
 //-----------------------------------------------------------------------------------------------------
 
-REST_ROUTER.prototype.handleRoutes = function(router, connection) {
+REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint to Create an Assignment
     router.post("/assignment/create", function(req, res) {

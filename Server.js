@@ -3,38 +3,35 @@ var mysql = require("mysql");
 var bodyParser = require("body-parser");
 var rest = require("./REST.js");
 var app = express();
+var settings = require("./backend_settings");
 
-process.env.dbHost = 'localhost';
-process.env.dbUser = 'root';
-process.env.dbPass = '123';
-process.env.database = 'class/pla';
-process.env.serverPort = '4000';
 
 function REST() {
     var self = this;
-    self.connectMysql();
+    self.configureExpress();
+    //self.connectMysql();
 };
 
-REST.prototype.connectMysql = function() {
+/*REST.prototype.connectMysql = function() {
     var self = this;
     var pool = mysql.createPool({
         connectionLimit: 100,
-        host: process.env.dbHost,
-        user: process.env.dbUser,
-        password: process.env.dbPass,
-        database: process.env.database,
+        host: settings.DB_HOST,
+        user: settings.DB_USER,
+        password: settings.DB_PASS,
+        database: settings.DATABASE,
         debug: false
     });
     pool.getConnection(function(err, connection) {
         if (err) {
-            self.stop(err);
+            self.stmysqlop(err);
         } else {
             self.configureExpress(connection);
         }
     });
 }
-
-REST.prototype.configureExpress = function(connection) {
+*/
+REST.prototype.configureExpress = function() {
     var self = this;
     app.use(function(req, res, next) {
         res.header("Access-Control-Allow-Origin", "*");
@@ -47,13 +44,13 @@ REST.prototype.configureExpress = function(connection) {
     app.use(bodyParser.json());
     var router = express.Router();
     app.use('/api', router);
-    var rest_router = new rest(router, connection);
+    var rest_router = new rest(router);
     self.startServer();
 }
 
 REST.prototype.startServer = function() {
-    app.listen(process.env.serverPort, function() {
-        console.log("All right ! I am alive at Port ." + process.env.serverPort);
+    app.listen(settings.SERVER_PORT, function() {
+        console.log("All right ! I am alive at Port ." + settings.SERVER_PORT);
         console.log();
     });
 }
