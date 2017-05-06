@@ -391,6 +391,57 @@ class Allocator {
         })
     }
 
+    // reallocate all assignments tasks of a user with volunteers
+    reallocate_ais(user_id, volunteer_u_ids) {
+        logger.log('info', 'reallocate all assignments tasks of a user with volunteers', {
+            user_id: user_id,
+            volunteer_u_ids: volunteer_u_ids,
+        })
+        var x = this
+        var ai_ids = {}
+        var u_idx = volunteer_u_ids.indexOf(user_id)
+        if (u_idx != -1) {
+            volunteer_u_ids = volunteer_u_ids.slice(0)
+            volunteer_u_ids.splice(u_idx, 1)
+        }
+        return TaskInstance.findAll({where: {UserID: user_id}}).then(function (tis) {
+            return Promise.map(tis, function (ti) {
+                ai_ids[ti.AssignmentInstanceID] = true
+            }).then(function (tis) {
+                return Promise.map(Object.keys(ai_ids), function (ai_id) {
+                    return x.reallocate_tasks(ai_id, user_id, volunteer_u_ids)
+                })
+            })
+        })
+    }
+
+    // reallocate all tasks of a user in an assignment with volunteers
+    reallocate_tasks(ai_id, user_id, volunteer_u_ids) {
+        logger.log('info', 'reallocate all tasks of a user in an assignment with volunteers', {
+            ai_id: ai_id,
+            user_id: user_id,
+            volunteer_u_ids: volunteer_u_ids,
+        })
+        var x = this
+        var u_idx = volunteer_u_ids.indexOf(user_id)
+        if (u_idx != -1) {
+            volunteer_u_ids = volunteer_u_ids.slice(0)
+            volunteer_u_ids.splice(u_idx, 1)
+        }
+        return TaskInstance.findAll({
+            where: {
+                UserID: user_id,
+                AssignmentInstanceID: ai_id,
+                // Status: '! complete', //TODO
+            }
+        }).then(function (tis) {
+            return Promise.each(tis, function (ti) {
+                return x.reallocate(ti, volunteer_u_ids)
+            })
+        })
+    }
+
+    // reallocate all tasks with new users repectively
     reallocAll(tis, u_ids) {
         logger.log('debug', {call: 'reallocAll'})
         logger.log('info', 'reallocate specified users to specified corresponding users', {

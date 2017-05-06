@@ -417,7 +417,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
          }).then(function (done) {
          a.reallocAll(tasks, users)
          })
-         })*/
+         })
         AssignmentGrade.create({
             AssignmentInstanceID: 3,
             SectionUserID: 2,
@@ -482,7 +482,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         })
         new Util().addFile(4, {Stats: 'stats....'}).then(function (done) {
             console.log('file done: ', done)
-        })
+        })*/
+        a.reallocate_ais(7, [3, 5, 8, 11, 1])
         res.status(200).end()
     })
 
