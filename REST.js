@@ -552,10 +552,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/download/file/:fileId', function (req, res) {
         // router.post('/download/file/:fileId', function (req, res) {
         // router.get('/download/file', function (req, res) {
-        logger.log('info', 'post: /download/file', {
-            req_body: req.body,
-            req_params: req.params
-        })
+        logger.log('info', 'post: /download/file', {req_body: req.body, req_params: req.params})
         var file_id = req.body.fileId || req.params.fileId
 
         if (file_id == null) {
@@ -2935,6 +2932,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint for all current task data and previous task data and put it in an array
     router.get('/superCall/:taskInstanceId', function(req, res) {
+        logger.log('info', 'post: /superCall/:taskInstanceId', {req_body: req.body, req_params: req.params})
         var allocator = new TaskFactory();
 
         allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
@@ -2972,7 +2970,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     attributes: ["TaskInstanceID", "Data", "Status", "Files"],
                     include: [{
                         model: TaskActivity,
-                        attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
+                        attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload", 'VersionEvaluation']
                     }]
                 }).then((result) => {
                     //console.log(result);
