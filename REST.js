@@ -53,7 +53,7 @@ logger.configure({
         new (logger.transports.Console)({
             level: 'debug',
             colorize: true,
-            // json: true,
+            json: true,
         }),
         new (logger.transports.File)({
             name: 'info-file',
@@ -483,7 +483,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         new Util().addFile(4, {Stats: 'stats....'}).then(function (done) {
             console.log('file done: ', done)
         })*/
-        a.reallocate_ais(7, [3, 5, 8, 11, 1])
+        a.reallocate_ais(1, [3, 5, 8, 11, 1])
         res.status(200).end()
     })
 
@@ -2496,6 +2496,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint to get task instance header data for front end
     router.get("/taskInstanceTemplate/main/:taskInstanceID", function(req, res) {
+        logger.log('info', 'get: /taskInstanceTemplate/main/:taskInstanceID', {req_query: req.query})
         TaskInstance.find({
             where: {
                 TaskInstanceID: req.params.taskInstanceID
@@ -2521,6 +2522,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 SectionID: req.query.sectionID
                             }
                         }).then(function(sectionResult) {
+                            logger.log('debug', {section_res: sectionResult.toJSON()})
                             Semester.find({
                                 where: {
                                     SemesterID: sectionResult.SemesterID

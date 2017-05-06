@@ -433,6 +433,9 @@ class Allocator {
                 UserID: user_id,
                 AssignmentInstanceID: ai_id,
                 // Status: '! complete', //TODO
+                Status: {
+                    $notIn: ['complete', 'started'],
+                }
             }
         }).then(function (tis) {
             return Promise.each(tis, function (ti) {
@@ -441,7 +444,7 @@ class Allocator {
         })
     }
 
-    // reallocate all tasks with new users repectively
+    // reallocate all tasks with new users respectively
     reallocAll(tis, u_ids) {
         logger.log('debug', {call: 'reallocAll'})
         logger.log('info', 'reallocate specified users to specified corresponding users', {

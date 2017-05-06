@@ -426,7 +426,7 @@ class TaskFactory {
             ti.Data = []
             return
         }
-        // ti.Data = [ti.Data]
+        ti.Data = [ti.Data]
     }
 
     getNumberParticipants(taskActivityID) {
