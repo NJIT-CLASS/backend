@@ -363,21 +363,25 @@ class Allocator {
             avoid_user_ids: avoid_u_ids,
         })
         vol_u_ids = vol_u_ids || []
-        var found = false
+        var idx = null
 
         return Promise.map(u_ids, function (u_id) {
-            if (!found && !_.contains(avoid_u_ids, u_id) && !_.contains(vol_u_ids, u_id)) {
+            if (idx == null && !_.contains(avoid_u_ids, u_id) && !_.contains(vol_u_ids, u_id)) {
                 vol_u_ids.unshift(u_id)
-                found = true
+                idx = 0
             }
         }).then(function (done) {
-            logger.log('info', 'found a new user that is not part of volunteers yet ?', {found: found})
-            var idx = 0
+            logger.log('info', 'found a new user that is not part of volunteers yet ?', {found: idx != null})
+
             return Promise.map(vol_u_ids, function (u_id, i) {
-                if (!found && idx == null && !_.contains(avoid_u_ids, u_id)) {
+                if (idx == null && !_.contains(avoid_u_ids, u_id)) {
                     idx = i
                 }
             }).then(function (done) {
+                if (idx == null) {
+                    logger.log('info', 'no user found that can be reallocated')
+                    return
+                }
                 var new_user_id = vol_u_ids[idx] //new_user_id[0]
                 vol_u_ids.splice(idx, 1)
                 vol_u_ids.push(new_user_id)
@@ -495,6 +499,12 @@ class Allocator {
             return JSON.parse(ai.Volunteers)
         })
     }
+
+    // reallocate all tasks of a given users & ai_id with volutneers
+    // wrap around the above api (get all assignments)
+
+    // return error message if no user can be allocated
+
 
     //////////////////////////////////////////////////////////////////
     ///////////////Reallocate user within a workflow//////////////////
