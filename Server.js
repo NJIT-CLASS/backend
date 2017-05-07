@@ -9,28 +9,8 @@ var settings = require("./backend_settings");
 function REST() {
     var self = this;
     self.configureExpress();
-    //self.connectMysql();
 };
 
-/*REST.prototype.connectMysql = function() {
-    var self = this;
-    var pool = mysql.createPool({
-        connectionLimit: 100,
-        host: settings.DB_HOST,
-        user: settings.DB_USER,
-        password: settings.DB_PASS,
-        database: settings.DATABASE,
-        debug: false
-    });
-    pool.getConnection(function(err, connection) {
-        if (err) {
-            self.stmysqlop(err);
-        } else {
-            self.configureExpress(connection);
-        }
-    });
-}
-*/
 REST.prototype.configureExpress = function() {
     var self = this;
     app.use(function(req, res, next) {

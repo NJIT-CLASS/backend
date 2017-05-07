@@ -2847,13 +2847,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 where: {
                                     TaskInstanceID: task
                                 },
-                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
+                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
                                 include: [{
                                     model: User,
                                     attributes: ['UserID', "UserType", 'UserName']
                                 }, {
                                     model: TaskActivity,
-                                    attributes: ['Type']
+                                    attributes: ['Name','Type']
                                 }]
                             }).then(function(taskInstanceResult) {
 
