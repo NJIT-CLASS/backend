@@ -53,7 +53,7 @@ logger.configure({
         new (logger.transports.Console)({
             level: 'debug',
             colorize: true,
-            json: true,
+            // json: true,
         }),
         new (logger.transports.File)({
             name: 'info-file',
@@ -2522,7 +2522,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 SectionID: req.query.sectionID
                             }
                         }).then(function(sectionResult) {
-                            logger.log('debug', {section_res: sectionResult.toJSON()})
                             Semester.find({
                                 where: {
                                     SemesterID: sectionResult.SemesterID
@@ -2935,7 +2934,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint for all current task data and previous task data and put it in an array
     router.get('/superCall/:taskInstanceId', function(req, res) {
-        logger.log('info', 'post: /superCall/:taskInstanceId', {req_body: req.body, req_params: req.params})
+        logger.log('info', 'get: /superCall/:taskInstanceId', {req_query: req.query, req_params: req.params})
         var allocator = new TaskFactory();
 
         allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
@@ -2970,34 +2969,41 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     where: {
                         TaskInstanceID: task
                     },
-                    attributes: ["TaskInstanceID", "Data", "Status", "Files"],
+                    attributes: ["TaskInstanceID", "Data", "Status", "Files", 'UserID', 'PreviousTask'],
                     include: [{
                         model: TaskActivity,
-                        attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload", 'VersionEvaluation']
+                        attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload", 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
                     }]
                 }).then((result) => {
                     //console.log(result);
                     ar.push(result);
+                    return allocator.applyViewContstraints(res, req.query.userID, result)
                 });
             }).then(function() {
                 return TaskInstance.find({
                         where: {
                             TaskInstanceID: req.params.taskInstanceId
                         },
-                        attributes: ["TaskInstanceID", "Data", "Status", "Files"],
+                        attributes: ["TaskInstanceID", "Data", "Status", "Files", 'UserID', 'PreviousTask'],
                         include: [{
                             model: TaskActivity,
-                            attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
+                            attributes: ["TaskActivityID","Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload", 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
                         }]
                     })
                     .then((result) => {
                         //console.log(result);
-                        allocator.applyVersionContstraints(ar, result)
-                        ar.push(result);
-                        res.json({
-                            "previousTasksList": done,
-                            "superTask": ar
-                        });
+                        logger.log('debug', 'done collecting previous tasks')
+                        return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function (done1) {
+                            if (res._headerSent) {
+                                return
+                            }
+                            allocator.applyVersionContstraints(ar, result, req.query.userID)
+                            ar.push(result);
+                            res.json({
+                                "previousTasksList": done,
+                                "superTask": ar
+                            });
+                        })
                     });
             });
 

@@ -395,38 +395,117 @@ class TaskFactory {
         });
     }
 
-    applyVersionContstraints(pre_tis, cur_ti) {
-        logger.log('info', 'apply version constraints to previous task instances based on a current task instance', {task_instance: cur_ti.toJSON()})
+    applyViewContstraints(res, user_id, ti) {
+        logger.log('info', 'apply view constraints to task instance', {user_id: user_id, task_instance: ti.toJSON()})
+        if (ti.Status == 'not_yet_started') {
+            logger.log('debug', ' not_yet_started, return res')
+            return res._headerSent || res.json({
+                'error': true,
+                'message': 'Task not even started yet',
+            })
+        }
+        if (ti.UserID == user_id) {
+            return
+        }
+        if (ti.Status != 'complete') {
+            return
+        }
+        return TaskInstance.findAll({
+            where: {
+                /*PreviousTask: {
+                    $contains: JSON.parse(ti.PreviousTask)[0],
+                },*/
+                UserID: user_id,
+                Status: {
+                    $notIn: ['complete'],
+                },
+            }
+        }).then(function (sibling_tis) {
+            logger.log('debug', 'check sibling tasks')
+
+            return Promise.map(sibling_tis, function (sibling_ti) {
+                if (!ti.TaskActivity.SeeSibblings) {
+                    if (sibling_ti.PreviousTask == ti.PreviousTask) {
+                        logger.log('debug', 'sibling task not completed, return res')
+                        return res._headerSent || res.json({
+                            'error': true,
+                            'message': 'Sibling task not completed yet',
+                        })
+                    }
+                }
+            }).then(function (done) {
+                return TaskInstance.findAll({
+                    where: {
+                        TaskActivityID: ti.TaskActivityID,
+                        UserID: user_id,
+                        Status: {
+                            $notIn: ['complete'],
+                        },
+                    }
+                }).then(function (same_ta_tis) {
+                    logger.log('debug', 'same act check apply view constraints to task instance')
+
+                    if (!ti.TaskActivity.SeeSameActivity) {
+                        if (!!same_ta_tis) {
+                            logger.log('debug', 'same task activity task instance not completed, return res')
+                            return res._headerSent || res.json({
+                                'error': true,
+                                'message': 'Same type of task not completed yet',
+                            })
+                        }
+                    }
+                    logger.log('debug', 'done applying view constraints')
+                })
+            })
+        })
+    }
+
+    applyVersionContstraints(pre_tis, cur_ti, user_id) {
+        logger.log('info', 'apply version constraints to previous task instances based on a current task instance', {task_instance: cur_ti.toJSON(), user_id: user_id})
         var x = this
         pre_tis.forEach(function (ti, i) {
-            if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
-                x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation)
+            if (user_id == cur_ti.UserID) {
+                if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
+                    x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation)
+                }
+                else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) && (i != pre_tis.length - 1)) {
+                    x.setDataVersion(ti, 'last')
+                }
+                else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
+                    x.setDataVersion(ti, 'last')
+                }
+                else if (!'todo: logic: if cur_ti has good Data and status is revision') { //TODO
+                    x.setDataVersion(ti, 'last')
+                }
             }
-            else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) && (i != pre_tis.length - 1)) {
-                x.setDataVersion(ti, 'last')
-            }
-            else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
-                x.setDataVersion(ti, 'last')
-            }
-            else if (!'todo: logic: if cur_ti has good Data and status is revision') { //TODO
-                x.setDataVersion(ti, 'last')
+            else {
+                // x.setDataVersion(ti, 'none') //TODO
             }
         })
+        if (user_id != cur_ti.UserID) {
+            // x.setDataVersion(cur_ti, 'none') //TODO
+        }
     }
 
     setDataVersion(ti, version_eval) {
         logger.log('info', 'update task instance data with appropriate version', {task_instance: ti.toJSON(), version_evaluation: version_eval})
-        if (version_eval == 'whole' || !ti.Data) {
-            return
-        }
         ti.Data = JSON.parse(ti.Data)
-        ti.Data = ti.Data[(version_eval == 'first') ? 0 : (ti.Data.length - 1)]
-
-        if (!ti.Data) {
+        if (version_eval == 'none' || !ti.Data) {
             ti.Data = []
             return
         }
-        ti.Data = [ti.Data]
+        if (version_eval == 'whole') {
+            return
+        }
+        if (version_eval == 'first') {
+            ti.Data = [ti.Data[0]]
+            return
+        }
+        if (version_eval == 'last') {
+            ti.Data = [ti.Data.slice(-1)[0]]
+            return
+        }
+        logger.log('error', 'invalid version evaluation')
     }
 
     getNumberParticipants(taskActivityID) {
