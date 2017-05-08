@@ -99,7 +99,7 @@ class Manager {
                     res[secId] = {tasks: [], users: []}
                 }
                 res[secId].tasks.push(it)
-                res[secId].users.push(it.UserID)
+                res[secId].users.push(it.UserID) //TODO: call get Volunteers and make sure they are active
                 // console.log(res)
             }).then(function (done) {
                 // console.log('then....' + res)

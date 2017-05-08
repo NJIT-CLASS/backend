@@ -765,9 +765,11 @@ class TaskFactory {
                 }
             }).then(function(ta_result) {
 
-                var json = {}
-                json[new Date()] = userid
-
+                var ti_u_hist = [{
+                    time: new Date(),
+                    user_id: userid,
+                    is_extra_credit: false,
+                }]
 
                 if (ta_result.Type == 'needs_consolidation' || ta_result.Type == 'completed') {
                     TaskInstance.create({
@@ -777,7 +779,7 @@ class TaskFactory {
                         WorkflowInstanceID: wi_id,
                         AssignmentInstanceID: ai_id,
                         Status: 'automatic',
-                        UserHistory: json,
+                        UserHistory: ti_u_hist,
                     }).then(function(result) {
                         resolve([result.TaskInstanceID]);
                     }).catch(function(err) {
@@ -792,7 +794,7 @@ class TaskFactory {
                         WorkflowInstanceID: wi_id,
                         AssignmentInstanceID: ai_id,
                         Status: 'not_yet_started',
-                        UserHistory: json,
+                        UserHistory: ti_u_hist,
                     }).then(function(result) {
                         resolve([result.TaskInstanceID]);
                     }).catch(function(err) {

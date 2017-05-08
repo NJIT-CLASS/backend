@@ -385,7 +385,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint for Assignment Manager
+    //Endpoint debug
     router.get('/debug', function (req, res) {
         // winston.level = 'debug'
         logger.log('error', 'both', {someKey: 'some-value'})
@@ -402,90 +402,34 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         // var manager = new Manager()
         // manager.debug()
         var a = new Allocator()
-        /*TaskInstance.findAll({
-         where: {
-         $or: [{
-         Status: "started"
-         }, {
-         Status: "late_reallocated"
-         }]
-         },
-         }).then(function (tasks) {
-         var users = []
-         Promise.map(tasks, function (task, i) {
-         users.push(i)
-         }).then(function (done) {
-         a.reallocAll(tasks, users)
-         })
-         })
-        AssignmentGrade.create({
-            AssignmentInstanceID: 3,
-            SectionUserID: 2,
-            Grade: 59,
-        }).then(function () {
-            console.log('1 done')
-            AssignmentGrade.create({
-                AssignmentInstanceID: 3,
-                SectionUserID: 1,
-                Grade: 65,
-            }).then(function () {
-                console.log('2 done')
-            })
-        })
-        WorkflowGrade.create({
-            WorkflowActivityID: 1,
-            AssignmentInstanceID: 3,
-            SectionUserID: 2,
-            Grade: 95,
-        }).then(function () {
-            console.log('11 done')
-            WorkflowGrade.create({
-                WorkflowActivityID: 2,
-                AssignmentInstanceID: 3,
-                SectionUserID: 1,
-                Grade: 55,
-            }).then(function () {
-                console.log('22 done')
-            })
-        })
-        TaskGrade.create({
-            WorkflowActivityID: 1,
-            TaskInstanceID: 3,
-            SectionUserID: 2,
-            Grade: 100,
-        }).then(function () {
-            console.log('111 done')
-            TaskGrade.create({
-                WorkflowActivityID: 2,
-                TaskInstanceID: 4,
-                SectionUserID: 1,
-                Grade: 75,
-            }).then(function () {
-                console.log('222 done')
-            })
-        })
-        TaskSimpleGrade.create({
-            WorkflowActivityID: 1,
-            TaskInstanceID: 3,
-            SectionUserID: 2,
-            Grade: 10,
-        }).then(function () {
-            console.log('111 done')
-            TaskSimpleGrade.create({
-                WorkflowActivityID: 2,
-                TaskInstanceID: 4,
-                SectionUserID: 1,
-                Grade: 100,
-            }).then(function () {
-                console.log('222 done')
-            })
-        })
-        new Util().addFile(4, {Stats: 'stats....'}).then(function (done) {
-            console.log('file done: ', done)
-        })*/
-        a.reallocate_ais(1, [3, 5, 8, 11, 1])
+        // a.reallocate_ais_of_users([1, 5], [3, 5, 8, 11, 1])
         res.status(200).end()
     })
+
+    // Inactivate section user
+    router.post('/sectionUser/inactivate/:section_user_id', function (req, res) {
+        logger.log('info', 'post: /sectionUser/inactivate/, inactivate section user', {req_body: req.body, req_params: req.params})
+        var section_user_id = req.body.section_user_id || req.params.section_user_id
+
+        if (section_user_id == null) {
+            logger.log('info', 'section_user_id is required but not specified')
+            return res.status(400).end()
+        }
+        return SectionUser.find({where: {SectionUserID: section_user_id}}).then(function (section_user) {
+            if (!section_user) {
+                logger.log('error', 'section user not found')
+                return res.status(400).end()
+            }
+            logger.log('info', 'updating section user', {section_user: section_user.toJSON()})
+            section_user.UserStatus = 'Inactive'
+
+            return section_user.save().then(function (section_user) {
+                logger.log('info', 'section user updated', {section_user: section_user.toJSON()})
+                return res.status(200).end()
+            })
+        })
+    })
+
 
     // router.post('/upload/files/:userId', storage.array('files'), function (req, res) {
     router.post('/upload/files', storage.array('files'), function (req, res) {
