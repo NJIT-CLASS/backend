@@ -58,6 +58,18 @@ class TaskFactory {
         });
     }
 
+    async getUserFromSection(sectionid) => {
+      console.log('Retrieving all users from section: ', sectionid, '...');
+      var users = [];
+
+      Section.findAll({
+        where:{
+          SectionID: sectionid,
+          UserStatus: {$notIn:["Inactive"]}
+        }
+      })
+    }
+
     createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
         var x = this;
 
@@ -762,6 +774,7 @@ class TaskFactory {
                         return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
                             //console.log('task: ', task.id);
                             return allocator.getRightUser(task.id).then(function(allocUsers) {
+                                console.log("right user",allocUsers);
                                 var task_collection = [];
                                 return Promise.mapSeries(allocUsers, function(a_user) {
                                     return x.createTaskInstance(task, a_user, workflowInstanceId, ai_id).then(function(createTaskResult) {
@@ -829,6 +842,13 @@ class TaskFactory {
         }).catch(function(err) {
             console.log(err);
         });
+    }
+
+    newCreateInstances(sectionid, ai_id){
+
+      var x = this;
+
+
     }
 
     getTree(wa_id, callback) {

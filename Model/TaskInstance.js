@@ -737,7 +737,8 @@ module.exports = function(sequelize, DataTypes) {
 
             completed: function() {
                 var x = this;
-                var isAllCompleted = true;
+                var isWorkflowCompleted = false;
+                var isAllCompleted = false;
                 console.log('Checking all subworkflows are completed...');
                 // check if the workflow of the assignment that belongs to the user is completed
                 // check if all the workflow of the assignment that belongs to the user is completed
