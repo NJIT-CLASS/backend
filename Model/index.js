@@ -3,7 +3,7 @@ var Sequelize = require("sequelize");
 process.env.dbHost = 'localhost';
 process.env.dbUser = 'root';
 process.env.dbPass = '123';
-process.env.database = 'class/pla';
+process.env.database = 'class_Brice';
 process.env.serverPort = '4000';
 
 var sequelize = new Sequelize(process.env.database, process.env.dbUser, process.env.dbPass, {
@@ -41,11 +41,13 @@ models.forEach(function(model) {
     //Belongs To Relations
     //Sorted By Foreign Key
 
-      m.User.belongsTo(m.ResetPasswordRequest, {foreignKey: 'UserID'});
-      m.User.belongsTo(m.UserLogin, {foreignKey: 'UserID'});
-      m.User.belongsTo(m.UserContact, {foreignKey: 'UserContactID'});
-
       m.Course.belongsTo(m.User,{foreignKey: 'CreatorID'});
+
+      m.User.hasOne(m.UserLogin,{foreignKey: 'UserID'});
+      m.User.hasOne(m.UserContact,{foreignKey: 'UserID'});
+      m.UserLogin.belongsTo(m.User,{foreignKey: 'UserID'});
+      m.UserContact.belongsTo(m.User,{foreignKey: 'UserID'});
+      m.SectionUser.belongsTo(m.UserLogin,{foreignKey: 'UserID'});
 
       m.Section.belongsTo(m.Semester,{foreignKey: 'SemesterID'});
       m.Section.belongsTo(m.Course,{foreignKey: 'CourseID'});
@@ -131,8 +133,9 @@ models.forEach(function(model) {
       m.User.hasMany(m.GroupUser, {as :'GroupUsers' ,foreignKey : 'UserID'});
       m.User.hasMany(m.TaskInstance,{as :'TaskInstances' ,foreignKey: 'UserID'});
 
-      // m.Group.hasMany(m.GroupUser,{as :' GroupUsers' ,foreignKey : 'GroupID'})
-
+      //m.User.hasOne(m.UserLogin,{foreignKey: 'UserID'});
+      //m.User.hasOne(m.UserContact,{foreignKey: 'UserID'});
+      //m.SectionUser.hasOne(m.UserLogin,{foreignKey: 'UserID'});
 
 
 })(module.exports);

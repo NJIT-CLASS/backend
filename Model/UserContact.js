@@ -1,24 +1,54 @@
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('UserContact', {
-        UserContactID: {
-            //Unique contact identifier
+        UserID: {
+            // unique contact identifier
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'UserContactID',
+            field: 'UserID',
             allowNull: false,
-            autoIncrement: true,
             primaryKey: true
         },
-        Email: {//Email and Phone move to user table
-            //Primary email
+        Email: {
+            // preferred email for notifications
             type: DataTypes.STRING(70),
             field: 'Email',
-            allowNull: false
+            allowNull: true,
+            unique: true
         },
         Phone: {
-            //Primary Phone Number
+            // preferred phone number for notificationms
             type: DataTypes.STRING(15),
             field: 'Phone',
-            allowNull: false
+            allowNull: true
+        },
+        FirstName: {
+            // preferred first name of the user
+            type: DataTypes.STRING(40),
+            field: 'FirstName',
+            allowNull: true
+        },
+        LastName: {
+            // preferred last name of the user
+            type: DataTypes.STRING(40),
+            field: 'LastName',
+            allowNull: true
+        },
+        Alias: {
+            // alias of the user
+            type: DataTypes.STRING(40),
+            field: 'Alias',
+            allowNull: true
+        },
+        ProfilePicture: {
+            // profile picture of user
+            type: DataTypes.JSON,
+            field: 'ProfilePicture',
+            allowNull: true
+        },
+        Avatar: {
+            // graphical avatar of user
+            type: DataTypes.JSON,
+            field: 'Avatar',
+            allowNull: true
         }
     }, {
         timestamps: false,

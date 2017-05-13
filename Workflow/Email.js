@@ -71,7 +71,7 @@ class Email  {
 
         smtpTransporter = nodemailer.createTransport(smtpTransport({
             host: "smtp.gmail.com",
-            secureConnection: false,
+            secureConnection: true,
             port: 587,
             auth: {
                 user: email,
@@ -107,64 +107,75 @@ class Email  {
     /*
       Send an email now given userid and type of email needs to be sent.
     */
-    sendNow(userid, type) {
+    sendNow(userid, type, temp_pass=null) {
 
-            var x = this;
+        var x = this;
+        console.log(models.UserLogin);
+        models.UserLogin.find({
+            where: {
+                UserID: userid
+            }
+        }).then(function(result) {
 
-            UserLogin.find({
-                where: {
-                    UserID: userid
-                }
-            }).then(function(result) {
+            console.log("Sending Email To: ", result.Email, "...");
 
-                console.log("Sending Email To: ", result.Email, "...");
-
-                switch (type) {
-                    case 'create user':
-                        x.send({
-                            from: email,
-                            replyTo: email,
-                            to: result.Email,
-                            subject: "Welcome to PLA!",
-                            text: "You have succesfully created an account on PLA",
-                            html: '<p> You have succesfully created an account on PLA! Here is the temperary password for your account: </p>'
-                        });
-                        break;
-                    case 'due less than one day':
-                        x.send({
-                            from: email,
-                            replyTo: email,
-                            to: result.Email,
-                            subject: "Participatory Learning Approach- Assignment Due In 1 Day!",
-                            text: "You have an assignment due within one day. Please check the website and complete immediately!",
-                            html: ""
-                        });
-                        break;
-                    case 'due less than seven days':
-                        x.send({
-                            from: email,
-                            replyTo: email,
-                            to: result.Email,
-                            subject: "Participatory Learning Approach- Assignment Due In A Week!",
-                            text: "You have an assignment due within a week. Please careful check the due time!",
-                            html: ""
-                        });
-                        break;
-                    case 'late':
-                        x.send({
-                            from: email,
-                            replyTo: email,
-                            to: result.Email,
-                            subject: "Your assignment is overdue - PLA",
-                            text: "You have an assignment that is due. Please check PLA",
-                            html: ""
-                        })
-                        break;
-                    default:
-                        return null;
-                }
-            });
-        }
+            switch (type) {
+                case 'create user':
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: "Welcome to PLA!",
+                        text: "You have succesfully created an account on PLA",
+                        html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: </p>'
+                    });
+                    break;
+                case 'invite user':
+                    console.log('inviting ' + result.Email);
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: "Welcome to PLA!",
+                        text: "You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.\nTemporary Password: " + temp_pass,
+                        html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<br/>Temporary Password: ' + temp_pass + '</p>'
+                    });
+                    break;
+                case 'due less than one day':
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: "Participatory Learning Approach- Assignment Due In 1 Day!",
+                        text: "You have an assignment due within one day. Please check the website and complete immediately!",
+                        html: ""
+                    });
+                    break;
+                case 'due less than seven days':
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: "Participatory Learning Approach- Assignment Due In A Week!",
+                        text: "You have an assignment due within a week. Please carefully check the due date!",
+                        html: ""
+                    });
+                    break;
+                case 'late':
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: "Your assignment is overdue - PLA",
+                        text: "You have an assignment that is due. Please check PLA",
+                        html: ""
+                    })
+                    break;
+                default:
+                    return null;
+            }
+        });
+    }
         //Update Email Last Sent in Task Instance to Now.
     updateEmailLastSent(taskInstanceId) {
         TaskInstance.update({

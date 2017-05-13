@@ -15,43 +15,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Name',
             allowNull: true,
         },
-        UserID: {
-            type: DataTypes.INTEGER,
-            field: 'UserID',
+        Logo: {
+            type: DataTypes.JSON,
+            field: 'Logo',
             allowNull: true
         }
-        // Address: {
-        //     //Address of the organization.
-        //     type: DataTypes.STRING(70),
-        //     field: 'Address',
-        //     allowNull: false
-        // },
-        // City: {
-        //     type: DataTypes.STRING(20),
-        //     field: 'City',
-        //     allowNull: false
-        // },
-        // State: {
-        //     type: DataTypes.STRING(2),
-        //     field: 'State',
-        //     allowNull: false
-        // },
-        // ZipCode: {
-        //     type: DataTypes.STRING(20),
-        //     field: 'Zip',
-        //     allowNull: false
-        // },
-        // Country: {
-        //     type: DataTypes.STRING(30),
-        //     field: 'Country',
-        //     allowNull: false
-        // },
-        // Type: {
-        //     //Unique identifier for the organization type.
-        //     type: DataTypes.STRING,
-        //     field: 'Type',
-        //     allowNull: true
-        // }
     }, {
         timestamps: false,
 

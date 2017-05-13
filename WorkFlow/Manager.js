@@ -452,8 +452,8 @@ class Manager {
 //     return SectionUser.findAll({
 //         where: {
 //             SectionID: assignmentInstance.SectionID,
-//             UserStatus: 'Active',
-//             UserRole: 'Student'
+//             Active: true,
+//             Role: 'Student'
 //         },
 //         include: [{
 //             model: User

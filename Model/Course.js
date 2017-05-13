@@ -13,13 +13,13 @@ module.exports = function(sequelize, DataTypes) {
             //Number of the course (e.g. Chem101,Math101)
             type: DataTypes.STRING(50),
             field: 'Number',
-            allowNull: true
+            allowNull: false
         },
         Name: {
             //Name of the course
             type: DataTypes.STRING(150),
             field: 'Name',
-            allowNull: true
+            allowNull: false
         },
         OrganizationID: {
             //Unique identifier for the organization
@@ -31,17 +31,7 @@ module.exports = function(sequelize, DataTypes) {
         CreatorID: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'CreatorID',
-            allowNull: true
-        },
-        //Abbreviations: {
-        //    type: DataTypes.STRING,
-        //    field: 'Abbreviations',
-        //    allowNull: true
-        //},
-        Description: {
-           type: DataTypes.STRING,
-           field: 'Description',
-           allowNull: true
+            allowNull: false
         }
     }, {
         timestamps: false,

@@ -24,13 +24,13 @@ module.exports = function(sequelize, DataTypes) {
         },
         StartDate: {
             //Start date of the semester
-            type: DataTypes.DATE,
+            type: DataTypes.DATEONLY,
             field: 'StartDate',
             allowNull: true
         },
         EndDate: {
             //End date of the semester
-            type: DataTypes.DATE,
+            type: DataTypes.DATEONLY,
             field: 'EndDate',
             allowNull: true
         }

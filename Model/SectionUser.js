@@ -23,28 +23,29 @@ module.exports = function(sequelize, DataTypes) {
             field: 'UserID',
             allowNull: false
         },
-        UserRole: {
+        Role: {
             //Role of the user in the course on the respective semester
             type: DataTypes.STRING(30),
-            field: 'UserRole',
-            allowNull: true,
+            field: 'Role',
+            allowNull: false,
+            defaultValue: 'Student',
             validate: {
                 isIn: [
-                    ['Student', 'Instructor']
+                    ['Student', 'Instructor', 'Observer']
                 ]
             }
         },
-        UserStatus: {
-            //Describes the status of the student in that section. Example: Active, Inactive, Dropped
-            type: DataTypes.STRING(30),
-            field: 'UserStatus',
-            allowNull: true,
-            defaultValue: 'Active',
-            validate: {
-                isIn: [
-                    ['Active', 'Inactive']
-                ]
-            }
+        Active: {
+            type: DataTypes.BOOLEAN,
+            field: 'Active',
+            allowNull: false,
+            defaultValue: true
+        },
+        Volunteer: {
+            type: DataTypes.BOOLEAN,
+            field: 'Volunteer',
+            allowNull: false,
+            defaultValue: false
         }
     }, {
         timestamps: false,
