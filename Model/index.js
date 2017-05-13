@@ -6,7 +6,6 @@ var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_P
     host: settings.DB_HOST,
     dialect: 'mysql',
     omitNull: true,
-
     pool: {
         max: 5,
         min: 0,

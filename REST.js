@@ -520,7 +520,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             logger.log('debug', 'response content file headers', content_headers)
             res.writeHead(200, content_headers)
             logger.log('info', 'Sending file to client')
-            fs.createReadStream(file_ref.Info.path).pipe(res)
+            const readStream = fs.createReadStream(file_ref.Info.path);
+            readStream.on('open', () => {
+              readStream.pipe(res)
+            })
+            readStream.on('error', (err) => {
+              logger.log('error', 'valid reference but file not found', {file_id: file_id})
+              res.status(400).end();
+            })
         })
     })
     //--------------------Start Volunteer Pool APIs---------------------------------------------------------------------------------
@@ -2943,6 +2950,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             }
                             allocator.applyVersionContstraints(ar, result, req.query.userID)
                             ar.push(result);
+                            let stringed = JSON.stringify(ar);
+                            console.log(stringed);
                             res.json({
                                 "previousTasksList": done,
                                 "superTask": ar
