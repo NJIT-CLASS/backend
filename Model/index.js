@@ -36,11 +36,13 @@ models.forEach(function(model) {
     //Belongs To Relations
     //Sorted By Foreign Key
 
-      m.User.belongsTo(m.ResetPasswordRequest, {foreignKey: 'UserID'});
-      m.User.belongsTo(m.UserLogin, {foreignKey: 'UserID'});
-      m.User.belongsTo(m.UserContact, {foreignKey: 'UserContactID'});
-
       m.Course.belongsTo(m.User,{foreignKey: 'CreatorID'});
+
+      m.User.hasOne(m.UserLogin,{foreignKey: 'UserID'});
+      m.User.hasOne(m.UserContact,{foreignKey: 'UserID'});
+      m.UserLogin.belongsTo(m.User,{foreignKey: 'UserID'});
+      m.UserContact.belongsTo(m.User,{foreignKey: 'UserID'});
+      m.SectionUser.belongsTo(m.UserLogin,{foreignKey: 'UserID'});
 
       m.Section.belongsTo(m.Semester,{foreignKey: 'SemesterID'});
       m.Section.belongsTo(m.Course,{foreignKey: 'CourseID'});
@@ -126,8 +128,9 @@ models.forEach(function(model) {
       m.User.hasMany(m.GroupUser, {as :'GroupUsers' ,foreignKey : 'UserID'});
       m.User.hasMany(m.TaskInstance,{as :'TaskInstances' ,foreignKey: 'UserID'});
 
-      // m.Group.hasMany(m.GroupUser,{as :' GroupUsers' ,foreignKey : 'GroupID'})
-
+      //m.User.hasOne(m.UserLogin,{foreignKey: 'UserID'});
+      //m.User.hasOne(m.UserContact,{foreignKey: 'UserID'});
+      //m.SectionUser.hasOne(m.UserLogin,{foreignKey: 'UserID'});
 
 
 })(module.exports);

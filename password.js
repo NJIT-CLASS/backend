@@ -23,4 +23,15 @@ const verify = async (hash, plain) => {
 	}
 }
 
-module.exports = { hash, verify }
+// create random password
+const generate = () => {
+	const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP1234567890!@#$%&';
+	let password = '';
+	for (var x = 0; x < 16; x++) {
+		let i = Math.floor(Math.random() * chars.length);
+		password += chars.charAt(i);
+	}
+	return password;
+}
+
+module.exports = { hash, verify, generate }

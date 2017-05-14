@@ -1011,7 +1011,7 @@ class TaskFactory {
                                 attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
                                 include: [{
                                     model: User,
-                                    attributes: ['UserID', "UserType", 'UserName']
+                                    attributes: ['UserID', 'Instructor', 'UserName']
                                 }, {
                                     model: TaskActivity,
                                     attributes: ['Type']
@@ -1079,7 +1079,7 @@ class TaskFactory {
                                 attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
                                 include: [{
                                     model: User,
-                                    attributes: ['UserID', "UserType", 'UserName']
+                                    attributes: ['UserID', 'Instructor', 'UserName']
                                 }, {
                                     model: TaskActivity,
                                     attributes: ['Type']
