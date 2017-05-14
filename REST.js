@@ -44,7 +44,7 @@ var Util = require('./WorkFlow/Util.js');
 var FlatToNested = require('flat-to-nested');
 var fs = require('fs')
 
-const multer = require('multer')
+const multer = require('multer') //TODO: we may need to limit the file upload size
 var storage = multer({dest: './files/'})
 const logger = require('winston')
 
@@ -408,7 +408,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     // Inactivate section user
     router.post('/sectionUser/inactivate/:section_user_id', function (req, res) {
-        logger.log('info', 'post: /sectionUser/inactivate/, inactivate section user', {req_body: req.body, req_params: req.params})
+        logger.log('info', 'post: /sectionUser/inactivate/, inactivate section user', {
+            req_body: req.body,
+            req_params: req.params
+        })
         var section_user_id = req.body.section_user_id || req.params.section_user_id
 
         if (section_user_id == null) {
@@ -431,6 +434,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     })
 
 
+    // Upload files for a task
     // router.post('/upload/files/:userId', storage.array('files'), function (req, res) {
     router.post('/upload/files', storage.array('files'), function (req, res) {
         logger.log('info', 'post: /upload/files, files uploaded to file system', {
@@ -439,10 +443,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             // req_files: req.files,
         })
         if (req.body.userId == null) {
-            logger.log('info', 'userId is required but not specified')
+            logger.log('error', 'userId is required but not specified')
             return res.status(400).end()
-            // req.body.userId = 2
         }
+        if (req.body.taskInstanceId == null) {
+            logger.log('error', 'taskInstanceId is required but not specified')
+            return res.status(400).end()
+        }
+        // Add file references (info)
         return new Util().addFileRefs(req.files, req.body.userId).then(function (file_refs) {
 
           return Promise.all(file_refs.map(function (it) {
@@ -454,8 +462,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 let newFilesArray = JSON.parse(ti.Files) || [];
                 newFilesArray = newFilesArray.concat(file_ids);
 
+                // Update task instance with the new file references
                 return TaskInstance.update({Files: newFilesArray}, {where: {TaskInstanceID: req.body.taskInstanceId}}).then(done => {
                     logger.log('info', 'task updated with new files', {res: done})
+                    // Respond wtih file info
                     res.json(file_refs).end()
                     return done
                 })
@@ -466,6 +476,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         })
     })
 
+    // Upload a user profile pictures //TODO: we may want to limit this to just one profile picture upload and also allow only (PNG, JPG, etc) picture formatted files
     // router.post('/upload/profile-picture/:userId', multer({dest: './uploads/'}).single('profilePicture'), function(req, res) {
     router.post('/upload/profile-picture', storage.array('files'), function (req, res) {
         // router.post('/upload/profile-picture/:userId', storage.array('files'), function (req, res) {
@@ -479,14 +490,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             return res.status(400).end()
             // req.body.userId = 2
         }
+        // Add file reference (info)
         return new Util().addFileRefs(req.files, req.body.userId).then(function (file_refs) {
             return Promise.all(file_refs.map(function (it) {
                 return it.FileID
             })).then(function (file_ids) {
                 logger.log('info', 'new profile picture file ids', file_ids)
 
+                // update user profile picture field with file reference
                 return UserContact.update({ProfilePicture: file_ids}, {where: {UserID: req.body.userId}}).then(function (done) {
                     logger.log('info', 'user updated with new profile pictures info', {res: done})
+                    // respond with file info
                     res.json(file_refs).end()
                     return done
                 })
@@ -494,6 +508,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         })
     })
 
+    // download a file using file reference //TODO: we may want to add a parameter that controls the response type (direct download or show up (display) on the browser)
     router.get('/download/file/:fileId', function (req, res) {
         // router.post('/download/file/:fileId', function (req, res) {
         // router.get('/download/file', function (req, res) {
@@ -515,7 +530,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             var content_headers = {
                 'Content-Type': file_ref.Info.mimetype,
                 'Content-Length': file_ref.Info.size,
-                'Content-Disposition' : contDisp,
+                'Content-Disposition': contDisp,
             }
             logger.log('debug', 'response content file headers', content_headers)
             res.writeHead(200, content_headers)
@@ -2812,7 +2827,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    // view access contraints
     //Endpoint to retrieve all the assignment and its current state
     router.get('/getAssignmentRecord/:assignmentInstanceid', function(req, res) {
         var taskFactory = new TaskFactory();
@@ -2981,6 +2995,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }).then((result) => {
                     //console.log(result);
                     ar.push(result);
+                    // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
                     return allocator.applyViewContstraints(res, req.query.userID, result)
                 });
             }).then(function() {
@@ -2997,17 +3012,20 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     .then((result) => {
                         //console.log(result);
                         logger.log('debug', 'done collecting previous tasks')
+                        // check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
                         return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function (done1) {
-                            if (res._headerSent) {
+                            if (res._headerSent) { // if already responded (response sent)
                                 return
                             }
+                            // update data field of all tasks with the appropriate allowed version
                             allocator.applyVersionContstraints(ar, result, req.query.userID)
                             ar.push(result);
                             let stringed = JSON.stringify(ar);
                             console.log(stringed);
                             res.json({
-                                "previousTasksList": done,
-                                "superTask": ar
+                                error: false,
+                                previousTasksList: done,
+                                superTask: ar,
                             });
                         })
                     });
