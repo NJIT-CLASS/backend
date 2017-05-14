@@ -33,42 +33,6 @@ var email = new Email();
 
 class Manager {
 
-    debug() {
-        TaskInstance.findAll({
-            where: {
-                $or: [{
-                    Status: "started"
-                }, {
-                    Status: "late_reallocated"
-                }]
-            },
-            include: [
-                {
-                    model: AssignmentInstance,
-                    attributes: ["AssignmentInstanceID", "AssignmentID"],
-                    include: [{
-                        model: Section,
-                        attributes: ["SectionID"],
-                    },
-                    ]
-                },
-            ],
-            raw: true
-        }).then(function(lst) {
-            var res = {};
-            lst.forEach(function (it) {
-                var secId = it['AssignmentInstance.Section.SectionID']
-                if (!res[secId]) {
-                    res[secId] = {tasks: [], users: []}
-                }
-                res[secId].tasks.push(it.TaskInstanceID);
-                res[secId].users.push(it.UserID);
-                // console.log(it.TaskInstanceID, it['AssignmentInstance.Section.SectionID'], it.UserID)
-                console.log(res);
-            })
-        });
-    }
-
     check() {
         var x = this
         TaskInstance.findAll({
@@ -92,14 +56,16 @@ class Manager {
             // raw: true
         }).then(function(lst) {
             var res = {}
+            //TODO: for users list, replace it with: get volunteers that are active in section user [see commented lines, TODOs]
             return Promise.mapSeries(lst, function (it) {
                 // console.log(it.TaskInstanceID, it.AssignmentInstance.Section.SectionID, it.UserID)
                 var secId = it.AssignmentInstance.Section.SectionID
                 if (!res[secId]) {
-                    res[secId] = {tasks: [], users: []}
+                    res[secId] = {tasks: [], users: []} //TODO: comment this line once volunteers are used instead
+                    // res[secId] = {tasks: [], users: getActiveVolunteers(secId)} //TODO: uncomment this line once volunteers are used instead
                 }
                 res[secId].tasks.push(it)
-                res[secId].users.push(it.UserID) //TODO: call get Volunteers and make sure they are active
+                res[secId].users.push(it.UserID) //TODO: comment this line once volunteers are used instead
                 // console.log(res)
             }).then(function (done) {
                 // console.log('then....' + res)

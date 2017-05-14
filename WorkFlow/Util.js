@@ -9,11 +9,12 @@ const logger = require('winston')
 
 /*
  Constructor
+ For other (miscellaneous) utilities
  */
 class Util {
 
     /*
-     uploaded files' references to database
+     Add uploaded files' references
      */
     addFileRefs(file_infos, user_id) {
         logger.log('info', 'add file references', {user_id: user_id, file_infos: file_infos})
@@ -29,7 +30,7 @@ class Util {
     }
 
     /*
-    Add a new file reference to database
+    Add a new file reference
      */
     addFileRef(user_id, file_info) {
         logger.log('info', 'add file', {user_id: user_id, file_info: file_info})
