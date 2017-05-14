@@ -485,7 +485,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             })).then(function (file_ids) {
                 logger.log('info', 'new profile picture file ids', file_ids)
 
-                return User.update({ProfilePicture: file_ids}, {where: {UserID: req.body.userId}}).then(function (done) {
+                return UserContact.update({ProfilePicture: file_ids}, {where: {UserID: req.body.userId}}).then(function (done) {
                     logger.log('info', 'user updated with new profile pictures info', {res: done})
                     res.json(file_refs).end()
                     return done
@@ -1830,7 +1830,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 where: {
                     SectionID: req.params.sectionId
                 },
-                attributes: ['UserID', 'Role', ' Active'],
+                attributes: ['UserID', 'Role', 'Active'],
                 include: {
                     model: User,
                     attributes: ['UserName', 'FirstName', 'LastName']

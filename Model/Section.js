@@ -35,6 +35,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.STRING(100),
             field: 'Name',
             allowNull: false
+        },
+        Description: {
+            type: DataTypes.STRING(255),
+            field: 'Description',
+            allowNull: true
         }
         // Roster: {
         //     //Array of users in the course
