@@ -1433,11 +1433,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         //     res.status(400).end();
         //     return;
         // }
-        if (req.body.organizationid == null) {
-            console.log("course/createsection : OrganizationID cannot be null");
-            res.status(400).end();
-            return;
-        }
+        // if (req.body.organizationid == null) {
+        //     console.log("course/createsection : OrganizationID cannot be null");
+        //     res.status(400).end();
+        //     return;
+        // }
 
         //-----------------------------------------------------------------------------------------------------
         Semester.find({
@@ -1447,7 +1447,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(results) {
             var section = Section.build({
                 SemesterID: req.body.semesterid,
-                OrganizationID: req.body.organizationid,
                 CourseID: req.body.courseid,
                 StartDate: results.StartDate,
                 EndDate: results.EndDate,
