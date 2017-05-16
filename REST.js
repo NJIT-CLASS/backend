@@ -1,4 +1,4 @@
-var mysql = require("mysql");
+
 var dateFormat = require('dateformat');
 var Guid = require('guid');
 var models = require('./Model');
@@ -3711,7 +3711,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-
     // endpoint to add sectionusers, invite users not yet in system
     router.post("/sectionUsers/:sectionid", function(req, res) {
         UserLogin.find({
@@ -3727,7 +3726,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }).catch(function(err) {
                     console.log(err);
                 }).then(async function(user) {
-                    let temp_pass = password.generate();
+                    let temp_pass = await password.generate();
                     UserLogin.create({
                         UserID: user.UserID,
                         Email: req.body.email,

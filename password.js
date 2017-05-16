@@ -1,6 +1,6 @@
 'use strict';
 const argon2 = require('argon2');
-
+const randomNumber = require("random-number-csprng");
 // increase defaults for more security
 const options = {
 	hashLength: 64,
@@ -24,13 +24,14 @@ const verify = async (hash, plain) => {
 }
 
 // create random password
-const generate = () => {
+const generate = async () => {
 	const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOP1234567890!@#$%&';
 	let password = '';
 	for (var x = 0; x < 16; x++) {
-		let i = Math.floor(Math.random() * chars.length);
+		let i = await randomNumber(0, chars.length);
 		password += chars.charAt(i);
 	}
+
 	return password;
 }
 
