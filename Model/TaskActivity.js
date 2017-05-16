@@ -216,11 +216,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'MinimumDuration',
             allowNull: true
         },
-        ViewAccessContraints: {
+        /*ViewAccessContraints: {
             type: DataTypes.JSON,
             field: 'ViewAccessContraints',
             allowNull: true
-        },
+        },*/
         VersionEvaluation: {
             type: DataTypes.STRING,
             field: 'VersionEvaluation',
@@ -235,7 +235,7 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.BOOLEAN,
             field: 'SeeSameActivity',
             allowNull: true
-        }
+        },
     }, {
         timestamps: false,
 

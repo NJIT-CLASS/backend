@@ -52,7 +52,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         Status: {
             //Current status of the task instance
-            type: DataTypes.STRING(20),
+            type: DataTypes.TEXT,
             field: 'Status',
             allowNull: true
         },
@@ -158,7 +158,7 @@ module.exports = function(sequelize, DataTypes) {
 
             triggerNext: function() {
                 let x = this;
-                if ((x.StartDate === null || x.EndDate === null) && x.Status !== 'automatic') {
+                if ((x.StartDate === null || x.EndDate === null) && JSON.parse(x.Status)[0] !== 'automatic') {
                     throw Error('Missing attributes!  TaskInstanceID:', x.TaskInstanceID);
                     return null;
                 } else if (x.NextTask === null) {
@@ -182,9 +182,9 @@ module.exports = function(sequelize, DataTypes) {
                                 return x.findType(function(type) {
                                     if (ta_result.Type === 'needs_consolidation' && nextTask.FinalGrade == null) {
                                         nextTask.needsConsolidate();
-                                    } else if (type === 'consolidation' && x.FinalGrade == null && x.Status !== 'bypassed') {
+                                    } else if (type === 'consolidation' && x.FinalGrade == null && JSON.parse(x.Status)[0] !== 'bypassed') {
                                         x.consolidate();
-                                    } else if (type === 'resolve_dispute' && x.FinalGrade == null && x.Status !== 'bypassed') {
+                                    } else if (type === 'resolve_dispute' && x.FinalGrade == null && JSON.parse(x.Status)[0] !== 'bypassed') {
                                         x.resolveDispute();
                                     }
                                     // else if (ta_result.Type === 'completed') {
@@ -194,8 +194,10 @@ module.exports = function(sequelize, DataTypes) {
                                         //findNewDates return an array of [newStartDate, newEndDate]
                                         console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
                                         var dates = nextTask.findNewDates(function(dates) {
+                                          var newStatus = JSON.parse(nextTask.Status);
+                                          newStatus[0] = 'started';
                                             models.TaskInstance.update({
-                                                Status: 'started',
+                                                Status: JSON.stringify(newStatus),
                                                 StartDate: dates[0],
                                                 EndDate: dates[1]
                                             }, {
@@ -229,7 +231,7 @@ module.exports = function(sequelize, DataTypes) {
                 }
 
                 var newDate = new Date();
-                x.Status = 'bypassed';
+                JSON.parse(x.Status)[0] = 'bypassed';
                 x.ActualEndDate = newDate;
 
                 return Promise.all([x.save()]).then(function() {
@@ -248,8 +250,11 @@ module.exports = function(sequelize, DataTypes) {
 
                                     //findNewDates return an array of [newStartDate, newEndDate]
                                     console.log('Skipping dispute task... Current TaskInstanceID:', x.TaskInstanceID);
+
+                                    var newStatus = JSON.parse(nextTask.Status);
+                                    newStatus[0] = 'started';
                                     models.TaskInstance.update({
-                                        Status: 'bypassed',
+                                        Status: JSON.stringify(newStatus),
                                         StartDate: newDate,
                                         EndDate: newDate,
                                         ActualEndDate: newDate
@@ -296,8 +301,10 @@ module.exports = function(sequelize, DataTypes) {
 
                                     //findNewDates return an array of [newStartDate, newEndDate]
                                     console.log('Skipping consolidation task... Current TaskInstanceID:', x.TaskInstanceID);
+                                    var newStatus = JSON.parse(nextTask.Status);
+                                    newStatus[0] = 'started';
                                     return models.TaskInstance.update({
-                                        Status: 'bypassed',
+                                        Status: JSON.stringify(newStatus),
                                         StartDate: newDate,
                                         EndDate: newDate,
                                         ActualEndDate: newDate
@@ -317,8 +324,10 @@ module.exports = function(sequelize, DataTypes) {
                                                     //findNewDates return an array of [newStartDate, newEndDate]
                                                     console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
                                                     var dates = nextTask.findNewDates(function(dates) {
+                                                      var newStatus = JSON.parse(nextNextTask.Status);
+                                                      newStatus[0] = 'started';
                                                         models.TaskInstance.update({
-                                                            Status: 'started',
+                                                            Status: JSON.stringify(newStatus),
                                                             StartDate: dates[0],
                                                             EndDate: dates[1]
                                                         }, {
@@ -479,7 +488,7 @@ module.exports = function(sequelize, DataTypes) {
                         }
                     }).then(function(ti_result) {
                         //Check if all grading solution are completed
-                        if (ti_result.Status != 'complete') {
+                        if (JSON.parse(ti_result.Status)[0] != 'complete') {
                             console.log('Grading tasks pending...');
                             isAllCompleted = false;
                         }

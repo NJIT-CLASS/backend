@@ -37,9 +37,9 @@ class Manager {
         TaskInstance.findAll({
             where: {
                 $or: [{
-                    Status: "started"
+                    Status: '%"started"%'
                 }, {
-                    Status: "late_reallocated"
+                    Status: '%"late_reallocated"%'
                 }]
             },
             include: [
@@ -74,9 +74,13 @@ class Manager {
         TaskInstance.findAll({
             where: {
                 $or: [{
-                    Status: "started"
+                    Status: {
+                      $like:'%"started"%'
+                    }
                 }, {
-                    Status: "late_reallocated"
+                    Status: {
+                      $like:'%"late_reallocated"%'
+                    }
                 }]
             },
             include: [
@@ -99,7 +103,7 @@ class Manager {
                     res[secId] = {tasks: [], users: []}
                 }
                 res[secId].tasks.push(it)
-                res[secId].users.push(it.UserID)
+                res[secId].users.push(it.UserID) //TODO: call get Volunteers and make sure they are active
                 // console.log(res)
             }).then(function (done) {
                 // console.log('then....' + res)
@@ -158,7 +162,7 @@ class Manager {
         var x = this;
         TaskInstance.findAll({
             where: {
-                Status: 'late'
+                Status: '%"late"%'
             }
         }).then(function(taskInstances) {
             taskInstances.forEach(function(task) {
@@ -220,14 +224,14 @@ class Manager {
 
         //decision point to decide change the status whether late, abandon, or complete
         if (task.Type == 'dispute') {
-            task.Status = 'complete';
+            JSON.parse(task.Status)[0] = 'complete';
             return Promise.map(JSON.parse(task.NextTask), function(task) {
                 TaskInstance.find({
                     where: {
                         TaskInstanceID: task
                     }
                 }).then(function(nextTask) {
-                    nextTask.Status = 'bypassed';
+                    JSON.parse(nextTask.Status)[0] = 'bypassed';
                     //need an algorithm that checks for all subworkflow/workflow complete. Triverse the tree to find all subworkflow.
                 }).then(function(err) {
                     console.log("Resolve dispute failed to bypass. TaskInstanceID: ", nextTask.TaskInstanceID);
@@ -245,13 +249,13 @@ class Manager {
                         //check WhatIfLate action
                         switch (taskActivity.WhatIfLate) {
                             case '"keep_same_participant"':
-                                task.Status = 'late';
+                                JSON.parse(task.Status)[0] = 'late';
                                 //email.sendNow(task.UserID, 'late');
                                 break;
                             case '"allocate_new_person_from_contingency_pool"':
                                 console.log("TaskInstance ", task.TaskInstanceID, ": Allocating new user to the task...");
                                 //task.Status = 'late_reallocated';
-                                task.Status = 'started';
+                                JSON.parse(task.Status)[0] = 'started';
                                 //Run allocation algorithm, extend due date.
                                 task.extendDate(4320)
                                 // task.save()
@@ -269,7 +273,7 @@ class Manager {
                                 break;
                             case '"allocate_to_different_person_in_same_group"':
                                 //task.Status = 'late_reallocated';
-                                task.Status = 'started';
+                                JSON.parse(task.Status)[0] = 'started';
                                 //Run allocation algorithm specifiy with team, extend due date.
                                 alloc.findGroupUsers(task.GroupID, function(users) {
                                     //alloc.reallocate(task.TaskInstanceID, users);
@@ -279,7 +283,7 @@ class Manager {
                             case '"allocate_to_instructor"':
                                 console.log("TaskInstance ", task.TaskInstanceID, ": Allocating instructor to the task...");
                                 //task.Status = 'late_reallocated';
-                                task.Status = 'started';
+                                JSON.parse(task.Status)[0] = 'started';
                                 //Run allocation algorithm specifiy with team, extend due date
                                 alloc.findInstructor(task.AssignmentInstanceID, function(instructor) {
                                     alloc.reallocate(task, [instructor], done);
@@ -297,18 +301,18 @@ class Manager {
                         }
                         break;
                     case "resolve":
-                        task.Status = 'complete';
+                        JSON.parse(task.Status)[0] = 'complete';
                         //submitted. Stop task instance and continue subworkflow task status = complete
                         break;
                     case "abandon":
-                        task.Status = 'abandoned';
+                        JSON.parse(task.Status)[0] = 'abandoned';
                         //abandoning subworkflow. status = complete
                         //*add subworkflow complete.
                         //Skip to subworkflow complete
                         break;
                     case "complete":
                         //change status to complete
-                        task.Status = 'complete';
+                        JSON.parse(task.Status)[0] = 'complete';
                         //start nexttask
                         task.triggerNext();
                         break;
