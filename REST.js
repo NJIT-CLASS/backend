@@ -3713,6 +3713,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     // endpoint to add sectionusers, invite users not yet in system
     router.post("/sectionUsers/:sectionid", function(req, res) {
+      //expects -email
+      //        -firstName
+      //        -lastName
+      //        -email
+      //        -sectionid
+      //        -email
+      //        -active
+      //        -body
+      //        -role
         UserLogin.find({
             where: {
                 Email: req.body.email
@@ -3720,40 +3729,73 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['UserID']
         }).then(function(response) {
             if (response == null || response.UserID == null) {
-                User.create({
-                    FirstName: req.body.firstName,
-                    LastName: req.body.lastName
-                }).catch(function(err) {
-                    console.log(err);
-                }).then(async function(user) {
-                    let temp_pass = await password.generate();
-                    UserLogin.create({
-                        UserID: user.UserID,
-                        Email: req.body.email,
-                        Password: await password.hash(temp_pass)
-                    }).catch(function(err) {
+                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                .then(function(){
+                  User.create({
+                      FirstName: req.body.firstName,
+                      LastName: req.body.lastName,
+                      Instructor: req.body.role === 'Instructor'
+                  }).catch(function(err) {
                       console.log(err);
-                    }).then(function(userLogin) {
-                        //let email = new Email();
-                        //email.sendNow(result.UserID, 'invite user', temp_pass);
-                        SectionUser.create({
-                            SectionID: req.params.sectionid,
-                            UserID: userLogin.UserID,
-                            Active: req.body.active,
-                            Volunteer: req.body.volunteer,
-                            Role: req.body.role
+                      sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                      .then(function(){
+                        res.status(500).end();
+                      });
+                  }).then(async function(user) {
+                      let temp_pass = password.generate();
+                      UserContact.create({
+                          UserID: user.UserID,
+                          FirstName: req.body.firstName,
+                          LastName: req.body.lastName,
+                          Email: req.body.email,
+                          Phone: '(XXX) XXX-XXXX'
+                      }).catch(function(err) {
+                          console.log(err);
+                          sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                          .then(function(){
+                            res.status(500).end();
+                          });
+                      }).then(async function(userCon){
+                        UserLogin.create({
+                            UserID: user.UserID,
+                            Email: req.body.email,
+                            Password: await password.hash(temp_pass)
                         }).catch(function(err) {
-                            console.log(err);
-                        }).then(function(sectionUser) {
-                            console.log('Creating user, inviting, and adding to section');
-                            res.json({
-                                success: true,
-                                message: 'new user'
+                          console.log(err);
+                          sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                          .then(function(){
+                            res.status(500).end();
+                          });
+                        }).then(function(userLogin) {
+                            let email = new Email();
+                            email.sendNow(user.UserID, 'invite user', temp_pass);
+                            SectionUser.create({
+                                SectionID: req.params.sectionid,
+                                UserID: userLogin.UserID,
+                                Active: req.body.active,
+                                Volunteer: req.body.volunteer,
+                                Role: req.body.role
+                            }).catch(function(err) {
+                                console.log(err);
+                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                .then(function(){
+                                  res.status(500).end();
+                                });
+                            }).then(function(sectionUser) {
+                                console.log('Creating user, inviting, and adding to section');
+                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                .then(function(){
+                                  res.json({
+                                      success: true,
+                                      message: 'new user'
+                                  });
+                                });
+
                             });
                         });
-                    });
+                      })
+                  });
                 });
-
             } else {
                 SectionUser.find({
                     where: {
@@ -3771,6 +3813,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             Role: req.body.role
                         }).catch(function(err) {
                             console.log(err);
+                            res.status(500).end();
                         }).then(function(result) {
                             console.log('User exists, adding to section');
                             res.json({
@@ -3789,6 +3832,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         });
     });
+
 
 
    // endpoint to insert or update a user's contact information
