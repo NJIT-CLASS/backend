@@ -9,81 +9,49 @@ module.exports = function(sequelize, DataTypes) {
             primaryKey: true,
             unique: true
         },
-        UserContactID: {
-            //Unique contact identifier
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'UserContactID',
-            allowNull: false
-        },
-        UserName: {
-            //UserName
-            type: DataTypes.STRING(30),
-            field: 'UserName',
-            allowNull: true
-        },
         FirstName: {
-            //First name of the user
+            //Official first name of the user
             type: DataTypes.STRING(40),
             field: 'FirstName',
             allowNull: true
         },
         LastName: {
-            //Last name of the user
+            //Official last name of the user
             type: DataTypes.STRING(40),
             field: 'LastName',
             allowNull: true
         },
-        MiddleInitial: {
-            //Single Character for the user’s middle initial
-            type: DataTypes.STRING(1),
-            field: 'MiddleInitial',
-            allowNull: true
+        Instructor: {
+            type: DataTypes.BOOLEAN,
+            field: 'Instructor',
+            allowNull: false,
+            defaultValue: false
         },
-        Suffix: {
-            //User’s suffix
-            type: DataTypes.STRING(10),
-            field: 'Suffix',
-            allowNull: true
+        Admin: {
+            //Indicate whether the user is Admin
+            type: DataTypes.BOOLEAN,
+            field: 'Admin',
+            allowNull: false,
+            defaultValue: false
         },
         OrganizationGroup: {
             //Array of organization IDs to which the user is part of
             type: DataTypes.JSON,
             field: 'OrganizationGroup',
             allowTrue: true
-        },
-        UserType: { //**
-            //User type either instructor or student
-            //Instructor Boolean?????
-            type: DataTypes.STRING,
-            allowNull: true,
-            field: 'UserType',
-            validate: {
-                isIn: [
-                    ['Student', 'Instructor']
-                ]
-            }
-        },
-        Admin: {
-            //Indicate whether the user is Admin
-            type: DataTypes.BOOLEAN,
-            field: 'Admin'
-        },
-        Country: {
-            type: DataTypes.STRING,
-            field: 'Country',
-            allowNull: true
-        },
-        City: {
-            type: DataTypes.STRING,
-            field: 'City',
-            allowNull: true
-        },
-        ProfilePicture: {
-            type: DataTypes.JSON,
-            field: 'ProfilePicture',
-            allowNull: true
-        },
+        }
+        //UserType: {
+        //    //User type either instructor or student
+        //    //Instructor Boolean?????
+        //    type: DataTypes.STRING,
+        //    allowNull: true,
+        //    field: 'UserType',
+        //    validate: {
+        //        isIn: [
+        //            ['Student', 'Instructor']
+        //        ]
+        //    }
+        //},
     }, {
         timestamps: false,
 

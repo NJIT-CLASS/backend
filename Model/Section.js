@@ -23,36 +23,23 @@ module.exports = function(sequelize, DataTypes) {
             field: 'CourseID',
             allowNull: false
         },
-        OrganizationID: {
-            //Unique identifier for the organization
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'OrganizationID',
-            allowNull: false
-        },
+        // OrganizationID: {
+        //    //Unique identifier for the organization
+        //    //Foreign Key
+        //    type: DataTypes.INTEGER.UNSIGNED,
+        //    field: 'OrganizationID',
+        //    allowNull: false
+        // },
         Name: {
             //Name of the section (e.g. 001,002,h01)
             type: DataTypes.STRING(100),
             field: 'Name',
-            allowNull: true
-        },
-        StartDate: {
-           //Beginning date for this section
-           type: DataTypes.DATE,
-           field: 'StartDate',
-           allowNull: true
-        },
-        EndDate: {
-           //Ending date for this section
-           type: DataTypes.DATE,
-           field: 'EndDate',
-           allowNull: true
+            allowNull: false
         },
         Description: {
-           //Description of the course (Day Assignment, night Assignment, weekend university)
-           type: DataTypes.STRING,
-           field: 'Description',
-           allowNull: true
+            type: DataTypes.STRING(255),
+            field: 'Description',
+            allowNull: true
         }
         // Roster: {
         //     //Array of users in the course

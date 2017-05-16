@@ -407,8 +407,74 @@ class TaskFactory {
         });
     }
 
-    applyVersionContstraints(pre_tis, cur_ti) {
-        logger.log('info', 'apply version constraints to previous task instances based on a current task instance', {task_instance: cur_ti.toJSON()})
+    // check to see if the user has view access to the task and if not: immediately respond with error
+    applyViewContstraints(res, user_id, ti) {
+        logger.log('info', 'apply view constraints to task instance', {user_id: user_id, task_instance: ti.toJSON()})
+
+        if (ti.Status == 'not_yet_started') {
+            logger.log('debug', ' not_yet_started, return res')
+            return res._headerSent || res.json({
+                    error: true,
+                    message: 'Task not even started yet',
+                })
+        }
+        if (ti.UserID == user_id) {
+            return
+        }
+        if (ti.Status != 'complete') {
+            return
+        }
+        if (ti.TaskActivity.SeeSibblings && ti.TaskActivity.SeeSameActivity) {
+            return
+        }
+        // find all non-completed task instances allocated to the user
+        return TaskInstance.findAll({
+            where: {
+                UserID: user_id,
+                Status: {
+                    $notIn: ['complete'],
+                },
+            }
+        }).then(function (tis) {
+            logger.log('debug', 'sibling check: apply view constraints to task instance')
+
+            return Promise.map(tis, function (this_ti) {
+                if (!ti.TaskActivity.SeeSibblings) {
+                    if (this_ti.PreviousTask == ti.PreviousTask) { // its a sibling task (that is owned by the user and not completed)
+                        logger.log('debug', 'sibling task not completed, return res')
+                        return res._headerSent || res.json({
+                                'error': true,
+                                'message': 'Sibling task not completed yet',
+                            })
+                    }
+                }
+            }).then(function (done) {
+                if (ti.TaskActivity.SeeSameActivity) {
+                    return
+                }
+                logger.log('debug', 'same act check: apply view constraints to task instance')
+
+                return Promise.map(tis, function (this_ti) {
+                    if (this_ti.TaskActivityID == ti.TaskActivityID) { // its a task with the same activity (that is owned by the user and not completed)
+                        logger.log('debug', 'same task activity task instance not completed, return res')
+                        return res._headerSent || res.json({
+                                'error': true,
+                                'message': 'Same type of task not completed yet',
+                            })
+                    }
+                }).then(function (done) {
+                    return logger.log('debug', 'done applying view constraints')
+                })
+            })
+        })
+    }
+
+    // update data field of all tasks with the appropriate allowed version according to the current task
+    applyVersionContstraints(pre_tis, cur_ti, user_id) {
+        logger.log('info', 'apply version constraints to previous task instances based on a current task instance', {
+            task_instance: cur_ti.toJSON(),
+            user_id: user_id
+        })
         var x = this
         pre_tis.forEach(function (ti, i) {
             if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
@@ -426,19 +492,29 @@ class TaskFactory {
         })
     }
 
+    // set the data field of the task
     setDataVersion(ti, version_eval) {
-        logger.log('info', 'update task instance data with appropriate version', {task_instance: ti.toJSON(), version_evaluation: version_eval})
-        if (version_eval == 'whole' || !ti.Data) {
-            return
-        }
+        logger.log('info', 'update task instance data with appropriate version', {
+            task_instance: ti.toJSON(),
+            version_evaluation: version_eval
+        })
         ti.Data = JSON.parse(ti.Data)
-        ti.Data = ti.Data[(version_eval == 'first') ? 0 : (ti.Data.length - 1)]
-
-        if (!ti.Data) {
+        if (version_eval == 'none' || !ti.Data) {
             ti.Data = []
             return
         }
-        // ti.Data = [ti.Data]
+        if (version_eval == 'whole') {
+            return
+        }
+        if (version_eval == 'first') {
+            ti.Data = [ti.Data[0]]
+            return
+        }
+        if (version_eval == 'last') {
+            ti.Data = [ti.Data.slice(-1)[0]]
+            return
+        }
+        logger.log('error', 'invalid version evaluation')
     }
 
     getNumberParticipants(taskActivityID) {
@@ -698,9 +774,11 @@ class TaskFactory {
                 }
             }).then(function(ta_result) {
 
-                var json = {}
-                json[new Date()] = userid
-
+                var ti_u_hist = [{
+                    time: new Date(),
+                    user_id: userid,
+                    is_extra_credit: false,
+                }]
 
                 if (ta_result.Type == 'needs_consolidation' || ta_result.Type == 'completed') {
                     TaskInstance.create({
@@ -710,7 +788,7 @@ class TaskFactory {
                         WorkflowInstanceID: wi_id,
                         AssignmentInstanceID: ai_id,
                         Status: 'automatic',
-                        UserHistory: json,
+                        UserHistory: ti_u_hist,
                     }).then(function(result) {
                         resolve([result.TaskInstanceID]);
                     }).catch(function(err) {
@@ -725,7 +803,7 @@ class TaskFactory {
                         WorkflowInstanceID: wi_id,
                         AssignmentInstanceID: ai_id,
                         Status: 'not_yet_started',
-                        UserHistory: json,
+                        UserHistory: ti_u_hist,
                     }).then(function(result) {
                         resolve([result.TaskInstanceID]);
                     }).catch(function(err) {
@@ -950,7 +1028,7 @@ class TaskFactory {
                                 attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
                                 include: [{
                                     model: User,
-                                    attributes: ['UserID', "UserType", 'UserName']
+                                    attributes: ['UserID', 'Instructor', 'UserName']
                                 }, {
                                     model: TaskActivity,
                                     attributes: ['Type']
@@ -1018,7 +1096,7 @@ class TaskFactory {
                                 attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow'],
                                 include: [{
                                     model: User,
-                                    attributes: ['UserID', "UserType", 'UserName']
+                                    attributes: ['UserID', 'Instructor', 'UserName']
                                 }, {
                                     model: TaskActivity,
                                     attributes: ['Type']
