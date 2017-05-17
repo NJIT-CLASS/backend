@@ -1558,6 +1558,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }
         var user_role = false;
         var useradmin = false;
+        var userinstructor = false;
         if (req.body.role == 'Admin') {
             console.log("/adduser: User is an admin");
             userinstructor = true;
@@ -1571,43 +1572,53 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Email: req.body.email
             },
             attributes: ['UserID']
-        }).then(function(userLogin) {
-            if (userLogin == null || userLogin.UserID == null) {
-                UserContact.create({
-                    Email: req.body.email,
-                    Phone: 'XXX-XXX-XXXX'
-                }).catch(function(err) {
-                    console.log(err);
-                }).then(function(userCon) {
-                    sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-                        .then(function() {
-                            sequelize.sync({});
-                            User.create({
-                                FirstName: req.body.firstname,
-                                LastName: req.body.lastname,
-                                OrganizationGroup: {
-                                    "OrganizationID": []
-                                },
-                                UserContactID: userCon.UserContactID,
-                                Instructor: userinstructor,
-                                Admin: useradmin,
-                                Country: '',
-                                City: ''
-                            }).catch(function(err) {
-                                console.log(err);
-                            }).then(async function(user) {
-                                UserLogin.create({
-                                    UserID: user.UserID,
-                                    Email: req.body.email,
-                                    Password: await password.hash(req.body.password),
-                                    Status: '1'
-                                }).catch(function(err) {
-                                    console.log(err);
-                                }).then(function(userLogin) {
-                                    email.sendNow(userLogin.UserID, 'create user', req.body.password);
-                                    res.json({
-                                        "Message": "User has succesfully added"
-                                    });
+        }).then(function(response) {
+            if (response == null || response.UserID == null) {
+                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                .then(function(){
+                  User.create({
+                      FirstName: req.body.firstName,
+                      LastName: req.body.lastName,
+                      Instructor: req.body.role === 'Instructor'
+                  }).catch(function(err) {
+                      console.log(err);
+                      sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                      .then(function(){
+                        res.status(500).end();
+                      });
+                  }).then(async function(user) {
+                      UserContact.create({
+                          UserID: user.UserID,
+                          FirstName: req.body.firstName,
+                          LastName: req.body.lastName,
+                          Email: req.body.email,
+                          Phone: '(XXX) XXX-XXXX'
+                      }).catch(function(err) {
+                          console.log(err);
+                          sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                          .then(function(){
+                            res.status(500).end();
+                          });
+                      }).then(async function(userCon){
+                        UserLogin.create({
+                            UserID: user.UserID,
+                            Email: req.body.email,
+                            Password: await password.hash(req.body.password)
+                        }).catch(function(err) {
+                          console.log(err);
+                          sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                          .then(function(){
+                            res.status(500).end();
+                          });
+                        }).then(function(userLogin) {
+                            let email = new Email();
+                            email.sendNow(user.UserID, 'invite user', req.body.password);
+                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                            .then(function(){
+                              res.json({
+                                  "Message": "User has succesfully added"
+                              });
+                            });
                                 });
                             });
                         });
