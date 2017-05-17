@@ -3013,7 +3013,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 console.log('Email Not Found - Making Instructor ' + email);
                 UserContact.create({
                     Email: email,
-                    Phone: 'XXX-XXX-XXXX'
+                    Phone: 'XXX-XXX-XXXX',
+                    FirstName: 'Temp',
+                    LastName: 'Temp',
                 }).catch(function(err) {
                     console.log(err);
                 }).then(function(userCon) {
