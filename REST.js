@@ -2238,8 +2238,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
                 .then(function(){
                   User.create({
-                      FirstName: req.body.firstName,
-                      LastName: req.body.lastName,
+                      FirstName: req.body.firstname,
+                      LastName: req.body.lastname,
                       Instructor: req.body.instructor,
                       Admin: req.body.admin
                   }).catch(function(err) {
@@ -2251,8 +2251,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                   }).then(async function(user) {
                       UserContact.create({
                           UserID: user.UserID,
-                          FirstName: req.body.firstName,
-                          LastName: req.body.lastName,
+                          FirstName: req.body.firstname,
+                          LastName: req.body.lastname,
                           Email: req.body.email,
                           Phone: '(XXX) XXX-XXXX'
                       }).catch(function(err) {
