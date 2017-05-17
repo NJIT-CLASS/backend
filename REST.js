@@ -2228,6 +2228,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }
         var user_role = false;
         var useradmin = false;
+        var userinstructor = false;
         if (req.body.role == 'Admin') {
             console.log("/adduser: User is an admin");
             userinstructor = true;
@@ -2241,47 +2242,57 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Email: req.body.email
             },
             attributes: ['UserID']
-        }).then(function(userLogin) {
-            if (userLogin == null || userLogin.UserID == null) {
-                UserContact.create({
-                    Email: req.body.email,
-                    Phone: 'XXX-XXX-XXXX'
-                }).catch(function(err) {
-                    console.log(err);
-                }).then(function(userCon) {
-                    sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-                        .then(function() {
-                            sequelize.sync({});
-                            User.create({
-                                FirstName: req.body.firstname,
-                                LastName: req.body.lastname,
-                                OrganizationGroup: {
-                                    "OrganizationID": []
-                                },
-                                UserContactID: userCon.UserContactID,
-                                Instructor: userinstructor,
-                                Admin: useradmin,
-                                Country: '',
-                                City: ''
+        }).then(function(response) {
+            if (response == null || response.UserID == null) {
+                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                    .then(function() {
+                        User.create({
+                            FirstName: req.body.firstName,
+                            LastName: req.body.lastName,
+                            Instructor: req.body.role === 'Instructor'
+                        }).catch(function(err) {
+                            console.log(err);
+                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                .then(function() {
+                                    res.status(500).end();
+                                });
+                        }).then(async function(user) {
+                            UserContact.create({
+                                UserID: user.UserID,
+                                FirstName: req.body.firstName,
+                                LastName: req.body.lastName,
+                                Email: req.body.email,
+                                Phone: '(XXX) XXX-XXXX'
                             }).catch(function(err) {
                                 console.log(err);
-                            }).then(async function(user) {
+                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                    .then(function() {
+                                        res.status(500).end();
+                                    });
+                            }).then(async function(userCon) {
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
-                                    Password: await password.hash(req.body.password),
-                                    Status: '1'
+                                    Password: await password.hash(req.body.password)
                                 }).catch(function(err) {
                                     console.log(err);
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.status(500).end();
+                                        });
                                 }).then(function(userLogin) {
-                                    email.sendNow(userLogin.UserID, 'create user', req.body.password);
-                                    res.json({
-                                        "Message": "User has succesfully added"
-                                    });
+                                    let email = new Email();
+                                    email.sendNow(user.UserID, 'invite user', req.body.password);
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.json({
+                                                "Message": "User has succesfully added"
+                                            });
+                                        });
                                 });
                             });
                         });
-                });
+                    });
             } else {
                 res.json({
                     "Message": "User is currently exist"
@@ -2662,34 +2673,69 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get a user's courses
-    router.get("/course/getCourses/:userid", function(req, res) {
+    router.get("/course/getCourses/:userid", async function(req, res) {
 
-        SectionUser.findAll({
+        var sections = await SectionUser.findAll({
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['SectionUserID', 'SectionID', 'Role', ' Active'],
+            attributes: ['SectionUserID', 'SectionID', 'Role', 'Active'],
             include: [{
                 model: Section,
-                required: true,
-                attributes: ['CourseID']
+                attributes: ['CourseID'],
+                include: [{
+                    model: Course,
+                    attributes: ['Number', 'Name']
+                }]
             }]
-        }).then(function(rows) {
-            if (rows.length > 0) {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": rows
-                });
-            } else {
-                res.json({
-                    "Error": true,
-                    "Message": "User Has No Courses"
-                });
-            }
         }).catch(function(err) {
+            logger.log('error', 'failed getting section information', {
+                error: err
+            });
             res.status(401).end();
         });
+
+        if (sections.length > 0) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Result": sections
+            });
+        } else {
+            res.json({
+                "Error": true,
+                "Message": "User Has No Courses"
+            });
+        }
+
+
+
+        // SectionUser.findAll({
+        //     where: {
+        //         UserID: req.params.userid
+        //     },
+        //     attributes: ['SectionUserID', 'SectionID', 'Role', ' Active']
+        //     // include: [{
+        //     //     model: Section,
+        //     //     attributes: ['CourseID']
+        //     // }]
+        // }).then(function(rows) {
+        //     console.log('rows', rows)
+        //     // if (rows.length > 0) {
+        //         res.json({
+        //             "Error": false,
+        //             "Message": "Success",
+        //             "Result": rows
+        //         });
+        //     // } else {
+        //     //     res.json({
+        //     //         "Error": true,
+        //     //         "Message": "User Has No Courses"
+        //     //     });
+        //     // }
+        // }).catch(function(err) {
+        //     res.status(401).end();
+        // });
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -3736,6 +3782,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     })
                     .then((result) => {
                         //console.log(result);
+                        ar.push(result);
+                        res.json({
+                            error: false,
+                            previousTasksList: done,
+                            superTask: ar,
+                        });
                         logger.log('debug', 'done collecting previous tasks')
                         // check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
                         return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function(done1) {
@@ -3745,8 +3797,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             // update data field of all tasks with the appropriate allowed version
                             allocator.applyVersionContstraints(ar, result, req.query.userID)
                             ar.push(result);
-                            let stringed = JSON.stringify(ar);
-                            console.log(stringed);
                             res.json({
                                 error: false,
                                 previousTasksList: done,
@@ -4459,6 +4509,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     // endpoint to add sectionusers, invite users not yet in system
     router.post("/sectionUsers/:sectionid", function(req, res) {
+        //expects -email
+        //        -firstName
+        //        -lastName
+        //        -email
+        //        -sectionid
+        //        -email
+        //        -active
+        //        -body
+        //        -role
         UserLogin.find({
             where: {
                 Email: req.body.email
@@ -4466,40 +4525,73 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['UserID']
         }).then(function(response) {
             if (response == null || response.UserID == null) {
-                User.create({
-                    FirstName: req.body.firstName,
-                    LastName: req.body.lastName
-                }).catch(function(err) {
-                    console.log(err);
-                }).then(async function(user) {
-                    let temp_pass = await password.generate();
-                    UserLogin.create({
-                        UserID: user.UserID,
-                        Email: req.body.email,
-                        Password: await password.hash(temp_pass)
-                    }).catch(function(err) {
-                        console.log(err);
-                    }).then(function(userLogin) {
-                        //let email = new Email();
-                        //email.sendNow(result.UserID, 'invite user', temp_pass);
-                        SectionUser.create({
-                            SectionID: req.params.sectionid,
-                            UserID: userLogin.UserID,
-                            Active: req.body.active,
-                            Volunteer: req.body.volunteer,
-                            Role: req.body.role
+                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                    .then(function() {
+                        User.create({
+                            FirstName: req.body.firstName,
+                            LastName: req.body.lastName,
+                            Instructor: req.body.role === 'Instructor'
                         }).catch(function(err) {
                             console.log(err);
-                        }).then(function(sectionUser) {
-                            console.log('Creating user, inviting, and adding to section');
-                            res.json({
-                                success: true,
-                                message: 'new user'
-                            });
+                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                .then(function() {
+                                    res.status(500).end();
+                                });
+                        }).then(async function(user) {
+                            let temp_pass = password.generate();
+                            UserContact.create({
+                                UserID: user.UserID,
+                                FirstName: req.body.firstName,
+                                LastName: req.body.lastName,
+                                Email: req.body.email,
+                                Phone: '(XXX) XXX-XXXX'
+                            }).catch(function(err) {
+                                console.log(err);
+                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                    .then(function() {
+                                        res.status(500).end();
+                                    });
+                            }).then(async function(userCon) {
+                                UserLogin.create({
+                                    UserID: user.UserID,
+                                    Email: req.body.email,
+                                    Password: await password.hash(temp_pass)
+                                }).catch(function(err) {
+                                    console.log(err);
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.status(500).end();
+                                        });
+                                }).then(function(userLogin) {
+                                    let email = new Email();
+                                    email.sendNow(user.UserID, 'invite user', temp_pass);
+                                    SectionUser.create({
+                                        SectionID: req.params.sectionid,
+                                        UserID: userLogin.UserID,
+                                        Active: req.body.active,
+                                        Volunteer: req.body.volunteer,
+                                        Role: req.body.role
+                                    }).catch(function(err) {
+                                        console.log(err);
+                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                            .then(function() {
+                                                res.status(500).end();
+                                            });
+                                    }).then(function(sectionUser) {
+                                        console.log('Creating user, inviting, and adding to section');
+                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                            .then(function() {
+                                                res.json({
+                                                    success: true,
+                                                    message: 'new user'
+                                                });
+                                            });
+
+                                    });
+                                });
+                            })
                         });
                     });
-                });
-
             } else {
                 SectionUser.find({
                     where: {
@@ -4517,6 +4609,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             Role: req.body.role
                         }).catch(function(err) {
                             console.log(err);
+                            res.status(500).end();
                         }).then(function(result) {
                             console.log('User exists, adding to section');
                             res.json({
@@ -4534,6 +4627,65 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 });
             }
         });
+    });
+
+
+    router.delete('/delete/user/:userID', (req, res) => {
+        console.log('deleting user', req.params.userID);
+
+        return sequelize.transaction(function(t) {
+                return UserLogin.destroy({
+                        where: {
+                            UserID: req.params.userID
+                        }
+                    }, {
+                        transaction: t
+                    })
+                    .then((loginRowsDeleted) => {
+                        return UserContact.destroy({
+                                where: {
+                                    UserID: req.params.userID
+                                }
+                            }, {
+                                transaction: t
+                            })
+                            .then((contactRowsDeleted) => {
+                                return SectionUser.destroy({
+                                        where: {
+                                            UserID: req.params.userID
+                                        }
+                                    }, {
+                                        transaction: t
+                                    })
+                                    .then((sectionUsersDeleted) => {
+                                        return User.destroy({
+                                            where: {
+                                                UserID: req.params.userID
+                                            }
+                                        }, {
+                                            transaction: t
+                                        });
+                                    })
+                            })
+
+                    });
+            })
+            .then((result) => {
+                logger.log('info', 'post: /delete/user, user deleted from system', {
+                    req_params: req.params,
+                });
+                res.status(200).end();
+            })
+            .catch((err) => {
+                logger.log('error', 'post: /delete/user, user deleted from system', {
+                    error: err,
+                    req_params: req.params,
+                });
+                console.error(err);
+                res.status(500).end();
+            });
+
+
     });
 
 
@@ -4571,12 +4723,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.get("/test", async function(req, res){
+    router.get("/test", async function(req, res) {
 
-      var tf = new TaskFactory();
-      var users = await tf.debug(1,1);
-      //console.log(users);
-      res.status(200).end();
+        var tf = new TaskFactory();
+        var users = await tf.debug(1, 1);
+        //console.log(users);
+        res.status(200).end();
     })
 
 }

@@ -56,7 +56,7 @@ class TaskFactory {
         })
 
         await sec_users.forEach(function(user) {
-          if(user.Role !== 'Instructor'){
+          if(user.Role !== 'Instructor' || user.Role !== 'Observer'){
             users.push(user.UserID);
           }
         });
@@ -942,6 +942,12 @@ class TaskFactory {
         });
     }
 
+    async createWorkflowInstances(u_id, wf_timing, i){
+        await JSON.parse(workflowTiming).workflows.forEach(function(wf, j){
+          
+        })
+    }
+
     async debug(sectionid, ai_id) {
 
         if (sectionid === null || ai_id === null) {
@@ -949,6 +955,7 @@ class TaskFactory {
                 sectionid: sectionid,
                 ai_id: ai_id
             });
+            return
         }
 
         logger.log('info', 'creating workflow instances and task instances for', {
@@ -959,17 +966,13 @@ class TaskFactory {
         var users = await x.getUsersFromSection(sectionid);
         var wf_timing = await x.getWorkflowTiming(ai_id);
 
-        await users.forEach(function(u_id){
-
+        await users.forEach(async function(u_id, i){
+            await x.createWorkflowInstances(u_id, wf_timing, i);
         })
-
-        console.log('users', users);
-        console.log('wf_timing', wf_timing);
-
-
-
-
     }
+
+
+
 
     getTree(wa_id, callback) {
         WorkflowActivity.find({
