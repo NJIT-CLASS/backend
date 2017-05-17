@@ -2544,7 +2544,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     Assignment.find({
                         where: {
                             AssignmentID: taskActivityResult.AssignmentID
-                        }
+                        },
+                        attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
                     }).then(function(assignmentResult) {
                         Section.find({
                             where: {
@@ -2563,8 +2564,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                     "taskActivityType": taskActivityResult.Type,
                                     "courseName": courseResult.Name,
                                     "courseNumber": courseResult.Number,
-                                    "assignmentName": assignmentResult.Name,
-                                    "assignmentID": assignmentResult.AssignmentID,
+                                    "assignment": assignmentResult,
                                     "semesterID": sectionResult.SemesterID,
                                     "semesterName": semesterResult.Name
                                 });

@@ -627,7 +627,7 @@ class TaskFactory {
                             SimpleGrade: task.TA_simple_grade,
                             IsFinalGradingTask: task.TA_is_final_grade,
                             Instructions: task.TA_overall_instructions,
-                            Rubric: task.TA_rubric,
+                            Rubric: task.TA_overall_rubric,
                             Fields: task.TA_fields,
                             AllowReflection: task.TA_allow_reflection,
                             AllowRevision: task.TA_allow_revisions,
