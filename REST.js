@@ -2226,16 +2226,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log("/adduser : Email cannot be null");
             res.status(400).end();
         }
-        var user_role = false;
-        var useradmin = false;
-        var userinstructor = false;
-        if (req.body.role == 'Admin') {
-            console.log("/adduser: User is an admin");
-            userinstructor = true;
-            useradmin = true;
-        } else if (req.body.role == 'Instructor') {
-            userinstructor = true;
-        } else userinstructor = false;
+
 
         UserLogin.find({
             where: {
@@ -2249,7 +2240,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                   User.create({
                       FirstName: req.body.firstName,
                       LastName: req.body.lastName,
-                      Instructor: req.body.role === 'Instructor'
+                      Instructor: req.body.instructor,
+                      Admin: req.body.admin
                   }).catch(function(err) {
                       console.log(err);
                       sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -3450,7 +3442,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 UserID: req.params.userID,
                 $or: [{
                     Status: {
-                        $like: '%"imcomplete"%'
+                        $like: '%"incomplete"%'
                     }
                 }, {
                     Status: {
@@ -3598,7 +3590,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
                                 include: [{
                                     model: User,
-                                    attributes: ['UserID', 'Instructor']
+                                    attributes: ['UserID', 'FirstName', 'Instructor']
                                 }, {
                                     model: TaskActivity,
 
@@ -3730,6 +3722,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }).then((result) => {
                     //console.log(result);
                     // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
+                    ar.push(result);
 
                     return allocator.applyViewContstraints(res, req.query.userID, result)
                 });
@@ -3747,12 +3740,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     })
                     .then((result) => {
                         //console.log(result);
-                        ar.push(result);
-                        res.json({
-                            error: false,
-                            previousTasksList: done,
-                            superTask: ar,
-                        });
+                        // ar.push(result);
+                        // res.json({
+                        //     error: false,
+                        //     previousTasksList: done,
+                        //     superTask: ar,
+                        // });
                         logger.log('debug', 'done collecting previous tasks')
                         // check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
                         return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function(done1) {
@@ -3768,7 +3761,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 superTask: ar,
 
                             });
-                        })*/
+                        })
                     });
             });
 
