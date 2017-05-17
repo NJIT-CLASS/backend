@@ -8,7 +8,7 @@ var Promise = require('bluebird');
 var moment = require('moment');
 var TreeModel = require('tree-model');
 var FlatToNested = require('flat-to-nested');
-
+var consts = require('../Util/constant.js');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -31,43 +31,51 @@ var EmailNotification = models.EmailNotification;
 var tree = new TreeModel();
 var flatToNested = new FlatToNested();
 
-const logger = require('winston')
+const logger = require('winston');
+
+var execution = consts.EXECUTION_STATUS;
+var cancellation = consts.CANCELLATION_STATUS;
+var revision = consts.REVISION_STATUS;
+var due = consts.DUE_STATUS;
+var pageInteraction = consts.PAGE_INTERACTION_STATUS;
+var reallocation = consts.REALLOCATION_STATUS;
+
 
 class TaskFactory {
 
-    getUsersFromSection(sectionid) {
+    async getUsersFromSection(sectionid) {
         console.log('Retrieving all users from section: ', sectionid, '...');
         var users = [];
-        //Promise the users are returned
-        return new Promise(function(resolve, reject) {
 
-            SectionUser.findAll({
-                where: {
-                    SectionID: sectionid
-                }
-            }).then(function(results) {
-                results.forEach(function(user) {
-                    users.push(user.UserID);
-                });
-                console.log('All users have been found!');
-                resolve(users);
-            }).catch(function(err) {
-                console.log('Cannot find all users!');
-                console.log(err);
-            });
+        var sec_users = await SectionUser.findAll({
+            where: {
+                SectionID: sectionid
+            }
+        }).catch(function(err) {
+            logger.log('error', 'error has been found /TaskFactory.js/getUsersFromSection(sectionid)');
+        })
+
+        await sec_users.forEach(function(user) {
+          if(user.Role !== 'Instructor'){
+            users.push(user.UserID);
+          }
         });
+
+        return users;
     }
 
-    async getUserFromSection(sectionid) => {
-      console.log('Retrieving all users from section: ', sectionid, '...');
-      var users = [];
+    getUserFromSection(sectionid) {
+        console.log('Retrieving all users from section: ', sectionid, '...');
+        var users = [];
 
-      Section.findAll({
-        where:{
-          SectionID: sectionid,
-          UserStatus: {$notIn:["Inactive"]}
-        }
-      })
+        Section.findAll({
+            where: {
+                SectionID: sectionid,
+                UserStatus: {
+                    $notIn: ["Inactive"]
+                }
+            }
+        })
     }
 
     createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
@@ -115,27 +123,18 @@ class TaskFactory {
         });
     }
 
-    getWorkflowTiming(ai_id) {
+    async getWorkflowTiming(ai_id) {
         console.log('Finding WorkflowTiming...');
-        //creates new promise
-        return new Promise(function(resolve, reject) {
-            //find the AssignmentInstance object where AssignmentInstanceID equals ai_id
-            AssignmentInstance.find({
-                where: {
-                    AssignmentInstanceID: ai_id
-                }
-            }).then(function(result) {
-                //returns WorkflowTiming found
-                console.log('WorkflowTiming has been found!');
 
-                resolve(result.WorkflowTiming);
-
-            }).catch(function(err) {
-                console.log('Finding WorkflowTiming failed!');
-                console.log(err);
-                reject(err);
-            });
+        var ais = await AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: ai_id
+            }
+        }).catch(function(err) {
+            logger.log('error', 'error has been found /TaskFactory.js/getWorkflowTiming(ai_id)');
         });
+
+        return ais.WorkflowTiming;
     }
 
     //Finds and updates the list of previous tasks and next tasks of a list of workflow instance
@@ -409,19 +408,21 @@ class TaskFactory {
 
     // check to see if the user has view access to the task and if not: immediately respond with error
     applyViewContstraints(res, user_id, ti) {
-        logger.log('info', 'apply view constraints to task instance', {user_id: user_id, task_instance: ti.toJSON()})
-
-        if (ti.Status == 'not_yet_started') {
+        logger.log('info', 'apply view constraints to task instance', {
+            user_id: user_id,
+            task_instance: ti.toJSON()
+        })
+        if (JSON.parse(ti.Status)[0] == 'not_yet_started') {
             logger.log('debug', ' not_yet_started, return res')
             return res._headerSent || res.json({
-                    error: true,
-                    message: 'Task not even started yet',
-                })
+                'error': true,
+                'message': 'Task not even started yet',
+            })
         }
         if (ti.UserID == user_id) {
             return
         }
-        if (ti.Status != 'complete') {
+        if (JSON.parse(ti.Status)[0] != 'complete') {
             return
         }
         if (ti.TaskActivity.SeeSibblings && ti.TaskActivity.SeeSameActivity) {
@@ -432,38 +433,44 @@ class TaskFactory {
             where: {
                 UserID: user_id,
                 Status: {
-                    $notIn: ['complete'],
+                    $notLike: '%"complete"%',
                 },
             }
-        }).then(function (tis) {
-            logger.log('debug', 'sibling check: apply view constraints to task instance')
+        }).then(function(sibling_tis) {
+            logger.log('debug', 'check sibling tasks')
 
-            return Promise.map(tis, function (this_ti) {
+            return Promise.map(sibling_tis, function(sibling_ti) {
                 if (!ti.TaskActivity.SeeSibblings) {
-                    if (this_ti.PreviousTask == ti.PreviousTask) { // its a sibling task (that is owned by the user and not completed)
+                    if (sibling_ti.PreviousTask == ti.PreviousTask) {
                         logger.log('debug', 'sibling task not completed, return res')
                         return res._headerSent || res.json({
-                                'error': true,
-                                'message': 'Sibling task not completed yet',
-                            })
+                            'error': true,
+                            'message': 'Sibling task not completed yet',
+                        })
                     }
                 }
-            }).then(function (done) {
-                if (ti.TaskActivity.SeeSameActivity) {
-                    return
-                }
-                logger.log('debug', 'same act check: apply view constraints to task instance')
+            }).then(function(done) {
+                return TaskInstance.findAll({
+                    where: {
+                        TaskActivityID: ti.TaskActivityID,
+                        UserID: user_id,
+                        Status: {
+                            $notLike: '%"complete"%',
+                        },
+                    }
+                }).then(function(same_ta_tis) {
+                    logger.log('debug', 'same act check apply view constraints to task instance')
 
-                return Promise.map(tis, function (this_ti) {
-                    if (this_ti.TaskActivityID == ti.TaskActivityID) { // its a task with the same activity (that is owned by the user and not completed)
-                        logger.log('debug', 'same task activity task instance not completed, return res')
-                        return res._headerSent || res.json({
+                    if (!ti.TaskActivity.SeeSameActivity) {
+                        if (!!same_ta_tis) {
+                            logger.log('debug', 'same task activity task instance not completed, return res')
+                            return res._headerSent || res.json({
                                 'error': true,
                                 'message': 'Same type of task not completed yet',
                             })
+                        }
                     }
-                }).then(function (done) {
-                    return logger.log('debug', 'done applying view constraints')
+                    logger.log('debug', 'done applying view constraints')
                 })
             })
         })
@@ -476,20 +483,24 @@ class TaskFactory {
             user_id: user_id
         })
         var x = this
-        pre_tis.forEach(function (ti, i) {
-            if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
-                x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation)
-            }
-            else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) && (i != pre_tis.length - 1)) {
-                x.setDataVersion(ti, 'last')
-            }
-            else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
-                x.setDataVersion(ti, 'last')
-            }
-            else if (!'todo: logic: if cur_ti has good Data and status is revision') { //TODO
-                x.setDataVersion(ti, 'last')
+        pre_tis.forEach(function(ti, i) {
+            if (user_id == cur_ti.UserID) {
+                if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
+                    x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation)
+                } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) && (i != pre_tis.length - 1)) {
+                    x.setDataVersion(ti, 'last')
+                } else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
+                    x.setDataVersion(ti, 'last')
+                } else if (!'todo: logic: if cur_ti has good Data and status is revision') { //TODO
+                    x.setDataVersion(ti, 'last')
+                }
+            } else {
+                // x.setDataVersion(ti, 'none') //TODO
             }
         })
+        if (user_id != cur_ti.UserID) {
+            // x.setDataVersion(cur_ti, 'none') //TODO
+        }
     }
 
     // set the data field of the task
@@ -498,6 +509,7 @@ class TaskFactory {
             task_instance: ti.toJSON(),
             version_evaluation: version_eval
         })
+
         ti.Data = JSON.parse(ti.Data)
         if (version_eval == 'none' || !ti.Data) {
             ti.Data = []
@@ -787,7 +799,7 @@ class TaskFactory {
                         TaskActivityID: task.id,
                         WorkflowInstanceID: wi_id,
                         AssignmentInstanceID: ai_id,
-                        Status: 'automatic',
+                        Status: JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
                         UserHistory: ti_u_hist,
                     }).then(function(result) {
                         resolve([result.TaskInstanceID]);
@@ -802,8 +814,8 @@ class TaskFactory {
                         TaskActivityID: task.id,
                         WorkflowInstanceID: wi_id,
                         AssignmentInstanceID: ai_id,
-                        Status: 'not_yet_started',
-                        UserHistory: ti_u_hist,
+                        Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+                        UserHistory: ti_u_hist
                     }).then(function(result) {
                         resolve([result.TaskInstanceID]);
                     }).catch(function(err) {
@@ -852,7 +864,7 @@ class TaskFactory {
                         return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
                             //console.log('task: ', task.id);
                             return allocator.getRightUser(task.id).then(function(allocUsers) {
-                                console.log("right user",allocUsers);
+                                console.log("right user", allocUsers);
                                 var task_collection = [];
                                 return Promise.mapSeries(allocUsers, function(a_user) {
                                     return x.createTaskInstance(task, a_user, workflowInstanceId, ai_id).then(function(createTaskResult) {
@@ -868,14 +880,22 @@ class TaskFactory {
                                             } else if (task.DueType[0] === "specificTime") {
                                                 endDate = task.DueType[1];
                                             }
-                                            TaskInstance.update({
-                                                StartDate: startDate,
-                                                EndDate: endDate,
-                                                Status: 'started'
-                                            }, {
+                                            TaskInstance.find({
                                                 where: {
                                                     TaskInstanceID: createTaskResult[0]
                                                 }
+                                            }).then(function(ti) {
+                                                var newStatus = JSON.parse(ti.Status);
+                                                newStatus[0] = 'started';
+                                                TaskInstance.update({
+                                                    StartDate: startDate,
+                                                    EndDate: endDate,
+                                                    Status: JSON.stringify(newStatus)
+                                                }, {
+                                                    where: {
+                                                        TaskInstanceID: createTaskResult[0]
+                                                    }
+                                                });
                                             });
                                         }
                                     }).catch(function(err) {
@@ -922,9 +942,31 @@ class TaskFactory {
         });
     }
 
-    newCreateInstances(sectionid, ai_id){
+    async debug(sectionid, ai_id) {
 
-      var x = this;
+        if (sectionid === null || ai_id === null) {
+            logger.log('error', 'create workflow instances and task instance failed', {
+                sectionid: sectionid,
+                ai_id: ai_id
+            });
+        }
+
+        logger.log('info', 'creating workflow instances and task instances for', {
+            assignment_instance: ai_id
+        });
+
+        var x = this;
+        var users = await x.getUsersFromSection(sectionid);
+        var wf_timing = await x.getWorkflowTiming(ai_id);
+
+        await users.forEach(function(u_id){
+
+        })
+
+        console.log('users', users);
+        console.log('wf_timing', wf_timing);
+
+
 
 
     }
