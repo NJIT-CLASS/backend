@@ -960,7 +960,7 @@ class TaskFactory {
         var wf_timing = await x.getWorkflowTiming(ai_id);
 
         await users.forEach(function(u_id){
-
+            
         })
 
         console.log('users', users);
