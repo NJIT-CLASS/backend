@@ -1766,7 +1766,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             res.json({
                                 "Error": false,
                                 "Message": "Success",
-                                "UserID": user.UserID
+                                "UserID": user.UserID,
+                                Pending: user.Pending
                             });
                         }).catch(function(err) {
                             sequelize.options.omitNull = true;
@@ -1778,7 +1779,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         res.json({
                             "Error": false,
                             "Message": "Success",
-                            "UserID": user.UserID
+                            "UserID": user.UserID,
+                            Pending: user.Pending
                         });
                     }
                 } else {
@@ -2195,7 +2197,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 if (await password.verify(userLogin.Password, req.body.oldPasswd)) {
                     console.log("/user/create : Password matched");
                     UserLogin.update({
-                        Password: await password.hash(req.body.newPasswd)
+                        Password: await password.hash(req.body.newPasswd),
+                        Pending: false
                     }, {
                         where: {
                             UserID: req.body.userId
