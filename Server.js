@@ -50,6 +50,7 @@ var models = require('./Model');
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var sequelize = require("./Model/index.js").sequelize;
+
 var User = models.User;
 var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
@@ -65,20 +66,21 @@ var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
+
 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-.then(function(){
-    return sequelize.sync({
-      //force: false
+    .then(function() {
+        return sequelize.sync({
+            //force: true
+        });
+    })
+    .then(function() {
+        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+    })
+    .then(function() {
+        console.log('Database synchronised.');
+    }, function(err) {
+        console.log(err);
     });
-})
-.then(function(){
-    return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-})
-.then(function(){
-    console.log('Database synchronised.');
-}, function(err){
-    console.log(err);
-});
 
 // var rule = new schedule.RecurrenceRule();
 // rule.minute = 00;
