@@ -2230,7 +2230,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(400).end();
         }
 
-
         UserLogin.find({
             where: {
                 Email: req.body.email
@@ -2239,6 +2238,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(response) {
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+
                 .then(function(){
                   User.create({
                       FirstName: req.body.firstname,
@@ -2284,10 +2284,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                   "Message": "User has succesfully added"
                               });
                             });
+
                                 });
                             });
                         });
-                });
+                    });
             } else {
                 res.json({
                     "Message": "User is currently exist"
@@ -2668,34 +2669,69 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get a user's courses
-    router.get("/course/getCourses/:userid", function(req, res) {
+    router.get("/course/getCourses/:userid", async function(req, res) {
 
-        SectionUser.findAll({
+        var sections = await SectionUser.findAll({
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['SectionUserID', 'SectionID', 'Role', ' Active'],
+            attributes: ['SectionUserID', 'SectionID', 'Role', 'Active'],
             include: [{
                 model: Section,
-                required: true,
-                attributes: ['CourseID']
+                attributes: ['CourseID'],
+                include: [{
+                    model: Course,
+                    attributes: ['Number', 'Name']
+                }]
             }]
-        }).then(function(rows) {
-            if (rows.length > 0) {
-                res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": rows
-                });
-            } else {
-                res.json({
-                    "Error": true,
-                    "Message": "User Has No Courses"
-                });
-            }
         }).catch(function(err) {
+            logger.log('error', 'failed getting section information', {
+                error: err
+            });
             res.status(401).end();
         });
+
+        if (sections.length > 0) {
+            res.json({
+                "Error": false,
+                "Message": "Success",
+                "Result": sections
+            });
+        } else {
+            res.json({
+                "Error": true,
+                "Message": "User Has No Courses"
+            });
+        }
+
+
+
+        // SectionUser.findAll({
+        //     where: {
+        //         UserID: req.params.userid
+        //     },
+        //     attributes: ['SectionUserID', 'SectionID', 'Role', ' Active']
+        //     // include: [{
+        //     //     model: Section,
+        //     //     attributes: ['CourseID']
+        //     // }]
+        // }).then(function(rows) {
+        //     console.log('rows', rows)
+        //     // if (rows.length > 0) {
+        //         res.json({
+        //             "Error": false,
+        //             "Message": "Success",
+        //             "Result": rows
+        //         });
+        //     // } else {
+        //     //     res.json({
+        //     //         "Error": true,
+        //     //         "Message": "User Has No Courses"
+        //     //     });
+        //     // }
+        // }).catch(function(err) {
+        //     res.status(401).end();
+        // });
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -3745,12 +3781,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     })
                     .then((result) => {
                         //console.log(result);
-                        // ar.push(result);
-                        // res.json({
-                        //     error: false,
-                        //     previousTasksList: done,
-                        //     superTask: ar,
-                        // });
+
+                        ar.push(result);
+                        res.json({
+                            error: false,
+                            previousTasksList: done,
+                            superTask: ar,
+                        });
                         logger.log('debug', 'done collecting previous tasks')
                         // check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
                         return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function(done1) {
@@ -4472,6 +4509,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     // endpoint to add sectionusers, invite users not yet in system
     router.post("/sectionUsers/:sectionid", function(req, res) {
+
       //expects -email
       //        -firstName
       //        -lastName
@@ -4481,6 +4519,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
       //        -active
       //        -body
       //        -role
+
         UserLogin.find({
             where: {
                 Email: req.body.email
@@ -4560,6 +4599,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     });
                   });
                 });
+
             } else {
                 SectionUser.find({
                     where: {
@@ -4646,10 +4686,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
       });
 
 
+
     });
 
 
-   // endpoint to insert or update a user's contact information
+
+    // endpoint to insert or update a user's contact information
+
     router.post("/userContact", function(req, res) {
         if (req.body.UserID == null) {
             console.log("userContact: UserID cannot be null");
@@ -4683,12 +4726,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.get("/test", async function(req, res){
+    router.get("/test", async function(req, res) {
 
-      var tf = new TaskFactory();
-      var users = await tf.debug(1,1);
-      //console.log(users);
-      res.status(200).end();
+        var tf = new TaskFactory();
+        var users = await tf.debug(1, 1);
+        //console.log(users);
+        res.status(200).end();
     })
 
 }
