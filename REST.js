@@ -3746,69 +3746,74 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
                 .then(function(){
-                  User.create({
-                      FirstName: req.body.firstName,
-                      LastName: req.body.lastName,
-                      Instructor: req.body.role === 'Instructor'
-                  }).catch(function(err) {
-                      console.log(err);
-                      sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                      .then(function(){
-                        res.status(500).end();
-                      });
-                  }).then(async function(user) {
-                      let temp_pass = password.generate();
-                      UserContact.create({
-                          UserID: user.UserID,
-                          FirstName: req.body.firstName,
-                          LastName: req.body.lastName,
-                          Email: req.body.email,
-                          Phone: '(XXX) XXX-XXXX'
-                      }).catch(function(err) {
-                          console.log(err);
-                          sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                          .then(function(){
-                            res.status(500).end();
-                          });
-                      }).then(async function(userCon){
-                        UserLogin.create({
-                            UserID: user.UserID,
-                            Email: req.body.email,
-                            Password: await password.hash(temp_pass)
-                        }).catch(function(err) {
-                          console.log(err);
-                          sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                          .then(function(){
-                            res.status(500).end();
-                          });
-                        }).then(function(userLogin) {
-                            let email = new Email();
-                            email.sendNow(user.UserID, 'invite user', temp_pass);
-                            SectionUser.create({
-                                SectionID: req.params.sectionid,
-                                UserID: userLogin.UserID,
-                                Active: req.body.active,
-                                Volunteer: req.body.volunteer,
-                                Role: req.body.role
-                            }).catch(function(err) {
-                                console.log(err);
-                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                .then(function(){
-                                  res.status(500).end();
-                                });
-                            }).then(function(sectionUser) {
-                                console.log('Creating user, inviting, and adding to section');
-                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                .then(function(){
-                                  res.json({
-                                      success: true,
-                                      message: 'new user'
-                                  });
-                                });
-
-                            });
+                    return sequelize.transaction(function(t){
+                      return User.create({
+                        FirstName: req.body.firstName,
+                        LastName: req.body.lastName,
+                        Instructor: req.body.role === 'Instructor'
+                      }, {transaction: t})
+                      .catch(function(err) {
+                        console.log(err);
+                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                        .then(function(){
+                          res.status(500).end();
                         });
                       })
+                      .then(async function(user) {
+                        let temp_pass = await password.generate();
+                        return UserContact.create({
+                            UserID: user.UserID,
+                            FirstName: req.body.firstName,
+                            LastName: req.body.lastName,
+                            Email: req.body.email,
+                            Phone: '(XXX) XXX-XXXX'
+                        }, {transaction: t}).catch(function(err) {
+                            console.log(err);
+                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                            .then(function(){
+                              res.status(500).end();
+                            });
+                        })
+                        .then(async function(userCon){
+                          return UserLogin.create({
+                              UserID: user.UserID,
+                              Email: req.body.email,
+                              Password: await password.hash(temp_pass)
+                          }, {transaction: t}).catch(function(err) {
+                            console.log(err);
+                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                            .then(function(){
+                              res.status(500).end();
+                            });
+                          }).then(function(userLogin) {
+                              // let email = new Email();
+                              // email.sendNow(user.UserID, 'invite user', temp_pass);
+                              return SectionUser.create({
+                                  SectionID: req.params.sectionid,
+                                  UserID: userLogin.UserID,
+                                  Active: req.body.active,
+                                  Volunteer: req.body.volunteer,
+                                  Role: req.body.role
+                              }, {transaction: t}).catch(function(err) {
+                                  console.log(err);
+                                  sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                  .then(function(){
+                                    res.status(500).end();
+                                  });
+                              }).then(function(sectionUser) {
+                                  console.log('Creating user, inviting, and adding to section');
+                                  return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {transaction: t})
+                                  .then(function(){
+                                    res.json({
+                                        success: true,
+                                        message: 'new user'
+                                    });
+                                  });
+
+                              });
+                          });
+                        })
+                    });
                   });
                 });
             } else {
