@@ -2995,7 +2995,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     //console.log(result);
                     ar.push(result);
                     // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
-                    return allocator.applyViewContstraints(res, req.query.userID, result)
+                    //return allocator.applyViewContstraints(res, req.query.userID, result)
                 });
             }).then(function() {
                 return TaskInstance.find({
@@ -3010,23 +3010,27 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     })
                     .then((result) => {
                         //console.log(result);
+                        ar.push(result);
+                        res.json({
+                            error: false,
+                            previousTasksList: done,
+                            superTask: ar,
+                        });
                         logger.log('debug', 'done collecting previous tasks')
                         // check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
-                        return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function (done1) {
+                        /*return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function (done1) {
                             if (res._headerSent) { // if already responded (response sent)
                                 return
                             }
                             // update data field of all tasks with the appropriate allowed version
                             allocator.applyVersionContstraints(ar, result, req.query.userID)
                             ar.push(result);
-                            let stringed = JSON.stringify(ar);
-                            console.log(stringed);
                             res.json({
                                 error: false,
                                 previousTasksList: done,
                                 superTask: ar,
                             });
-                        })
+                        })*/
                     });
             });
 
@@ -3833,6 +3837,56 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+
+    router.delete('/delete/user/:userID', (req, res) => {
+      console.log('deleting user', req.params.userID);
+
+      return sequelize.transaction(function (t) {
+        return UserLogin.destroy({
+          where: {
+            UserID: req.params.userID
+          }
+        }, {transaction: t})
+        .then((loginRowsDeleted) => {
+          return UserContact.destroy({
+            where: {
+              UserID: req.params.userID
+            }
+          }, {transaction: t})
+          .then((contactRowsDeleted) => {
+            return SectionUser.destroy({
+              where: {
+                UserID: req.params.userID
+              }
+            }, {transaction: t})
+            .then((sectionUsersDeleted) => {
+              return User.destroy({
+                where: {
+                  UserID: req.params.userID
+                }
+              }, {transaction: t});
+            })
+          })
+
+        });
+      })
+      .then((result) => {
+        logger.log('info', 'post: /delete/user, user deleted from system', {
+            req_params: req.params,
+        });
+        res.status(200).end();
+      })
+      .catch((err) => {
+        logger.log('error', 'post: /delete/user, user deleted from system', {
+            error: err,
+            req_params: req.params,
+        });
+        console.error(err);
+        res.status(500).end();
+      });
+
+
+    });
 
 
    // endpoint to insert or update a user's contact information
