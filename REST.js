@@ -3289,7 +3289,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     // Endpoint to submit the taskInstance input and sync into database
-    router.post('/taskInstanceTemplate/create/submit', function(req, res) {
+    router.post('/taskInstanceTemplate/create/submit', async function(req, res) {
         logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
             req_body: req.body
         })
@@ -3306,7 +3306,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             logger.log('info', 'Data cannot be null')
             return res.status(400).end()
         }
-        return TaskInstance.find({
+
+        var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: req.body.taskInstanceid,
             },
@@ -3314,104 +3315,209 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 model: TaskActivity,
                 attributes: ['Type'],
             }, ],
-        }).then(function(ti) {
-            logger.log('info', 'task instance found', ti.toJSON())
-            //Ensure userid input matches TaskInstance.UserID
-            if (req.body.userid != ti.UserID) {
-                logger.log('error', 'UserID Not Matched')
-                return res.status(400).end()
-            }
-            var ti_data = JSON.parse(ti.Data)
+        });
 
-            if (!ti_data) {
-                ti_data = []
-            }
-            ti_data.push(req.body.taskInstanceData)
+        logger.log('info', 'task instance found', ti.toJSON())
+        //Ensure userid input matches TaskInstance.UserID
+        if (req.body.userid != ti.UserID) {
+            logger.log('error', 'UserID Not Matched')
+            return res.status(400).end()
+        }
+        var ti_data =  await JSON.parse(ti.Data)
 
-            logger.log('info', 'updating task instance', {
-                ti_data: ti_data
-            })
+        if (!ti_data) {
+            ti_data = []
+        }
 
-            // return TaskInstance.find({
-            //     where: {
-            //         TaskInstanceID: req.body.taskInstanceid,
-            //         UserID: req.body.userid,
-            //     },
-            //     include:[
-            //       {
-            //         model: TaskActivity
-            //       }
-            //     ]
-            // }).then(function(ti) {
-            var newStatus = JSON.parse(ti.Status);
-            newStatus[0] = 'complete';
-            return TaskInstance.update({
-                Data: ti_data,
-                ActualEndDate: new Date(),
-                Status: JSON.stringify(newStatus),
-            }, {
-                where: {
-                    TaskInstanceID: req.body.taskInstanceid,
-                    UserID: req.body.userid,
-                }
-            }).then(function(done) {
-                logger.log('info', 'task instance updated', {
-                    done: done
-                })
-                logger.log('info', 'triggering next task')
-                //Trigger next task to start
-                ti.triggerNext();
+        await ti_data.push(req.body.taskInstanceData)
 
-                console.log('trigger completed');
-
-                if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
-                    var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id
-                    logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id)
-
-                    TaskInstance.find({
-                        where: {
-                            TaskInstanceID: pre_ti_id
-                        }
-                    }).then(function(pre_ti) {
-                        logger.log('info', 'task instance found', pre_ti.toJSON())
-                        ti_data = JSON.parse(pre_ti.Data)
-
-                        if (!ti_data) {
-                            ti_data = []
-                        }
-                        ti_data.push(req.body.taskInstanceData)
-
-                        logger.log('info', 'updating task instance', {
-                            ti_data: ti_data
-                        })
-
-                        return TaskInstance.update({
-                            Data: ti_data,
-                        }, {
-                            where: {
-                                TaskInstanceID: pre_ti.TaskInstanceID,
-                            },
-                        }).then(function(done) {
-                            logger.log('info', 'task instance updated', {
-                                done: done
-                            })
-                        }).catch(function(err) {
-                            logger.log('error', 'task instance update failed', {
-                                err: err
-                            })
-                        })
-                    })
-                }
-                return res.status(200).end()
-            }).catch(function(err) {
-                console.log('err', err);
-                logger.log('error', 'task instance update failed', {
-                    err: err
-                })
-                return res.status(400).end();
-            })
-            //})
+        logger.log('info', 'updating task instance', {
+            ti_data: ti_data
         })
+
+        var newStatus = JSON.parse(ti.Status);
+        newStatus[0] = 'complete';
+
+        var done = await TaskInstance.update({
+            Data: ti_data,
+            ActualEndDate: new Date(),
+            Status: JSON.stringify(newStatus),
+        }, {
+            where: {
+                TaskInstanceID: req.body.taskInstanceid,
+                UserID: req.body.userid,
+            }
+        })
+
+        var new_ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.taskInstanceid,
+            },
+            include: [{
+                model: TaskActivity,
+                attributes: ['Type'],
+            }, ],
+        });
+
+        console.log(JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
+
+        logger.log('info', 'task instance updated')
+        logger.log('info', 'triggering next task')
+        //Trigger next task to start
+        await new_ti.triggerNext();
+
+        console.log('trigger completed');
+
+        if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
+            var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id
+            logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id)
+
+            TaskInstance.find({
+                where: {
+                    TaskInstanceID: pre_ti_id
+                }
+            }).then(function(pre_ti) {
+                logger.log('info', 'task instance found', pre_ti.toJSON())
+                ti_data = JSON.parse(pre_ti.Data)
+
+                if (!ti_data) {
+                    ti_data = []
+                }
+                ti_data.push(req.body.taskInstanceData)
+
+                logger.log('info', 'updating task instance', {
+                    ti_data: ti_data
+                })
+
+                return TaskInstance.update({
+                    Data: ti_data,
+                }, {
+                    where: {
+                        TaskInstanceID: pre_ti.TaskInstanceID,
+                    },
+                }).then(function(done) {
+                    logger.log('info', 'task instance updated', {
+                        done: done
+                    })
+                }).catch(function(err) {
+                    logger.log('error', 'task instance update failed', {
+                        err: err
+                    })
+                })
+            })
+        }
+
+        return res.status(200).end()
+
+
+
+
+        // return TaskInstance.find({
+        //     where: {
+        //         TaskInstanceID: req.body.taskInstanceid,
+        //     },
+        //     include: [{
+        //         model: TaskActivity,
+        //         attributes: ['Type'],
+        //     }, ],
+        // }).then(async function(ti) {
+        //     logger.log('info', 'task instance found', ti.toJSON())
+        //     //Ensure userid input matches TaskInstance.UserID
+        //     if (req.body.userid != ti.UserID) {
+        //         logger.log('error', 'UserID Not Matched')
+        //         return res.status(400).end()
+        //     }
+        //     var ti_data = JSON.parse(ti.Data)
+        //
+        //     if (!ti_data) {
+        //         ti_data = []
+        //     }
+        //     ti_data.push(req.body.taskInstanceData)
+        //
+        //     logger.log('info', 'updating task instance', {
+        //         ti_data: ti_data
+        //     })
+        //
+        //     // return TaskInstance.find({
+        //     //     where: {
+        //     //         TaskInstanceID: req.body.taskInstanceid,
+        //     //         UserID: req.body.userid,
+        //     //     },
+        //     //     include:[
+        //     //       {
+        //     //         model: TaskActivity
+        //     //       }
+        //     //     ]
+        //     // }).then(function(ti) {
+        //     var newStatus = JSON.parse(ti.Status);
+        //     newStatus[0] = 'complete';
+        //     await TaskInstance.update({
+        //         Data: ti_data,
+        //         ActualEndDate: new Date(),
+        //         Status: JSON.stringify(newStatus),
+        //     }, {
+        //         where: {
+        //             TaskInstanceID: req.body.taskInstanceid,
+        //             UserID: req.body.userid,
+        //         }
+        //     }).then(async function(done) {
+        //         logger.log('info', 'task instance updated', {
+        //             done: done
+        //         })
+        //         logger.log('info', 'triggering next task')
+        //         //Trigger next task to start
+        //         await ti.triggerNext()
+        //
+        //         console.log('trigger completed');
+        //
+        //         if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
+        //             var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id
+        //             logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id)
+        //
+        //             TaskInstance.find({
+        //                 where: {
+        //                     TaskInstanceID: pre_ti_id
+        //                 }
+        //             }).then(function(pre_ti) {
+        //                 logger.log('info', 'task instance found', pre_ti.toJSON())
+        //                 ti_data = JSON.parse(pre_ti.Data)
+        //
+        //                 if (!ti_data) {
+        //                     ti_data = []
+        //                 }
+        //                 ti_data.push(req.body.taskInstanceData)
+        //
+        //                 logger.log('info', 'updating task instance', {
+        //                     ti_data: ti_data
+        //                 })
+        //
+        //                 return TaskInstance.update({
+        //                     Data: ti_data,
+        //                 }, {
+        //                     where: {
+        //                         TaskInstanceID: pre_ti.TaskInstanceID,
+        //                     },
+        //                 }).then(function(done) {
+        //                     logger.log('info', 'task instance updated', {
+        //                         done: done
+        //                     })
+        //                 }).catch(function(err) {
+        //                     logger.log('error', 'task instance update failed', {
+        //                         err: err
+        //                     })
+        //                 })
+        //             })
+        //         }
+        //         return res.status(200).end()
+        //     }).catch(function(err) {
+        //         console.log('err', err);
+        //         logger.log('error', 'task instance update failed', {
+        //             err: err
+        //         })
+        //         return res.status(400).end();
+        //     })
+        //     //})
+        // })
     })
 
     //Endpoint to save the task instance input
