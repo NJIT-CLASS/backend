@@ -1,6 +1,6 @@
 var moment = require('moment');
 var models = require('../Model');
-var email = require('../WorkFlow/Email.js');
+var Email = require('../WorkFlow/Email.js');
 var Promise = require('bluebird');
 var _ = require('underscore');
 //var Allocator = require('../WorkFlow/Allocator.js');
@@ -158,6 +158,8 @@ module.exports = function(sequelize, DataTypes) {
 
             triggerNext: function() {
                 let x = this;
+                let email = new Email();
+
                 if ((x.StartDate === null || x.EndDate === null) && JSON.parse(x.Status)[0] !== 'automatic') {
                     throw Error('Missing attributes!  TaskInstanceID:', x.TaskInstanceID);
                     return null;
@@ -204,6 +206,8 @@ module.exports = function(sequelize, DataTypes) {
                                                 where: {
                                                     TaskInstanceID: nextTask.TaskInstanceID
                                                 }
+                                            }).then(function(done){
+                                              email.sendNow(nextTask.UserID, 'new task', null);
                                             }).catch(function(err) {
                                                 console.log(err);
                                                 throw Error("Cannot start next task!");
@@ -614,6 +618,7 @@ module.exports = function(sequelize, DataTypes) {
                         TaskActivityID: x.TaskActivityID
                     },
                 }).then(function(ta_result) {
+                    console.log(JSON.parse(x.Data), x.TaskInstanceID);
                     var keys = Object.keys(JSON.parse(x.Data));
 
                     return Promise.mapSeries(keys, function(val) {

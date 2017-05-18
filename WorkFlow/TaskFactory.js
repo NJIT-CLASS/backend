@@ -9,6 +9,7 @@ var moment = require('moment');
 var TreeModel = require('tree-model');
 var FlatToNested = require('flat-to-nested');
 var consts = require('../Util/constant.js');
+var Email = require('./Email.js');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -56,9 +57,9 @@ class TaskFactory {
         })
 
         await sec_users.forEach(function(user) {
-          if(user.Role !== 'Instructor' || user.Role !== 'Observer'){
-            users.push(user.UserID);
-          }
+            if (user.Role !== 'Instructor' || user.Role !== 'Observer') {
+                users.push(user.UserID);
+            }
         });
 
         return users;
@@ -761,20 +762,34 @@ class TaskFactory {
         })
     }
 
-    createWorkflowInstance(workflow, ai_id) {
-        return new Promise(function(resolve, reject) {
-            WorkflowInstance.create({
-                //create attributes.
-                WorkflowActivityID: workflow.id,
-                AssignmentInstanceID: ai_id,
-                StartTime: workflow.startDate
-            }).then(function(result) {
-                resolve(result.WorkflowInstanceID);
-            }).catch(function(err) {
-                console.log(err);
-                reject(err);
-            });
+    async createWorkflowInstance(workflow, ai_id) {
+
+        var wi = await WorkflowInstance.create({
+            //create attributes.
+            WorkflowActivityID: workflow.id,
+            AssignmentInstanceID: ai_id,
+            StartTime: workflow.startDate
+        }).catch(function(err){
+          logger.log('error', 'cannot create workflow instance', {
+            error: err
+          });
+          return
         });
+
+        return wi.WorkflowInstanceID;
+        // return new Promise(function(resolve, reject) {
+        //     WorkflowInstance.create({
+        //         //create attributes.
+        //         WorkflowActivityID: workflow.id,
+        //         AssignmentInstanceID: ai_id,
+        //         StartTime: workflow.startDate
+        //     }).then(function(result) {
+        //         resolve(result.WorkflowInstanceID);
+        //     }).catch(function(err) {
+        //         console.log(err);
+        //         reject(err);
+        //     });
+        // });
     }
 
     createTaskInstance(task, userid, wi_id, ai_id) {
@@ -830,6 +845,7 @@ class TaskFactory {
     createInstances(sectionid, ai_id) {
         console.log('Initiating create instances function...')
         var x = this;
+        var email = new Email();
 
         //creates seperate array to store all the workflow instances created
         var workflowArray = [];
@@ -896,6 +912,7 @@ class TaskFactory {
                                                         TaskInstanceID: createTaskResult[0]
                                                     }
                                                 });
+                                                email.sendNow(ti.UserID, 'new task', null);
                                             });
                                         }
                                     }).catch(function(err) {
@@ -942,12 +959,43 @@ class TaskFactory {
         });
     }
 
-    async createWorkflowInstances(u_id, wf_timing, i){
-        await JSON.parse(workflowTiming).workflows.forEach(function(wf, j){
-          
-        })
+    async getAllocUser(task, user, i, j){
+
+
     }
 
+    async createTaskInstances(wf, ai_id, new_wi_id, users, i , j){
+      var x = this;
+      var index = j;
+      var tis = [];
+
+      await wf.tasks.forEach(async function(task){
+        var u_id_and_index = await x.getAllocUser(task, users, i, index);
+        index = u_id_and_index[1];
+
+        var ti = await x.createTaskInstance(task, u_id_and_index[0], new_wi_id, ai_id);
+        tis.push(ti);
+      });
+
+      return [tis, index];
+    }
+
+    async createWorkflowInstances(users, ai_id, wf_timing, i) {
+        var x = this;
+        var j = i;
+        var wfs = [];
+
+        await JSON.parse(workflowTiming).workflows.forEach(async function(wf) {
+            var new_wi_id = await x.createWorkflowInstance(wf, ai_id);
+            var new_tis_and_index = await x.createTaskInstances(wf, ai_id, new_wi_id, users, i, j);
+            wfs.push(new_wi_id);
+            j = new_tis_and_index[1];
+        });
+
+        return wfs;
+    }
+
+    //new allocation algorithm
     async debug(sectionid, ai_id) {
 
         if (sectionid === null || ai_id === null) {
@@ -964,11 +1012,18 @@ class TaskFactory {
 
         var x = this;
         var users = await x.getUsersFromSection(sectionid);
+        //var shift_users = await x.getUsersFromSection(sectionid);
         var wf_timing = await x.getWorkflowTiming(ai_id);
+        var workflows = [];
 
-        await users.forEach(async function(u_id, i){
-            await x.createWorkflowInstances(u_id, wf_timing, i);
-        })
+        await users.forEach(async function(u_id, i) {
+            var new_wfs = await x.createWorkflowInstances(users, ai_id, wf_timing, i);
+            workflows = workflows.concat(new_wfs);
+
+            //Change the location of first user to last for reuse
+            // var first_user = shift_users.shift();
+            // shift_users.push(first_user);
+        });
     }
 
 

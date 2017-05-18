@@ -28,7 +28,7 @@ var password = "plamaster123";
 /*
   Constructor
 */
-class Email  {
+class Email {
 
     /*
       Adding task instance to email notification list
@@ -107,7 +107,7 @@ class Email  {
     /*
       Send an email now given userid and type of email needs to be sent.
     */
-    sendNow(userid, type, temp_pass=null) {
+    sendNow(userid, type, temp_pass = null) {
 
         var x = this;
         console.log(models.UserLogin);
@@ -138,7 +138,18 @@ class Email  {
                         to: result.Email,
                         subject: "Welcome to PLA!",
                         text: "You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.\nTemporary Password: " + temp_pass,
-                        html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<br/>Temporary Password: ' + temp_pass + '</p>'
+                        html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
+                    });
+                    break;
+                case 'new task':
+                    console.log('notifying ' + result.Email);
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: "New Task Awaiting! PLA Admin",
+                        text: "A new task has been assigned. Please login into \n http://pla.njit.edu:4001 to complete the task",
+                        html: '<p>A new task has been assigned.<div>Please login into http://pla.njit.edu:4001</div></p>'
                     });
                     break;
                 case 'due less than one day':
@@ -176,7 +187,7 @@ class Email  {
             }
         });
     }
-        //Update Email Last Sent in Task Instance to Now.
+    //Update Email Last Sent in Task Instance to Now.
     updateEmailLastSent(taskInstanceId) {
         TaskInstance.update({
             EmailLastSent: new Date()
