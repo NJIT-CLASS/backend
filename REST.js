@@ -2670,70 +2670,65 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint to get a user's courses
     router.get("/course/getCourses/:userid", async function(req, res) {
+            var courses = [];
 
-        var sections = await SectionUser.findAll({
-            where: {
-                UserID: req.params.userid
-            },
-            attributes: ['SectionUserID', 'SectionID', 'Role', 'Active'],
-            include: [{
-                model: Section,
-                attributes: ['CourseID'],
+            var sections = await SectionUser.findAll({
+                where: {
+                    UserID: req.params.userid
+                },
+                attributes: ['SectionUserID', 'SectionID', 'Role', 'Active'],
                 include: [{
-                    model: Course,
-                    attributes: ['Number', 'Name']
+                    model: Section,
+                    attributes: ['CourseID'],
+                    include: [{
+                        model: Course,
+                        attributes: ['CourseID','Number', 'Name']
+                    }]
                 }]
-            }]
-        }).catch(function(err) {
-            logger.log('error', 'failed getting section information', {
-                error: err
+            }).catch(function(err) {
+                logger.log('error', 'failed getting section information', {
+                    error: err
+                });
+                res.status(401).end();
             });
-            res.status(401).end();
-        });
 
-        if (sections.length > 0) {
+            await sections.forEach(function(section) {
+              //console.log(section.Section);
+              if(section.Section !== null){
+                courses.push({
+                    "CourseID": section.Section.Course.CourseID,
+                    "Number": section.Section.Course.Number,
+                    "Name": section.Section.Course.Name
+                })
+              }
+            })
+
+            let createdCourses = await Course.findAll({
+                where: {
+                    CreatorID: req.params.userid
+                }
+            }).catch(function(err) {
+                logger.log('error', 'failed getting courses created information', {
+                    error: err
+                });
+                res.status(401).end();
+            });
+
+            await createdCourses.forEach(function(course){
+              courses.push({
+                  "CourseID": course.CourseID,
+                  "Number": course.Number,
+                  "Name": course.Name
+              });
+            });
+
+
             res.json({
                 "Error": false,
                 "Message": "Success",
-                "Result": sections
+                "Courses": courses
             });
-        } else {
-            res.json({
-                "Error": true,
-                "Message": "User Has No Courses"
-            });
-        }
-
-
-
-        // SectionUser.findAll({
-        //     where: {
-        //         UserID: req.params.userid
-        //     },
-        //     attributes: ['SectionUserID', 'SectionID', 'Role', ' Active']
-        //     // include: [{
-        //     //     model: Section,
-        //     //     attributes: ['CourseID']
-        //     // }]
-        // }).then(function(rows) {
-        //     console.log('rows', rows)
-        //     // if (rows.length > 0) {
-        //         res.json({
-        //             "Error": false,
-        //             "Message": "Success",
-        //             "Result": rows
-        //         });
-        //     // } else {
-        //     //     res.json({
-        //     //         "Error": true,
-        //     //         "Message": "User Has No Courses"
-        //     //     });
-        //     // }
-        // }).catch(function(err) {
-        //     res.status(401).end();
-        // });
-    });
-
+        });
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get start a password reset request
@@ -3765,7 +3760,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
                     ar.push(result);
 
-                    return allocator.applyViewContstraints(res, req.query.userID, result)
+                    //return allocator.applyViewContstraints(res, req.query.userID, result)
                 });
             }).then(function() {
                 return TaskInstance.find({
@@ -3790,20 +3785,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         });
                         logger.log('debug', 'done collecting previous tasks')
                         // check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
-                        return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function(done1) {
-                            if (res._headerSent) { // if already responded (response sent)
-                                return
-                            }
-                            // update data field of all tasks with the appropriate allowed version
-                            allocator.applyVersionContstraints(ar, result, req.query.userID)
-                            ar.push(result);
-                            res.json({
-                                error: false,
-                                previousTasksList: done,
-                                superTask: ar,
-
-                            });
-                        })
+                        // return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function(done1) {
+                        //     if (res._headerSent) { // if already responded (response sent)
+                        //         return
+                        //     }
+                        //     // update data field of all tasks with the appropriate allowed version
+                        //     allocator.applyVersionContstraints(ar, result, req.query.userID)
+                        //     ar.push(result);
+                        //     res.json({
+                        //         error: false,
+                        //         previousTasksList: done,
+                        //         superTask: ar,
+                        //     });
+                        // })
                     });
             });
 
@@ -4536,7 +4530,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         Instructor: req.body.role === 'Instructor'
                       }, {transaction: t})
                       .catch(function(err) {
-                        console.log(err);
+                        console.error(err);
+                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                            req_body: req.body,
+                            error: err
+                        });
                         sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                         .then(function(){
                           res.status(500).end();
@@ -4551,7 +4549,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             Email: req.body.email,
                             Phone: '(XXX) XXX-XXXX'
                         }, {transaction: t}).catch(function(err) {
-                            console.log(err);
+                            console.error(err);
+                            logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                req_body: req.body,
+                                error: err
+                            });
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                             .then(function(){
                               res.status(500).end();
@@ -4563,14 +4565,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                               Email: req.body.email,
                               Password: await password.hash(temp_pass)
                           }, {transaction: t}).catch(function(err) {
-                            console.log(err);
+                            console.error(err);
+                            logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                req_body: req.body,
+                                error: err
+                            });
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                             .then(function(){
                               res.status(500).end();
                             });
                           }).then(function(userLogin) {
-                              // let email = new Email();
-                              // email.sendNow(user.UserID, 'invite user', temp_pass);
+                              let email = new Email();
+                              email.sendNow(user.UserID, 'invite user', temp_pass);
                               return SectionUser.create({
                                   SectionID: req.params.sectionid,
                                   UserID: userLogin.UserID,
@@ -4578,13 +4584,20 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                   Volunteer: req.body.volunteer,
                                   Role: req.body.role
                               }, {transaction: t}).catch(function(err) {
-                                  console.log(err);
+                                  console.error(err);
+                                  logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                      req_body: req.body,
+                                      error: err
+                                  });
                                   sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                   .then(function(){
                                     res.status(500).end();
                                   });
                               }).then(function(sectionUser) {
                                   console.log('Creating user, inviting, and adding to section');
+                                  logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                      req_body: req.body
+                                  });
                                   return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {transaction: t})
                                   .then(function(){
                                     res.json({
