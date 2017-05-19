@@ -24,13 +24,13 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-var AssignmentGrade = models.AssignmentGrade
-var WorkflowGrade = models.WorkflowGrade
-var TaskGrade = models.TaskGrade
-var TaskSimpleGrade = models.TaskSimpleGrade
+var AssignmentGrade = models.AssignmentGrade;
+var WorkflowGrade = models.WorkflowGrade;
+var TaskGrade = models.TaskGrade;
+var TaskSimpleGrade = models.TaskSimpleGrade;
 var PartialAssignments = models.PartialAssignments;
-var contentDisposition = require('content-disposition')
-var FileReference = models.FileReference
+var contentDisposition = require('content-disposition');
+var FileReference = models.FileReference;
 
 var VolunteerPool = models.VolunteerPool;
 var Assignment_Archive = models.Assignment_Archive;
@@ -44,18 +44,18 @@ var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var TaskFactory = require('./WorkFlow/TaskFactory.js');
-var sequelize = require("./Model/index.js").sequelize;
+var sequelize = require('./Model/index.js').sequelize;
 var Email = require('./WorkFlow/Email.js');
 var Util = require('./WorkFlow/Util.js');
 var FlatToNested = require('flat-to-nested');
-var fs = require('fs')
+var fs = require('fs');
 
 
-const multer = require('multer') //TODO: we may need to limit the file upload size
+const multer = require('multer'); //TODO: we may need to limit the file upload size
 var storage = multer({
     dest: './files/'
-})
-const logger = require('winston')
+});
+const logger = require('winston');
 
 logger.configure({
     transports: [
@@ -75,7 +75,7 @@ logger.configure({
             level: 'error',
         })
     ]
-})
+});
 
 //-----------------------------------------------------------------------------------------------------
 
@@ -91,18 +91,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Endpoint to return VolunteerPool list of Volunteers
-    router.get("/VolunteerPool/", function(req, res) {
+    router.get('/VolunteerPool/', function(req, res) {
 
         VolunteerPool.findAll({
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Volunteers": rows
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
             });
         }).catch(function(err) {
-            console.log("/VolunteerPool/ " + err.message);
+            console.log('/VolunteerPool/ ' + err.message);
             res.status(401).end();
         });
 
@@ -110,16 +110,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to return count total of Volunteers
-    router.get("/VolunteerPool/countOfUsers", function(req, res) {
-        console.log("VolunteerPool/count was called");
+    router.get('/VolunteerPool/countOfUsers', function(req, res) {
+        console.log('VolunteerPool/count was called');
         VolunteerPool.findAll({}).then(function(rows) {
             res.json({
-                "Error_": false,
-                "Message": "Success",
-                "Number of Volunteers": rows.length
+                'Error_': false,
+                'Message': 'Success',
+                'Number of Volunteers': rows.length
             });
         }).catch(function(err) {
-            console.log("/VolunteerPool/ " + err.message);
+            console.log('/VolunteerPool/ ' + err.message);
             res.status(401).end();
         });
 
@@ -127,8 +127,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to return list of volunteers in a section
-    router.get("/VolunteerPool/VolunteersInSection/:SectionID", function(req, res) {
-        console.log("/VolunteerPool/VolunteersInSection was called");
+    router.get('/VolunteerPool/VolunteersInSection/:SectionID', function(req, res) {
+        console.log('/VolunteerPool/VolunteersInSection was called');
         VolunteerPool.findAll({
             where: {
                 SectionID: req.params.SectionID
@@ -136,12 +136,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Volunteers": rows
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
             });
         }).catch(function(err) {
-            console.log("/VolunteerPool/ " + err.message);
+            console.log('/VolunteerPool/ ' + err.message);
             res.status(401).end();
         });
 
@@ -150,8 +150,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Endpoint to return VolunteerPool Information for the student
-    router.get("/VolunteerPool/UserInPool/:UserID", function(req, res) {
-        console.log("/VolunteerPool/:UserID was called");
+    router.get('/VolunteerPool/UserInPool/:UserID', function(req, res) {
+        console.log('/VolunteerPool/:UserID was called');
         VolunteerPool.findAll({
             where: {
                 UserID: req.params.UserID
@@ -159,12 +159,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Volunteers": rows
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
             });
         }).catch(function(err) {
-            console.log("/VolunteerPool/ " + err.message);
+            console.log('/VolunteerPool/ ' + err.message);
             res.status(401).end();
         });
 
@@ -173,7 +173,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Endpoint to remove from VolunteerPool
-    router.delete("/VolunteerPool/deleteVolunteer", function(req, res) {
+    router.delete('/VolunteerPool/deleteVolunteer', function(req, res) {
 
         VolunteerPool.destroy({
             where: {
@@ -181,10 +181,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 AssignmentInstanceID: 12, //req.body.AssignmentInstanceID
             }
         }).then(function(rows) {
-            console.log("Delete User Success");
+            console.log('Delete User Success');
             res.status(200).end();
         }).catch(function(err) {
-            console.log("/course/deleteuser : " + err.message);
+            console.log('/course/deleteuser : ' + err.message);
 
             res.status(400).end();
         });
@@ -196,22 +196,22 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //check approval required status
 
     //Endpoint to add a user to a course
-    router.post("/VolunteerPool/add", function(req, res) {
-        console.log("/VolunteerPool/add : was called");
+    router.post('/VolunteerPool/add', function(req, res) {
+        console.log('/VolunteerPool/add : was called');
 
         if (req.body.UserID === null || req.body.SectionID === null || req.body.AssignmentInstanceID === null) {
-            console.log("/VolunteerPool/add : Missing attributes");
+            console.log('/VolunteerPool/add : Missing attributes');
             res.status(400).end();
         }
 
-        console.log("got to create part");
+        console.log('got to create part');
         //console.log("UserID: " + req.params.UserID);
         VolunteerPool.create({
             UserID: req.body.UserID,
             SectionID: req.body.SectionID,
             AssignmentInstanceID: req.body.AssignmentInstanceID
         }).then(function(rows) {
-            console.log("add User Success");
+            console.log('add User Success');
             res.status(200).end();
         }).catch(function(err) {
             console.log(err);
@@ -219,12 +219,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
         //             });
         // });
-    })
+    });
 
 
     //Endpoint to change status of volunteer individually
-    router.post("/VolunteerPool/individualStatusUpdate/", function(req, res) {
-        console.log("Volunteerpool id rec: " + req.body.VolunteerPoolID);
+    router.post('/VolunteerPool/individualStatusUpdate/', function(req, res) {
+        console.log('Volunteerpool id rec: ' + req.body.VolunteerPoolID);
         VolunteerPool.update({
             status: req.body.status
         }, {
@@ -232,10 +232,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 VolunteerPoolID: req.body.VolunteerPoolID
             }
         }).then(function() {
-            console.log("update success");
+            console.log('update success');
             res.status(201).end();
         }).catch(function(err) {
-            console.log("/VolunteerPool/individualStatusUpdate " + err.message);
+            console.log('/VolunteerPool/individualStatusUpdate ' + err.message);
             res.status(401).end();
         });
 
@@ -243,7 +243,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to change status of volunteer update all in section
-    router.post("/VolunteerPool/sectionlStatusUpdate/", function(req, res) {
+    router.post('/VolunteerPool/sectionlStatusUpdate/', function(req, res) {
 
         VolunteerPool.update({
             status: req.body.status
@@ -252,17 +252,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 SectionID: req.body.SectionID
             }
         }).then(function() {
-            console.log("update success");
+            console.log('update success');
             res.status(401).end();
         }).catch(function(err) {
-            console.log("/VolunteerPool/sectionlStatusUpdate " + err.message);
+            console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
             res.status(401).end();
         });
 
     });
 
     //Endpoint to change status of volunteer update all in assignment instance
-    router.post("/VolunteerPool/assignmentInstanceStatusUpdate/", function(req, res) {
+    router.post('/VolunteerPool/assignmentInstanceStatusUpdate/', function(req, res) {
 
         VolunteerPool.update({
             status: req.body.status
@@ -271,10 +271,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 AssignmentInstanceID: req.body.AssignmentInstanceID
             }
         }).then(function() {
-            console.log("update success");
+            console.log('update success');
             res.status(401).end();
         }).catch(function(err) {
-            console.log("/VolunteerPool/sectionlStatusUpdate " + err.message);
+            console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
             res.status(401).end();
         });
 
@@ -288,7 +288,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Endpoint to archive assignment activity table entry by giving assignment id
-    router.get("/AssignmentArchive/save/:AssignmentID", function(req, res) {
+    router.get('/AssignmentArchive/save/:AssignmentID', function(req, res) {
         var assignmentArray = new Array();
         Assignment.findAll({
             where: {
@@ -313,10 +313,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 SemesterID: rows[0].SemesterID,
                 VersionHistory: rows[0].VersionHistory
 
-            })
+            });
             res.status(401).end();
         }).catch(function(err) {
-            console.log("/AssignmentArchive/save/:AssignmentInstanceID " + err.message);
+            console.log('/AssignmentArchive/save/:AssignmentInstanceID ' + err.message);
             res.status(401).end();
         });
         //         Assignment.destroy({
@@ -330,7 +330,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to restore assignment activity table entry by giving assignment id
-    router.get("/AssignmentRestore/save/:AssignmentID", function(req, res) {
+    router.get('/AssignmentRestore/save/:AssignmentID', function(req, res) {
         var assignmentArray = new Array();
         Assignment_Archive.findAll({
             where: {
@@ -355,10 +355,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 SemesterID: rows[0].SemesterID,
                 VersionHistory: rows[0].VersionHistory
 
-            })
+            });
             res.status(401).end();
         }).catch(function(err) {
-            console.log("/AssignmentRestore/save/:AssignmentInstanceID " + err.message);
+            console.log('/AssignmentRestore/save/:AssignmentInstanceID ' + err.message);
             res.status(401).end();
         });
         //         Assignment.destroy({
@@ -372,9 +372,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to archive assignment instance table entry by giving AssignmentInstanceID
-    router.get("/AssignmentInstanceArchive/save/:AssignmentInstanceID", function(req, res) {
+    router.get('/AssignmentInstanceArchive/save/:AssignmentInstanceID', function(req, res) {
         var assignmentArray = new Array();
-        console.log(" AssignmentInstanceArchive is called\n");
+        console.log(' AssignmentInstanceArchive is called\n');
         AssignmentInstance.findAll({
             where: {
                 AssignmentInstanceID: req.params.AssignmentInstanceID
@@ -394,12 +394,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     WorkflowCollection: rows[x].WorkflowCollection,
                     WorkflowTiming: rows[x].WorkflowTiming
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log(" /AssignmentInstanceArchive/save/:AssignmentInstanceID-------" + err.message);
+            console.log(' /AssignmentInstanceArchive/save/:AssignmentInstanceID-------' + err.message);
             res.status(401).end();
         });
         //         TaskActivity.destroy({
@@ -413,9 +413,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to restore assignment instance table entry by giving AssignmentInstanceID
-    router.get("/AssignmentInstanceRestore/save/:AssignmentInstanceID", function(req, res) {
+    router.get('/AssignmentInstanceRestore/save/:AssignmentInstanceID', function(req, res) {
         var assignmentArray = new Array();
-        console.log(" AssignmentInstanceRestore is called\n");
+        console.log(' AssignmentInstanceRestore is called\n');
         AssignmentInstance_Archive.findAll({
             where: {
                 AssignmentInstanceID: req.params.AssignmentInstanceID
@@ -435,12 +435,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     WorkflowCollection: rows[x].WorkflowCollection,
                     WorkflowTiming: rows[x].WorkflowTiming
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log(" /AssignmentInstanceRestore/save/:AssignmentInstanceID-------" + err.message);
+            console.log(' /AssignmentInstanceRestore/save/:AssignmentInstanceID-------' + err.message);
             res.status(401).end();
         });
         //         TaskActivity.destroy({
@@ -454,9 +454,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to archive task actvity table entry by giving assignment id
-    router.get("/TaskActivityArchive/save/:AssignmentID", function(req, res) {
+    router.get('/TaskActivityArchive/save/:AssignmentID', function(req, res) {
         var assignmentArray = new Array();
-        console.log("TaskActivityArchive is called\n");
+        console.log('TaskActivityArchive is called\n');
         TaskActivity.findAll({
             where: {
                 AssignmentID: req.params.AssignmentID
@@ -506,12 +506,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     MinimumDuration: rows[x].MinimumDuration,
                     AssignmentInstanceID: rows[x].AssignmentInstanceID
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log("/TaskActivityArchive/save/:AssignmentID " + err.message);
+            console.log('/TaskActivityArchive/save/:AssignmentID ' + err.message);
             res.status(401).end();
         });
 
@@ -526,9 +526,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to restore task actvity table entry by giving assignment id (Note: Could not test - should work)
-    router.get("/TaskActivityRestore/save/:AssignmentID", function(req, res) {
+    router.get('/TaskActivityRestore/save/:AssignmentID', function(req, res) {
         var assignmentArray = new Array();
-        console.log("TaskActivityRestore is called\n");
+        console.log('TaskActivityRestore is called\n');
         TaskActivity_Archive.findAll({
             where: {
                 AssignmentID: req.params.AssignmentID
@@ -578,12 +578,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     MinimumDuration: rows[x].MinimumDuration,
                     AssignmentInstanceID: rows[x].AssignmentInstanceID
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log("/TaskActivityRestore/save/:AssignmentID " + err.message);
+            console.log('/TaskActivityRestore/save/:AssignmentID ' + err.message);
             res.status(401).end();
         });
 
@@ -598,9 +598,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to archive task instance table entry by giving  AssignmentInstanceID
-    router.get("/TaskInstanceArchive/save/:AssignmentInstanceID", function(req, res) {
+    router.get('/TaskInstanceArchive/save/:AssignmentInstanceID', function(req, res) {
         var assignmentArray = new Array();
-        console.log("TaskInstanceArchive is called\n");
+        console.log('TaskInstanceArchive is called\n');
         TaskInstance.findAll({
             where: {
                 AssignmentInstanceID: req.params.AssignmentInstanceID
@@ -632,12 +632,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     PreviousTask: rows[x].PreviousTask,
                     EmailLastSent: rows[x].EmailLastSent
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log("/TaskInstanceArchive/save/:AssignmentInstanceID " + err.message);
+            console.log('/TaskInstanceArchive/save/:AssignmentInstanceID ' + err.message);
             res.status(401).end();
         });
 
@@ -654,9 +654,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to archive task instance table entry by giving  AssignmentInstanceID
-    router.get("/TaskInstanceRestore/save/:AssignmentInstanceID", function(req, res) {
+    router.get('/TaskInstanceRestore/save/:AssignmentInstanceID', function(req, res) {
         var assignmentArray = new Array();
-        console.log("TaskInstanceRestore is called\n");
+        console.log('TaskInstanceRestore is called\n');
         TaskInstance_Archive.findAll({
             where: {
                 AssignmentInstanceID: req.params.AssignmentInstanceID
@@ -688,12 +688,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     PreviousTask: rows[x].PreviousTask,
                     EmailLastSent: rows[x].EmailLastSent
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log("/TaskInstanceRestore/save/:AssignmentInstanceID " + err.message);
+            console.log('/TaskInstanceRestore/save/:AssignmentInstanceID ' + err.message);
             res.status(401).end();
         });
 
@@ -710,11 +710,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to archive workflow instance table entry by giving AssignmentInstanceID
-    router.get("/WorkflowInstanceArchive/save/:AssignmentInstanceID", function(req, res) {
+    router.get('/WorkflowInstanceArchive/save/:AssignmentInstanceID', function(req, res) {
 
 
         var assignmentArray = new Array();
-        console.log("WorkflowInstanceArchive is called\n");
+        console.log('WorkflowInstanceArchive is called\n');
         WorkflowInstance.findAll({
             where: {
                 AssignmentInstanceID: req.params.AssignmentInstanceID
@@ -734,12 +734,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     TaskCollection: rows[x].TaskCollection,
                     Data: rows[x].Data
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log("/WorkflowInstanceArchive/save/:AssignmentInstanceID" + err.message);
+            console.log('/WorkflowInstanceArchive/save/:AssignmentInstanceID' + err.message);
             res.status(401).end();
         });
         //         WorkflowInstance.destroy({
@@ -754,11 +754,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to restore workflow instance table entry by giving AssignmentInstanceID
-    router.get("/WorkflowInstanceRestore/save/:AssignmentInstanceID", function(req, res) {
+    router.get('/WorkflowInstanceRestore/save/:AssignmentInstanceID', function(req, res) {
 
 
         var assignmentArray = new Array();
-        console.log("WorkflowInstanceRestore is called\n");
+        console.log('WorkflowInstanceRestore is called\n');
         WorkflowInstance_Archive.findAll({
             where: {
                 AssignmentInstanceID: req.params.AssignmentInstanceID
@@ -778,12 +778,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     TaskCollection: rows[x].TaskCollection,
                     Data: rows[x].Data
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log("/WorkflowInstanceRestore/save/:AssignmentInstanceID" + err.message);
+            console.log('/WorkflowInstanceRestore/save/:AssignmentInstanceID' + err.message);
             res.status(401).end();
         });
         //         WorkflowInstance.destroy({
@@ -798,9 +798,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to archive workflow actvity table entry by giving AssignmentID
-    router.get("/WorkflowActivityArchive/save/:AssignmentID", function(req, res) {
+    router.get('/WorkflowActivityArchive/save/:AssignmentID', function(req, res) {
         var assignmentArray = new Array();
-        console.log(" WorkflowActivityArchive is called\n");
+        console.log(' WorkflowActivityArchive is called\n');
         WorkflowActivity.findAll({
             where: {
                 AssignmentID: req.params.AssignmentID
@@ -825,12 +825,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     WorkflowStructure: rows[x].WorkflowStructure,
                     VersionHistory: rows[x].VersionHistory
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log(" /WorkflowActivityArchive/save/:AssignmentID-------" + err.message);
+            console.log(' /WorkflowActivityArchive/save/:AssignmentID-------' + err.message);
             res.status(401).end();
         });
         //
@@ -846,9 +846,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to restore workflow actvity table entry by giving AssignmentID
-    router.get("/WorkflowActivityRestore/save/:AssignmentID", function(req, res) {
+    router.get('/WorkflowActivityRestore/save/:AssignmentID', function(req, res) {
         var assignmentArray = new Array();
-        console.log(" WorkflowActivityRestore is called\n");
+        console.log(' WorkflowActivityRestore is called\n');
         WorkflowActivity_Archive.findAll({
             where: {
                 AssignmentID: req.params.AssignmentID
@@ -873,12 +873,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     WorkflowStructure: rows[x].WorkflowStructure,
                     VersionHistory: rows[x].VersionHistory
 
-                })
+                });
             }
             //200 for OK
             res.status(201).end();
         }).catch(function(err) {
-            console.log(" /WorkflowActivityRestore/save/:AssignmentID-------" + err.message);
+            console.log(' /WorkflowActivityRestore/save/:AssignmentID-------' + err.message);
             res.status(401).end();
         });
         //
@@ -896,7 +896,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-------------------------------------------------------------------------------------------------
 
     //Endpoint to Create an Assignment
-    router.post("/assignment/create", function(req, res) {
+    router.post('/assignment/create', function(req, res) {
 
         //
         // console.log('assignment: ', req.body.assignment);
@@ -944,9 +944,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Data: req.body.assignment
             }).then((result) => {
                 res.json({
-                    "Error": false,
-                    "PartialAssignmentID": result.PartialAssignmentID
-                })
+                    'Error': false,
+                    'PartialAssignmentID': result.PartialAssignmentID
+                });
             }).catch((err) => {
                 console.error(err);
                 res.status(400).end();
@@ -961,11 +961,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then((result) => {
                 console.log(result);
-                console.log("PartialAssignmentID:", result.PartialAssignmentID)
+                console.log('PartialAssignmentID:', result.PartialAssignmentID);
                 res.json({
-                    "Error": false,
-                    "PartialAssignmentID": req.body.partialAssignmentId
-                })
+                    'Error': false,
+                    'PartialAssignmentID': req.body.partialAssignmentId
+                });
             }).catch((result) => {
                 console.error(result);
                 res.status(400).end();
@@ -988,8 +988,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['PartialAssignmentID', 'PartialAssignmentName']
         }).then((result) => {
             res.json({
-                "Error": false,
-                "PartialAssignments": result
+                'Error': false,
+                'PartialAssignments': result
             });
         }).catch((result) => {
             console.error(result);
@@ -1015,13 +1015,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(result => {
             console.log(result);
             res.json({
-                "Error": false,
-                "PartialAssignment": result
+                'Error': false,
+                'PartialAssignment': result
             });
         }).catch(result => {
             console.log(result);
             res.status(400).end();
-        })
+        });
     });
 
     //Endpoint to get an assignment associate with courseId
@@ -1041,8 +1041,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log('Assignments have been found!');
 
             res.json({
-                "Error": false,
-                "Assignments": result
+                'Error': false,
+                'Assignments': result
             });
 
         }).catch(function(err) {
@@ -1061,7 +1061,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             where: {
                 SectionID: req.params.sectionId
             },
-            attributes: ["AssignmentInstanceID", "StartDate", "EndDate"],
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
             include: [{
                 model: Assignment,
                 attributes: ['DisplayName']
@@ -1069,11 +1069,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(result) {
             console.log('Assignments have been found!');
             res.json({
-                "Error": false,
-                "Assignments": result
+                'Error': false,
+                'Assignments': result
             });
         }).catch(function(err) {
-            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ": " + err);
+            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
             res.status(404).end();
         });
     });
@@ -1089,17 +1089,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             include: [{
                 model: AssignmentInstance,
                 as: 'AssignmentInstances',
-                attributes: ["AssignmentInstanceID", "StartDate", "EndDate", "SectionID"]
+                attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'SectionID']
 
             }]
         }).then(function(result) {
             console.log('Assignments have been found!');
             res.json({
-                "Error": false,
-                "Assignments": result
+                'Error': false,
+                'Assignments': result
             });
         }).catch(function(err) {
-            console.log('/getActiveAssignments/' + req.params.courseId + ": " + err);
+            console.log('/getActiveAssignments/' + req.params.courseId + ': ' + err);
             res.status(404).end();
         });
     });
@@ -1108,7 +1108,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to allocate students
-    router.get("/allocate", function(req, res) {
+    router.get('/allocate', function(req, res) {
 
         // var taskFactory = new TaskFactory();
         // //allocator.createInstances(1, 16);
@@ -1161,7 +1161,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.get("/findPreviousTasks/:taskInstanceId", function(req, res) {
+    router.get('/findPreviousTasks/:taskInstanceId', function(req, res) {
         var allocator = new TaskFactory();
 
         allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
@@ -1169,8 +1169,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             previousTasks = done.sort();
 
             res.json({
-                "previousTasks": previousTasks
-            })
+                'previousTasks': previousTasks
+            });
 
         }).catch(function(err) {
             console.log(err);
@@ -1178,17 +1178,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.get("/sendEmailNotification/:taskInstanceId", function(req, res) {
+    router.get('/sendEmailNotification/:taskInstanceId', function(req, res) {
         var email = new Email();
 
 
         //email.sendNow(req.body.opts);
         var opts = {
-            from: "njitplamaster@gmail.com",
-            replyTo: "njitplamaster@gmail.com",
-            to: "qxl2@njit.edu",
-            subject: "Test",
-            html: "Test"
+            from: 'njitplamaster@gmail.com',
+            replyTo: 'njitplamaster@gmail.com',
+            to: 'qxl2@njit.edu',
+            subject: 'Test',
+            html: 'Test'
         };
 
         email.send(opts);
@@ -1206,23 +1206,23 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         // winston.level = 'debug'
         logger.log('error', 'both', {
             someKey: 'some-value'
-        })
-        logger.log('warn', 'only info')
+        });
+        logger.log('warn', 'only info');
         logger.log('warn', 'only info', ([1, 2, {
-                k: 'v'
-            },
+            k: 'v'
+        },
             ['hi'],
             function(test) {
-                console.log(test)
+                console.log(test);
             }
-        ]).toString())
+        ]).toString());
 
         // var manager = new Manager()
         // manager.debug()
-        var a = new Allocator()
+        var a = new Allocator();
         // a.reallocate_ais_of_users([1, 5], [3, 5, 8, 11, 1])
-        res.status(200).end()
-    })
+        res.status(200).end();
+    });
 
     // Inactivate section user
 
@@ -1231,12 +1231,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('info', 'post: /sectionUser/inactivate/, inactivate section user', {
             req_body: req.body,
             req_params: req.params
-        })
-        var section_user_id = req.body.section_user_id || req.params.section_user_id
+        });
+        var section_user_id = req.body.section_user_id || req.params.section_user_id;
 
         if (section_user_id == null) {
-            logger.log('info', 'section_user_id is required but not specified')
-            return res.status(400).end()
+            logger.log('info', 'section_user_id is required but not specified');
+            return res.status(400).end();
         }
         return SectionUser.find({
             where: {
@@ -1244,22 +1244,22 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         }).then(function(section_user) {
             if (!section_user) {
-                logger.log('error', 'section user not found')
-                return res.status(400).end()
+                logger.log('error', 'section user not found');
+                return res.status(400).end();
             }
             logger.log('info', 'updating section user', {
                 section_user: section_user.toJSON()
-            })
-            section_user.UserStatus = 'Inactive'
+            });
+            section_user.UserStatus = 'Inactive';
 
             return section_user.save().then(function(section_user) {
                 logger.log('info', 'section user updated', {
                     section_user: section_user.toJSON()
-                })
-                return res.status(200).end()
-            })
-        })
-    })
+                });
+                return res.status(200).end();
+            });
+        });
+    });
 
 
     // Upload files for a task
@@ -1269,22 +1269,22 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             req_body: req.body,
             req_params: req.params,
             // req_files: req.files,
-        })
+        });
         if (req.body.userId == null) {
-            logger.log('error', 'userId is required but not specified')
-            return res.status(400).end()
+            logger.log('error', 'userId is required but not specified');
+            return res.status(400).end();
         }
         if (req.body.taskInstanceId == null) {
-            logger.log('error', 'taskInstanceId is required but not specified')
-            return res.status(400).end()
+            logger.log('error', 'taskInstanceId is required but not specified');
+            return res.status(400).end();
         }
         // Add file references (info)
         return new Util().addFileRefs(req.files, req.body.userId).then(function(file_refs) {
 
             return Promise.all(file_refs.map(function(it) {
-                return it.FileID
+                return it.FileID;
             })).then(function(file_ids) {
-                logger.log('info', 'new task file ids', file_ids)
+                logger.log('info', 'new task file ids', file_ids);
 
                 TaskInstance.find({
                     where: {
@@ -1304,17 +1304,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     }).then(done => {
                         logger.log('info', 'task updated with new files', {
                             res: done
-                        })
+                        });
                         // Respond wtih file info
-                        res.json(file_refs).end()
-                        return done
-                    })
+                        res.json(file_refs).end();
+                        return done;
+                    });
                 });
 
-            })
+            });
 
-        })
-    })
+        });
+    });
 
     // Upload a user profile pictures //TODO: we may want to limit this to just one profile picture upload and also allow only (PNG, JPG, etc) picture formatted files
     // router.post('/upload/profile-picture/:userId', multer({dest: './uploads/'}).single('profilePicture'), function(req, res) {
@@ -1324,18 +1324,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             req_body: req.body,
             req_params: req.params,
             // req_files: req.files,
-        })
+        });
         if (req.body.userId == null) {
-            logger.log('info', 'userId is required but not specified')
-            return res.status(400).end()
+            logger.log('info', 'userId is required but not specified');
+            return res.status(400).end();
             // req.body.userId = 2
         }
         // Add file reference (info)
         return new Util().addFileRefs(req.files, req.body.userId).then(function(file_refs) {
             return Promise.all(file_refs.map(function(it) {
-                return it.FileID
+                return it.FileID;
             })).then(function(file_ids) {
-                logger.log('info', 'new profile picture file ids', file_ids)
+                logger.log('info', 'new profile picture file ids', file_ids);
 
                 // update user profile picture field with file reference
                 return UserContact.update({
@@ -1347,14 +1347,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }).then(function(done) {
                     logger.log('info', 'user updated with new profile pictures info', {
                         res: done
-                    })
+                    });
                     // respond with file info
-                    res.json(file_refs).end()
-                    return done
-                })
-            })
-        })
-    })
+                    res.json(file_refs).end();
+                    return done;
+                });
+            });
+        });
+    });
 
 
     // download a file using file reference //TODO: we may want to add a parameter that controls the response type (direct download or show up (display) on the browser)
@@ -1364,12 +1364,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('info', 'post: /download/file', {
             req_body: req.body,
             req_params: req.params
-        })
-        var file_id = req.body.fileId || req.params.fileId
+        });
+        var file_id = req.body.fileId || req.params.fileId;
 
         if (file_id == null) {
-            logger.log('info', 'file_id is required but not specified')
-            return res.status(400).end()
+            logger.log('info', 'file_id is required but not specified');
+            return res.status(400).end();
         }
         return FileReference.find({
             where: {
@@ -1379,41 +1379,41 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             if (!file_ref) {
                 logger.log('error', 'file reference not found', {
                     file_id: file_id
-                })
-                return res.status(400).end()
+                });
+                return res.status(400).end();
             }
-            logger.log('info', 'file reference', file_ref.toJSON())
-            file_ref.Info = JSON.parse(file_ref.Info)
+            logger.log('info', 'file reference', file_ref.toJSON());
+            file_ref.Info = JSON.parse(file_ref.Info);
             let contDisp = file_ref.Info.mimetype.match('image') ? 'inline' : contentDisposition(file_ref.Info.originalname);
             var content_headers = {
                 'Content-Type': file_ref.Info.mimetype,
                 'Content-Length': file_ref.Info.size,
                 'Content-Disposition': contDisp,
-            }
-            logger.log('debug', 'response content file headers', content_headers)
-            res.writeHead(200, content_headers)
-            logger.log('info', 'Sending file to client')
+            };
+            logger.log('debug', 'response content file headers', content_headers);
+            res.writeHead(200, content_headers);
+            logger.log('info', 'Sending file to client');
             const readStream = fs.createReadStream(file_ref.Info.path);
             readStream.on('open', () => {
-                readStream.pipe(res)
-            })
+                readStream.pipe(res);
+            });
             readStream.on('error', (err) => {
                 logger.log('error', 'valid reference but file not found', {
                     file_id: file_id
-                })
+                });
                 res.status(400).end();
-            })
-        })
-    })
+            });
+        });
+    });
 
 
     //Endpoint for Assignment Manager
-    router.post("/getAssignmentGrades/:ai_id", function(req, res) {
+    router.post('/getAssignmentGrades/:ai_id', function(req, res) {
 
         if (req.params.ai_id == null) {
-            console.log("/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null")
-            res.status(400).end()
-            return
+            console.log('/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null');
+            res.status(400).end();
+            return;
         }
 
         return AssignmentInstance.find({
@@ -1422,23 +1422,23 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             },
             // attributes: ['CourseID']
             include: [{
-                    model: Assignment,
+                model: Assignment,
                     // attributes: ["AssignmentInstanceID", "AssignmentID"],
                     /*include: [{
                      model: Section,
                      }],*/
-                },
-                {
-                    model: Section,
-                    include: [{
-                        model: Course,
+            },
+            {
+                model: Section,
+                include: [{
+                    model: Course,
                         // attributes: ["AssignmentInstanceID", "AssignmentID"],
                         /*include: [{
                          model: Section,
                          attributes: ["SectionID"],
                          }],*/
-                    }, ],
-                },
+                }, ],
+            },
                 /*{
                  model: AssignmentGrade,
                  }*/
@@ -1448,33 +1448,33 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             if (response == null) {
                 return res.json({
                     Error: true
-                })
+                });
             }
             var json = {
                 Error: false,
                 AssignmentInstance: response,
                 SectionUsers: [],
-            }
+            };
             return response.Section.getSectionUsers().then(function(sectionUsers) {
-                if (!sectionUsers) return
+                if (!sectionUsers) return;
 
                 // json.SectionUsers = sectionUsers
                 return Promise.map(sectionUsers, function(sectionUser) {
-                    console.log('ww')
-                    var su = sectionUser.toJSON()
-                    json.SectionUsers.push(su)
+                    console.log('ww');
+                    var su = sectionUser.toJSON();
+                    json.SectionUsers.push(su);
 
                     User.find({
                         where: {
                             UserID: sectionUser.UserID
                         }
                     }).then(function(user) {
-                        if (!user) return
+                        if (!user) return;
 
-                        console.log('ww22')
-                        var u = user.toJSON()
-                        su.User = u
-                    })
+                        console.log('ww22');
+                        var u = user.toJSON();
+                        su.User = u;
+                    });
                     return AssignmentGrade.find({
                         where: {
                             SectionUserID: sectionUser.SectionUserID,
@@ -1490,11 +1490,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                          },
                          ],*/
                     }).then(function(assignmentGrade) {
-                        if (!assignmentGrade) return
+                        if (!assignmentGrade) return;
 
-                        console.log('ww11')
-                        var ag = assignmentGrade.toJSON()
-                        su.assignmentGrade = ag
+                        console.log('ww11');
+                        var ag = assignmentGrade.toJSON();
+                        su.assignmentGrade = ag;
                         // console.log(assignmentGrade)
 
                         return WorkflowGrade.findAll({
@@ -1510,18 +1510,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                  }],*/
                             }, ],
                         }).then(function(workflowGrades) {
-                            if (!workflowGrades) return
+                            if (!workflowGrades) return;
 
-                            console.log('ww1.5')
-                            ag.WorkflowActivityGrades = []
+                            console.log('ww1.5');
+                            ag.WorkflowActivityGrades = [];
 
                             return Promise.map(workflowGrades, function(workflowGrade) {
-                                if (!workflowGrade) return
+                                if (!workflowGrade) return;
 
-                                console.log('ww11.5', workflowGrade)
-                                var wg = workflowGrade.toJSON()
-                                ag.WorkflowActivityGrades.push(wg)
-                                if (!wg.WorkflowActivity) return
+                                console.log('ww11.5', workflowGrade);
+                                var wg = workflowGrade.toJSON();
+                                ag.WorkflowActivityGrades.push(wg);
+                                if (!wg.WorkflowActivity) return;
 
                                 return TaskGrade.findAll({
                                     where: {
@@ -1535,18 +1535,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         }, ],
                                     }, ],
                                 }).then(function(taskGrades) {
-                                    if (!taskGrades) return
+                                    if (!taskGrades) return;
 
-                                    console.log('ww1.75')
-                                    wg.WorkflowActivity.users_WA_Tasks = []
+                                    console.log('ww1.75');
+                                    wg.WorkflowActivity.users_WA_Tasks = [];
 
                                     return Promise.map(taskGrades, function(taskGrade) {
-                                        if (!taskGrade) return
+                                        if (!taskGrade) return;
 
-                                        var tg = taskGrade.toJSON()
-                                        tg.taskGrade = taskGrade
-                                        tg.taskActivity = taskGrade.TaskInstance.TaskActivity
-                                        wg.WorkflowActivity.users_WA_Tasks.push(tg)
+                                        var tg = taskGrade.toJSON();
+                                        tg.taskGrade = taskGrade;
+                                        tg.taskActivity = taskGrade.TaskInstance.TaskActivity;
+                                        wg.WorkflowActivity.users_WA_Tasks.push(tg);
 
                                         return TaskSimpleGrade.find({
                                             where: {
@@ -1554,25 +1554,25 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                 TaskInstanceID: taskGrade.TaskInstanceID
                                             },
                                         }).then(function(taskSimpleGrade) {
-                                            if (!taskSimpleGrade) return
+                                            if (!taskSimpleGrade) return;
 
-                                            tg.taskSimpleGrade = taskSimpleGrade
-                                        })
-                                    })
-                                })
-                            })
-                        })
-                    })
+                                            tg.taskSimpleGrade = taskSimpleGrade;
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
                 }).then(function() {
-                    console.log('then', 'json')
-                    res.json(json)
-                })
-            })
-        })
-    })
+                    console.log('then', 'json');
+                    res.json(json);
+                });
+            });
+        });
+    });
 
     //Endpoint for Assignment Manager
-    router.get("/manager", function(req, res) {
+    router.get('/manager', function(req, res) {
 
         var manager = new Manager();
 
@@ -1589,7 +1589,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         //Manager.Manager.check();
     });
 
-    router.get("/manager/checkAssignments", function(req, res) {
+    router.get('/manager/checkAssignments', function(req, res) {
 
         var manager = new Manager();
 
@@ -1609,98 +1609,98 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to Test All Models for a UserID
-    router.get("/ModelTest/:userID", function(req, res) {
+    router.get('/ModelTest/:userID', function(req, res) {
 
 
         WorkflowInstance.findById(req.params.userID).then(function(WorkflowInstance) {
-            console.log("WorkflowInstance Found");
+            console.log('WorkflowInstance Found');
 
             WorkflowInstance.getWorkflowActivity().then(function(workflowActivity) {
-                console.log("WorkflowActivity Found " + workflowActivity.Name);
+                console.log('WorkflowActivity Found ' + workflowActivity.Name);
             });
 
             WorkflowInstance.getAssignment().then(function(assignment) {
-                console.log("Assignment Found : " + assignment.Name);
+                console.log('Assignment Found : ' + assignment.Name);
             });
         });
 
         WorkflowActivity.findById(req.params.userID).then(function(workflowActivity) {
-            console.log("WorkflowActivity Found " + workflowActivity.Name);
+            console.log('WorkflowActivity Found ' + workflowActivity.Name);
 
             workflowActivity.getWorkflowInstances().then(function(workflows) {
-                console.log("workflows Found ");
+                console.log('workflows Found ');
             });
 
         });
 
         Assignment.findById(req.params.userID).then(function(assignment) {
-            console.log("Assignment Found : " + assignment.Name);
+            console.log('Assignment Found : ' + assignment.Name);
 
             assignment.getWorkflowInstances().then(function(workflows) {
-                console.log("workflows Found ");
+                console.log('workflows Found ');
             });
 
         });
 
         TaskInstance.findById(req.params.userID).then(function(taskInstance) {
-            console.log("Semester name : " + taskInstance.TaskInstanceID);
+            console.log('Semester name : ' + taskInstance.TaskInstanceID);
 
             taskInstance.getUser().then(function(User) {
-                console.log("TaskInstance User Name " + User.FirstName);
+                console.log('TaskInstance User Name ' + User.FirstName);
             });
             taskInstance.getTaskActivity().then(function(TaskActivity) {
-                console.log("TaskActivity Name " + TaskActivity.Name);
+                console.log('TaskActivity Name ' + TaskActivity.Name);
             });
 
         });
 
         TaskActivity.findById(2).then(function(TaskActivity) {
-            console.log("TaskActivity name : " + TaskActivity.Name);
+            console.log('TaskActivity name : ' + TaskActivity.Name);
 
             TaskActivity.getTaskInstances().then(function(TaskInstances) {
-                console.log("Found");
+                console.log('Found');
             });
 
         });
 
         Semester.findById(req.params.userID).then(function(Semester) {
-            console.log("Semester name : " + Semester.Name);
+            console.log('Semester name : ' + Semester.Name);
 
             Semester.getSections().then(function(Sections) {
-                console.log("Found");
+                console.log('Found');
             });
 
         });
 
         Section.findById(req.params.userID).then(function(Section) {
-            console.log("Section name : " + Section.Name);
+            console.log('Section name : ' + Section.Name);
 
             Section.getSemester().then(function(Semester) {
-                console.log("Semester Name : " + Semester.Name);
+                console.log('Semester Name : ' + Semester.Name);
                 //res.status(200).end();
             });
 
             Section.getCourse().then(function(Course) {
-                console.log("Course Name : " + Course.Name);
+                console.log('Course Name : ' + Course.Name);
                 //res.status(200).end();
             });
             Section.getSectionUsers().then(function(Users) {
-                console.log("Found");
+                console.log('Found');
                 //res.status(200).end();
             });
 
         });
 
         UserLogin.findById(req.params.userID).then(function(user) {
-            console.log("User Email : " + user.Email);
+            console.log('User Email : ' + user.Email);
 
         });
 
         Course.findById(req.params.userID).then(function(course) {
-            console.log("User Course : " + course.Name);
+            console.log('User Course : ' + course.Name);
 
             course.getUser().then(function(Creator) {
-                console.log("Creator Name : " + Creator.FirstName);
+                console.log('Creator Name : ' + Creator.FirstName);
                 //res.status(200).end();
             });
 
@@ -1710,26 +1710,51 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
         //Course.find
         User.findById(req.params.userID).then(function(user) {
-            console.log("User name : " + user.FirstName);
+            console.log('User name : ' + user.FirstName);
             var UserLog = user.getUserLogin().then(function(USerLogin) {
-                console.log("User Email : " + USerLogin.Email);
+                console.log('User Email : ' + USerLogin.Email);
 
             });
             user.getUserContact().then(function(USerLogin) {
-                console.log("User Email : " + USerLogin.Email);
+                console.log('User Email : ' + USerLogin.Email);
                 res.status(200).end();
             });
             //console.Log("Email " + UserLog.Email);
         });
     });
 
+
+    //Endpoint to check if initial user in system
+    router.get('/initial', function(req, res){
+        return User.findOne()
+      .then(result => {
+          if(result === null){
+              return res.status(400).end();
+          }
+          else{
+              return res.status(200).end();
+          }
+      })
+      .catch((err) => {
+          console.error(err);
+          logger.log('error', '/initial', 'couldn\'t fetch user from DB', {
+              error:
+               err
+          });
+
+          res.status(500).end();
+      });
+    });
+    //---------------------------------------------------------------------------------------------------
+
+
     //-----------------------------------------------------------------------------------------------------
 
     // endpoint for login function
-    router.post("/login", function(req, res) {
+    router.post('/login', function(req, res) {
         if (req.body.emailaddress == null || req.body.password == null) {
             console.log('/login : invalid credentials');
-            res.status(401).end()
+            res.status(401).end();
         }
         UserLogin.find({
             where: {
@@ -1740,13 +1765,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             let current_timestamp = new Date(); // get current time of login
             if (user == null) { // deny if user doesn't exist
                 console.log('/login: invalid credentials');
-                res.status(401).end()
+                return res.status(401).end();
             } else if (user.Blocked) { // deny if user is manually blocked
                 console.log('/login: blocked login of ' + user.Email);
-                res.status(401).end()
+                return res.status(401).json({
+                    'Error': true,
+                    'Message': 'Timeout',
+                    'Timeout': 60
+                });
             } else if (user.Timeout != null && user.Timeout > current_timestamp) { // deny if there is a timeout in the future
                 console.log('/login: prevented login due to timeout for ' + user.Email);
-                res.status(401).end()
+                let timeOut = new Date(user.Timeout) - new Date();
+                timeOut = Math.ceil(timeOut / 1000 / 60);
+                console.log(timeOut);
+                return res.status(401).json({
+                    'Error': true,
+                    'Message': 'Timeout',
+                    'Timeout': timeOut
+                });
             } else {
                 // if the password is correct
                 if (user != null && await password.verify(user.Password, req.body.password)) {
@@ -1763,10 +1799,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             }
                         }).then(function(userLogin) {
                             sequelize.options.omitNull = true;
-                            res.json({
-                                "Error": false,
-                                "Message": "Success",
-                                "UserID": user.UserID,
+                            res.status(201).json({
+                                'Error': false,
+                                'Message': 'Success',
+                                'UserID': user.UserID,
                                 Pending: user.Pending
                             });
                         }).catch(function(err) {
@@ -1776,16 +1812,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         });
                     } else {
                         // normal login (ideal scenario)
-                        res.json({
-                            "Error": false,
-                            "Message": "Success",
-                            "UserID": user.UserID,
+                        res.status(201).json({
+                            'Error': false,
+                            'Message': 'Success',
+                            'UserID': user.UserID,
                             Pending: user.Pending
                         });
                     }
                 } else {
                     // incorrect password, increment attempt count
                     let attempts = user.Attempts + 1;
+                    let minutes = 0;
+
                     console.log('/login: incorrect attempt #' + attempts + ' for ' + user.Email);
                     let update_data = {
                         Attempts: attempts
@@ -1795,31 +1833,31 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     // this is done by design
                     if (attempts >= 5) {
                         console.log('/login: setting new timeout for ' + user.Email);
-                        let minutes;
                         switch (attempts) {
-                            case 5:
-                                minutes = 1;
-                                break;
-                            case 6:
-                                minutes = 2;
-                                break;
-                            case 7:
-                                minutes = 5;
-                                break;
-                            case 8:
-                                minutes = 10;
-                                break;
-                            case 9:
-                                minutes = 15;
-                                break;
-                            case 10:
-                                minutes = 30;
-                                break;
-                            default:
-                                minutes = 60;
+                        case 5:
+                            minutes = 1;
+                            break;
+                        case 6:
+                            minutes = 2;
+                            break;
+                        case 7:
+                            minutes = 5;
+                            break;
+                        case 8:
+                            minutes = 10;
+                            break;
+                        case 9:
+                            minutes = 15;
+                            break;
+                        case 10:
+                            minutes = 30;
+                            break;
+                        default:
+                            minutes = 60;
                         }
                         let timeout = current_timestamp;
                         timeout.setMinutes(timeout.getMinutes() + minutes);
+                        update_data.Blocked = attempts > 10;
                         update_data.Timeout = timeout;
                     }
                     // update UserLogin with new attempts and timeout
@@ -1829,7 +1867,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         }
                     }).then(function(userLogin) {
                         console.log('/login: invalid credentials');
-                        res.status(401).end()
+                        console.log('minutes', minutes);
+                        res.status(401).json({
+                            'Error': true,
+                            'Message': 'Timeout',
+                            'Timeout': minutes,
+                        });
                     }).catch(function(err) {
                         console.log('/login: ' + err);
                         res.status(401).end();
@@ -1838,16 +1881,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         }).catch(function(err) {
             console.log('/login: ' + err);
-            res.status(401).end()
+            res.status(401).end();
         });
     });
 
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a User's Email
-    router.put("/update/email", function(req, res) {
+    router.put('/update/email', function(req, res) {
         if (req.body.password == null || req.body.email == null || req.body.userid == null) {
-            console.log("/update/email : Bad Input");
+            console.log('/update/email : Bad Input');
             res.status(400).end();
         }
 
@@ -1875,7 +1918,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a User's Name
-    router.put("/update/name", function(req, res) {
+    router.put('/update/name', function(req, res) {
         User.find({
             where: {
                 UserID: req.body.userid
@@ -1893,8 +1936,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
                 user.save().then(function(used) {
                     res.json({
-                        "FirstName": user.FirstName,
-                        "LastName": user.LastName
+                        'FirstName': user.FirstName,
+                        'LastName': user.LastName
                     });
                 }).catch(function(err) {
                     console.log('/update/name : ' + err);
@@ -1907,29 +1950,29 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to return general user data
-    router.get("/generalUser/:userid", function(req, res) {
+    router.get('/generalUser/:userid', function(req, res) {
         User.find({
             where: {
                 UserID: req.params.userid
             },
             attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
             include: [{
-                    model: UserLogin,
-                    attributes: ['Email']
-                },
-                {
-                    model: UserContact,
-                    attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
-                }
+                model: UserLogin,
+                attributes: ['Email']
+            },
+            {
+                model: UserContact,
+                attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
+            }
             ]
         }).then(function(user) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "User": user
+                'Error': false,
+                'Message': 'Success',
+                'User': user
             });
         }).catch(function(err) {
-            console.log("/generalUser : " + err.message);
+            console.log('/generalUser : ' + err.message);
             res.status(401).end();
         });
 
@@ -1939,15 +1982,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint to create a semester
     // JV - contructing the /createSemester where it allows user to create a non existance. return false when new semester already exist
-    router.post("/createSemester", function(req, res) {
-        var startDate = dateFormat(req.body.start_sem, "yyyy-mm-dd");
-        var endDate = dateFormat(req.body.end_sem, "yyyy-mm-dd");
-        console.log(req.body.start_sem + " " + req.body.end_sem);
+    router.post('/createSemester', function(req, res) {
+        var startDate = dateFormat(req.body.start_sem, 'yyyy-mm-dd');
+        var endDate = dateFormat(req.body.end_sem, 'yyyy-mm-dd');
+        console.log(req.body.start_sem + ' ' + req.body.end_sem);
         if (req.body.end_sem == null || req.body.start_sem == null) {
-            console.log("/createSemester : Dates must be defined");
+            console.log('/createSemester : Dates must be defined');
             res.status(400).end();
         } else if (startDate > endDate) {
-            console.log("/createSemester : StartDate cannot be grater than EndDate");
+            console.log('/createSemester : StartDate cannot be grater than EndDate');
             res.status(400).end();
         } else {
             Semester.find({
@@ -1967,16 +2010,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         console.log(err);
                     }).then(function(result) {
                         res.json({
-                            "newsemester": result,
-                            "sem_feedback": true
+                            'newsemester': result,
+                            'sem_feedback': true
                         });
                     });
 
                 } else {
-                    console.log("Semester Name and Organization Exist");
+                    console.log('Semester Name and Organization Exist');
                     res.json({
-                        "newsemester": null,
-                        "sem_feedback": false
+                        'newsemester': null,
+                        'sem_feedback': false
                     });
                 }
             });
@@ -1986,7 +2029,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to return Semester Information
-    router.get("/semester/:semesterid", function(req, res) {
+    router.get('/semester/:semesterid', function(req, res) {
 
         Semester.find({
             where: {
@@ -1995,12 +2038,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['SemesterID', 'Name', 'StartDate', 'EndDate', 'OrganizationID']
         }).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Semester": rows
+                'Error': false,
+                'Message': 'Success',
+                'Semester': rows
             });
         }).catch(function(err) {
-            console.log("/semester/email : " + err.message);
+            console.log('/semester/email : ' + err.message);
             res.status(401).end();
         });
 
@@ -2010,16 +2053,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get All Semester Information
-    router.get("/semester", function(req, res) {
+    router.get('/semester', function(req, res) {
 
         Semester.findAll({}).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Semesters": rows
+                'Error': false,
+                'Message': 'Success',
+                'Semesters': rows
             });
         }).catch(function(err) {
-            console.log("/semester: " + err.message);
+            console.log('/semester: ' + err.message);
             res.status(401).end();
         });
     });
@@ -2027,25 +2070,25 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to create course
-    router.post("/course/create", function(req, res) {
-        console.log("/course/create: called");
+    router.post('/course/create', function(req, res) {
+        console.log('/course/create: called');
         if (req.body.userid == null) {
-            console.log("/course/create : UserID cannot be null");
+            console.log('/course/create : UserID cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.Name == null) {
-            console.log("/course/create : Name cannot be null");
+            console.log('/course/create : Name cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.number == null) {
-            console.log("/course/create : Number cannot be null");
+            console.log('/course/create : Number cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.organizationid == null) {
-            console.log("/course/create : OrganizationID cannot be null");
+            console.log('/course/create : OrganizationID cannot be null');
             res.status(400).end();
             return;
         }
@@ -2069,14 +2112,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     console.log(err);
                 }).then(function(result) {
                     res.json({
-                        "NewCourse": result,
-                        "Message": true
+                        'NewCourse': result,
+                        'Message': true
                     });
 
                 });
             } else {
                 res.json({
-                    "Message": false
+                    'Message': false
                 });
             }
         });
@@ -2085,21 +2128,21 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //End point to create section for course
-    router.post("/course/createsection", function(req, res) {
+    router.post('/course/createsection', function(req, res) {
 
 
         if (req.body.semesterid == null) {
-            console.log("course/createsection : SemesterID cannot be null");
+            console.log('course/createsection : SemesterID cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.courseid == null) {
-            console.log("course/createsection : CourseID cannot be null");
+            console.log('course/createsection : CourseID cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.name == null) {
-            console.log("course/createsection : Name cannot be null");
+            console.log('course/createsection : Name cannot be null');
             res.status(400).end();
             return;
         }
@@ -2129,10 +2172,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
             }).save().then(function(response) {
                 res.json({
-                    "result": response
+                    'result': response
                 });
             }).catch(function(err) {
-                console.log("/course/createsection : " + err.message);
+                console.log('/course/createsection : ' + err.message);
 
                 res.status(401).end();
             });
@@ -2143,11 +2186,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to add a user to a course
-    router.post("/user/create", function(req, res) {
+    router.post('/user/create', function(req, res) {
         var email = new Email();
 
         if (req.body.email === null || req.body.phone === null || req.body.passwd === null || req.body.phone === null || req.body.firstName === null || req.body.lastName === null) {
-            console.log("/user/create : Missing attributes");
+            console.log('/user/create : Missing attributes');
             res.status(400).end();
         }
 
@@ -2169,7 +2212,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     Email: req.body.email,
                     Password: await password.hash(req.body.passwd)
                 }).then(function(userLogin) {
-                    console.log("/user/create: New user added to the system");
+                    console.log('/user/create: New user added to the system');
                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
                     //email.sendNow(user.UserID, 'create user');
                     res.status(200).end();
@@ -2181,12 +2224,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.post("/update/password", function(req, res) {
+    router.post('/update/password', function(req, res) {
         if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
-            console.log("/update/password : Missing attributes");
+            console.log('/update/password : Missing attributes');
             res.status(400).end();
         } else if (req.body.oldPasswd == req.body.newPasswd) {
-            console.log("/update/password : Same password");
+            console.log('/update/password : Same password');
             res.status(400).end();
         } else {
             UserLogin.find({
@@ -2195,7 +2238,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(async function(userLogin) {
                 if (await password.verify(userLogin.Password, req.body.oldPasswd)) {
-                    console.log("/user/create : Password matched");
+                    console.log('/user/create : Password matched');
                     UserLogin.update({
                         Password: await password.hash(req.body.newPasswd),
                         Pending: false
@@ -2204,7 +2247,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             UserID: req.body.userId
                         }
                     }).then(function(done) {
-                        console.log("/update/password: Password updated successfully");
+                        console.log('/update/password: Password updated successfully');
                         //email.sendNow(user.UserID, 'new password');
                         res.status(200).end();
                     }).catch(function(err) {
@@ -2213,7 +2256,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     });
 
                 } else {
-                    console.log("/update/password: Password not match");
+                    console.log('/update/password: Password not match');
                     res.status(401).end();
                 }
             });
@@ -2222,11 +2265,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     // adding the user, called on add user page
-    router.post("/adduser", function(req, res) {
-        console.log("/adduser:called");
+    router.post('/adduser', function(req, res) {
+        console.log('/adduser:called');
         var email = new Email();
         if (req.body.email === null) {
-            console.log("/adduser : Email cannot be null");
+            console.log('/adduser : Email cannot be null');
             res.status(400).end();
         }
 
@@ -2277,11 +2320,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         });
                                 }).then(function(userLogin) {
                                     let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', req.body.password);
+                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
-                                                "Message": "User has succesfully added"
+                                                'Message': 'User has succesfully added'
                                             });
                                         });
 
@@ -2291,25 +2334,25 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     });
             } else {
                 res.json({
-                    "Message": "User is currently exist"
+                    'Message': 'User is currently exist'
                 });
             }
-        })
+        });
     });
 
-    router.post("/course/adduser", function(req, res) {
+    router.post('/course/adduser', function(req, res) {
         //console.log("role "+req.body.role);
         var email = new Email();
         if (req.body.email === null) {
-            console.log("course/adduser : Email cannot be null");
+            console.log('course/adduser : Email cannot be null');
             res.status(400).end();
         }
         if (req.body.courseid === null) {
-            console.log("course/adduser : CourseID cannot be null");
+            console.log('course/adduser : CourseID cannot be null');
             res.status(400).end();
         }
         if (req.body.sectionid === null) {
-            console.log("course/adduser : SectionID cannot be null");
+            console.log('course/adduser : SectionID cannot be null');
             res.status(400).end();
         }
 
@@ -2334,7 +2377,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 FirstName: 'Temp',
                                 LastName: 'Temp',
                                 OrganizationGroup: {
-                                    "OrganizationID": []
+                                    'OrganizationID': []
                                 },
                                 UserContactID: userCon.UserContactID,
                                 Instructor: req.body.role == 'Instructor' ? true : false,
@@ -2345,7 +2388,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
-                                    Password: await password.hash("pass123")
+                                    Password: await password.hash('pass123')
                                 }).catch(function(err) {
                                     console.log(err);
                                 }).then(function(userLogin) {
@@ -2360,7 +2403,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         console.log(err);
                                     }).then(function(sectionUser) {
                                         res.status(200).end();
-                                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
 
                                     });
                                 });
@@ -2377,12 +2420,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     console.log(err);
                 }).then(function(sectionUser) {
                     res.json({
-                        "UserID": sectionUser.UserID,
-                        "Message": "Success"
+                        'UserID': sectionUser.UserID,
+                        'Message': 'Success'
                     });
-                })
+                });
             }
-        })
+        });
     });
 
 
@@ -2479,12 +2522,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to find course
-    router.get("/course/:courseId", function(req, res) {
+    router.get('/course/:courseId', function(req, res) {
         Course.find({
             where: {
                 CourseID: req.params.courseId
             },
-            attributes: ["CourseID", "Number", "Name"]
+            attributes: ['CourseID', 'Number', 'Name']
         }).then(function(result) {
             Section.findAll({
                 where: {
@@ -2492,30 +2535,30 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function(sections) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Course": result,
-                    "Sections": sections
+                    'Error': false,
+                    'Message': 'Success',
+                    'Course': result,
+                    'Sections': sections
                 });
             });
 
         }).catch(function(err) {
-            console.log("/course ERROR_WJE : " + err.message);
+            console.log('/course ERROR_WJE : ' + err.message);
             res.status(400).end();
-        })
+        });
 
     });
 
     //-----------------------------------------------------------------------------------------------------
 
     //Need to translate getsectionUsers function
-    router.get("/course/getsection/:sectionId", function(req, res) {
+    router.get('/course/getsection/:sectionId', function(req, res) {
 
         Section.find({
             where: {
                 SectionID: req.params.sectionId
             },
-            attributes: ["Name"]
+            attributes: ['Name']
         }).then(function(rows) {
             SectionUser.findAll({
                 where: {
@@ -2528,18 +2571,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function(users) {
                 res.json({
-                    "result": rows,
-                    "UserSection": users
+                    'result': rows,
+                    'UserSection': users
                 });
-            })
+            });
         }).catch(function(err) {
-            console.log("/course : " + err.message);
+            console.log('/course : ' + err.message);
             res.status(400).end();
-        })
+        });
     });
 
     //-----------------------------------------------------------------------------------------------------
-    router.get("/getCourseSections/:courseID", function(req, res) {
+    router.get('/getCourseSections/:courseID', function(req, res) {
 
         Section.findAll({
             where: {
@@ -2549,26 +2592,26 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             order: [
                 ['Name']
             ],
-            attributes: ["SectionID", "Name"]
+            attributes: ['SectionID', 'Name']
         }).then(function(sections) {
             res.json({
-                "Sections": sections
+                'Sections': sections
             });
-        })
+        });
     });
 
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a course
-    router.put("/course/update", function(req, res) {
+    router.put('/course/update', function(req, res) {
 
         if (req.body.Name == null) {
-            console.log("course/create : Name cannot be null");
+            console.log('course/create : Name cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.courseid == null) {
-            console.log("course/create : CourseID cannot be null");
+            console.log('course/create : CourseID cannot be null');
             res.status(400).end();
             return;
         }
@@ -2587,10 +2630,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function(courseUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "result": result,
-                    "CourseUpdated": courseUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'CourseUpdated': courseUpdated
                 });
             });
         }).catch(function(err) {
@@ -2604,16 +2647,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update a section
-    router.post("/course/updatesection", function(req, res) {
+    router.post('/course/updatesection', function(req, res) {
 
         if (req.body.sectionid == null) {
-            console.log("course/updatesection : sectionid cannot be null");
+            console.log('course/updatesection : sectionid cannot be null');
             res.status(400).end();
             return;
         }
 
         if (req.body.name == null) {
-            console.log("course/updatesection : name cannot be null");
+            console.log('course/updatesection : name cannot be null');
             res.status(400).end();
             return;
         }
@@ -2631,23 +2674,23 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function(sectionUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "result": result,
-                    "CourseUpdated": sectionUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'CourseUpdated': sectionUpdated
                 });
             }).catch(function(err) {
                 console.log('/course/update : ' + err);
                 res.status(401).end();
             });
-        })
+        });
 
     });
 
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to delete user
-    router.delete("/course/deleteuser", function(req, res) {
+    router.delete('/course/deleteuser', function(req, res) {
 
         SectionUser.destroy({
             where: {
@@ -2655,10 +2698,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 SectionID: req.body.SectionID
             }
         }).then(function(rows) {
-            console.log("Delete User Success");
+            console.log('Delete User Success');
             res.status(200).end();
         }).catch(function(err) {
-            console.log("/course/deleteuser : " + err.message);
+            console.log('/course/deleteuser : ' + err.message);
 
             res.status(400).end();
         });
@@ -2669,7 +2712,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get a user's courses
-    router.get("/course/getCourses/:userid", async function(req, res) {
+    router.get('/course/getCourses/:userid', async function(req, res) {
         var courses = [];
 
 
@@ -2697,12 +2740,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             //console.log(section.Section);
             if (section.Section !== null) {
                 courses.push({
-                    "CourseID": section.Section.Course.CourseID,
-                    "Number": section.Section.Course.Number,
-                    "Name": section.Section.Course.Name
-                })
+                    'CourseID': section.Section.Course.CourseID,
+                    'Number': section.Section.Course.Number,
+                    'Name': section.Section.Course.Name
+                });
             }
-        })
+        });
 
         let createdCourses = await Course.findAll({
             where: {
@@ -2717,24 +2760,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         await createdCourses.forEach(function(course) {
             courses.push({
-                "CourseID": course.CourseID,
-                "Number": course.Number,
-                "Name": course.Name
+                'CourseID': course.CourseID,
+                'Number': course.Number,
+                'Name': course.Name
             });
         });
 
         res.json({
-            "Error": false,
-            "Message": "Success",
-            "Courses": courses
+            'Error': false,
+            'Message': 'Success',
+            'Courses': courses
         });
     });
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get start a password reset request
-    router.post("/resetPassword", function(req, res) {
+    router.post('/resetPassword', function(req, res) {
         if (req.body.email == null) {
-            console.log("/resetPassword : Email not sent");
+            console.log('/resetPassword : Email not sent');
             req.status(401).end();
             return;
         }
@@ -2747,7 +2790,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         }).then(function(userlogin) {
             if (userlogin == null) {
-                console.log("/resetPassword : Email does not exist");
+                console.log('/resetPassword : Email does not exist');
                 res.status(401).end();
             } else {
                 User.find({
@@ -2766,7 +2809,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                     UserID: PasswordRequest.UserID
                                 }
                             }).then(function() {
-                                console.log("/resetPassword : Record updated ");
+                                console.log('/resetPassword : Record updated ');
                                 res.status(200).end();
                             });
                         } else {
@@ -2775,11 +2818,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 RequestHash: value
                             });
                             newRequest.save().then(function() {
-                                console.log("/resetPassword : Record created ");
+                                console.log('/resetPassword : Record created ');
                                 res.status(200).end();
                             }).catch(function(error) {
                                 // Ooops, do some error-handling
-                                console.log("/resetPassword : Error while inserting " + error.message);
+                                console.log('/resetPassword : Error while inserting ' + error.message);
                                 res.status(401).end();
                             });
 
@@ -2793,7 +2836,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //still need fixing
-    router.get("/getPasswordResetRequest", function(req, res) {
+    router.get('/getPasswordResetRequest', function(req, res) {
         /*var query = "select ?? from ?? where ??=?";
         var table = ["UserID", "ResetPasswordRequest", "RequestHash", req.query.PasswordHash];
         query = mysql.format(query, table);
@@ -2823,37 +2866,37 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             where: {
                 RequestHash: req.query.PasswordHash
             },
-            attributes: ["UserID"]
+            attributes: ['UserID']
         }).then(function(result) {
             if (result.length > 0) {
-                console.log("/getPasswordResetRequest : Request found");
+                console.log('/getPasswordResetRequest : Request found');
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "UserID": result
+                    'Error': false,
+                    'Message': 'Success',
+                    'UserID': result
                 });
             } else {
-                console.log("/getPasswordReset : Request not found");
+                console.log('/getPasswordReset : Request not found');
                 res.json({
-                    "Error": true,
-                    "Message": "Request Password not found"
+                    'Error': true,
+                    'Message': 'Request Password not found'
                 });
             }
         }).catch(function(err) {
-            console.log("/getPasswordResetRequest : " + err.message);
+            console.log('/getPasswordResetRequest : ' + err.message);
             res.status(404).end();
         });
     });
 
     //-----------------------------------------------------------------------------------------------------
 
-    router.post("/password/reset", function(req, res) {
+    router.post('/password/reset', function(req, res) {
         if (req.body.HashRequest == null) {
-            console.log("/resetPassword : HashRequest not sent");
+            console.log('/resetPassword : HashRequest not sent');
             req.status(401).end();
         }
         if (req.body.newPassword == null) {
-            console.log("/resetPassword : newPassword not sent");
+            console.log('/resetPassword : newPassword not sent');
             req.status(401).end();
         }
         User.find({
@@ -2867,7 +2910,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(async function(request) {
                 if (request == null) {
-                    console.log("/resetPassword : HashRequest does not exist");
+                    console.log('/resetPassword : HashRequest does not exist');
                     res.status(401).end();
                 } else {
                     UserLogin.update({
@@ -2878,7 +2921,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         }
                     }).then(function() {
                         request.destroy();
-                        console.log("/resetPassword : Password updated");
+                        console.log('/resetPassword : Password updated');
                         res.status(200).end();
                     });
                 }
@@ -2889,22 +2932,22 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to Get Courses Created by an Instructor
-    router.get("/getCourseCreated/:instructorID", function(req, res) {
+    router.get('/getCourseCreated/:instructorID', function(req, res) {
         Course.findAll({
             where: {
                 CreatorID: req.params.instructorID
             }
         }).then(function(Courses) {
-            console.log("/getCourseCreated/ Courses found");
+            console.log('/getCourseCreated/ Courses found');
             res.json({
-                "Error": false,
-                "Courses": Courses
+                'Error': false,
+                'Courses': Courses
             });
         });
     });
 
     //Get all courses that the student has been enrolled in by their ID
-    router.get("/getAllEnrolledCourses/:studentID", function(req, res) {
+    router.get('/getAllEnrolledCourses/:studentID', function(req, res) {
         SectionUser.findAll({
             where: {
                 UserID: req.params.studentID
@@ -2921,14 +2964,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(Courses) {
             console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
             res.json({
-                "Error": false,
-                "Courses": Courses
+                'Error': false,
+                'Courses': Courses
             });
         });
     });
 
     //Get the courses that are currently active(eg. in current semester) for a student
-    router.get("/getActiveEnrolledCourses/:studentID", function(req, res) {
+    router.get('/getActiveEnrolledCourses/:studentID', function(req, res) {
         SectionUser.findAll({
             where: {
                 UserID: req.params.studentID,
@@ -2946,8 +2989,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(Courses) {
             console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
             res.json({
-                "Error": false,
-                "Courses": Courses
+                'Error': false,
+                'Courses': Courses
             });
         });
     });
@@ -2955,7 +2998,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to Get Courses Created by an Instructor
-    router.get("/getOrganizationCourses/:organizationID", function(req, res) {
+    router.get('/getOrganizationCourses/:organizationID', function(req, res) {
         Course.findAll({
             where: {
                 OrganizationID: req.params.organizationID
@@ -2965,10 +3008,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 ['Name']
             ]
         }).then(function(Courses) {
-            console.log("/getOrganizationCourses/ Courses found");
+            console.log('/getOrganizationCourses/ Courses found');
             res.json({
-                "Error": false,
-                "Courses": Courses
+                'Error': false,
+                'Courses': Courses
             });
         });
     });
@@ -2976,20 +3019,20 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to make a user an admin
-    router.put("/makeUserAdmin/", function(req, res) {
+    router.put('/makeUserAdmin/', function(req, res) {
 
         User.findById(req.body.UserID).then(function(user) {
             if (user == null) {
-                console.log("/makeUserAdmin/ User not found");
+                console.log('/makeUserAdmin/ User not found');
                 res.status(401).end();
             } else {
                 user.Admin = 1;
                 user.save().then(function() {
-                    console.log("/makeUserAdmin : User Updated ");
+                    console.log('/makeUserAdmin : User Updated ');
                     res.status(200).end();
                 }).catch(function(error) {
                     // Ooops, do some error-handling
-                    console.log("/makeUserAdmin : Error while inserting " + error.message);
+                    console.log('/makeUserAdmin : Error while inserting ' + error.message);
                     res.status(401).end();
                 });
             }
@@ -2999,7 +3042,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to make a user not an admin
-    router.put("/makeUserNotAdmin/", function(req, res) {
+    router.put('/makeUserNotAdmin/', function(req, res) {
         UserLogin.find({
             where: {
                 UserID: req.body.UserID
@@ -3008,22 +3051,22 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             if (userLogin != null && await password.verify(userLogin.Password, req.body.password)) {
                 User.findById(req.body.UserID).then(function(user) {
                     if (user == null) {
-                        console.log("/makeUserNotAdmin/ User not found");
+                        console.log('/makeUserNotAdmin/ User not found');
                         res.status(401).end();
                     } else {
                         user.Admin = 0;
                         user.save().then(function() {
-                            console.log("/makeUserNotAdmin : User Updated ");
+                            console.log('/makeUserNotAdmin : User Updated ');
                             res.status(200).end();
                         }).catch(function(error) {
                             // Ooops, do some error-handling
-                            console.log("/makeUserNoAdmin : Error while inserting " + error.message);
+                            console.log('/makeUserNoAdmin : Error while inserting ' + error.message);
                             res.status(401).end();
                         });
                     }
                 });
             } else {
-                console.log("/makeUserNoAdmin : Authentication Failed");
+                console.log('/makeUserNoAdmin : Authentication Failed');
                 res.status(401).end();
             }
         });
@@ -3032,7 +3075,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Assign a New Instructor
-    router.put("/instructor/new", function(req, res) {
+    router.put('/instructor/new', function(req, res) {
         var email = req.body.email;
         UserLogin.find({
             where: {
@@ -3054,7 +3097,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         FirstName: 'Temp',
                         LastName: 'Temp',
                         OrganizationGroup: {
-                            "OrganizationID": []
+                            'OrganizationID': []
                         },
                         UserContactID: userCon.UserContactID,
                         Instructor: true,
@@ -3103,42 +3146,42 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Get All Instructors
-    router.get("/instructor/all", function(req, res) {
+    router.get('/instructor/all', function(req, res) {
         User.findAll({
             where: {
                 Instructor: true
             },
             attributes: ['UserID', 'FirstName', 'LastName', 'Admin']
         }).then(function(instructors) {
-            console.log("/instructors called");
+            console.log('/instructors called');
             res.json({
-                "Instructors": instructors
+                'Instructors': instructors
             });
         });
     });
 
-    router.get("/organization", function(req, res) {
-        console.log("/organization: called");
+    router.get('/organization', function(req, res) {
+        console.log('/organization: called');
         Organization.findAll({
             order: [
                 ['Name']
             ]
         }).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Organization": rows
+                'Error': false,
+                'Message': 'Success',
+                'Organization': rows
             });
         }).catch(function(err) {
-            console.log("/organization: " + err.message);
+            console.log('/organization: ' + err.message);
             res.status(401).end();
         });
     });
 
 
     //creates organization
-    router.post("/createorganization", function(req, res) {
-        console.log("/createorganization")
+    router.post('/createorganization', function(req, res) {
+        console.log('/createorganization');
         Organization.find({
             where: {
                 Name: req.body.organizationname //new
@@ -3152,16 +3195,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     console.log(err);
                 }).then(function(result) {
                     res.json({
-                        "neworganization": result,
-                        "org_feedback": true
+                        'neworganization': result,
+                        'org_feedback': true
                     });
                 });
 
             } else {
-                console.log("User and Organization Exist")
+                console.log('User and Organization Exist');
                 res.json({
-                    "neworganization": null,
-                    "org_feedback": false
+                    'neworganization': null,
+                    'org_feedback': false
                 });
             }
         });
@@ -3170,19 +3213,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Get UserID from Email
-    router.get("/getUserID/:email", function(req, res) {
+    router.get('/getUserID/:email', function(req, res) {
         UserLogin.find({
             where: {
                 Email: req.params.email
             }
         }).then(function(user) {
             res.json({
-                "UserID": user.UserID
+                'UserID': user.UserID
             });
         }).catch(function(e) {
-            console.log("getUserID " + e);
+            console.log('getUserID ' + e);
             res.json({
-                "UserID": -1
+                'UserID': -1
             });
         });
     });
@@ -3190,26 +3233,26 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to Get Pending Tasks
-    router.get("/taskInstance/:userid", function(req, res) {
+    router.get('/taskInstance/:userid', function(req, res) {
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userid
             }
         }).then(function(taskInstance) {
             res.json({
-                "TaskInstances": taskInstance
+                'TaskInstances': taskInstance
             });
         }).catch(function(e) {
-            console.log("/taskInstanceInstance/:userid " + e);
+            console.log('/taskInstanceInstance/:userid ' + e);
             res.json({
-                "TaskInstances": -1
+                'TaskInstances': -1
             });
         });
     });
 
     //-----------------------------------------------------------------------------------------------------
     //Endpoint to create an assignment instance based on assignment and section
-    router.post("assignment/section", function(req, res) {
+    router.post('assignment/section', function(req, res) {
 
         AssignmentInstance.create({
             AssignmentID: req.body.assignmentid,
@@ -3229,11 +3272,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
     //Endpoint to get task instance header data for front end
-    router.get("/taskInstanceTemplate/main/:taskInstanceID", function(req, res) {
+    router.get('/taskInstanceTemplate/main/:taskInstanceID', function(req, res) {
 
         logger.log('info', 'get: /taskInstanceTemplate/main/:taskInstanceID', {
             req_query: req.query
-        })
+        });
         TaskInstance.find({
             where: {
                 TaskInstanceID: req.params.taskInstanceID
@@ -3266,15 +3309,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 }
                             }).then(function(semesterResult) {
                                 res.json({
-                                    "Error": false,
-                                    "Message": "Success",
-                                    "taskActivityID": taskInstanceResult.TaskActivityID,
-                                    "taskActivityType": taskActivityResult.Type,
-                                    "courseName": courseResult.Name,
-                                    "courseNumber": courseResult.Number,
-                                    "assignment": assignmentResult,
-                                    "semesterID": sectionResult.SemesterID,
-                                    "semesterName": semesterResult.Name
+                                    'Error': false,
+                                    'Message': 'Success',
+                                    'taskActivityID': taskInstanceResult.TaskActivityID,
+                                    'taskActivityType': taskActivityResult.Type,
+                                    'courseName': courseResult.Name,
+                                    'courseNumber': courseResult.Number,
+                                    'assignment': assignmentResult,
+                                    'semesterID': sectionResult.SemesterID,
+                                    'semesterName': semesterResult.Name
                                 });
                             }).catch(function(err) {
                                 //Catch error and print into console.
@@ -3292,19 +3335,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.post('/taskInstanceTemplate/create/submit', async function(req, res) {
         logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
             req_body: req.body
-        })
+        });
 
         if (req.body.taskInstanceid == null) {
-            logger.log('info', 'TaskInstanceID cannot be null')
-            return res.status(400).end()
+            logger.log('info', 'TaskInstanceID cannot be null');
+            return res.status(400).end();
         }
         if (req.body.userid == null) {
-            logger.log('info', 'UserID cannot be null')
-            return res.status(400).end()
+            logger.log('info', 'UserID cannot be null');
+            return res.status(400).end();
         }
         if (req.body.taskInstanceData == null) {
-            logger.log('info', 'Data cannot be null')
-            return res.status(400).end()
+            logger.log('info', 'Data cannot be null');
+            return res.status(400).end();
         }
 
         var ti = await TaskInstance.find({
@@ -3317,23 +3360,23 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }, ],
         });
 
-        logger.log('info', 'task instance found', ti.toJSON())
+        logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
         if (req.body.userid != ti.UserID) {
-            logger.log('error', 'UserID Not Matched')
-            return res.status(400).end()
+            logger.log('error', 'UserID Not Matched');
+            return res.status(400).end();
         }
-        var ti_data = await JSON.parse(ti.Data)
+        var ti_data = await JSON.parse(ti.Data);
 
         if (!ti_data) {
-            ti_data = []
+            ti_data = [];
         }
 
-        await ti_data.push(req.body.taskInstanceData)
+        await ti_data.push(req.body.taskInstanceData);
 
         logger.log('info', 'updating task instance', {
             ti_data: ti_data
-        })
+        });
 
         var newStatus = JSON.parse(ti.Status);
         newStatus[0] = 'complete';
@@ -3347,7 +3390,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 TaskInstanceID: req.body.taskInstanceid,
                 UserID: req.body.userid,
             }
-        })
+        });
 
         var new_ti = await TaskInstance.find({
             where: {
@@ -3361,33 +3404,33 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         console.log(JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
 
-        logger.log('info', 'task instance updated')
-        logger.log('info', 'triggering next task')
+        logger.log('info', 'task instance updated');
+        logger.log('info', 'triggering next task');
         //Trigger next task to start
         await new_ti.triggerNext();
 
         console.log('trigger completed');
 
         if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
-            var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id
-            logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id)
+            var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id;
+            logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id);
 
             TaskInstance.find({
                 where: {
                     TaskInstanceID: pre_ti_id
                 }
             }).then(function(pre_ti) {
-                logger.log('info', 'task instance found', pre_ti.toJSON())
-                ti_data = JSON.parse(pre_ti.Data)
+                logger.log('info', 'task instance found', pre_ti.toJSON());
+                ti_data = JSON.parse(pre_ti.Data);
 
                 if (!ti_data) {
-                    ti_data = []
+                    ti_data = [];
                 }
-                ti_data.push(req.body.taskInstanceData)
+                ti_data.push(req.body.taskInstanceData);
 
                 logger.log('info', 'updating task instance', {
                     ti_data: ti_data
-                })
+                });
 
                 return TaskInstance.update({
                     Data: ti_data,
@@ -3398,16 +3441,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }).then(function(done) {
                     logger.log('info', 'task instance updated', {
                         done: done
-                    })
+                    });
                 }).catch(function(err) {
                     logger.log('error', 'task instance update failed', {
                         err: err
-                    })
-                })
-            })
+                    });
+                });
+            });
         }
 
-        return res.status(200).end()
+        return res.status(200).end();
 
 
 
@@ -3518,22 +3561,22 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         //     })
         //     //})
         // })
-    })
+    });
 
     //Endpoint to save the task instance input
-    router.post("/taskInstanceTemplate/create/save", function(req, res) {
+    router.post('/taskInstanceTemplate/create/save', function(req, res) {
         if (req.body.taskInstanceid == null) {
-            console.log("/taskInstanceTemplate/create/save : TaskInstanceID cannot be null");
+            console.log('/taskInstanceTemplate/create/save : TaskInstanceID cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.userid == null) {
-            console.log("/taskInstanceTemplate/create/save : UserID cannot be null");
+            console.log('/taskInstanceTemplate/create/save : UserID cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.taskInstanceData == null) {
-            console.log("/taskInstanceTemplate/create/save : Data cannot be null");
+            console.log('/taskInstanceTemplate/create/save : Data cannot be null');
             res.status(400).end();
             return;
         }
@@ -3546,7 +3589,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(result) {
             //Ensure userid input matches TaskInstance.UserID
             if (req.body.userid != result.UserID) {
-                console.log("/taskInstanceTemplate/create/save : UserID Incorrect Match");
+                console.log('/taskInstanceTemplate/create/save : UserID Incorrect Match');
                 res.status(400).end();
                 return;
             }
@@ -3557,9 +3600,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
             }).then(function(response) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": response
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': response
                 });
             }).catch(function(err) {
                 console.log('/taskInstanceTemplate/create/save ' + err);
@@ -3578,7 +3621,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     /* Need to only pick relevant data. Too big, could cause scaling slowdown issues
     Most likely: TaskInstanceID,UserID,WorlkflowID, StartDate,EndDate,Status from TaskInstance; Name,Visual_ID from TaskActivity; Name from WorkflowActivity
     */
-    router.get("/getPendingTaskInstances/:userID", function(req, res) {
+    router.get('/getPendingTaskInstances/:userID', function(req, res) {
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
@@ -3593,40 +3636,40 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }]
             },
 
-            attributes: ["TaskInstanceID", "UserID", "WorkflowInstanceID", "StartDate", "EndDate", "Status"],
+            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status'],
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
-                    attributes: ["AssignmentInstanceID", "AssignmentID"],
+                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
                     include: [{
                         model: Section,
-                        attributes: ["SectionID"],
+                        attributes: ['SectionID'],
                         include: [{
                             model: Course,
-                            attributes: ["Name", "CourseID"]
+                            attributes: ['Name', 'CourseID']
                         }]
 
                     }, {
                         model: Assignment,
-                        attributes: ["Name"]
+                        attributes: ['Name']
                     }]
                 },
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ["Name", "Type", "VisualID"],
+                    attributes: ['Name', 'Type', 'VisualID'],
                     include: [{
                         model: WorkflowActivity,
-                        attributes: ["Name"]
+                        attributes: ['Name']
                     }]
                 }
             ]
         }).then(function(taskInstances) {
 
-            console.log("/getPendingTaskInstances/ TaskInstances found");
+            console.log('/getPendingTaskInstances/ TaskInstances found');
             res.json({
-                "Error": false,
-                "PendingTaskInstances": taskInstances
+                'Error': false,
+                'PendingTaskInstances': taskInstances
             });
 
         }).catch(function(err) {
@@ -3640,7 +3683,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to get completed task instances for user
-    router.get("/getCompletedTaskInstances/:userID", function(req, res) {
+    router.get('/getCompletedTaskInstances/:userID', function(req, res) {
 
         TaskInstance.findAll({
             where: {
@@ -3649,39 +3692,39 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     $like: '%"complete"%'
                 }
             },
-            attributes: ["TaskInstanceID", "UserID", "WorkflowInstanceID", "StartDate", "EndDate", "Status"],
+            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status'],
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
-                    attributes: ["AssignmentInstanceID", "AssignmentID"],
+                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
                     include: [{
                         model: Section,
-                        attributes: ["SectionID"],
+                        attributes: ['SectionID'],
                         include: [{
                             model: Course,
-                            attributes: ["Name", "CourseID"]
+                            attributes: ['Name', 'CourseID']
                         }]
 
                     }, {
                         model: Assignment,
-                        attributes: ["Name"]
+                        attributes: ['Name']
                     }]
                 }, {
                     model: TaskActivity,
-                    attributes: ["Name", "Type", "VisualID"],
+                    attributes: ['Name', 'Type', 'VisualID'],
                     include: [{
                         model: WorkflowActivity,
-                        attributes: ["Name"]
+                        attributes: ['Name']
                     }]
                 }
             ]
         }).then(function(taskInstances) {
 
-            console.log("/getCompletedTaskInstances/ TaskInstances found");
+            console.log('/getCompletedTaskInstances/ TaskInstances found');
 
             res.json({
-                "Error": false,
-                "CompletedTaskInstances": taskInstances
+                'Error': false,
+                'CompletedTaskInstances': taskInstances
             });
         }).catch(function(err) {
 
@@ -3801,10 +3844,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 console.log('/getAssignmentRecord/:assignmentInstanceid: Done!');
 
                 res.json({
-                    "Error": false,
-                    "Info": info,
-                    "Workflows": JSON.parse(AI_Result.WorkflowCollection),
-                    "AssignmentRecords": tasks
+                    'Error': false,
+                    'Info': info,
+                    'Workflows': JSON.parse(AI_Result.WorkflowCollection),
+                    'AssignmentRecords': tasks
                 });
 
             }).catch(function(err) {
@@ -3820,7 +3863,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('info', 'get: /superCall/:taskInstanceId', {
             req_query: req.query,
             req_params: req.params
-        })
+        });
         var allocator = new TaskFactory();
 
         allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
@@ -3830,21 +3873,21 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             if (done == null) {
 
                 return TaskInstance.find({
-                        where: {
-                            TaskInstanceID: req.params.taskInstanceId
-                        },
-                        attributes: ["TaskInstanceID", "Data", "Status", "Files"],
-                        include: [{
-                            model: TaskActivity,
-                            attributes: ["TaskActivityID", "Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload"]
-                        }]
-                    })
+                    where: {
+                        TaskInstanceID: req.params.taskInstanceId
+                    },
+                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload']
+                    }]
+                })
                     .then((result) => {
                         //console.log(result);
                         ar.push(result);
                         res.json({
-                            "previousTasksList": done,
-                            "superTask": ar
+                            'previousTasksList': done,
+                            'superTask': ar
                         });
                     });
             }
@@ -3855,10 +3898,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     where: {
                         TaskInstanceID: task
                     },
-                    attributes: ["TaskInstanceID", "Data", "Status", "Files", 'UserID', 'PreviousTask'],
+                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
                     include: [{
                         model: TaskActivity,
-                        attributes: ["TaskActivityID", "Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload", 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
+                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
 
                     }]
                 }).then((result) => {
@@ -3870,16 +3913,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 });
             }).then(function() {
                 return TaskInstance.find({
-                        where: {
-                            TaskInstanceID: req.params.taskInstanceId
-                        },
-                        attributes: ["TaskInstanceID", "Data", "Status", "Files", 'UserID', 'PreviousTask'],
-                        include: [{
-                            model: TaskActivity,
-                            attributes: ["TaskActivityID", "Type", "Rubric", "Instructions", "Fields", "NumberParticipants", "FileUpload", 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
+                    where: {
+                        TaskInstanceID: req.params.taskInstanceId
+                    },
+                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
 
-                        }]
-                    })
+                    }]
+                })
                     .then((result) => {
                         //console.log(result);
 
@@ -3889,7 +3932,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             previousTasksList: done,
                             superTask: ar,
                         });
-                        logger.log('debug', 'done collecting previous tasks')
+                        logger.log('debug', 'done collecting previous tasks');
                         // check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
                         // return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function(done1) {
                         //     if (res._headerSent) { // if already responded (response sent)
@@ -3916,7 +3959,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoint to get all the sections assoicate with course and all the task activities within the workflow activities
     router.get('/getAssignToSection/', function(req, res) {
 
-        console.log("/getAssignToSection: Initiating... ")
+        console.log('/getAssignToSection: Initiating... ');
 
         var sectionIDs = [];
         var taskCollection = {};
@@ -3927,10 +3970,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             where: {
                 AssignmentID: req.query.assignmentid
             },
-            attributes: ["DisplayName"]
+            attributes: ['DisplayName']
         }).then(function(AI_Result) {
             DisplayName = AI_Result;
-        })
+        });
 
         //Find all WorkflowActivities associate with assignmentid
         var workflowActivity = WorkflowActivity.findAll({
@@ -3981,7 +4024,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             return [taskCollection, result];
 
         }).then(function(resultArray) {
-            console.log('Finding all workflows and its task collection...')
+            console.log('Finding all workflows and its task collection...');
             //promise all instances in resultArray have returned
             return Promise.map(resultArray[1], function(workflow) {
 
@@ -3990,7 +4033,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 //Loop through TaskActivityCollection in each workflowActivity
                 return Promise.map(JSON.parse(workflow.TaskActivityCollection), function(taskActivityID) {
 
-                    console.log('TaskActivityID:', taskActivityID)
+                    console.log('TaskActivityID:', taskActivityID);
 
                     //Find TaskActivity object and return
                     return TaskActivity.find({
@@ -4001,9 +4044,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
                         //Push the resulting name and TaskActivityID on to javascript object
                         taskCollection[workflow.WorkflowActivityID].push({
-                            "taskActivityID": taskActivity.TaskActivityID,
-                            "name": taskActivity.Name,
-                            "type": taskActivity.Type
+                            'taskActivityID': taskActivity.TaskActivityID,
+                            'name': taskActivity.Name,
+                            'type': taskActivity.Type
                         });
                         taskCollection[workflow.WorkflowActivityID].sort(function(a, b) {
                             var x = a.taskActivityID < b.taskActivityID ? -1 : 1;
@@ -4022,9 +4065,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
             if (isDone === true) {
                 res.json({
-                    "assignment": DisplayName,
-                    "sectionIDs": sectionIDs,
-                    "taskActivityCollection": taskCollection //returns workflow id follows by task act
+                    'assignment': DisplayName,
+                    'sectionIDs': sectionIDs,
+                    'taskActivityCollection': taskCollection //returns workflow id follows by task act
                 });
             }
         }).catch(function(err) {
@@ -4070,15 +4113,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             tree.walk(function(node) {
                 console.log(node.model.id);
                 ar.push(node.model.id);
-            })
+            });
             node1 = tree.first(function(node) {
                 //console.log("first :", node);
                 return node.model.id === 1;
-            })
+            });
             node2 = tree.all(function(node) {
                 //console.log("all :", node);
-                return node.model.parent === 1
-            })
+                return node.model.parent === 1;
+            });
 
             //console.log('nodes',node1, node2);
             // res.json({
@@ -4096,7 +4139,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         if (req.params.taskInstanceID == null) {
             console.log('/openRevision/:taskInstanceID TaskInstanceID cannot be empty!');
-            res.stats(404).end()
+            res.stats(404).end();
         }
 
         TaskInstance.find({
@@ -4120,11 +4163,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 res.status(404).end();
             });
         });
-    })
+    });
 
     router.get('/openRevision/save', function(res, req) {
         if (req.body.data == null) {
-            console.log("/openRevision/save: data is missing");
+            console.log('/openRevision/save: data is missing');
             res.status(404).end();
         }
         if (req.body.taskInstanceID == null) {
@@ -4141,14 +4184,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         }).catch(function(err) {
             console.log(err);
-            res.stats(400).end()
+            res.stats(400).end();
         });
 
     });
 
     router.get('/openRevision/submit', function(res, req) {
         if (req.body.data == null) {
-            console.log("/openRevision/save: data is missing");
+            console.log('/openRevision/save: data is missing');
             res.status(404).end();
         }
         if (req.body.taskInstanceID == null) {
@@ -4163,7 +4206,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         }).then(function(ti) {
             var newStatus = JSON.parse(ti.Status);
-            newStatus[0] = 'complete'
+            newStatus[0] = 'complete';
             TaskInstance.update({
                 Data: req.body.data,
                 Status: JSON.stringify(newStatus)
@@ -4173,14 +4216,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).catch(function(err) {
                 console.log(err);
-                res.stats(400).end()
+                res.stats(400).end();
             });
         });
 
     });
 
     //Backend router to reallocate students
-    router.post("/reallocate", function(req, res) {
+    router.post('/reallocate', function(req, res) {
 
         if (req.body.taskid == null || req.body.users == null) {
             console.log('/reallocate: missing required fields.');
@@ -4199,7 +4242,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             where: {
                 SectionID: req.params.sectionId
             },
-            attributes: ["AssignmentInstanceID", "StartDate", "EndDate"],
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
             include: [{
                 model: Assignment,
                 attributes: ['DisplayName']
@@ -4207,11 +4250,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(result) {
             console.log('Assignments have been found!');
             res.json({
-                "Error": false,
-                "Assignments": result
+                'Error': false,
+                'Assignments': result
             });
         }).catch(function(err) {
-            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ": " + err);
+            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
             res.status(404).end();
         });
     });
@@ -4226,22 +4269,22 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             include: [{
                 model: AssignmentInstance,
                 as: 'AssignmentInstances',
-                attributes: ["AssignmentInstanceID", "StartDate", "EndDate", "SectionID"]
+                attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'SectionID']
 
             }]
         }).then(function(result) {
             console.log('Assignments have been found!');
             res.json({
-                "Error": false,
-                "Assignments": result
+                'Error': false,
+                'Assignments': result
             });
         }).catch(function(err) {
-            console.log('/getActiveAssignments/' + req.params.courseId + ": " + err);
+            console.log('/getActiveAssignments/' + req.params.courseId + ': ' + err);
             res.status(404).end();
         });
     });
 
-    router.get("/getAllEnrolledCourses/:studentID", function(req, res) {
+    router.get('/getAllEnrolledCourses/:studentID', function(req, res) {
         SectionUser.findAll({
             where: {
                 UserID: req.params.studentID
@@ -4258,13 +4301,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(Courses) {
             console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
             res.json({
-                "Error": false,
-                "Courses": Courses
+                'Error': false,
+                'Courses': Courses
             });
         });
     });
 
-    router.get("/getActiveEnrolledCourses/:studentID", function(req, res) {
+    router.get('/getActiveEnrolledCourses/:studentID', function(req, res) {
         SectionUser.findAll({
             where: {
                 UserID: req.params.studentID,
@@ -4283,33 +4326,33 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(Courses) {
             console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
             res.json({
-                "Error": false,
-                "Courses": Courses
+                'Error': false,
+                'Courses': Courses
             });
         });
     });
 
-    router.get("/getSubWorkflow/:taskInstanceID", function(req, res) {
+    router.get('/getSubWorkflow/:taskInstanceID', function(req, res) {
         var taskFactory = new TaskFactory();
         taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function(subworkflow) {
             res.json({
-                "Error": false,
-                "SubWorkflow": subworkflow
+                'Error': false,
+                'SubWorkflow': subworkflow
             });
         });
     });
 
-    router.get("/getNextTask/:taskInstanceID", function(req, res) {
+    router.get('/getNextTask/:taskInstanceID', function(req, res) {
         var taskFactory = new TaskFactory();
         taskFactory.getNextTask(req.params.taskInstanceID, new Array()).then(function(NextTask) {
             res.json({
-                "Error": false,
-                "NextTask": NextTask
+                'Error': false,
+                'NextTask': NextTask
             });
         });
     });
 
-    router.get("/skipDispute/:taskInstanceID", function(req, res) {
+    router.get('/skipDispute/:taskInstanceID', function(req, res) {
         TaskInstance.find({
             where: {
                 TaskInstanceID: req.params.taskInstanceID
@@ -4321,7 +4364,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to return Semester Information
-    router.get("/getOrganizationSemesters/:organizationID", function(req, res) {
+    router.get('/getOrganizationSemesters/:organizationID', function(req, res) {
 
         Semester.findAll({
             where: {
@@ -4333,12 +4376,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['SemesterID', 'Name', 'StartDate', 'EndDate', 'OrganizationID']
         }).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Semesters": rows
+                'Error': false,
+                'Message': 'Success',
+                'Semesters': rows
             });
         }).catch(function(err) {
-            console.log("/semester/email : " + err.message);
+            console.log('/semester/email : ' + err.message);
             res.status(401).end();
         });
 
@@ -4348,7 +4391,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     // endpoint to return organization
-    router.get("/organization/:organizationid", function(req, res) {
+    router.get('/organization/:organizationid', function(req, res) {
 
         Organization.find({
             where: {
@@ -4357,12 +4400,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['OrganizationID', 'Name']
         }).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Organization": rows
+                'Error': false,
+                'Message': 'Success',
+                'Organization': rows
             });
         }).catch(function(err) {
-            console.log("/organization: " + err.message);
+            console.log('/organization: ' + err.message);
             res.status(401).end();
         });
 
@@ -4370,7 +4413,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     // endpoint to return section
-    router.get("/section/:sectionid", function(req, res) {
+    router.get('/section/:sectionid', function(req, res) {
 
         Section.find({
             where: {
@@ -4379,12 +4422,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['SectionID', 'Name', 'CourseID', 'SemesterID']
         }).then(function(rows) {
             res.json({
-                "Error": false,
-                "Message": "Success",
-                "Section": rows
+                'Error': false,
+                'Message': 'Success',
+                'Section': rows
             });
         }).catch(function(err) {
-            console.log("/section: " + err.message);
+            console.log('/section: ' + err.message);
             res.status(401).end();
         });
     });
@@ -4392,61 +4435,61 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     // endpoint to delete organization
-    router.get("/organization/delete/:organizationid", function(req, res) {
+    router.get('/organization/delete/:organizationid', function(req, res) {
         Organization.destroy({
             where: {
                 OrganizationID: req.params.organizationid
             }
         }).then(function(rows) {
-            console.log("Delete Organization Success");
+            console.log('Delete Organization Success');
             res.status(200).end();
         }).catch(function(err) {
-            console.log("/organization/delete : " + err.message);
+            console.log('/organization/delete : ' + err.message);
             res.status(400).end();
         });
     });
 
     // endpoint to delete course
-    router.get("/course/delete/:courseid", function(req, res) {
+    router.get('/course/delete/:courseid', function(req, res) {
         Course.destroy({
             where: {
                 CourseID: req.params.courseid
             }
         }).then(function(rows) {
-            console.log("Delete Course Success");
+            console.log('Delete Course Success');
             res.status(200).end();
         }).catch(function(err) {
-            console.log("/course/delete : " + err.message);
+            console.log('/course/delete : ' + err.message);
             res.status(400).end();
         });
     });
 
     // endpoint to delete semester
-    router.get("/semester/delete/:semesterid", function(req, res) {
+    router.get('/semester/delete/:semesterid', function(req, res) {
         Semester.destroy({
             where: {
                 SemesterID: req.params.semesterid
             }
         }).then(function(rows) {
-            console.log("Delete Semester Success");
+            console.log('Delete Semester Success');
             res.status(200).end();
         }).catch(function(err) {
-            console.log("/semester/delete : " + err.message);
+            console.log('/semester/delete : ' + err.message);
             res.status(400).end();
         });
     });
 
     // endpoint to delete secction
-    router.get("/section/delete/:sectionid", function(req, res) {
+    router.get('/section/delete/:sectionid', function(req, res) {
         Section.destroy({
             where: {
                 SectionID: req.params.sectionid
             }
         }).then(function(rows) {
-            console.log("Delete Section Success");
+            console.log('Delete Section Success');
             res.status(200).end();
         }).catch(function(err) {
-            console.log("/section/delete : " + err.message);
+            console.log('/section/delete : ' + err.message);
             res.status(400).end();
         });
     });
@@ -4454,9 +4497,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to update an organization
-    router.post("/organization/update/:organizationid", function(req, res) {
+    router.post('/organization/update/:organizationid', function(req, res) {
         if (req.body.Name == null) {
-            console.log("organization/update : Name cannot be null");
+            console.log('organization/update : Name cannot be null');
             res.status(400).end();
             return;
         }
@@ -4474,10 +4517,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function(organizationUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "result": result,
-                    "OrganizationUpdated": organizationUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'OrganizationUpdated': organizationUpdated
                 });
             });
         }).catch(function(err) {
@@ -4490,14 +4533,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Endpoint to update a course
-    router.post("/course/update/:courseid", function(req, res) {
+    router.post('/course/update/:courseid', function(req, res) {
         if (req.body.Number == null) {
-            console.log("course/update : Number cannot be null");
+            console.log('course/update : Number cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.Name == null) {
-            console.log("course/update : Name cannot be null");
+            console.log('course/update : Name cannot be null');
             res.status(400).end();
             return;
         }
@@ -4516,10 +4559,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function(courseUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "result": result,
-                    "CourseUpdated": courseUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'CourseUpdated': courseUpdated
                 });
             });
         }).catch(function(err) {
@@ -4531,19 +4574,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint to update a semester
-    router.post("/semester/update/:semesterid", function(req, res) {
+    router.post('/semester/update/:semesterid', function(req, res) {
         if (req.body.Name == null) {
-            console.log("semester/update : Name cannot be null");
+            console.log('semester/update : Name cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.Start == null) {
-            console.log("semester/update : Start cannot be null");
+            console.log('semester/update : Start cannot be null');
             res.status(400).end();
             return;
         }
         if (req.body.End == null) {
-            console.log("semester/update : End cannot be null");
+            console.log('semester/update : End cannot be null');
             res.status(400).end();
             return;
         }
@@ -4563,10 +4606,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function(courseUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "result": result,
-                    "CourseUpdated": courseUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'CourseUpdated': courseUpdated
                 });
             });
         }).catch(function(err) {
@@ -4577,20 +4620,20 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     // get users in section by role
-    router.get("/sectionUsers/:sectionid/:role", function(req, res) {
+    router.get('/sectionUsers/:sectionid/:role', function(req, res) {
         SectionUser.findAll({
             where: {
                 SectionID: req.params.sectionid,
                 Role: req.params.role
             },
             include: [{
-                    model: User,
-                    attributes: ['FirstName', 'LastName']
-                },
-                {
-                    model: UserLogin,
-                    attributes: ['Email']
-                }
+                model: User,
+                attributes: ['FirstName', 'LastName']
+            },
+            {
+                model: UserLogin,
+                attributes: ['Email']
+            }
             ],
             order: [
                 [User, 'LastName'],
@@ -4599,16 +4642,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             ],
             attributes: ['UserID', 'Active', 'Volunteer', 'Role']
         }).then(function(SectionUsers) {
-            console.log(`/sectionUsers called`);
+            console.log('/sectionUsers called');
             res.json({
-                "Error": false,
-                "SectionUsers": SectionUsers
+                'Error': false,
+                'SectionUsers': SectionUsers
             });
         });
     });
 
     // endpoint to add sectionusers, invite users not yet in system
-    router.post("/sectionUsers/:sectionid", function(req, res) {
+    router.post('/sectionUsers/:sectionid', function(req, res) {
 
         //expects -email
         //        -firstName
@@ -4631,12 +4674,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     .then(function() {
                         return sequelize.transaction(function(t) {
                             return User.create({
-                                    FirstName: req.body.firstName,
-                                    LastName: req.body.lastName,
-                                    Instructor: req.body.role === 'Instructor'
-                                }, {
-                                    transaction: t
-                                })
+                                FirstName: req.body.firstName,
+                                LastName: req.body.lastName,
+                                Instructor: req.body.role === 'Instructor'
+                            }, {
+                                transaction: t
+                            })
                                 .catch(function(err) {
                                     console.error(err);
                                     logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
@@ -4651,24 +4694,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 .then(async function(user) {
                                     let temp_pass = await password.generate();
                                     return UserContact.create({
-                                            UserID: user.UserID,
-                                            FirstName: req.body.firstName,
-                                            LastName: req.body.lastName,
-                                            Email: req.body.email,
-                                            Phone: '(XXX) XXX-XXXX'
-                                        }, {
-                                            transaction: t
-                                        }).catch(function(err) {
-                                            console.error(err);
-                                            logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                req_body: req.body,
-                                                error: err
-                                            });
-                                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        UserID: user.UserID,
+                                        FirstName: req.body.firstName,
+                                        LastName: req.body.lastName,
+                                        Email: req.body.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
+                                        transaction: t
+                                    }).catch(function(err) {
+                                        console.error(err);
+                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                            req_body: req.body,
+                                            error: err
+                                        });
+                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                                 .then(function() {
                                                     res.status(500).end();
                                                 });
-                                        })
+                                    })
                                         .then(async function(userCon) {
                                             return UserLogin.create({
                                                 UserID: user.UserID,
@@ -4713,8 +4756,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                         req_body: req.body
                                                     });
                                                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
-                                                            transaction: t
-                                                        })
+                                                        transaction: t
+                                                    })
                                                         .then(function() {
                                                             res.json({
                                                                 success: true,
@@ -4755,7 +4798,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             });
                         });
                     } else {
-                        console.log("User already in section");
+                        console.log('User already in section');
                         res.json({
                             success: false,
                             error: 'already in section'
@@ -4771,29 +4814,29 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         console.log('deleting user', req.params.userID);
 
         return sequelize.transaction(function(t) {
-                return UserLogin.destroy({
-                        where: {
-                            UserID: req.params.userID
-                        }
-                    }, {
-                        transaction: t
-                    })
+            return UserLogin.destroy({
+                where: {
+                    UserID: req.params.userID
+                }
+            }, {
+                transaction: t
+            })
                     .then((loginRowsDeleted) => {
                         return UserContact.destroy({
-                                where: {
-                                    UserID: req.params.userID
-                                }
-                            }, {
-                                transaction: t
-                            })
+                            where: {
+                                UserID: req.params.userID
+                            }
+                        }, {
+                            transaction: t
+                        })
                             .then((contactRowsDeleted) => {
                                 return SectionUser.destroy({
-                                        where: {
-                                            UserID: req.params.userID
-                                        }
-                                    }, {
-                                        transaction: t
-                                    })
+                                    where: {
+                                        UserID: req.params.userID
+                                    }
+                                }, {
+                                    transaction: t
+                                })
                                     .then((sectionUsersDeleted) => {
                                         return User.destroy({
                                             where: {
@@ -4802,11 +4845,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         }, {
                                             transaction: t
                                         });
-                                    })
-                            })
+                                    });
+                            });
 
                     });
-            })
+        })
             .then((result) => {
                 logger.log('info', 'post: /delete/user, user deleted from system', {
                     req_params: req.params,
@@ -4830,9 +4873,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     // endpoint to insert or update a user's contact information
 
-    router.post("/userContact", function(req, res) {
+    router.post('/userContact', function(req, res) {
         if (req.body.UserID == null) {
-            console.log("userContact: UserID cannot be null");
+            console.log('userContact: UserID cannot be null');
             res.status(400).end();
             return;
         }
@@ -4863,14 +4906,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.get("/test", async function(req, res) {
+    router.get('/test', async function(req, res) {
 
         var tf = new TaskFactory();
         var users = await tf.debug(1, 1);
         //console.log(users);
         res.status(200).end();
-    })
+    });
 
-}
+};
 
 module.exports = REST_ROUTER;
