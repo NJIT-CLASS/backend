@@ -2308,10 +2308,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         res.status(500).end();
                                     });
                             }).then(async function(userCon) {
+                                console.log('trustpass',req.body.trustpassword);
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
-                                    Password: await password.hash(req.body.password)
+                                    Password: await password.hash(req.body.password),
+                                    Pending: req.body.trustpassword ? false : true
                                 }).catch(function(err) {
                                     console.log(err);
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
