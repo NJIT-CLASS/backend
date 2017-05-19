@@ -2716,7 +2716,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoint to get a user's courses
     router.get('/course/getCourses/:userid', async function(req, res) {
         var courses = [];
-
+        let addedCourseIDs = [];
 
         var sections = await SectionUser.findAll({
             where: {
@@ -2746,6 +2746,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     'Number': section.Section.Course.Number,
                     'Name': section.Section.Course.Name
                 });
+                addedCourseIDs.push(section.Section.Course.CourseID);
             }
         });
 
@@ -2761,12 +2762,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
 
         await createdCourses.forEach(function(course) {
-            courses.push({
-                'CourseID': course.CourseID,
-                'Number': course.Number,
-                'Name': course.Name
-            });
+
+            if(!addedCourseIDs.includes(course.CourseID)){
+                courses.push({
+                    'CourseID': course.CourseID,
+                    'Number': course.Number,
+                    'Name': course.Name
+                });
+            }
         });
+
 
         res.json({
             'Error': false,
