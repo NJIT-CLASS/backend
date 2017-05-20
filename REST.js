@@ -3420,7 +3420,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('info', 'triggering next task');
         //Trigger next task to start
         await new_ti.triggerNext();
-
+        
         console.log('trigger completed');
 
         if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
