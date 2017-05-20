@@ -1,11 +1,17 @@
-var models = require('../Model')
-var Promise = require('bluebird')
-var nodemailer = require('nodemailer')
-var smtpTransport = require("nodemailer-smtp-transport")
+const Sequelize = require("sequelize");
+// const cls = require('continuation-local-storage'),
+//     namespace = cls.createNamespace('my-very-own-namespace');
+// const NAMESPACE = 'my-very-own-namespace';
+// //Sequelize.useCLS(namespace);
+// Sequelize.cls = namespace;
+var models = require('../Model');
+var Promise = require('bluebird');
+var nodemailer = require('nodemailer');
+var smtpTransport = require("nodemailer-smtp-transport");
+var sequelize = require("../Model/index.js").sequelize;
+var FileReference = models.FileReference;
 
-var FileReference = models.FileReference
-
-const logger = require('winston')
+const logger = require('winston');
 
 /*
  Constructor
@@ -17,14 +23,19 @@ class Util {
      Add uploaded files' references
      */
     addFileRefs(file_infos, user_id) {
-        logger.log('info', 'add file references', {user_id: user_id, file_infos: file_infos})
+        logger.log('info', 'add file references', {
+            user_id: user_id,
+            file_infos: file_infos
+        })
         var me = this
-        return Promise.all(file_infos.map(function (file_info) {
+        return Promise.all(file_infos.map(function(file_info) {
             return me.addFileRef(user_id, file_info)
-        })).then(function (file_refs) {
-            logger.log('info', 'file references added', {file_refs: file_refs.map(function (it) {
-                return it.toJSON()
-            })})
+        })).then(function(file_refs) {
+            logger.log('info', 'file references added', {
+                file_refs: file_refs.map(function(it) {
+                    return it.toJSON()
+                })
+            })
             return file_refs
         })
     }
@@ -33,20 +44,28 @@ class Util {
     Add a new file reference
      */
     addFileRef(user_id, file_info) {
-        logger.log('info', 'add file', {user_id: user_id, file_info: file_info})
+        logger.log('info', 'add file', {
+            user_id: user_id,
+            file_info: file_info
+        })
 
         return FileReference.create({
             UserID: user_id,
             Info: file_info,
             LastUpdated: new Date(),
-        }).then(function (file_ref) {
+        }).then(function(file_ref) {
             logger.log('debug', 'file reference added', file_ref.toJSON())
             return file_ref
-        }).catch(function (err) {
+        }).catch(function(err) {
             logger.log('error', 'add file reference failed', err)
             return err
         })
     }
+
+    // transaction(task) {
+    //     return cls.getNamespace(NAMESPACE).get('transaction') ? task() : sequelize.transaction(task);
+    // };
+
 }
 
 module.exports = Util;

@@ -207,7 +207,7 @@ module.exports = function(sequelize, DataTypes) {
                                                     TaskInstanceID: nextTask.TaskInstanceID
                                                 }
                                             }).then(function(done){
-                                              email.sendNow(nextTask.UserID, 'new task', null);
+                                              //email.sendNow(nextTask.UserID, 'new task', null);
                                             }).catch(function(err) {
                                                 console.log(err);
                                                 throw Error("Cannot start next task!");
@@ -306,7 +306,7 @@ module.exports = function(sequelize, DataTypes) {
                                     //findNewDates return an array of [newStartDate, newEndDate]
                                     console.log('Skipping consolidation task... Current TaskInstanceID:', x.TaskInstanceID);
                                     var newStatus = JSON.parse(nextTask.Status);
-                                    newStatus[0] = 'started';
+                                    newStatus[0] = 'bypassed';
                                     return models.TaskInstance.update({
                                         Status: JSON.stringify(newStatus),
                                         StartDate: newDate,

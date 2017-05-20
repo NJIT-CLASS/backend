@@ -10,6 +10,7 @@ var TreeModel = require('tree-model');
 var FlatToNested = require('flat-to-nested');
 var consts = require('../Util/constant.js');
 var Email = require('./Email.js');
+var _ = require('underscore');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -45,6 +46,7 @@ var reallocation = consts.REALLOCATION_STATUS;
 class TaskFactory {
 
     async getUsersFromSection(sectionid) {
+        logger.log('info', 'collecting users from section', {section: sectionid});
         console.log('Retrieving all users from section: ', sectionid, '...');
         var users = [];
 
@@ -54,7 +56,7 @@ class TaskFactory {
             }
         }).catch(function(err) {
             logger.log('error', 'error has been found /TaskFactory.js/getUsersFromSection(sectionid)');
-        })
+        });
 
         await sec_users.forEach(function(user) {
             if (user.Role !== 'Instructor' || user.Role !== 'Observer') {
@@ -73,10 +75,10 @@ class TaskFactory {
             where: {
                 SectionID: sectionid,
                 UserStatus: {
-                    $notIn: ["Inactive"]
+                    $notIn: ['Inactive']
                 }
             }
-        })
+        });
     }
 
     createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
@@ -125,7 +127,9 @@ class TaskFactory {
     }
 
     async getWorkflowTiming(ai_id) {
-        console.log('Finding WorkflowTiming...');
+        logger.log('info','Finding WorkflowTiming from ', {
+            AssignmentInstance: ai_id
+        });
 
         var ais = await AssignmentInstance.find({
             where: {
@@ -142,10 +146,12 @@ class TaskFactory {
     updatePreviousAndNextTasks(wi_list) {
         //wi_list is a list of workflow instance in that assignment
         var x = this;
-        console.log('Updating all previous and next tasks...');
+        logger.log('info','Updating all previous and next tasks...', {
+            wi_list: wi_list
+        });
 
         if (wi_list.length == 0) {
-            console.log("TaskFactory.js/updatePreviousAndNextTasks: wi_list length is 0.");
+            console.log('TaskFactory.js/updatePreviousAndNextTasks: wi_list length is 0.');
             return;
         } else {
             WorkflowInstance.find({
@@ -173,8 +179,6 @@ class TaskFactory {
                                                     where: {
                                                         TaskInstanceID: task
                                                     },
-                                                }).then(function(done) {
-                                                    console.log("Updated")
                                                 });
 
                                             } else if (next == null && previous !== null) {
@@ -184,8 +188,6 @@ class TaskFactory {
                                                     where: {
                                                         TaskInstanceID: task
                                                     },
-                                                }).then(function(done) {
-                                                    console.log("Updated")
                                                 });
 
                                             } else if (next !== null && previous !== null) {
@@ -197,8 +199,6 @@ class TaskFactory {
                                                     where: {
                                                         TaskInstanceID: task
                                                     },
-                                                }).then(function(done) {
-                                                    console.log("Updated")
                                                 });
                                             }
                                         });
@@ -264,7 +264,6 @@ class TaskFactory {
     // '2' and '2' are TaskActivityID and { id: 166, isSubWorkflow: 0 } { id: 167, parent: 1, isSubWorkflow: 0 } are flattened tree node
     //with actual task instance id
     matchNodeToWorkflow(ti_collection, flat_tree) {
-        console.log("constructing structure...");
         var struct = {};
         //console.log("flat tree", flat_tree);
         return Promise.mapSeries(JSON.parse(ti_collection), function(taskArray) {
@@ -295,7 +294,7 @@ class TaskFactory {
                             struct[node.id].push({
                                 id: task,
                                 isSubWorkflow: node.isSubWorkflow
-                            })
+                            });
 
                             return TaskInstance.update({
                                 IsSubWorkflow: node.isSubWorkflow
@@ -312,16 +311,16 @@ class TaskFactory {
                 });
             });
         }).then(function(done) {
-            console.log("matchNodeToWorkflow", struct);
+            //console.log('matchNodeToWorkflow', struct);
             return struct;
         }).catch(function(err) {
-            console.log("Error contructing the structure...", err);
+            console.log('Error contructing the structure...', err);
         });
     }
 
     //return the find the list of previous tasks that is the parent of the ti_id
     listOfPreviousTasks(ti_id, tree, structureList) {
-        console.log("collecting previous task for task instance ", ti_id, "...");
+        //console.log('collecting previous task for task instance ', ti_id, '...');
         var parent = null;
         return TaskInstance.find({
             where: {
@@ -343,7 +342,7 @@ class TaskFactory {
             //     return previous;
             // });
         }).catch(function(err) {
-            console.log("Error finding the previous task...", err);
+            console.log('Error finding the previous task...', err);
         });
 
         //console.log(node)
@@ -351,7 +350,7 @@ class TaskFactory {
 
     //return the list next tasks that is prior the ti_id
     listOfNextTasks(ti_id, tree, structureList) {
-        console.log("collecting a list of next task for task instance ", ti_id, "...");
+        //console.log('collecting a list of next task for task instance ', ti_id, '...');
         var children = [];
         return TaskInstance.find({
             where: {
@@ -373,7 +372,7 @@ class TaskFactory {
             });
 
         }).catch(function(err) {
-            console.log("Error finding the list of next tasks...", err);
+            console.log('Error finding the list of next tasks...', err);
         });
     }
 
@@ -412,22 +411,22 @@ class TaskFactory {
         logger.log('info', 'apply view constraints to task instance', {
             user_id: user_id,
             task_instance: ti.toJSON()
-        })
+        });
         if (JSON.parse(ti.Status)[0] == 'not_yet_started') {
-            logger.log('debug', ' not_yet_started, return res')
+            logger.log('debug', ' not_yet_started, return res');
             return res._headerSent || res.json({
                 'error': true,
                 'message': 'Task not even started yet',
-            })
+            });
         }
         if (ti.UserID == user_id) {
-            return
+            return;
         }
         if (JSON.parse(ti.Status)[0] != 'complete') {
-            return
+            return;
         }
         if (ti.TaskActivity.SeeSibblings && ti.TaskActivity.SeeSameActivity) {
-            return
+            return;
         }
         // find all non-completed task instances allocated to the user
         return TaskInstance.findAll({
@@ -438,16 +437,16 @@ class TaskFactory {
                 },
             }
         }).then(function(sibling_tis) {
-            logger.log('debug', 'check sibling tasks')
+            logger.log('debug', 'check sibling tasks');
 
             return Promise.map(sibling_tis, function(sibling_ti) {
                 if (!ti.TaskActivity.SeeSibblings) {
                     if (sibling_ti.PreviousTask == ti.PreviousTask) {
-                        logger.log('debug', 'sibling task not completed, return res')
+                        logger.log('debug', 'sibling task not completed, return res');
                         return res._headerSent || res.json({
                             'error': true,
                             'message': 'Sibling task not completed yet',
-                        })
+                        });
                     }
                 }
             }).then(function(done) {
@@ -460,21 +459,21 @@ class TaskFactory {
                         },
                     }
                 }).then(function(same_ta_tis) {
-                    logger.log('debug', 'same act check apply view constraints to task instance')
+                    logger.log('debug', 'same act check apply view constraints to task instance');
 
                     if (!ti.TaskActivity.SeeSameActivity) {
                         if (!!same_ta_tis) {
-                            logger.log('debug', 'same task activity task instance not completed, return res')
+                            logger.log('debug', 'same task activity task instance not completed, return res');
                             return res._headerSent || res.json({
                                 'error': true,
                                 'message': 'Same type of task not completed yet',
-                            })
+                            });
                         }
                     }
-                    logger.log('debug', 'done applying view constraints')
-                })
-            })
-        })
+                    logger.log('debug', 'done applying view constraints');
+                });
+            });
+        });
     }
 
     // update data field of all tasks with the appropriate allowed version according to the current task
@@ -482,23 +481,23 @@ class TaskFactory {
         logger.log('info', 'apply version constraints to previous task instances based on a current task instance', {
             task_instance: cur_ti.toJSON(),
             user_id: user_id
-        })
-        var x = this
+        });
+        var x = this;
         pre_tis.forEach(function(ti, i) {
             if (user_id == cur_ti.UserID) {
                 if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
-                    x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation)
+                    x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation);
                 } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) && (i != pre_tis.length - 1)) {
-                    x.setDataVersion(ti, 'last')
+                    x.setDataVersion(ti, 'last');
                 } else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
-                    x.setDataVersion(ti, 'last')
+                    x.setDataVersion(ti, 'last');
                 } else if (!'todo: logic: if cur_ti has good Data and status is revision') { //TODO
-                    x.setDataVersion(ti, 'last')
+                    x.setDataVersion(ti, 'last');
                 }
             } else {
                 // x.setDataVersion(ti, 'none') //TODO
             }
-        })
+        });
         if (user_id != cur_ti.UserID) {
             // x.setDataVersion(cur_ti, 'none') //TODO
         }
@@ -509,30 +508,30 @@ class TaskFactory {
         logger.log('info', 'update task instance data with appropriate version', {
             task_instance: ti.toJSON(),
             version_evaluation: version_eval
-        })
+        });
 
-        ti.Data = JSON.parse(ti.Data)
+        ti.Data = JSON.parse(ti.Data);
         if (version_eval == 'none' || !ti.Data) {
-            ti.Data = []
-            return
+            ti.Data = [];
+            return;
         }
         if (version_eval == 'whole') {
-            return
+            return;
         }
         if (version_eval == 'first') {
-            ti.Data = [ti.Data[0]]
-            return
+            ti.Data = [ti.Data[0]];
+            return;
         }
         if (version_eval == 'last') {
-            ti.Data = [ti.Data.slice(-1)[0]]
-            return
+            ti.Data = [ti.Data.slice(-1)[0]];
+            return;
         }
-        logger.log('error', 'invalid version evaluation')
+        logger.log('error', 'invalid version evaluation');
     }
 
     getNumberParticipants(taskActivityID) {
         console.log('Finding number of participants in task activity: ', taskActivityID, '...');
-        var numParticipants = []
+        var numParticipants = [];
         return new Promise(function(resolve, reject) {
             return TaskActivity.find({
                 where: {
@@ -574,7 +573,7 @@ class TaskFactory {
                             temp.push(ta_array[index]);
                         });
                         assigneeConstraints[2][item] = temp;
-                        console.log("AssigneeConstraints", temp);
+                        console.log('AssigneeConstraints', temp);
                     }
                     return TaskActivity.update({
                         AssigneeConstraints: assigneeConstraints
@@ -585,7 +584,7 @@ class TaskFactory {
                     });
                 });
             }).catch(function(err) {
-                console.log("Updating Assignee Constraint Failure")
+                console.log('Updating Assignee Constraint Failure');
                 console.log(err);
             });
         };
@@ -673,7 +672,7 @@ class TaskFactory {
                             console.log('TaskActivityID: ', taskResult.TaskActivityID);
                             TA_array.push(taskResult.TaskActivityID);
                         }).catch(function(err) {
-                            console.log("Workflow creation failed");
+                            console.log('Workflow creation failed');
                             //Loggin error
                             console.log(err);
                             return false;
@@ -702,7 +701,7 @@ class TaskFactory {
                         //reset TA_array
                         TA_array = [];
                     }).catch(function(err) {
-                        console.log("Workflow creation failed");
+                        console.log('Workflow creation failed');
                         //Loggin error
                         console.log(err);
                         return false;
@@ -723,11 +722,11 @@ class TaskFactory {
                             AssignmentID: assignmentResult.AssignmentID
                         }
                     });
-                    TA_array = []
+                    TA_array = [];
                 });
             }).catch(function(err) {
                 // err is the reason why rejected the promise chain returned to the transaction callback
-                console.log("Assignment creation failed");
+                console.log('Assignment creation failed');
                 //Loggin error
                 console.log(err);
                 return false;
@@ -759,7 +758,7 @@ class TaskFactory {
                 }
             });
             console.log(replacedTree);
-        })
+        });
     }
 
     async createWorkflowInstance(workflow, ai_id) {
@@ -769,11 +768,11 @@ class TaskFactory {
             WorkflowActivityID: workflow.id,
             AssignmentInstanceID: ai_id,
             StartTime: workflow.startDate
-        }).catch(function(err){
-          logger.log('error', 'cannot create workflow instance', {
-            error: err
-          });
-          return
+        }).catch(function(err) {
+            logger.log('error', 'cannot create workflow instance', {
+                error: err
+            });
+            return;
         });
 
         return wi.WorkflowInstanceID;
@@ -793,6 +792,12 @@ class TaskFactory {
     }
 
     createTaskInstance(task, userid, wi_id, ai_id) {
+        // logger.log('debug', 'creating task instance',{
+        //     task:task,
+        //     userid: userid,
+        //     wi_id: wi_id,
+        //     ai_id: ai_id
+        // });
         return new Promise(function(resolve, reject) {
             //var endDate = new Date(new Date(startDate).getTime() + task.DueType[1]);
             TaskActivity.find({
@@ -805,7 +810,7 @@ class TaskFactory {
                     time: new Date(),
                     user_id: userid,
                     is_extra_credit: false,
-                }]
+                }];
 
                 if (ta_result.Type == 'needs_consolidation' || ta_result.Type == 'completed') {
                     TaskInstance.create({
@@ -843,7 +848,7 @@ class TaskFactory {
     }
 
     createInstances(sectionid, ai_id) {
-        console.log('Initiating create instances function...')
+        console.log('Initiating create instances function...');
         var x = this;
         var email = new Email();
 
@@ -880,7 +885,7 @@ class TaskFactory {
                         return Promise.mapSeries(JSON.parse(workflowTiming).workflows[index].tasks, function(task, num) {
                             //console.log('task: ', task.id);
                             return allocator.getRightUser(task.id).then(function(allocUsers) {
-                                console.log("right user", allocUsers);
+                                console.log('right user', allocUsers);
                                 var task_collection = [];
                                 return Promise.mapSeries(allocUsers, function(a_user) {
                                     return x.createTaskInstance(task, a_user, workflowInstanceId, ai_id).then(function(createTaskResult) {
@@ -891,9 +896,9 @@ class TaskFactory {
                                         //console.log("DueType", task.DueType);
                                         if (num === 0) {
                                             var endDate = moment(JSON.parse(workflowTiming).workflows[index].startDate);
-                                            if (task.DueType[0] === "duration") {
+                                            if (task.DueType[0] === 'duration') {
                                                 endDate.add(task.DueType[1], 'minutes');
-                                            } else if (task.DueType[0] === "specificTime") {
+                                            } else if (task.DueType[0] === 'specificTime') {
                                                 endDate = task.DueType[1];
                                             }
                                             TaskInstance.find({
@@ -912,7 +917,7 @@ class TaskFactory {
                                                         TaskInstanceID: createTaskResult[0]
                                                     }
                                                 });
-                                                email.sendNow(ti.UserID, 'new task', null);
+                                                //email.sendNow(ti.UserID, 'new task', null);
                                             });
                                         }
                                     }).catch(function(err) {
@@ -958,24 +963,304 @@ class TaskFactory {
             console.log(err);
         });
     }
-    async getAllocUser(task, user, i, j){
+
+    async getNumParticipants(taskActivityID) {
+        // logger.log('debug', 'finding number of participants', {
+        //     taskActivityID: taskActivityID
+        // });
+        try{
+
+            var numParticipants;
+            var ta = await TaskActivity.find({
+                where: {
+                    TaskActivityID: taskActivityID
+                }
+            });
+            let num = new Array(ta.NumberParticipants);
+            num.fill(0);
+            return num;
+        } catch(err){
+            logger.log('error', 'cannot find number of participants', {
+                TaskActivity: taskActivityID,
+                error: err
+            });
+        }
+    }
+
+    async updateWorkflowCollection(ai_id, wfs){
+        try{
+            await AssignmentInstance.update({
+                WorkflowCollection: wfs.sort(function(a, b) {
+                    return a - b;
+                })
+            }, {
+                where: {
+                    AssignmentInstanceID: ai_id
+                }
+            });
+        } catch(err){
+            logger.log('error', 'cannot update workflow collection', {
+                error: err
+            });
+        }
 
     }
 
-    async createTaskInstances(wf, ai_id, new_wi_id, users, i , j){
-      var x = this;
-      var index = j;
-      var tis = [];
+    async updateTaskCollection(wi_id, tis){
+        try{
+            await WorkflowInstance.update({
+                TaskCollection: tis.sort(function(a, b) {
+                    return a - b;
+                })
+            }, {
+                where: {
+                    WorkflowInstanceID: wi_id
+                }
+            });
+        } catch(err){
+            logger.log('error', 'cannot update task collection', {
+                error: err
+            });
+        }
+    }
 
-      await wf.tasks.forEach(async function(task){
-        var u_id_and_index = await x.getAllocUser(task, users, i, index);
-        index = u_id_and_index[1];
+    async getAssigneeConstraints(ta_id) {
+        // logger.log('debug', 'find assignee constraints', {
+        //     ta_id: ta_id
+        // });
+        try{
+            var ta = await TaskActivity.find({
+                where: {
+                    TaskActivityID: ta_id
+                }
+            }).catch(function(err) {
+                logger.log('error', 'cannot find assignee constraints');
+                return;
+            });
 
-        var ti = await x.createTaskInstance(task, u_id_and_index[0], new_wi_id, ai_id);
-        tis.push(ti);
-      });
+            return JSON.parse(ta.AssigneeConstraints);
+        } catch(err){
+            logger.log('error', 'cannot get assignee constraints', {
+                error: err
+            });
+        }
 
-      return [tis, index];
+    }
+
+    async getOwnerID(ta_id) {
+        // logger.log('debug', 'finding owner ID', {
+        //     task_activity: ta_id
+        // });
+        try{
+            var ta = await TaskActivity.find({
+                where: {
+                    TaskActivityID: ta_id
+                }
+            }).catch(function(err) {
+                logger.log('error', 'cannot find task activity for a owner');
+            });
+
+            var a = await Assignment.find({
+                where: {
+                    AssignmentID: ta.AssignmentID
+                }
+            }).catch(function(err) {
+                logger.log('error', 'cannot find assignment for a owner');
+            });
+
+            return a.OwnerID;
+        } catch(err){
+            logger.log('error', 'cannot find owner ID', {
+                error: err,
+                task_activity: ta_id
+            });
+        }
+
+    }
+
+    async getVoidUsers(void_ta, ta_to_u_id) {
+        // logger.log('debug', 'finding void users', {
+        //     void_ta: void_ta,
+        //     ta_to_u_id: ta_to_u_id
+        // });
+        try{
+            var void_users = [];
+
+            await Promise.mapSeries(void_ta, function(ta_id) {
+                if (ta_to_u_id.hasOwnProperty(ta_id)) {
+                    void_users.push(ta_to_u_id[ta_id]);
+                }
+            });
+
+            // logger.log('debug', 'void users', {
+            //     void_users: void_users
+            // });
+
+            return void_users;
+        } catch(err){
+            logger.log('error', 'cannot find void users', {
+                void_tasks: void_tasks,
+                ta_ti: ta_to_u_id,
+                error: err
+            });
+        }
+
+    }
+
+
+    //(not in use)
+    async getSameUser(ta, ta_to_u_id, users){
+        var x = this;
+        var assign_constr = await x.getAssigneeConstraints(ta.id); //get assignee constraints
+
+        if (assign_constr[2].hasOwnProperty('same_as')) { // check if assignee constraints has "same_as"
+            return ta_to_u_id[assign_constr[2].same_as[0]];
+        } else {
+            return null;
+        }
+
+    }
+
+    //Find the right user for allocation
+    async getAllocUser(ta, ta_to_u_id, users, i, j, num_participants) {
+
+        // logger.log('debug', 'finding user to allocate',{
+        //     ta:ta,
+        //     ta_to_u_id:ta_to_u_id,
+        //     users:users,
+        //     i:i,
+        //     j:j,
+        //     num_participants:num_participants
+        // });
+
+        var x = this;
+        var index = j;
+        var alloc_users = [];
+        var assign_constr = await x.getAssigneeConstraints(ta.id); //get assignee constraints
+
+        await Promise.mapSeries(num_participants, async function(q, place){
+            if (index === users.length) {// check if user index is beyond length
+                index = 0;
+            }
+
+            if (assign_constr[0] === 'instructor') { //if the first index is 'instructor', find the owner. TODO: Future, allocate to instructor in the section User table
+                var owner = await x.getOwnerID(ta.id);
+                alloc_users.push(owner);
+            } else if (Object.keys(ta_to_u_id).length === 0) { //if nothing is inside ta_to_u_id return the current user pointing to and index add 1
+                if (i in users) {
+                    alloc_users.push(users[i]);
+                    index = index + 1;
+                } else {
+                    alloc_users.push(users[i % users.length]);
+                    index = index + 1;
+                }
+            } else {
+                if (i in users) {
+                    if(_.isEmpty(assign_constr[2])){
+                        alloc_users.push(users[index]);
+                        index++;
+                    } else if (assign_constr[2].hasOwnProperty('same_as') && place === 0) { // check if assignee constraints has "same_as", if there is more than 1 participants only the first user is same as
+                        alloc_users.push(ta_to_u_id[assign_constr[2].same_as[0]]);
+                    } else {
+
+                        if (assign_constr[2].hasOwnProperty('not')) {
+
+                            var void_users = await x.getVoidUsers(assign_constr[2].not, ta_to_u_id); //*
+                            //console.log('void_users', void_users);
+                            if(void_users.length >= users.length){
+                                logger.log('error', 'Fatal! No user to allocate! Reallocate to instructor');
+                                var owner = await x.getOwnerID(ta.id);
+                                alloc_users.push(owner);
+                            } else {
+                                if (void_users.length > 0) {
+                                    if (_.contains(void_users, users[index])) { //check if the void users contains the user
+                                        index++;
+                                    } else {
+                                        alloc_users.push(users[index]);
+                                        index++;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        return [alloc_users, index];
+    }
+
+    async beginFirstTask(wf_task, tasks, startDate){
+        var endDate = moment(startDate);
+
+        await Promise.mapSeries(tasks, async function(task){
+            if (wf_task.DueType[0] === 'duration') {
+                endDate.add(wf_task.DueType[1], 'minutes');
+            } else if (wf_task.DueType[0] === 'specificTime') {
+                endDate = wf_task.DueType[1];
+            }
+            await TaskInstance.find({
+                where: {
+                    TaskInstanceID: task
+                }
+            }).then(async function(ti) {
+                var newStatus = JSON.parse(ti.Status);
+                newStatus[0] = 'started';
+                await TaskInstance.update({
+                    StartDate: startDate,
+                    EndDate: endDate,
+                    Status: JSON.stringify(newStatus)
+                }, {
+                    where: {
+                        TaskInstanceID: task
+                    }
+                });
+                //email.sendNow(ti.UserID, 'new task', null);
+            });
+        });
+
+    }
+
+    async createTaskInstances(wf, ai_id, new_wi_id, users, i, j) {
+        var x = this;
+        var index = j;
+        var tis = [];
+        var ta_to_u_id = {};
+
+        logger.log('info', 'creating new task instances ',{
+            workflow: new_wi_id,
+            users: users,
+            index: j
+        });
+
+        await Promise.mapSeries(wf.tasks, async function(ta, t_index) {
+            var num_participants = await x.getNumParticipants(ta.id);
+
+            var u_id_and_index = await x.getAllocUser(ta, ta_to_u_id, users, i, index, num_participants);
+            index = u_id_and_index[1];
+
+            var temp_tasks = [];
+
+            // logger.log('debug', 'u_id_and_index', {
+            //     u_id_and_index: u_id_and_index
+            // });
+
+            await Promise.mapSeries(u_id_and_index[0], async function(u_id){
+                var ti = await x.createTaskInstance(ta, u_id, new_wi_id, ai_id);
+                temp_tasks.push(ti[0]);
+                ta_to_u_id[ta.id] = u_id;
+            });
+
+            tis.push(temp_tasks);
+
+            if(t_index === 0){
+                await x.beginFirstTask(wf.tasks[0], temp_tasks, wf.startDate);
+            }
+        });
+
+        await x.updateTaskCollection(new_wi_id, tis);
+
+        return [tis, index];
     }
 
     async createWorkflowInstances(users, ai_id, wf_timing, i) {
@@ -983,7 +1268,9 @@ class TaskFactory {
         var j = i;
         var wfs = [];
 
-        await JSON.parse(workflowTiming).workflows.forEach(async function(wf) {
+        logger.log('info', 'creating new workflows instances begin with', {userid: users[i]});
+
+        await Promise.mapSeries(JSON.parse(wf_timing).workflows, async function(wf) {
             var new_wi_id = await x.createWorkflowInstance(wf, ai_id);
             var new_tis_and_index = await x.createTaskInstances(wf, ai_id, new_wi_id, users, i, j);
             wfs.push(new_wi_id);
@@ -994,14 +1281,14 @@ class TaskFactory {
     }
 
     //new allocation algorithm
-    async debug(sectionid, ai_id) {
+    async allocateUsers(sectionid, ai_id) {
 
         if (sectionid === null || ai_id === null) {
             logger.log('error', 'create workflow instances and task instance failed', {
                 sectionid: sectionid,
                 ai_id: ai_id
             });
-            return
+            return;
         }
 
         logger.log('info', 'creating workflow instances and task instances for', {
@@ -1014,14 +1301,16 @@ class TaskFactory {
         var wf_timing = await x.getWorkflowTiming(ai_id);
         var workflows = [];
 
-        await users.forEach(async function(u_id, i) {
+
+        await Promise.mapSeries(users, async function(u_id, i) {
             var new_wfs = await x.createWorkflowInstances(users, ai_id, wf_timing, i);
             workflows = workflows.concat(new_wfs);
-
-            //Change the location of first user to last for reuse
-            // var first_user = shift_users.shift();
-            // shift_users.push(first_user);
         });
+
+        await x.updateWorkflowCollection(ai_id, workflows);
+        await x.updatePreviousAndNextTasks(workflows);
+        logger.log('info', 'update previous and next task done!');
+
 
     }
 
@@ -1038,7 +1327,7 @@ class TaskFactory {
             callback(treeRoot, wa_result.TaskActivityCollection, JSON.parse(wa_result.WorkflowStructure));
         }).catch(function(err) {
             console.log(err);
-            console.log("getTree(wa_id, callback) failed retrieving tree");
+            console.log('getTree(wa_id, callback) failed retrieving tree');
         });
     }
 
@@ -1056,8 +1345,8 @@ class TaskFactory {
                 where: {
 
                 }
-            })
-        })
+            });
+        });
     }
 
     collectGradesInAssignment(user, ai_id) {
@@ -1136,7 +1425,7 @@ class TaskFactory {
                                 //assumed 0 will not be subworkflow
                                 if (ti.IsSubWorkflow < nextTask.IsSubWorkflow && nextTask.IsSubWorkflow != 0) {
                                     //new subworkflow
-                                    console.log("found a subworkflow!");
+                                    console.log('found a subworkflow!');
 
                                     s.push(nextTask);
                                     return x.getNextTask(nextTask.TaskInstanceID, s).then(function(wf) {
@@ -1148,10 +1437,10 @@ class TaskFactory {
                                                     if (!s[index].hasOwnProperty('SubWorkflow')) {
                                                         s[index].setDataValue('SubWorkflow', sw);
                                                     } else {
-                                                        console.log('here ', ti.TaskInstanceID)
+                                                        console.log('here ', ti.TaskInstanceID);
                                                         s[index].SubWorkflow.push(sw);
                                                     }
-                                                })
+                                                });
                                             });
                                         }
                                     }).then(function(done) {
@@ -1161,7 +1450,7 @@ class TaskFactory {
                             });
                         });
                     }).then(function(done) {
-                        console.log("No subworkflow found", ti.TaskInstanceID, "...");
+                        console.log('No subworkflow found', ti.TaskInstanceID, '...');
                         resolve(null);
                     });
                 }
