@@ -1,7 +1,7 @@
 var models = require('../Model');
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
-var smtpTransport = require("nodemailer-smtp-transport")
+var smtpTransport = require('nodemailer-smtp-transport');
 
 
 var User = models.User;
@@ -22,8 +22,8 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-var email = "njitplamaster@gmail.com";
-var password = "plamaster123";
+var email = 'njitplamaster@gmail.com';
+var password = 'plamaster123';
 
 /*
   Constructor
@@ -35,7 +35,7 @@ class Email {
     */
     add(taskInstanceID) {
 
-        console.log("Adding TaskInstanceID", taskInstanceID, " To Email Notification List...");
+        console.log('Adding TaskInstanceID', taskInstanceID, ' To Email Notification List...');
 
         EmailNotification.create({
             TaskInstanceID: taskInstanceID
@@ -50,7 +50,7 @@ class Email {
     */
     delete(taskInstanceID) {
 
-        console.log("Removing TaskInstanceID", taskInstanceID, " From Email Notification List...");
+        console.log('Removing TaskInstanceID', taskInstanceID, ' From Email Notification List...');
 
         EmailNotification.destroy({
             where: {
@@ -70,7 +70,7 @@ class Email {
         console.log('Creating Transport');
 
         smtpTransporter = nodemailer.createTransport(smtpTransport({
-            host: "smtp.gmail.com",
+            host: 'smtp.gmail.com',
             secureConnection: true,
             port: 587,
             auth: {
@@ -117,73 +117,73 @@ class Email {
             }
         }).then(function(result) {
 
-            console.log("Sending Email To: ", result.Email, "...");
+            console.log('Sending Email To: ', result.Email, '...');
 
             switch (type) {
-                case 'create user':
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: result.Email,
-                        subject: "Welcome to PLA!",
-                        text: "You have succesfully created an account on PLA",
-                        html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: </p>'
-                    });
-                    break;
-                case 'invite user':
-                    console.log('inviting ' + result.Email);
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: result.Email,
-                        subject: "Welcome to PLA!",
-                        text: "You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.\nTemporary Password: " + temp_pass,
-                        html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
-                    });
-                    break;
-                case 'new task':
-                    console.log('notifying ' + result.Email);
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: result.Email,
-                        subject: "New Task Awaiting! PLA Admin",
-                        text: "A new task has been assigned. Please login into \n http://pla.njit.edu:4001 to complete the task",
-                        html: '<p>A new task has been assigned.<div>Please login into http://pla.njit.edu:4001</div></p>'
-                    });
-                    break;
-                case 'due less than one day':
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: result.Email,
-                        subject: "Participatory Learning Approach- Assignment Due In 1 Day!",
-                        text: "You have an assignment due within one day. Please check the website and complete immediately!",
-                        html: ""
-                    });
-                    break;
-                case 'due less than seven days':
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: result.Email,
-                        subject: "Participatory Learning Approach- Assignment Due In A Week!",
-                        text: "You have an assignment due within a week. Please carefully check the due date!",
-                        html: ""
-                    });
-                    break;
-                case 'late':
-                    x.send({
-                        from: email,
-                        replyTo: email,
-                        to: result.Email,
-                        subject: "Your assignment is overdue - PLA",
-                        text: "You have an assignment that is due. Please check PLA",
-                        html: ""
-                    })
-                    break;
-                default:
-                    return null;
+            case 'create user':
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: 'Welcome to PLA!',
+                    text: 'You have succesfully created an account on PLA',
+                    html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: </p>'
+                });
+                break;
+            case 'invite user':
+                console.log('inviting ' + result.Email);
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: 'Welcome to PLA!',
+                    text: 'You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.\nTemporary Password: ' + temp_pass,
+                    html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
+                });
+                break;
+            case 'new task':
+                console.log('notifying ' + result.Email);
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: 'New Task Awaiting! PLA Admin',
+                    text: 'A new task has been assigned. Please login into \n http://pla.njit.edu:4001 to complete the task',
+                    html: '<p>A new task has been assigned.<div>Please login into http://pla.njit.edu:4001</div></p>'
+                });
+                break;
+            case 'due less than one day':
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: 'Participatory Learning Approach- Assignment Due In 1 Day!',
+                    text: 'You have an assignment due within one day. Please check the website and complete immediately!',
+                    html: ''
+                });
+                break;
+            case 'due less than seven days':
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: 'Participatory Learning Approach- Assignment Due In A Week!',
+                    text: 'You have an assignment due within a week. Please carefully check the due date!',
+                    html: ''
+                });
+                break;
+            case 'late':
+                x.send({
+                    from: email,
+                    replyTo: email,
+                    to: result.Email,
+                    subject: 'Your assignment is overdue - PLA',
+                    text: 'You have an assignment that is due. Please check PLA',
+                    html: ''
+                });
+                break;
+            default:
+                return null;
             }
         });
     }
@@ -200,7 +200,7 @@ class Email {
         }).catch(function(err) {
             console.log(err);
             throw new Error(err);
-        })
+        });
     }
 
     //Goes through entire EmailNotification table and check their time
@@ -213,7 +213,7 @@ class Email {
         var oneDay = (24 * 60 * 60 * 1000);
         var sevenDays = (7 * 24 * 60 * 60 * 1000);
 
-        console.log("Checking Email Notification List...");
+        console.log('Checking Email Notification List...');
 
         //Retrieve entire Email Notification table
         EmailNotification.findAll({

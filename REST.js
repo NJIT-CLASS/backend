@@ -3871,7 +3871,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint for all current task data and previous task data and put it in an array
-    router.get('/superCall/:taskInstanceId', function(req, res) {
+    router.get('/superCall/:taskInstanceId', async function(req, res) {
         logger.log('info', 'get: /superCall/:taskInstanceId', {
             req_query: req.query,
             req_params: req.params
@@ -3966,6 +3966,30 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log(err);
             res.status(401).end();
         });
+
+
+        TaskInstance.find({
+            where:{
+                TaskInstanceID: req.params.taskInstanceId
+            }
+        }).then(function(ti){
+            var newStatus = JSON.parse(ti.Status);
+            if(newStatus[4] === 'not_opened'){
+                newStatus[4] = 'viewed';
+                logger.log('info', 'task opened for the first time, updating status...');
+                TaskInstance.update({
+                    Status: JSON.stringify(newStatus)
+                }, {
+                    where: {
+                        TaskInstanceID: req.params.taskInstanceId
+                    }
+                });
+            }
+        });
+
+
+
+
     });
 
     //Endpoint to get all the sections assoicate with course and all the task activities within the workflow activities
