@@ -52,6 +52,7 @@ var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
 var Manager = require('./WorkFlow/Manager.js');
 var Allocator = require('./WorkFlow/Allocator.js');
 var TaskFactory = require('./WorkFlow/TaskFactory.js');
+
 var Email = require('./WorkFlow/Email.js');
 var Util = require('./WorkFlow/Util.js');
 var FlatToNested = require('flat-to-nested');
@@ -84,10 +85,10 @@ logger.configure({
     ]
 });
 
-
 // function transaction(task) {
 //   return cls.getNamespace(NAMESPACE).get('transaction') ? task() : sequelize.transaction(task);
 // };
+
 
 //-----------------------------------------------------------------------------------------------------
 
@@ -1778,6 +1779,31 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+
+    //Endpoint to check if initial user in system
+    router.get('/initial', function(req, res){
+        return User.findOne()
+      .then(result => {
+          if(result === null){
+              return res.status(400).end();
+          }
+          else{
+              return res.status(200).end();
+          }
+      })
+      .catch((err) => {
+          console.error(err);
+          logger.log('error', '/initial', 'couldn\'t fetch user from DB', {
+              error:
+               err
+          });
+
+          res.status(500).end();
+      });
+    });
+    //---------------------------------------------------------------------------------------------------
+
+
     //-----------------------------------------------------------------------------------------------------
 
     // endpoint for login function
@@ -1795,13 +1821,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             let current_timestamp = new Date(); // get current time of login
             if (user == null) { // deny if user doesn't exist
                 console.log('/login: invalid credentials');
-                res.status(401).end();
+                return res.status(401).end();
             } else if (user.Blocked) { // deny if user is manually blocked
                 console.log('/login: blocked login of ' + user.Email);
-                res.status(401).end();
+                return res.status(401).json({
+                    'Error': true,
+                    'Message': 'Timeout',
+                    'Timeout': 60
+                });
             } else if (user.Timeout != null && user.Timeout > current_timestamp) { // deny if there is a timeout in the future
                 console.log('/login: prevented login due to timeout for ' + user.Email);
-                res.status(401).end();
+                let timeOut = new Date(user.Timeout) - new Date();
+                timeOut = Math.ceil(timeOut / 1000 / 60);
+                console.log(timeOut);
+                return res.status(401).json({
+                    'Error': true,
+                    'Message': 'Timeout',
+                    'Timeout': timeOut
+                });
             } else {
                 // if the password is correct
                 if (user != null && await password.verify(user.Password, req.body.password)) {
@@ -1818,7 +1855,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             }
                         }).then(function(userLogin) {
                             sequelize.options.omitNull = true;
-                            res.json({
+
+                            res.status(201).json({
                                 'Error': false,
                                 'Message': 'Success',
                                 'UserID': user.UserID,
@@ -1831,7 +1869,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         });
                     } else {
                         // normal login (ideal scenario)
-                        res.json({
+
+                        res.status(201).json({
                             'Error': false,
                             'Message': 'Success',
                             'UserID': user.UserID,
@@ -1841,6 +1880,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 } else {
                     // incorrect password, increment attempt count
                     let attempts = user.Attempts + 1;
+                    let minutes = 0;
+
                     console.log('/login: incorrect attempt #' + attempts + ' for ' + user.Email);
                     let update_data = {
                         Attempts: attempts
@@ -1850,7 +1891,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     // this is done by design
                     if (attempts >= 5) {
                         console.log('/login: setting new timeout for ' + user.Email);
-                        let minutes;
                         switch (attempts) {
                         case 5:
                             minutes = 1;
@@ -1875,6 +1915,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         }
                         let timeout = current_timestamp;
                         timeout.setMinutes(timeout.getMinutes() + minutes);
+                        update_data.Blocked = attempts > 10;
                         update_data.Timeout = timeout;
                     }
                     // update UserLogin with new attempts and timeout
@@ -1884,7 +1925,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         }
                     }).then(function(userLogin) {
                         console.log('/login: invalid credentials');
-                        res.status(401).end();
+
+                        console.log('minutes', minutes);
+                        res.status(401).json({
+                            'Error': true,
+                            'Message': 'Timeout',
+                            'Timeout': minutes,
+                        });
                     }).catch(function(err) {
                         console.log('/login: ' + err);
                         res.status(401).end();
@@ -2320,10 +2367,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         res.status(500).end();
                                     });
                             }).then(async function(userCon) {
+                                console.log('trustpass',req.body.trustpassword);
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
-                                    Password: await password.hash(req.body.password)
+                                    Password: await password.hash(req.body.password),
+                                    Pending: req.body.trustpassword ? false : true
                                 }).catch(function(err) {
                                     console.log(err);
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -2332,7 +2381,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         });
                                 }).then(function(userLogin) {
                                     let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', req.body.password);
+                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -2726,7 +2775,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoint to get a user's courses
     router.get('/course/getCourses/:userid', async function(req, res) {
         var courses = [];
-
+        let addedCourseIDs = [];
 
         var sections = await SectionUser.findAll({
             where: {
@@ -2756,6 +2805,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     'Number': section.Section.Course.Number,
                     'Name': section.Section.Course.Name
                 });
+
+                addedCourseIDs.push(section.Section.Course.CourseID);
             }
         });
 
@@ -2771,12 +2822,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
 
         await createdCourses.forEach(function(course) {
-            courses.push({
-                'CourseID': course.CourseID,
-                'Number': course.Number,
-                'Name': course.Name
-            });
+
+            if(!addedCourseIDs.includes(course.CourseID)){
+                courses.push({
+                    'CourseID': course.CourseID,
+                    'Number': course.Number,
+                    'Name': course.Name
+                });
+            }
         });
+
 
         res.json({
             'Error': false,
@@ -3420,7 +3475,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('info', 'triggering next task');
         //Trigger next task to start
         await new_ti.triggerNext();
-        
+
         console.log('trigger completed');
 
         if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
@@ -4956,6 +5011,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log(1);
         });
     });
+
 
 };
 

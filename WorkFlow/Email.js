@@ -108,7 +108,7 @@ class Email {
       Send an email now given userid and type of email needs to be sent.
     */
     sendNow(userid, type, temp_pass = null) {
-
+        //return; //for testting purposes
         var x = this;
         console.log(models.UserLogin);
         models.UserLogin.find({
