@@ -165,7 +165,7 @@ module.exports = function(sequelize, DataTypes) {
                     return null;
                 } else if (x.NextTask === null) {
                     x.completed();
-                    return null
+                    return null;
                 }
 
 
@@ -196,8 +196,8 @@ module.exports = function(sequelize, DataTypes) {
                                         //findNewDates return an array of [newStartDate, newEndDate]
                                         console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
                                         var dates = nextTask.findNewDates(function(dates) {
-                                          var newStatus = JSON.parse(nextTask.Status);
-                                          newStatus[0] = 'started';
+                                            var newStatus = JSON.parse(nextTask.Status);
+                                            newStatus[0] = 'started';
                                             models.TaskInstance.update({
                                                 Status: JSON.stringify(newStatus),
                                                 StartDate: dates[0],
@@ -210,7 +210,7 @@ module.exports = function(sequelize, DataTypes) {
                                               //email.sendNow(nextTask.UserID, 'new task', null);
                                             }).catch(function(err) {
                                                 console.log(err);
-                                                throw Error("Cannot start next task!");
+                                                throw Error('Cannot start next task!');
                                                 return null;
                                             });
                                         });
@@ -268,7 +268,7 @@ module.exports = function(sequelize, DataTypes) {
                                         }
                                     }).catch(function(err) {
                                         console.log(err);
-                                        throw Error("Cannot start next task!");
+                                        throw Error('Cannot start next task!');
                                         return null;
                                     });
                                 });
@@ -328,8 +328,8 @@ module.exports = function(sequelize, DataTypes) {
                                                     //findNewDates return an array of [newStartDate, newEndDate]
                                                     console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
                                                     var dates = nextTask.findNewDates(function(dates) {
-                                                      var newStatus = JSON.parse(nextNextTask.Status);
-                                                      newStatus[0] = 'started';
+                                                        var newStatus = JSON.parse(nextNextTask.Status);
+                                                        newStatus[0] = 'started';
                                                         models.TaskInstance.update({
                                                             Status: JSON.stringify(newStatus),
                                                             StartDate: dates[0],
@@ -340,7 +340,7 @@ module.exports = function(sequelize, DataTypes) {
                                                             }
                                                         }).catch(function(err) {
                                                             console.log(err);
-                                                            throw Error("Cannot start next task!");
+                                                            throw Error('Cannot start next task!');
                                                             return null;
                                                         });
                                                     });
@@ -349,7 +349,7 @@ module.exports = function(sequelize, DataTypes) {
                                         });
                                     }).catch(function(err) {
                                         console.log(err);
-                                        throw Error("Cannot start next task!");
+                                        throw Error('Cannot start next task!');
                                         return null;
                                     });
                                 });
@@ -380,15 +380,15 @@ module.exports = function(sequelize, DataTypes) {
                     //console.log('ta_result', ta_result);
                     var newStartDate = moment().add(JSON.parse(ta_result.StartDelay), 'minutes');
                     var newEndDate = moment().add(JSON.parse(ta_result.StartDelay), 'minutes');
-                    if (JSON.parse(ta_result.DueType)[0] === "duration") {
+                    if (JSON.parse(ta_result.DueType)[0] === 'duration') {
                         newEndDate.add(JSON.parse(ta_result.DueType)[1], 'minutes');
-                    } else if (JSON.parse(ta_result.DueType)[0] === "specificTime") {
+                    } else if (JSON.parse(ta_result.DueType)[0] === 'specificTime') {
                         newEndDate = moment(JSON.parse(ta_result.DueType)[1]).toDate();
                     }
                     callback([newStartDate, newEndDate]);
                 }).catch(function(err) {
                     console.log(err);
-                    throw Error("Cannot find Date!");
+                    throw Error('Cannot find Date!');
                 });
             },
 
@@ -461,7 +461,7 @@ module.exports = function(sequelize, DataTypes) {
                     callback(ta_result);
                 }).catch(function(err) {
                     console.log(err);
-                    throw Error("Cannot find TaskActivity!");
+                    throw Error('Cannot find TaskActivity!');
                 });
             },
 
@@ -475,7 +475,7 @@ module.exports = function(sequelize, DataTypes) {
                     callback(ta_result.DueType);
                 }).catch(function(err) {
                     console.log(err);
-                    throw Error("Cannot find DueType!");
+                    throw Error('Cannot find DueType!');
                 });
             },
 
@@ -500,7 +500,7 @@ module.exports = function(sequelize, DataTypes) {
                 }).then(function(done) {
                     if (isAllCompleted) {
                         //if isAllCompleted = true then find the grades in previous grading solution tasks
-                        console.log("Consolidating Tasks...");
+                        console.log('Consolidating Tasks...');
                         return x.findNeedsConsolidationGrades(function(grades, maxGrade) {
                             console.log('grades', grades);
                             console.log('maxGrade is: ', maxGrade);
@@ -541,7 +541,7 @@ module.exports = function(sequelize, DataTypes) {
                             }).then(function() {
                                 console.log('All tasks completed!', triggerConsolidate);
                                 if (triggerConsolidate) {
-                                    console.log('Threshold exceed!')
+                                    console.log('Threshold exceed!');
                                     x.triggerNext();
                                 } else {
                                     x.skipConsolidation();
@@ -558,7 +558,7 @@ module.exports = function(sequelize, DataTypes) {
 
             findNeedsConsolidationGrades: function(callback) {
 
-                console.log('computing grades...')
+                console.log('computing grades...');
 
                 var x = this;
                 var grades = [];
@@ -679,7 +679,7 @@ module.exports = function(sequelize, DataTypes) {
             },
 
             findConsolidationAndDisputeGrade: function(callback) {
-                console.log('computing grades...')
+                console.log('computing grades...');
 
                 var x = this;
 
@@ -735,7 +735,7 @@ module.exports = function(sequelize, DataTypes) {
 
             resolveDispute: function() {
                 var x = this;
-                console.log('resolving dispute grade...')
+                console.log('resolving dispute grade...');
                 return x.findConsolidationAndDisputeGrade(function(grade) {
                     console.log('disputed grade: ', grade);
                     x.FinalGrade = grade;
@@ -758,7 +758,7 @@ module.exports = function(sequelize, DataTypes) {
                 // check if all the workflow of the assignment that belongs to the user is completed
 
                 return Promise.all([x.triverseWorkflow()]).then(function(result) {
-                  console.log(result)
+                    console.log(result);
                     if (result[0] !== null || result === null) {
                         return models.WorkflowInstance.find({
                             where: {
@@ -826,14 +826,14 @@ module.exports = function(sequelize, DataTypes) {
 
                 } else if (x.FinalGrade === null && x.PreviousTask != null) {
                     //return Promise.map(JSON.parse(x.PreviousTask), ti => {
-                        return models.TaskInstance.find({
-                            where: {
-                                TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
-                            }
-                        }).then(ti_result => {
+                    return models.TaskInstance.find({
+                        where: {
+                            TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
+                        }
+                    }).then(ti_result => {
                             //Check if all grading solution are completed
-                            return ti_result.triverseWorkflow();
-                        });
+                        return ti_result.triverseWorkflow();
+                    });
                     //})
                 } else {
                     console.log('no grades found.');
@@ -852,543 +852,42 @@ module.exports = function(sequelize, DataTypes) {
                 }).then(function(ta_result) {
                     if (ta_result.Type === 'grade_problem') {
                         //return Promise.map(JSON.parse(x.PreviousTask), ti => {
-                            return models.TaskInstance.find({
-                                where: {
-                                    TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
-                                }
-                            }).then(ti_result => {
-                                console.log('UserID found:', ti_result.UserID);
-                                return ti_result.UserID;
-                            });
+                        return models.TaskInstance.find({
+                            where: {
+                                TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
+                            }
+                        }).then(ti_result => {
+                            console.log('UserID found:', ti_result.UserID);
+                            return ti_result.UserID;
+                        });
                         //})
 
                     } else {
                         //return Promise.map(JSON.parse(x.PreviousTask), ti => {
-                            return models.TaskInstance.find({
-                                where: {
-                                    TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
-                                }
-                            }).then(ti_result => {
-                                return ti_result.gradeBelongsTo();
-                            });
+                        return models.TaskInstance.find({
+                            where: {
+                                TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
+                            }
+                        }).then(ti_result => {
+                            return ti_result.gradeBelongsTo();
+                        });
                         //})
                     }
-                })
+                });
+            },
+
+            async addSimpleGrade(){
+                var x = this;
+
+                var ta = await models.TaskActivity.find({
+                    where:{
+                        TaskActivityID: x.TaskActivityID
+                    }
+                });
+
             }
 
 
-            // getTaskActivity: function(){
-            //   console.log("fsegsegs");
-            //   sequelize.models.TaskActivity.find({
-            //     where:{
-            //       TaskActivityID: this.TaskActivityID
-            //     }
-            //   }).then(function(ta_result){
-            //     console.log(ta_result);
-            //   })
-            // }
-            //     addTriggerCondition: function(data) {
-            //         var settings = JSON.parse(this.Settings);
-            //
-            //         if (typeof settings.trigger === 'undefined')
-            //             settings.trigger = [];
-            //         //else
-            //         settings.trigger.push(data);
-            //
-            //         this.Settings = settings;
-            //
-            //         this.save().then(function() {
-            //             console.log("Trigger added");
-            //         });
-            //     },
-            //
-            //     getTriggerConditions: function() {
-            //         settings = JSON.parse(this.Settings);
-            //
-            //         if (typeof settings.trigger == 'undefined')
-            //             return null;
-            //
-            //         return settings.trigger;
-            //     },
-            //
-            //     addExpireCondition: function(data) {
-            //         settings = JSON.parse(this.Settings);
-            //
-            //         if (typeof settings.expire == 'undefined')
-            //             settings.expire = [];
-            //
-            //         settings.expire.push(data);
-            //         this.save().then(function() {
-            //             console.log("Expired Condition added");
-            //         });
-            //     },
-            //
-            //     getExpireConditions: function() {
-            //         settings = JSON.parse(this.Settings);
-            //
-            //         if (typeof settings.expire == 'undefined')
-            //             return null;
-            //
-            //         return settings.expire;
-            //
-            //     },
-            //
-            //     triggerConditionsAreMet: function(callback) {
-            //         //this.getTriggerConditions();
-            //         if (this.Status == 'triggered' || this.Status == 'started')
-            //             return true;
-            //
-            //         var conditions = this.getTriggerConditions();
-            //
-            //         if (conditions == null) return false;
-            //
-            //         for (var i = 0; i < conditions.length; i++) {
-            //             this.conditionMet(conditions[i], callback);
-            //         }
-            //         // if(!
-            //
-            //         //return false;
-            //         //   )
-            //
-            //         //}
-            //         /*conditions.forEach(function(condition){
-            //                 if(!this.conditionMet(condition))
-            //                     return false;
-            //            });*/
-            //
-            //         //return true;
-            //     },
-            //     expireConditionsAreMet: function(callback) {
-            //         conditions = this.getExpireConditions();
-            //
-            //         if (conditions == null) return false;
-            //
-            //         conditions.forEach(function(condition) {
-            //             this.conditionMet(condition, callback)
-            //                 //    return false;
-            //         });
-            //
-            //         return true;
-            //     },
-            //     conditionMet: function(condition, callback) {
-            //         if (typeof condition === 'undefined')
-            //             throw Error('No condition type defined');
-            //
-            //
-            //         switch (condition.type) {
-            //             // See if tasks in a work flow are all at a certain status (all complete/expired/etc.)
-            //             // Query by the task type
-            //             case 'task status':
-            //
-            //                 if (typeof condition['task status'] === 'undefined')
-            //                     throw Error('Condition not defined for "type of tasks status"');
-            //
-            //                 if (typeof condition['task type'] === 'undefined')
-            //                     throw Error('Condition not defined for "type of tasks type"');
-            //
-            //
-            //                 this.Model.modelManager.models[6].findAll({
-            //                     where: {
-            //                         WorkflowID: this.WorkflowID,
-            //                         Settings: {
-            //                             $ne: null,
-            //                         },
-            //                         Status: condition['task status']
-            //                     }
-            //                 }).then(function(tasklist) {
-            //                     if (tasklist == null)
-            //                         callback(false);
-            //                     else {
-            //                         for (var i = 0; i < tasklist.length; i++) {
-            //                             var settings = JSON.parse(tasklist[i].Settings);
-            //                             if (typeof settings.trigger[0] !== 'undefined') {
-            //                                 if (settings.trigger[0].type == condition.type) {
-            //                                     callback(false);
-            //                                     return;
-            //                                 }
-            //                             }
-            //
-            //                         }
-            //                         callback(true);
-            //                     }
-            //                 });
-            //
-            //
-            //
-            //                 break;
-            //
-            //             case 'reference unique task status':
-            //
-            //
-            //                 if (typeof condition['task status'] === 'undefined')
-            //                     throw Error('Condition not defined for "type of tasks status"');
-            //
-            //                 if (typeof condition['task type'] === 'undefined')
-            //                     throw Error('Condition not defined for "type of tasks type"');
-            //
-            //                 if (typeof condition['task reference id'] === 'undefined')
-            //                     throw Error('task reference id is not defined!"');
-            //
-            //
-            //                 tasks = this.Model.modelManager.models[6].findAll({
-            //                     where: {
-            //                         WorkflowID: this.WorkflowID,
-            //                         Settings: {
-            //                             $ne: null
-            //                         }
-            //                     }
-            //                 }).then(function(tasklist) {
-            //                     if (tasklist == null)
-            //                         callback(false);
-            //                     else {
-            //                         for (var i = 0; i < tasklist.length; i++) {
-            //                             var settings = JSON.parse(tasklist[i].Settings);
-            //                             if (typeof settings.trigger[0] !== 'undefined') {
-            //                                 if (settings.trigger[0].type == condition.type && settings.trigger[0]['task reference id'] == condition['task reference id']) {
-            //                                     callback(true);
-            //                                     return;
-            //                                 }
-            //                             }
-            //
-            //                         }
-            //                         callback(false);
-            //                     }
-            //                 });
-            //
-            //
-            //                 break;
-            //
-            //             case 'value of task out of range':
-            //             case 'value of task in range':
-            //
-            //                 if (typeof condition['task type'] === 'undefined')
-            //                     throw Error('Condition not defined for "value of task out of range"');
-            //
-            //                 this.Model.modelManager.models[6].find({
-            //                     where: {
-            //                         WorkflowID: this.WorkflowID,
-            //                         Settings: {
-            //                             $ne: null
-            //                         },
-            //                         Data: {
-            //                             $ne: null,
-            //                         }
-            //                     }
-            //                 }).then(function(task) {
-            //                     if (task == null)
-            //                         callback(false);
-            //                     else {
-            //                         var data = JSON.parse(task.Data);
-            //                         if (typeof data.value[0] !== 'undefined') {
-            //                             callback(false);
-            //                             return;
-            //                         }
-            //                         callback(true);
-            //                     }
-            //                 });
-            //
-            //
-            //                 break;
-            //                 // Check if the value of a task meets an expected value
-            //             case 'compare value of task':
-            //
-            //                 if (typeof condition['task type'] === 'undefined')
-            //                     throw Error('Task type not defined for "compare value of task"');
-            //
-            //                 if (typeof condition['compare value'] === 'undefined')
-            //                     throw Error('Compare value not defined for "compare value of task"');
-            //
-            //
-            //                 this.Model.modelManager.models[6].find({
-            //                     where: {
-            //                         WorkflowID: this.WorkflowID,
-            //                         Settings: {
-            //                             $ne: null
-            //                         },
-            //                         Data: {
-            //                             $ne: null,
-            //                         }
-            //                     }
-            //                 }).then(function(task) {
-            //                     if (task == null)
-            //                         callback(false);
-            //                     else {
-            //                         var data = JSON.parse(task.Data);
-            //                         if (typeof data.value[0] !== 'undefined') {
-            //                             callback(false);
-            //                             return;
-            //                         }
-            //                         if (data.value[0] !== condition['compare value']) {
-            //                             callback(false);
-            //                             return;
-            //                         }
-            //
-            //                         callback(true);
-            //                     }
-            //                 });
-            //                 break;
-            //
-            //                 // See if a certain time has elapsed since this task was triggered
-            //             case 'time since trigger':
-            //
-            //                 if (typeof condition['task elapsed'] === 'undefined')
-            //                     throw Error('Task elapsed time condition not defined for "time since trigger"');
-            //
-            //                 // var time = new Date();
-            //                 var time = new Date(this.StartDate.getTime() + (1000 * condition['task elapsed']));
-            //
-            //                 var now = new Date();
-            //
-            //                 if (time > now) {
-            //                     callback(false);
-            //                 } else
-            //                     callback(true);
-            //
-            //
-            //                 break;
-            //                 // One of the tasks is a certain status
-            //             case 'check tasks for status':
-            //
-            //                 if (typeof condition['task status'] === 'undefined' || !(condition['task types'] instanceof Array))
-            //                     throw Error('Condition error');
-            //
-            //                 var flag = true;
-            //
-            //                 for (var i = 0; i < condition['task types'].length; i++) {
-            //                     if (!flag)
-            //                         return;
-            //
-            //                     this.Model.modelManager.models[6].find({
-            //                         where: {
-            //                             WorkflowID: this.WorkflowID,
-            //                             Status: condition['task status']
-            //                         }
-            //                     }).then(function(task) {
-            //
-            //                         if (!flag)
-            //                             return;
-            //
-            //                         if (task == null)
-            //                             callback(false);
-            //                         else {
-            //                             var settings = JSON.parse(task.Settings);
-            //                             if (typeof settings.trigger[0] !== 'undefined') {
-            //                                 if (settings.trigger[0].type == condition.type) {
-            //                                     callback(true);
-            //                                     flag == false;
-            //                                     return;
-            //                                 }
-            //                             }
-            //                         }
-            //                     });
-            //                 }
-            //                 if (flag)
-            //                     callback(false);
-            //
-            //                 break;
-            //                 // This will cause a task to be trigged if all other tasks in the workflow are not triggered
-            //             case 'first task trigger':
-            //                 this.count({
-            //                     where: {
-            //                         Status: {
-            //                             $ne: 'not triggered'
-            //                         },
-            //                         TaskID: {
-            //                             $ne: this.TaskID
-            //                         }
-            //                     }
-            //                 }).then(function(count) {
-            //                     if (count == 0)
-            //                         callback(true);
-            //                     else
-            //                         callback(false);
-            //                 });
-            //                 break;
-            //                 // Unknown type
-            //             default:
-            //                 throw Error('Workflow task condition does not have registered type');
-            //
-            //
-            //
-            //         }
-            //     },
-            //     trigger: function(force) // Default should be false
-            //         {
-            //             if (typeof force === 'undefined')
-            //                 force = false;
-            //
-            //             if (this.Status != 'not triggered' && !force)
-            //                 return true;
-            //
-            //             if (!this.isInternal() && this.UserID == null)
-            //                 throw Error('No user assigned to task to trigger it.');
-            //
-            //             this.Status = 'triggered';
-            //             this.StartDate = new Date();
-            //             // Add force End to data base
-            //             //this.EndForceDate = this.timeOut();
-            //             this.Save();
-            //
-            //             //Notify the user
-            //
-            //             //check callbackname Piece
-            //
-            //         },
-            //     timeOut: function() {
-            //         // how to implement this method ?
-            //         this.EndDate = new Date();
-            //         this.Status = 'time out';
-            //
-            //         //Notify the user
-            //
-            //         //type has to be added to the data base
-            //         if (this.Type == 'dispute') {
-            //             this.setData('value', false);
-            //             this.save().then(function() {
-            //                 this.complete();
-            //             });
-            //
-            //         } else {
-            //             this.save().then(function() {
-            //                 console.log("Task marked as complete");
-            //             });
-            //         }
-            //
-            //     },
-            //     expire: function() {
-            //         this.EndDate = new Date();
-            //         this.Status = 'expire';
-            //         this.save().then(function() {
-            //             console.log("Task marked as expired");
-            //         });
-            //     },
-            //     complete: function() {
-            //         this.EndDate = new Date();
-            //         this.Status = 'complete';
-            //         this.save().then(function() {
-            //             console.log("Task marked as complete");
-            //         });
-            //     },
-            //     timeoutTime: function(callback) {
-            //         if (this.StartDate == null)
-            //             throw Error('Start time for instance cannot be null.');
-            //
-            //         //Missing task_times
-            //         this.getTaskActivity().then(function(taskActivity) {
-            //             var today = new Date();
-            //             callback(today + taskActivity.MaximumDuration);
-            //         });
-            //     },
-            //     forceEndTime: function(callback) {
-            //         this.timeoutTime(callback);
-            //     },
-            //     getSettingsAttribute: function(value) {
-            //         if (value == '')
-            //             return [];
-            //
-            //         return JSON.parse(value);
-            //     },
-            //     setSettingsAttribute: function(value) {
-            //         this.Settings = JSON.parse(value);
-            //     },
-            //     getDataAttribute: function(value) {
-            //         if (value == '')
-            //             return [];
-            //
-            //         return JSON.parse(value);
-            //     },
-            //     setDataAttribute: function(value) {
-            //         this.Data = JSON.parse(value);
-            //     },
-            //     setData: function(key, value) {
-            //         if (typeof value === 'undefined')
-            //             value = null;
-            //
-            //         var data = JSON.parse(this.Data);
-            //         data[key] = value;
-            //         this.Data = data;
-            //
-            //     },
-            //     setGrades: function(key, value) {
-            //         if (typeof value === 'undefined')
-            //             value = null;
-            //
-            //         var data = JSON.parse(this.Data);
-            //         data['grades'][key] = value;
-            //         this.Data = data;
-            //
-            //     },
-            //     setSetting: function(key, value) {
-            //         if (typeof value === 'undefined')
-            //             value = null;
-            //
-            //         var setting = JSON.parse(this.Settings);
-            //         setting[key] = value;
-            //         this.Settings = setting;
-            //     },
-            //     humanTask: function() {
-            //         //call human task name from manager
-            //     },
-            //     isInternal: function() {
-            //         var setting = JSON.parse(this.Settings);
-            //         return (typeof setting['internal' !== 'undefined'] && setting['internal'])
-            //     }
-            //
-            //
-            //
-            // },
-            //
-            // classMethods: {
-            //
-            //     queryByStatus: function(user, status, callback) { //user is UserID
-            //
-            //         if (typeof status === 'undefined')
-            //             status = 'pending';
-            //
-            //         this.find({
-            //             where: {
-            //                 UserID: user
-            //             }
-            //         }).then(function(task) {
-            //             switch (status) {
-            //                 case 'pending':
-            //                     this.findAll({
-            //                         where: {
-            //                             $or: [{
-            //                                 Status: "triggered"
-            //                             }, {
-            //                                 Status: "started"
-            //                             }, {
-            //                                 Status: 'timed out'
-            //                             }]
-            //                         }
-            //                     }).then(callback);
-            //                     break;
-            //                 case 'completed':
-            //                     this.findAll({
-            //                         where: {
-            //                             $or: [{
-            //                                 Status: "complete"
-            //                             }]
-            //                         }
-            //                     }).then(callback);
-            //                     break;
-            //                 case 'all':
-            //                     this.findAll({
-            //                         where: {
-            //                             $or: [{
-            //                                 Status: "not triggered"
-            //                             }, {
-            //                                 Status: "expired"
-            //                             }]
-            //                         }
-            //                     }).then(callback);
-            //                     break;
-            //             }
-            //
-            //         });
-            //
-            //     }
         },
         // define the table's name
         tableName: 'TaskInstance'
