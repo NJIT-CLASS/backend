@@ -3400,6 +3400,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     // Endpoint to submit the taskInstance input and sync into database
     router.post('/taskInstanceTemplate/create/submit', async function(req, res) {
+
+        var taskFactory = new TaskFactory();
         logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
             req_body: req.body
         });
@@ -3475,7 +3477,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('info', 'triggering next task');
         //Trigger next task to start
         await new_ti.triggerNext();
-        await new_ti.addSimpleGrade();
+        await taskFactory.addSimpleGrade(new_ti.TaskInstanceID);
 
         console.log('trigger completed');
 

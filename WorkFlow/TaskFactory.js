@@ -10,6 +10,7 @@ var TreeModel = require('tree-model');
 var FlatToNested = require('flat-to-nested');
 var consts = require('../Util/constant.js');
 var Email = require('./Email.js');
+var Util = require('./Util.js');
 var _ = require('underscore');
 
 var User = models.User;
@@ -29,6 +30,7 @@ var WorkflowInstance = models.WorkflowInstance;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
+var TaskSimpleGrade = models.TaskSimpleGrade;
 
 var tree = new TreeModel();
 var flatToNested = new FlatToNested();
@@ -59,7 +61,7 @@ class TaskFactory {
         });
 
         await sec_users.forEach(function(user) {
-            if (user.Role !== 'Instructor' && user.Role !== 'Observer') {
+            if (user.Role !== 'Instructor' && user.Role !== 'Observer' && user.Active) {
                 users.push(user.UserID);
             }
         });
@@ -1504,6 +1506,38 @@ class TaskFactory {
                 }
             });
         });
+    }
+
+    async addSimpleGrade(ti_id){
+        var x = this;
+        var util = new Util();
+
+        var ti = await TaskInstance.find({
+            where:{
+                TaskInstanceID: ti_id
+            }
+        });
+
+        var wa_id = await util.findWorkflowActivityID(ti.WorkflowInstanceID);
+        var sec_user_id = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
+
+        console.log('1',wa_id, sec_user_id, ti.TaskInstanceID);
+
+        //if(ta.SimpleGrade !== 'none'){
+        try{
+            await TaskSimpleGrade.create({
+                TaskInstanceID: ti.TaskInstanceID,
+                WorkflowActivityID: wa_id,
+                SectionUserID: sec_user_id,
+                Grade: 1
+            });
+        } catch(err){
+            logger.log('error', 'cannot create task simple grade', {
+                error: err
+            });
+        }
+        //}
+
     }
 }
 
