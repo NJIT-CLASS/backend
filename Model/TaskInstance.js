@@ -3,7 +3,10 @@ var models = require('../Model');
 var Email = require('../WorkFlow/Email.js');
 var Promise = require('bluebird');
 var _ = require('underscore');
+var Util = require('../Workflow/Util.js');
 //var Allocator = require('../WorkFlow/Allocator.js');
+
+//var util = new Util();
 
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('TaskInstance', {
@@ -874,18 +877,51 @@ module.exports = function(sequelize, DataTypes) {
                         //})
                     }
                 });
-            },
-
-            async addSimpleGrade(){
-                var x = this;
-
-                var ta = await models.TaskActivity.find({
-                    where:{
-                        TaskActivityID: x.TaskActivityID
-                    }
-                });
-
             }
+
+            // async addSimpleGrade(){
+            //     var x = this;
+            //     //var util = new Util();
+            //
+            //     var ta = await models.TaskActivity.find({
+            //         where:{
+            //             TaskActivityID: x.TaskActivityID
+            //         }
+            //     });
+            //
+            //     //var wa_id = await util.findWorkflowActivityID(x.WorkflowInstanceID);
+            //     var wi = await models.WorkflowInstance.find({
+            //         where:{
+            //             WorkflowInstanceID: x.WorkflowInstanceID
+            //         }
+            //     });
+            //
+            //
+            //     var ai_id = await models.AssignmentInstance.find({
+            //         where:{
+            //             AssignmentInstanceID: x.AssignmentInstanceID
+            //         }
+            //     });
+            //
+            //     var sec_user = await models.SectionUser.find({
+            //         where:{
+            //             SectionID: ai_id.SectionID,
+            //             UserID: x.UserID
+            //         }
+            //     });
+            //     //var sec_user_id = await util.findSectionUserID(x.AssignmentInstanceID, x.UserID);
+            //
+            //     //if(ta.SimpleGrade !== 'none'){
+            //     await models.TaskSimpleGrade.create({
+            //         TaskInstanceID: x.TaskInstanceID,
+            //         WorkflowActivity: wi.WorkflowActivityID,
+            //         SectionUserID: sec_user.SectionUserID,
+            //         Grade: 1
+            //
+            //     });
+            //     //}
+            //
+            // }
 
 
         },
