@@ -59,7 +59,7 @@ class TaskFactory {
         });
 
         await sec_users.forEach(function(user) {
-            if (user.Role !== 'Instructor' || user.Role !== 'Observer') {
+            if (user.Role !== 'Instructor' && user.Role !== 'Observer') {
                 users.push(user.UserID);
             }
         });

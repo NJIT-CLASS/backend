@@ -3475,6 +3475,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('info', 'triggering next task');
         //Trigger next task to start
         await new_ti.triggerNext();
+        await new_ti.addSimpleGrade();
 
         console.log('trigger completed');
 
