@@ -1507,44 +1507,6 @@ class TaskFactory {
             });
         });
     }
-
-    async addSimpleGrade(ti_id){
-        var x = this;
-        var util = new Util();
-
-        var ti = await TaskInstance.find({
-            where:{
-                TaskInstanceID: ti_id
-            }
-        });
-
-        var ta = await TaskActivity.find({
-            where:{
-                TaskActivityID: ti.TaskActivityID
-            }
-        });
-
-        var wa_id = await util.findWorkflowActivityID(ti.WorkflowInstanceID);
-        var sec_user_id = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
-
-        console.log('1',wa_id, sec_user_id, ti.TaskInstanceID);
-
-        if(ta.SimpleGrade !== 'none'){
-            try{
-                await TaskSimpleGrade.create({
-                    TaskInstanceID: ti.TaskInstanceID,
-                    WorkflowActivityID: wa_id,
-                    SectionUserID: sec_user_id,
-                    Grade: 1
-                });
-            } catch(err){
-                logger.log('error', 'cannot create task simple grade', {
-                    error: err
-                });
-            }
-        }
-
-    }
 }
 
 

@@ -49,12 +49,13 @@ var TaskInstance_Archive = models.TaskInstance_Archive;
 var WorkflowInstance_Archive = models.WorkflowInstance_Archive;
 var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
 
-var Manager = require('./WorkFlow/Manager.js');
-var Allocator = require('./WorkFlow/Allocator.js');
-var TaskFactory = require('./WorkFlow/TaskFactory.js');
+var Manager = require('./Workflow/Manager.js');
+var Allocator = require('./Workflow/Allocator.js');
+var TaskFactory = require('./Workflow/TaskFactory.js');
 
-var Email = require('./WorkFlow/Email.js');
-var Util = require('./WorkFlow/Util.js');
+var Email = require('./Workflow/Email.js');
+var Util = require('./Workflow/Util.js');
+var Grade = require('./Workflow/Grade.js');
 var FlatToNested = require('flat-to-nested');
 var fs = require('fs');
 
@@ -3401,7 +3402,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     // Endpoint to submit the taskInstance input and sync into database
     router.post('/taskInstanceTemplate/create/submit', async function(req, res) {
 
-        var taskFactory = new TaskFactory();
+        var grade = new Grade();
         logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
             req_body: req.body
         });
@@ -3425,9 +3426,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             },
             include: [{
                 model: TaskActivity,
-                attributes: ['Type'],
+                attributes: ['Type', 'AllowRevision', 'AllowReflection'],
             }, ],
         });
+
+
 
         logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
@@ -3476,10 +3479,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('info', 'task instance updated');
         logger.log('info', 'triggering next task');
         //Trigger next task to start
+        // if(JSON.parse(ti.TaskActivity.AllowReflection) !== 'none'){
+        //     //await new_ti.triggerEdit();
+        // } else {
         await new_ti.triggerNext();
-        await taskFactory.addSimpleGrade(new_ti.TaskInstanceID);
-
-        console.log('trigger completed');
+      //  }
+        //await grade.addSimpleGrade(new_ti.TaskInstanceID);
 
         if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
             var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id;
@@ -5009,10 +5014,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     router.get('/test2', async function(req, res) {
+        var grade = new Grade();
 
-        Promise.map([1],function(){
-            console.log(1);
-        });
+        //var check = await grade.checkAssignmentDone(1);
+        var check = await grade.checkWorkflowDone(1);
+
+
     });
 
 

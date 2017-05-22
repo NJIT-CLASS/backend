@@ -124,11 +124,6 @@ class Util {
             });
         }
     }
-
-    // transaction(task) {
-    //     return cls.getNamespace(NAMESPACE).get('transaction') ? task() : sequelize.transaction(task);
-    // };
-
 }
 
 module.exports = Util;

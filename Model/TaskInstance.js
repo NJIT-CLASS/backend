@@ -4,8 +4,9 @@ var Email = require('../WorkFlow/Email.js');
 var Promise = require('bluebird');
 var _ = require('underscore');
 var Util = require('../Workflow/Util.js');
+var Grade = require('../Workflow/Grade.js');
 //var Allocator = require('../WorkFlow/Allocator.js');
-
+const logger = require('winston');
 //var util = new Util();
 
 module.exports = function(sequelize, DataTypes) {
@@ -225,6 +226,22 @@ module.exports = function(sequelize, DataTypes) {
                 });
             },
 
+            triggerEdit: function() {
+                let x = this;
+                let email = new Email();
+
+                if ((x.StartDate === null || x.EndDate === null) && JSON.parse(x.Status)[0] !== 'automatic') {
+                    throw Error('Missing attributes!  TaskInstanceID:', x.TaskInstanceID);
+                    return null;
+                } else if (x.NextTask === null) {
+                    logger.log('error', 'trigger edit, next task is null');
+                    return null;
+                }
+
+
+
+            },
+
 
             skipDispute: function() {
 
@@ -238,7 +255,9 @@ module.exports = function(sequelize, DataTypes) {
                 }
 
                 var newDate = new Date();
-                JSON.parse(x.Status)[0] = 'bypassed';
+                var newStat = JSON.parse(x.Status);
+                newStat[0] = 'bypassed';
+                x.Status = JSON.stringify(newStat);
                 x.ActualEndDate = newDate;
 
                 return Promise.all([x.save()]).then(function() {
@@ -259,7 +278,7 @@ module.exports = function(sequelize, DataTypes) {
                                     console.log('Skipping dispute task... Current TaskInstanceID:', x.TaskInstanceID);
 
                                     var newStatus = JSON.parse(nextTask.Status);
-                                    newStatus[0] = 'started';
+                                    newStatus[0] = 'bypassed';
                                     models.TaskInstance.update({
                                         Status: JSON.stringify(newStatus),
                                         StartDate: newDate,
@@ -652,33 +671,7 @@ module.exports = function(sequelize, DataTypes) {
                         console.log(err);
                     });
                 });
-                // console.log('searching grades for consolidation...');
 
-                //assume the grades tasks are previous of previous tasks
-                //compute grades based on the highest two grades
-                // return x.findConsolidationAndDisputeGrade(function(grade) {
-                //     return x.retrieveNeedsConsolidationGrades(function(grades, maxGrade) {
-                //         grades.push(grade);
-                //         console.log('grades', grades);
-                //         var max = Math.max.apply(null, grades);
-                //         grades.splice(grades.indexOf(max), 1);
-                //         var secondMax = Math.max.apply(null, grades);
-                //         models.TaskActivity.find({
-                //             where: {
-                //                 TaskActivityID: x.TaskActivityID
-                //             }
-                //         }).then(function(ta_result) {
-                //             //insert grade
-                //             console.log('consolidated grade: ', (max + secondMax) / 2);
-                //             x.FinalGrade = (max + secondMax) / 2;
-                //             x.save();
-                //         }).then(function(done) {
-                //             x.triggerNext();
-                //         }).catch(function(err) {
-                //             console.log(err);
-                //         })
-                //     });
-                // });
             },
 
             findConsolidationAndDisputeGrade: function(callback) {
@@ -752,13 +745,19 @@ module.exports = function(sequelize, DataTypes) {
 
 
 
-            completed: function() {
+            completed: async function() {
                 var x = this;
                 var isWorkflowCompleted = false;
                 var isAllCompleted = false;
+                var grade = new Grade();
                 console.log('Checking all subworkflows are completed...');
                 // check if the workflow of the assignment that belongs to the user is completed
                 // check if all the workflow of the assignment that belongs to the user is completed
+
+                //TODO: To check a workflow instance has completed find the task collection from workflow instance and search them all
+                //TODO: To check if a assignement instance has completed find the workflow collection from assignment instance and search through them.
+
+                //await grade.checkWorkflowDone(x.WorkflowInstanceID);
 
                 return Promise.all([x.triverseWorkflow()]).then(function(result) {
                     console.log(result);
@@ -878,51 +877,6 @@ module.exports = function(sequelize, DataTypes) {
                     }
                 });
             }
-
-            // async addSimpleGrade(){
-            //     var x = this;
-            //     //var util = new Util();
-            //
-            //     var ta = await models.TaskActivity.find({
-            //         where:{
-            //             TaskActivityID: x.TaskActivityID
-            //         }
-            //     });
-            //
-            //     //var wa_id = await util.findWorkflowActivityID(x.WorkflowInstanceID);
-            //     var wi = await models.WorkflowInstance.find({
-            //         where:{
-            //             WorkflowInstanceID: x.WorkflowInstanceID
-            //         }
-            //     });
-            //
-            //
-            //     var ai_id = await models.AssignmentInstance.find({
-            //         where:{
-            //             AssignmentInstanceID: x.AssignmentInstanceID
-            //         }
-            //     });
-            //
-            //     var sec_user = await models.SectionUser.find({
-            //         where:{
-            //             SectionID: ai_id.SectionID,
-            //             UserID: x.UserID
-            //         }
-            //     });
-            //     //var sec_user_id = await util.findSectionUserID(x.AssignmentInstanceID, x.UserID);
-            //
-            //     //if(ta.SimpleGrade !== 'none'){
-            //     await models.TaskSimpleGrade.create({
-            //         TaskInstanceID: x.TaskInstanceID,
-            //         WorkflowActivity: wi.WorkflowActivityID,
-            //         SectionUserID: sec_user.SectionUserID,
-            //         Grade: 1
-            //
-            //     });
-            //     //}
-            //
-            // }
-
 
         },
         // define the table's name
