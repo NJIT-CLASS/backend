@@ -1,10 +1,10 @@
-const Sequelize = require("sequelize");
+const Sequelize = require('sequelize');
 // const cls = require('continuation-local-storage'),
 //     namespace = cls.createNamespace('my-very-own-namespace');
 // const NAMESPACE = 'my-very-own-namespace';
 // //Sequelize.useCLS(namespace);
 // Sequelize.cls= namespace;
-var settings = require("../backend_settings");
+var settings = require('../backend_settings');
 
 
 var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
@@ -100,44 +100,44 @@ models.forEach(function(model) {
 
     m.AssignmentGrade.belongsTo(m.AssignmentInstance, {
         foreignKey: 'AssignmentInstanceID'
-    })
+    });
     m.AssignmentGrade.belongsTo(m.SectionUser, {
         foreignKey: 'SectionUserID'
-    })
+    });
 
     m.WorkflowGrade.belongsTo(m.WorkflowActivity, {
         foreignKey: 'WorkflowActivityID'
-    })
+    });
     m.WorkflowGrade.belongsTo(m.AssignmentInstance, {
         foreignKey: 'AssignmentInstanceID'
-    })
+    });
     m.WorkflowGrade.belongsTo(m.SectionUser, {
         foreignKey: 'SectionUserID'
-    })
+    });
 
     m.TaskGrade.belongsTo(m.TaskInstance, {
         foreignKey: 'TaskInstanceID'
-    })
+    });
     m.TaskGrade.belongsTo(m.WorkflowActivity, {
         foreignKey: 'WorkflowActivityID'
-    })
+    });
     m.TaskGrade.belongsTo(m.SectionUser, {
         foreignKey: 'SectionUserID'
-    })
+    });
 
     m.TaskSimpleGrade.belongsTo(m.TaskInstance, {
         foreignKey: 'TaskInstanceID'
-    })
+    });
     m.TaskSimpleGrade.belongsTo(m.WorkflowActivity, {
         foreignKey: 'WorkflowActivityID'
-    })
+    });
     m.TaskSimpleGrade.belongsTo(m.SectionUser, {
         foreignKey: 'SectionUserID'
-    })
+    });
 
     m.FileReference.belongsTo(m.User, {
         foreignKey: 'UserID'
-    })
+    });
 
     // m.AssignmentInstance.hasMany(m.AssignmentGrade, {as:'AssignmentGrades', foreignKey: 'AssignmentInstanceID'});
     // m.User.hasMany(m.AssignmentGrade, {as:'AssignmentGrades', foreignKey: 'UserID'});
