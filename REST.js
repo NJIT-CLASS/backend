@@ -1845,7 +1845,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 if (user != null && await password.verify(user.Password, req.body.password)) {
                     // unset past timeout with correct password, login
                     // set attempts back to zero
-                    if (user.Timeout != null) {
+                    if (user.Timeout !== null || user.Attempts !== 0) {
                         sequelize.options.omitNull = false;
                         UserLogin.update({
                             Attempts: 0,
@@ -2038,6 +2038,39 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     });
 
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to check if user is pending to change password
+    router.get('/user/pendingStatus/:userID', (req, res) => {
+        UserLogin.findOne({
+            where: {
+                UserID: req.params.userID
+            },
+            attributes: ['Pending']
+        })
+        .then(user => {
+            if(user.Pending === true || user.Pending === 1){
+                return res.status(200).json({
+                    Error: false,
+                    Status: true
+                });
+            } else {
+                return res.status(401).json({
+                    Error: false,
+                    Status: false
+                });
+            }
+        })
+        .catch(err => {
+            logger.log('error', '/user/pendingStatus', 'check if user is pending', {
+                params: req.params,
+                error: err
+            });
+            return res.status(500).json({
+                Error: true
+            });
+        });
+    });
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to create a semester
