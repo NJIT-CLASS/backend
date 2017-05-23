@@ -4769,48 +4769,40 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['UserID']
         }).then(function(response) {
             if (response == null || response.UserID == null) {
-                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-                    .then(function() {
-                        return sequelize.transaction(function(t) {
-                            return User.create({
-                                FirstName: req.body.firstName,
-                                LastName: req.body.lastName,
-                                Instructor: req.body.role === 'Instructor'
-                            }, {
-                                transaction: t
-                            })
-                                .catch(function(err) {
-                                    console.error(err);
-                                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                        req_body: req.body,
-                                        error: err
-                                    });
-                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function() {
-                                            res.status(500).end();
-                                        });
-                                })
-                                .then(async function(user) {
-                                    let temp_pass = await password.generate();
-                                    return UserContact.create({
-                                        UserID: user.UserID,
-                                        FirstName: req.body.firstName,
-                                        LastName: req.body.lastName,
-                                        Email: req.body.email,
-                                        Phone: '(XXX) XXX-XXXX'
-                                    }, {
-                                        transaction: t
-                                    }).catch(function(err) {
-                                        console.error(err);
-                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                            req_body: req.body,
-                                            error: err
-                                        });
-                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                                .then(function() {
-                                                    res.status(500).end();
-                                                });
-                                    })
+                return sequelize.transaction(function(t) {
+                    return sequelize.query('SET FOREIGN_KEY_CHECKS = 0', {transaction: t})
+                      .then(function() {
+                          return User.create({
+                              FirstName: req.body.firstName,
+                              LastName: req.body.lastName,
+                              Instructor: req.body.role === 'Instructor'
+                          }, {
+                              transaction: t
+                          }).catch(function(err) {
+                              console.error(err);
+                              logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                  req_body: req.body,
+                                  error: err
+                              });
+                              res.status(500).end();
+                          }).then(async function(user) {
+                              let temp_pass = await password.generate();
+                              return UserContact.create({
+                                  UserID: user.UserID,
+                                  FirstName: req.body.firstName,
+                                  LastName: req.body.lastName,
+                                  Email: req.body.email,
+                                  Phone: '(XXX) XXX-XXXX'
+                              }, {
+                                  transaction: t
+                              }).catch(function(err) {
+                                  console.error(err);
+                                  logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                      req_body: req.body,
+                                      error: err
+                                  });
+                                  res.status(500).end();
+                              })
                                         .then(async function(userCon) {
                                             return UserLogin.create({
                                                 UserID: user.UserID,
@@ -4824,10 +4816,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                     req_body: req.body,
                                                     error: err
                                                 });
-                                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                                    .then(function() {
-                                                        res.status(500).end();
-                                                    });
+                                                res.status(500).end();
                                             }).then(function(userLogin) {
                                                 let email = new Email();
                                                 email.sendNow(user.UserID, 'invite user', temp_pass);
@@ -4845,10 +4834,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                         req_body: req.body,
                                                         error: err
                                                     });
-                                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                                        .then(function() {
-                                                            res.status(500).end();
-                                                        });
+
+                                                    res.status(500).end();
+
                                                 }).then(function(sectionUser) {
                                                     console.log('Creating user, inviting, and adding to section');
                                                     logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
@@ -4867,9 +4855,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                 });
                                             });
                                         });
-                                });
-                        });
-                    });
+                          });
+                      });
+                });
 
             } else {
                 SectionUser.find({
