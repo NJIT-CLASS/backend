@@ -5023,6 +5023,333 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
 
+    //-----------------------------------------------------------------------------------------------------
+
+
+    //Endpoint for workflow reports
+
+    router.get('/getWorkflowReport/:workflowInstanceID', (req, res) => {
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject){
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [
+                        {
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
+                                model: WorkflowActivity,
+                                attributes: ['WorkflowStructure']
+                            }
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
+                                model: UserContact,
+                                attributes: ['Email','Alias']
+                            }]
+                        }
+                    ]
+                })
+            .catch(err => reject(err))
+            .then(task => resolve(task));
+            });
+        };
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+        WorkflowInstance.find({
+            where: {
+                WorkflowInstanceID: req.params.workflowInstanceID
+            }
+        })
+      .then( async (result) => {
+          let mappedTasks = JSON.parse(result.TaskCollection);
+
+          let finalResults = mappedTasks.map(fetchTasks);
+
+          Promise.all(finalResults.map(Promise.all)).then(arrArr => {
+              return res.json({
+                  'Result': arrArr
+              });
+          });
+
+      });
+    });
+
+
+//------------------------------------
+    router.get('/getWorkflowReport/alternate/:workflowInstanceID', async (req, res) => {
+        let workflowInstanceObject = {};
+
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject){
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [
+                        {
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
+                                model: WorkflowActivity,
+                                attributes: ['WorkflowStructure']
+                            }
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
+                                model: UserContact,
+                                attributes: ['Email','Alias']
+                            }]
+                        }
+                    ]
+                })
+        .catch(err => reject(err))
+        .then(tiData => {
+            if(workflowInstanceObject[tiData.TaskActivity.TaskActivityID]){
+                workflowInstanceObject[tiData.TaskActivity.TaskActivityID].push(tiData);
+            }else{
+                workflowInstanceObject[tiData.TaskActivity.TaskActivityID] = [tiData];
+            }
+            resolve(tiData);
+        });
+            });
+        };
+
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+    //key: taskActivityID
+    //value: array of resolved tasks
+        WorkflowInstance.find({
+            where: {
+                WorkflowInstanceID: req.params.workflowInstanceID
+            }
+        })
+        .then( async (result) => {
+            let mappedTasks = JSON.parse(result.TaskCollection);
+
+            let finalResults = mappedTasks.map(fetchTasks);
+
+            Promise.all(finalResults.map(Promise.all)).then(arrArr => {
+                return res.json({
+                    'Result': workflowInstanceObject
+                });
+            });
+
+        });
+    });
+
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+
+// Endpoint to get assignment instance report
+    router.get('/getAssignmentReport/:assignmentInstanceID', function(req,res){
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject){
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [
+                        {
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
+                                model: WorkflowActivity,
+                                attributes: ['WorkflowStructure']
+                            }
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
+                                model: UserContact,
+                                attributes: ['Email','Alias']
+                            }]
+                        }
+                    ]
+                })
+          .catch(err => reject(err))
+          .then(task => resolve(task));
+            });
+        };
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+        let fetchWorkflow = (workflowArray) => {
+            return workflowArray.map((workflow) => {
+                return WorkflowInstance.find({
+                    where: {
+                        WorkflowInstanceID: workflow
+                    }
+                })
+                .then((result) => {
+                    let mappedTasks = JSON.parse(result.TaskCollection);
+                    return mappedTasks.map(fetchTasks);
+                });
+            });
+        };
+
+
+        AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        }).then((aiResult) => {
+            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
+            let finalResults = fetchWorkflow(workflowsList);
+
+            Promise.all(finalResults.map((row) => {
+                return row.map(Promise.all);
+            })).then(arrArr => {
+                return res.json({
+                    'Result': arrArr
+                });
+            });
+        });
+
+
+
+    });
+    //-------------------------------------------------------------------------
+
+    router.get('/getAssignmentReport/alternate/:assignmentInstanceID', (req, res) => {
+        let assignmentObject = {};
+
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject){
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [
+                        {
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
+                                model: UserContact,
+                                attributes: ['Email','Alias']
+                            }]
+                        }
+                    ]
+                })
+        .catch(err => reject(err))
+        .then(tiData => {
+            const waID = tiData.WorkflowInstance.WorkflowActivityID;
+            const wiID =  tiData.WorkflowInstance.WorkflowInstanceID;
+            const taID = tiData.TaskActivity.TaskActivityID;
+
+            if(!assignmentObject[waID].WorkflowInstances[wiID]){
+                assignmentObject[waID].WorkflowInstances[wiID] = {};
+            }
+
+            if(assignmentObject[waID].WorkflowInstances[wiID][taID]){
+                assignmentObject[waID].WorkflowInstances[wiID][taID].push(tiData);
+            }else{
+                assignmentObject[waID].WorkflowInstances[wiID][taID] = [tiData];
+            }
+            resolve(tiData);
+        });
+            });
+        };
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+        let fetchWorkflow = (workflowArray) => {
+            return workflowArray.map((workflow) => {
+                return WorkflowInstance.find({
+                    where: {
+                        WorkflowInstanceID: workflow
+                    },
+                    include:[WorkflowActivity]
+                })
+              .then((result) => {
+                  assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
+                      WorkflowInstances: {},
+                      Structure: result.WorkflowActivity.WorkflowStructure
+                  };
+
+                  let mappedTasks = JSON.parse(result.TaskCollection);
+                  return mappedTasks.map(fetchTasks);
+              });
+            });
+        };
+
+
+        AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        }).then((aiResult) => {
+            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
+            let finalResults = fetchWorkflow(workflowsList);
+
+            Promise.all(finalResults.map((row) => {
+                return row.map(Promise.all);
+            })).then(arrArr => {
+                return res.json({
+                    'Result': assignmentObject
+                });
+            });
+        });
+
+
+
+    });
+
+
+    //-------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
+    //-------------------------------------------------------------------------
+
 };
 
 module.exports = REST_ROUTER;
