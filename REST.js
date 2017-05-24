@@ -3435,9 +3435,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             return res.status(403).end();
         }
 
-
-
-
         logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
         if (req.body.userid != ti.UserID) {
