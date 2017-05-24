@@ -49,13 +49,13 @@ var TaskInstance_Archive = models.TaskInstance_Archive;
 var WorkflowInstance_Archive = models.WorkflowInstance_Archive;
 var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
 
-var Manager = require('./WorkFlow/Manager.js');
-var Allocator = require('./WorkFlow/Allocator.js');
-var TaskFactory = require('./WorkFlow/TaskFactory.js');
+var Manager = require('./Workflow/Manager.js');
+var Allocator = require('./Workflow/Allocator.js');
+var TaskFactory = require('./Workflow/TaskFactory.js');
 
-var Email = require('./WorkFlow/Email.js');
-var Util = require('./WorkFlow/Util.js');
-var Grade = require('./WorkFlow/Grade.js');
+var Email = require('./Workflow/Email.js');
+var Util = require('./Workflow/Util.js');
+var Grade = require('./Workflow/Grade.js');
 var FlatToNested = require('flat-to-nested');
 var fs = require('fs');
 
@@ -4467,7 +4467,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.get('/getSubWorkFlow/:taskInstanceID', function(req, res) {
+    router.get('/getSubWorkflow/:taskInstanceID', function(req, res) {
         var taskFactory = new TaskFactory();
         taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function(subworkflow) {
             res.json({
