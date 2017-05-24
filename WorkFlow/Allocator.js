@@ -34,7 +34,7 @@ class Allocator {
 
     getRightUser(ta_id) {
         let x = this;
-        let taskUser = []
+        let taskUser = [];
 
         return new Promise(function(resolve, reject) {
             return TaskActivity.find({
@@ -45,7 +45,7 @@ class Allocator {
 
                 let constraints = JSON.parse(ta.AssigneeConstraints)[2];
 
-                if (JSON.parse(ta.AssigneeConstraints)[0] === "instructor") {
+                if (JSON.parse(ta.AssigneeConstraints)[0] === 'instructor') {
                     return x.getInstructor(ta_id).then(function(instructor) {
                         taskUser.push(instructor);
                         resolve(taskUser);
@@ -68,18 +68,18 @@ class Allocator {
                         //return the first one in the user list
                         taskUser.push(x.user(ta_id));
                         x.count++;
-                    } else if (_.has(constraints, "same_as") && !(_.has(constraints, "not"))) {
+                    } else if (_.has(constraints, 'same_as') && !(_.has(constraints, 'not'))) {
                         var same = constraints.same_as[0];
                         console.log('same', same);
                         console.log('workflow', x.workflow);
                         taskUser.push(x.workflow[same][0]);
-                    } else if (!(_.has(constraints, "same_as")) && _.has(constraints, "not")) {
+                    } else if (!(_.has(constraints, 'same_as')) && _.has(constraints, 'not')) {
                         while (_.contains(constraints.not, x.users[x.count])) {
                             x.count++;
                         }
                         taskUser.push(x.user(ta_id));
                         x.count++;
-                    } else if (_.has(constraints, "same_as") && _.has(constraints, "not")) {
+                    } else if (_.has(constraints, 'same_as') && _.has(constraints, 'not')) {
                         while (_.contains(constraints.not, x.users[x.count])) {
                             x.count++;
                         }
@@ -98,7 +98,7 @@ class Allocator {
                 x.workflow[ta_id] = taskUser;
                 resolve(taskUser);
             }).catch(function(err) {
-                console.log("Error allocating the users");
+                console.log('Error allocating the users');
                 reject(err);
             });
         });
@@ -359,19 +359,19 @@ class Allocator {
     // reallocate new users to all tasks of all users in all assignments of a section with volunteers
     reallocate_section(section_id, user_ids, volunteer_u_ids, is_extra_credit) {
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
-            is_extra_credit = true
+            is_extra_credit = true;
         }
         logger.log('info', 'reallocate new users to all tasks of all users in all assignments of a section with volunteers', {
             section_id: section_id,
             user_ids: user_ids,
             volunteer_u_ids: volunteer_u_ids,
             is_extra_credit: is_extra_credit,
-        })
-        var x = this
+        });
+        var x = this;
         // check if any user_id is part of volunteers, if so: remove it from volunteers
         volunteer_u_ids = volunteer_u_ids.filter(function (user_id) {
-            return !_.contains(user_ids, user_id)
-        })
+            return !_.contains(user_ids, user_id);
+        });
         return AssignmentInstance.findAll({
             where: {
                 SectionID: section_id,
@@ -379,28 +379,28 @@ class Allocator {
             }
         }).then(function (ais) {
             return Promise.map(ais, function (ai) {
-                return x.reallocate_ai(ai.AssignmentInstanceID, user_ids, volunteer_u_ids, is_extra_credit)
-            })
-        })
+                return x.reallocate_ai(ai.AssignmentInstanceID, user_ids, volunteer_u_ids, is_extra_credit);
+            });
+        });
     }
 
     //TODO: need an api call for this
     // reallocate new users to all tasks of all users in an assignment with volunteers
     reallocate_ai(ai_id, user_ids, volunteer_u_ids, is_extra_credit) {
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
-            is_extra_credit = true
+            is_extra_credit = true;
         }
         logger.log('info', 'reallocate new users to all tasks of all users in an assignment with volunteers', {
             ai_id: ai_id,
             user_ids: user_ids,
             volunteer_u_ids: volunteer_u_ids,
             is_extra_credit: is_extra_credit,
-        })
-        var x = this
+        });
+        var x = this;
         // check if any user_id is part of volunteers, if so: remove it from volunteers
         volunteer_u_ids = volunteer_u_ids.filter(function (user_id) {
-            return !_.contains(user_ids, user_id)
-        })
+            return !_.contains(user_ids, user_id);
+        });
         return TaskInstance.findAll({
             where: {
                 UserID: {
@@ -414,87 +414,87 @@ class Allocator {
             }
         }).then(function (tis) {
             return Promise.each(tis, function (ti) {
-                return x.reallocate(ti, volunteer_u_ids, is_extra_credit)
-            })
-        })
+                return x.reallocate(ti, volunteer_u_ids, is_extra_credit);
+            });
+        });
     }
 
     //TODO: need an api call for this
     // reallocate given users to given tasks respectively
     reallocate_users_to_tasks(tis, u_ids, is_extra_credit) {
-        logger.log('debug', {call: 'reallocate_users_to_tasks'})
+        logger.log('debug', {call: 'reallocate_users_to_tasks'});
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
-            is_extra_credit = true
+            is_extra_credit = true;
         }
         logger.log('info', 'reallocate given users to given tasks respectively', {
             is_extra_credit: is_extra_credit,
             user_ids: u_ids, task_instances: tis.map(function (it) {
-                return it.toJSON()
+                return it.toJSON();
             }),
-        })
-        var x = this
+        });
+        var x = this;
 
         return Promise.map(tis, function (ti, i) {
-            return x.reallocate_user_to_task(ti, u_ids[i], is_extra_credit)
-        })
+            return x.reallocate_user_to_task(ti, u_ids[i], is_extra_credit);
+        });
     }
 
     // reallocate given user to a given task instance
     reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
-            is_extra_credit = true
+            is_extra_credit = true;
         }
-        logger.log('debug', {call: 'reallocate_user_to_task'})
-        var task_id = ti.TaskInstanceID
+        logger.log('debug', {call: 'reallocate_user_to_task'});
+        var task_id = ti.TaskInstanceID;
         // append a new user history
-        var ti_u_hist = JSON.parse(ti.UserHistory) || []
+        var ti_u_hist = JSON.parse(ti.UserHistory) || [];
 
         ti_u_hist.push({
             time: new Date(),
             user_id: new_u_id,
             is_extra_credit: is_extra_credit,
-        })
+        });
         logger.log('info', 'update a task instance with a new user and user history', {
             task_instance: ti.toJSON(),
             new_user_id: new_u_id,
             user_history: ti_u_hist
-        })
+        });
 
         return TaskInstance.update({
-                UserID: new_u_id,
-                UserHistory: ti_u_hist,
-            }, {
-                where: {TaskInstanceID: task_id}
-            }
+            UserID: new_u_id,
+            UserHistory: ti_u_hist,
+        }, {
+            where: {TaskInstanceID: task_id}
+        }
         ).then(function (res) {
-            logger.log('info', 'task instance updated', {res: res})
-            return res
+            logger.log('info', 'task instance updated', {res: res});
+            return res;
         }).catch(function (err) {
-            logger.log('error', 'task instance update failed', err)
-            return err
-        })
+            logger.log('error', 'task instance update failed', err);
+            return err;
+        });
     }
 
     // find a new appropriate user to reallocate
     //get newUser
     find_new_user(u_ids, vol_u_ids, avoid_u_ids) {
-        logger.log('debug', {call: 'find_new_user'})
+        logger.log('debug', {call: 'find_new_user'});
         logger.log('info', 'find a new appropriate user to reallocate', {
             user_ids: u_ids,
             volunteer_user_ids_so_far: vol_u_ids,
             avoid_user_ids: avoid_u_ids,
-        })
-        vol_u_ids = vol_u_ids || []
-        var idx = null
+        });
+        vol_u_ids = vol_u_ids || [];
+        var idx = null;
 
         // first, find if there is a new user that has not been part of volunteers so far used for this assignment AND that has not been part of avoid users
         return Promise.map(u_ids, function (u_id) {
             if (idx == null && !_.contains(avoid_u_ids, u_id) && !_.contains(vol_u_ids, u_id)) {
-                vol_u_ids.unshift(u_id)
-                idx = 0
+                vol_u_ids.unshift(u_id);
+                idx = 0;
             }
         }).then(function (done) {
-            logger.log('info', 'found a new user that is not part of volunteers yet ?', {found: idx != null})
+            logger.log('info', 'found a new user that is not part of volunteers yet ?', {found: idx != null});
 
             // if not found a user yet: pick the first one from volunteers so far and that is not part of avoid users
             return Promise.map(vol_u_ids, function (u_id, i) {
@@ -502,25 +502,25 @@ class Allocator {
             // return Promise.map(vol_u_ids, function (u_id, i) {
             //     if (idx == null && !_.contains(avoid_u_ids, u_id)) {
 
-                    idx = i
+                    idx = i;
                 }
             }).then(function (done) {
                 if (idx == null) {
-                    logger.log('error', 'no user found that can be reallocated')
-                    return
+                    logger.log('error', 'no user found that can be reallocated');
+                    return;
                 }
-                var new_user_id = vol_u_ids[idx] //new_user_id[0]
+                var new_user_id = vol_u_ids[idx]; //new_user_id[0]
                 // reorder the volunteers used so far for this assignment
-                vol_u_ids.splice(idx, 1)
-                vol_u_ids.push(new_user_id)
+                vol_u_ids.splice(idx, 1);
+                vol_u_ids.push(new_user_id);
 
                 logger.log('info', 'volunteers updated & return a new chosen user', {
                     updated_volunteer_user_ids_so_far: vol_u_ids,
                     new_user_id: new_user_id,
-                })
-                return new_user_id
-            })
-        })
+                });
+                return new_user_id;
+            });
+        });
     }
 
     // wrapper for multiple users ????
@@ -554,12 +554,12 @@ class Allocator {
             ai_id: ai_id,
             user_id: user_id,
             volunteer_u_ids: volunteer_u_ids,
-        })
-        var x = this
-        var u_idx = volunteer_u_ids.indexOf(user_id)
+        });
+        var x = this;
+        var u_idx = volunteer_u_ids.indexOf(user_id);
         if (u_idx != -1) {
-            volunteer_u_ids = volunteer_u_ids.slice(0)
-            volunteer_u_ids.splice(u_idx, 1)
+            volunteer_u_ids = volunteer_u_ids.slice(0);
+            volunteer_u_ids.splice(u_idx, 1);
         }
         return TaskInstance.findAll({
             where: {
@@ -571,46 +571,46 @@ class Allocator {
             }
         }).then(function (tis) {
             return Promise.each(tis, function (ti) {
-                return x.reallocate(ti, volunteer_u_ids)
-            })
-        })
+                return x.reallocate(ti, volunteer_u_ids);
+            });
+        });
     }
 
     // reallocate given users to given tasks respectively
     reallocate_users_to_tasks(tis, u_ids) {
-        logger.log('debug', {call: 'reallocate_users_to_tasks'})
+        logger.log('debug', {call: 'reallocate_users_to_tasks'});
         logger.log('info', 'reallocate given users to given tasks respectively', {
             user_ids: u_ids, task_instances: tis.map(function (it) {
-                return it.toJSON()
+                return it.toJSON();
             })
-        })
-        var x = this
+        });
+        var x = this;
 
         return Promise.map(tis, function (ti, i) {
-            return x.reallocate_user_to_task(ti, u_ids[i])
-        })
+            return x.reallocate_user_to_task(ti, u_ids[i]);
+        });
     }
 
     //updateDB
     //TODO: IMMEDIATE! Add a checker for for assignee constraints
     reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
         if (is_extra_credit == null) {
-            is_extra_credit = true
+            is_extra_credit = true;
         }
-        logger.log('debug', {call: 'reallocate_user_to_task'})
-        var task_id = ti.TaskInstanceID
-        var ti_u_hist = JSON.parse(ti.UserHistory) || []
+        logger.log('debug', {call: 'reallocate_user_to_task'});
+        var task_id = ti.TaskInstanceID;
+        var ti_u_hist = JSON.parse(ti.UserHistory) || [];
 
         ti_u_hist.push({
             time: new Date(),
             user_id: new_u_id,
             is_extra_credit: is_extra_credit,
-        })
+        });
         logger.log('info', 'update a task instance with a new user and user history', {
             task_instance: ti.toJSON(),
             new_user_id: new_u_id,
             user_history: ti_u_hist
-        })
+        });
 
         return TaskInstance.update({
             UserID: new_u_id,
@@ -618,12 +618,12 @@ class Allocator {
         }, {
             where: {TaskInstanceID: task_id}}
         ).then(function (res) {
-            logger.log('info', 'task instance updated', {res: res})
-            return res
+            logger.log('info', 'task instance updated', {res: res});
+            return res;
         }).catch(function (err) {
-            logger.log('error', 'task instance update failed', err)
-            return err
-        })
+            logger.log('error', 'task instance update failed', err);
+            return err;
+        });
     }
 
     check_assign_constraint(){
@@ -631,12 +631,12 @@ class Allocator {
     }
 
     get_ai_volunteers(ai_id) {
-        logger.log('debug', {call: 'get_ai_volunteers', ai_id: ai_id})
+        logger.log('debug', {call: 'get_ai_volunteers', ai_id: ai_id});
 
         return AssignmentInstance.find({where: {AssignmentInstanceID: ai_id}}).then(function (ai) {
-            logger.log('debug', 'return', {assignment_instance: ai.toJSON()})
-            return JSON.parse(ai.Volunteers)
-        })
+            logger.log('debug', 'return', {assignment_instance: ai.toJSON()});
+            return JSON.parse(ai.Volunteers);
+        });
     }
 
     // reallocate all tasks of a given users & ai_id with volutneers
@@ -665,18 +665,18 @@ class Allocator {
     //the same user won't be reallocated second time.
 
     reallocate(ti, u_ids, is_extra_credit) {
-        logger.log('debug', {call: 'reallocate'})
+        logger.log('debug', {call: 'reallocate'});
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
-            is_extra_credit = true
+            is_extra_credit = true;
         }
         logger.log('info', 'reallocate new user to a given task instance', {
             task_instance: ti.toJSON(),
             user_ids: u_ids,
             is_extra_credit: is_extra_credit,
-        })
+        });
 
-        var ti_id = ti.TaskInstanceID
-        var x = this
+        var ti_id = ti.TaskInstanceID;
+        var x = this;
         // var task = ti_id //task instance needs to be given
         // var constraint
         // var lateUser
@@ -691,7 +691,7 @@ class Allocator {
         // return Promise.all([x.getLateUser(ti_id), x.getVolunteers(ti), x.getTaskActivityID(ti_id), x.getWorkflowInstanceID(ti_id)]).spread(function (lateUsers, vol_u_ids, ta_ids, workflowInstanceIDs) {
         return Promise.all([x.getLateUser(ti_id), x.get_ai_volunteers(ti.AssignmentInstanceID), x.getWorkflowInstanceID(ti_id)]).spread(function (lateUsers, vol_u_ids, wi_ids) {
             // console.log('vol:' + volunteers)
-            vol_u_ids = vol_u_ids || []
+            vol_u_ids = vol_u_ids || [];
             // return Promise.map(taskActivityIDs, function (ta_id) {
             //console.log(ta_id)
             return Promise.map(wi_ids, function (wi_id) {
@@ -714,7 +714,7 @@ class Allocator {
                         logger.log('debug', 'update assignment instance volunteers', {
                             assignment_instance_id: ti.AssignmentInstanceID,
                             volunteer_user_ids: vol_u_ids,
-                        })
+                        });
                         return AssignmentInstance.update({
                             Volunteers: vol_u_ids
                         }, {
@@ -722,18 +722,18 @@ class Allocator {
                                 AssignmentInstanceID: ti.AssignmentInstanceID
                             }
                         }).then(function (res) {
-                            logger.log('info', 'assignment instance volunteers updated', {res: res})
-                            return x.reallocate_user_to_task(ti, new_u_id, is_extra_credit)
+                            logger.log('info', 'assignment instance volunteers updated', {res: res});
+                            return x.reallocate_user_to_task(ti, new_u_id, is_extra_credit);
                         }).catch(function (err) {
-                            logger.log('error', 'assignment instance volunteers update failed', err)
-                            return err
-                        })
+                            logger.log('error', 'assignment instance volunteers update failed', err);
+                            return err;
+                        });
                         // })
-                    })
-                })
-            })
+                    });
+                });
+            });
             // })
-        })
+        });
     }
 
 
@@ -753,12 +753,12 @@ class Allocator {
                 Promise.map(users, function(user) {
                     userArray.push(user.UserID);
                 }).then(function(done) {
-                    console.log("Users:", userArray);
+                    console.log('Users:', userArray);
                     callback(userArray);
                 });
             }).catch(function(err) {
                 console.log(err);
-                throw Error("Cannot find TaskActivity!");
+                throw Error('Cannot find TaskActivity!');
             });
         });
     }
@@ -779,13 +779,13 @@ class Allocator {
                 where: {
                     AssignmentID: result.AssignmentID
                 },
-                attributes: ["OwnerID"]
+                attributes: ['OwnerID']
             }).then(function(instructor) {
-                console.log("Inustructor:", instructor.OwnerID);
+                console.log('Inustructor:', instructor.OwnerID);
                 callback(instructor.OwnerID);
             }).catch(function(err) {
                 console.log(err);
-                throw Error("Cannot find TaskActivity!");
+                throw Error('Cannot find TaskActivity!');
             });
         });
     }

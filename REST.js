@@ -3430,6 +3430,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }, ],
         });
 
+        if(JSON.parse(ti.Status)[0] === 'complete'){
+            logger.log('error', 'The task has been complted already');
+            return res.status(403).end();
+        }
+
+
 
 
         logger.log('info', 'task instance found', ti.toJSON());
