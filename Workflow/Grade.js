@@ -1,4 +1,3 @@
-var sequelize = require('../Model/index.js').sequelize;
 var models = require('../Model');
 var Promise = require('bluebird');
 var Util = require('./Util.js');

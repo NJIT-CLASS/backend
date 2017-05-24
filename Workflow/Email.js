@@ -126,8 +126,8 @@ class Email {
                     replyTo: email,
                     to: result.Email,
                     subject: 'Welcome to PLA!',
-                    text: 'You have succesfully created an account on PLA',
-                    html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: </p>'
+                    text: 'You have succesfully created an account on PLA \n http://pla.njit.edu:4001',
+                    html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: <div>http://pla.njit.edu:4001 <div></p> '
                 });
                 break;
             case 'invite user':
@@ -137,7 +137,7 @@ class Email {
                     replyTo: email,
                     to: result.Email,
                     subject: 'Welcome to PLA!',
-                    text: 'You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.\nTemporary Password: ' + temp_pass,
+                    text: 'You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
                     html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
                 });
                 break;

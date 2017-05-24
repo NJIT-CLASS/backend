@@ -256,7 +256,7 @@ module.exports = function(sequelize, DataTypes) {
 
                 var newDate = new Date();
                 var newStat = JSON.parse(x.Status);
-                newStat[0] = 'bypassed';
+                newStat[0] = 'completed';
                 x.Status = JSON.stringify(newStat);
                 x.ActualEndDate = newDate;
 
