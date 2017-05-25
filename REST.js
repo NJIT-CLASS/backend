@@ -3381,54 +3381,94 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         TaskInstance.find({
             where: {
                 TaskInstanceID: req.params.taskInstanceID
+            },
+            include:[{
+                model: TaskActivity,
+                include: [{
+                    model: Assignment,
+                    attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
+                }],
+                attributes: ['Type']
+            },{
+                model: AssignmentInstance,
+                include: [{
+                    model: Section,
+                    attributes:['Name'],
+                    include: [{
+                        model: Course,
+                        attributes: ['Name', 'Number']
+                    },
+                    {
+                        model: Semester,
+                        attributes: ['SemesterID', 'Name']
+                    }]
+                }]
             }
-        }).then(function(taskInstanceResult) {
-            TaskActivity.find({
-                where: {
-                    TaskActivityID: taskInstanceResult.TaskActivityID
-                }
-            }).then(function(taskActivityResult) {
-                Course.find({
-                    where: {
-                        CourseID: req.query.courseID
-                    }
-                }).then(function(courseResult) {
-                    Assignment.find({
-                        where: {
-                            AssignmentID: taskActivityResult.AssignmentID
-                        },
-                        attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-                    }).then(function(assignmentResult) {
-                        Section.find({
-                            where: {
-                                SectionID: req.query.sectionID
-                            }
-                        }).then(function(sectionResult) {
-                            Semester.find({
-                                where: {
-                                    SemesterID: sectionResult.SemesterID
-                                }
-                            }).then(function(semesterResult) {
-                                res.json({
-                                    'Error': false,
-                                    'Message': 'Success',
-                                    'taskActivityID': taskInstanceResult.TaskActivityID,
-                                    'taskActivityType': taskActivityResult.Type,
-                                    'courseName': courseResult.Name,
-                                    'courseNumber': courseResult.Number,
-                                    'assignment': assignmentResult,
-                                    'semesterID': sectionResult.SemesterID,
-                                    'semesterName': semesterResult.Name
-                                });
-                            }).catch(function(err) {
-                                //Catch error and print into console.
-                                console.log('/taskInstanceTemplate/main/ ' + err);
-                                res.status(400).end();
-                            });
-                        });
-                    });
-                });
+            ]
+        })
+        .catch(function(err) {
+            //Catch error and print into console.
+            logger.log('error','/taskInstanceTemplate/main/',{error: err});
+            res.status(400).end();
+        })
+        .then(function(taskInstanceResult) {
+            return res.json({
+                'Error': false,
+                'Message': 'Success',
+                'taskActivityID': taskInstanceResult.TaskActivityID,
+                'taskActivityType': taskInstanceResult.TaskActivity.Type,
+                'courseName': taskInstanceResult.AssignmentInstance.Section.Course.Name,
+                'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
+                'assignment': taskInstanceResult.TaskActivity.Assignment,
+                'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
+                'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name
             });
+            // TaskActivity.find({
+            //     where: {
+            //         TaskActivityID: taskInstanceResult.TaskActivityID
+            //     }
+            // }).then(function(taskActivityResult) {
+            //     Course.find({
+            //         where: {
+            //             CourseID: req.query.courseID
+            //         }
+            //     }).then(function(courseResult) {
+            //         Assignment.find({
+            //             where: {
+            //                 AssignmentID: taskActivityResult.AssignmentID
+            //             },
+            //             attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
+            //         }).then(function(assignmentResult) {
+            //             Section.find({
+            //                 where: {
+            //                     SectionID: req.query.sectionID
+            //                 }
+            //             }).then(function(sectionResult) {
+            //                 Semester.find({
+            //                     where: {
+            //                         SemesterID: sectionResult.SemesterID
+            //                     }
+            //                 }).then(function(semesterResult) {
+            //                     res.json({
+            //                         'Error': false,
+            //                         'Message': 'Success',
+            //                         'taskActivityID': taskInstanceResult.TaskActivityID,
+            //                         'taskActivityType': taskActivityResult.Type,
+            //                         'courseName': courseResult.Name,
+            //                         'courseNumber': courseResult.Number,
+            //                         'assignment': assignmentResult,
+            //                         'semesterID': sectionResult.SemesterID,
+            //                         'semesterName': semesterResult.Name
+            //                     });
+            //                 }).catch(function(err) {
+            //                     //Catch error and print into console.
+            //                     console.log('/taskInstanceTemplate/main/ ' + err);
+            //                     res.status(400).end();
+            //                 });
+            //             });
+            //         });
+            //     });
+            // });
         });
     });
 
@@ -3990,7 +4030,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
                     include: [{
                         model: TaskActivity,
-                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload']
+                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName']
                     }]
                 })
                     .then((result) => {
@@ -4012,7 +4052,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
                     include: [{
                         model: TaskActivity,
-                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
+                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity', 'DisplayName']
 
                     }]
                 }).then((result) => {
@@ -4030,7 +4070,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
                     include: [{
                         model: TaskActivity,
-                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
+                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity', 'DisplayName']
 
                     }]
                 })
