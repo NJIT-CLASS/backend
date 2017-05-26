@@ -965,24 +965,29 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         //     }
         // });
 
-        if (req.body.partialAssignmentId !== null) {
-            PartialAssignments.find({
-                where: {
-                    PartialAssignmentID: req.body.partialAssignmentId,
-                    UserID: req.body.userId,
-                    CourseID: req.body.courseId
-                }
-            }).then((result) => {
-                result.destroy();
-            }).catch((err) => {
-                console.error(err);
-            });
-        }
 
         var taskFactory = new TaskFactory();
         console.log('assignment: ', req.body.assignment);
         taskFactory.createAssignment(req.body.assignment).then(function(done) {
             if (done) {
+                console.log({
+                    PartialAssignmentID: req.body.partialAssignmentId,
+                    UserID: req.body.userId,
+                    CourseID: req.body.assignment.AA_course
+                });
+                if (req.body.partialAssignmentId !== null) {
+                    PartialAssignments.destroy({
+                        where: {
+                            PartialAssignmentID: req.body.partialAssignmentId,
+                            UserID: req.body.userId,
+                            CourseID: req.body.assignment.AA_course
+                        }
+                    }).then((result) => {
+                        console.log(result);
+                    }).catch((err) => {
+                        console.error(err);
+                    });
+                }
                 res.status(200).end();
             } else {
                 res.status(400).end();
@@ -1017,8 +1022,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     PartialAssignmentID: req.body.partialAssignmentId
                 }
             }).then((result) => {
-                console.log(result);
-                console.log('PartialAssignmentID:', result.PartialAssignmentID);
                 res.json({
                     'Error': false,
                     'PartialAssignmentID': req.body.partialAssignmentId
@@ -1070,7 +1073,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 CourseID: req.query.courseId
             }
         }).then(result => {
-            console.log(result);
             res.json({
                 'Error': false,
                 'PartialAssignment': result
@@ -2626,7 +2628,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             Section.findAll({
                 where: {
                     CourseID: req.params.courseId
-                }
+                },
+                include: [{
+                    model: Semester,
+                    attributes: ['SemesterID', 'Name']
+                }]
             }).then(function(sections) {
                 res.json({
                     'Error': false,
@@ -2661,7 +2667,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 attributes: ['UserID', 'Role', 'Active'],
                 include: {
                     model: User,
-                    attributes: ['FirstName', 'LastName']
+                    attributes: ['FirstName', 'LastName'],
+                    include: [{
+                        model: UserContact,
+                        attributes:['FirstName', 'LastName', 'Email']
+                    }]
                 }
             }).then(function(users) {
                 res.json({
@@ -2678,41 +2688,42 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
     //Endpoint to get sections for specific semester and course
 
-    router.get('/getCourseSections/:courseID', async function(req, res) {
-
+    router.get('/getCourseSections/allowed/:courseID', (req, res) => {
         sequelize.query(`SELECT DISTINCT SectionID, Name FROM Section WHERE
-          CourseID=${req.params.courseID}
-          AND SemesterID=${req.query.semesterID}
-          AND SectionID IN ( SELECT DISTINCT SectionID FROM SectionUser WHERE UserID=${req.query.userID});`,{ type: sequelize.QueryTypes.SELECT,model: Section})
-          .then(function(sections) {
-              return res.json({
-                  'Sections': sections
-              });
-          })
-          .catch((err) => {
-              logger.log('error', '/getCourseSections/:courseID', {
-                  params: req.params,
-                  query: req.query,
-                  error: err
-              });
-              return res.status(401).end();
-          });
+        CourseID=${req.params.courseID}
+        AND SemesterID=${req.query.semesterID}
+        AND SectionID IN ( SELECT DISTINCT SectionID FROM SectionUser WHERE UserID=${req.query.userID});`,{ type: sequelize.QueryTypes.SELECT,model: Section})
+        .then(function(sections) {
+            return res.json({
+                'Sections': sections
+            });
+        })
+        .catch((err) => {
+            logger.log('error', '/getCourseSections/:courseID', {
+                params: req.params,
+                query: req.query,
+                error: err
+            });
+            return res.status(401).end();
+        });
 
-        // Section.findAll({
-        //     where: {
-        //         CourseID: req.params.courseID,
-        //         SemesterID: req.query.semesterID
-        //     },
-        //     order: [
-        //         ['Name']
-        //     ],
-        //     attributes: ['SectionID', 'Name']
-        // }).then(function(sections) {
-        //
-        //     res.json({
-        //         'Sections': sections
-        //     });
-        // });
+    });
+    router.get('/getCourseSections/:courseID', async function(req, res) {
+        Section.findAll({
+            where: {
+                CourseID: req.params.courseID,
+                SemesterID: req.query.semesterID
+            },
+            order: [
+                ['Name']
+            ],
+            attributes: ['SectionID', 'Name']
+        }).then(function(sections) {
+
+            res.json({
+                'Sections': sections
+            });
+        });
     });
     //----------------------------------------------------------------------------------
     //Endpoint to update a course
