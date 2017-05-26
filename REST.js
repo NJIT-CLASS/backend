@@ -2401,7 +2401,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         res.status(500).end();
                                     });
                             }).then(async function(userCon) {
-                                console.log('trustpass',req.body.trustpassword);
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
@@ -2415,7 +2414,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         });
                                 }).then(function(userLogin) {
                                     let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    email.sendNow(user.UserID, 'invite user', req.body.trustpassword ?'[user defined]' : req.body.password);
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -2677,26 +2676,45 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //-----------------------------------------------------------------------------------------------------
-    router.get('/getCourseSections/:courseID', function(req, res) {
+    //Endpoint to get sections for specific semester and course
 
-        Section.findAll({
-            where: {
-                CourseID: req.params.courseID,
-                SemesterID: req.query.semesterID
-            },
-            order: [
-                ['Name']
-            ],
-            attributes: ['SectionID', 'Name']
-        }).then(function(sections) {
-            res.json({
-                'Sections': sections
-            });
-        });
+    router.get('/getCourseSections/:courseID', async function(req, res) {
+
+        sequelize.query(`SELECT DISTINCT SectionID, Name FROM Section WHERE
+          CourseID=${req.params.courseID}
+          AND SemesterID=${req.query.semesterID}
+          AND SectionID IN ( SELECT DISTINCT SectionID FROM SectionUser WHERE UserID=${req.query.userID});`,{ type: sequelize.QueryTypes.SELECT,model: Section})
+          .then(function(sections) {
+              return res.json({
+                  'Sections': sections
+              });
+          })
+          .catch((err) => {
+              logger.log('error', '/getCourseSections/:courseID', {
+                  params: req.params,
+                  query: req.query,
+                  error: err
+              });
+              return res.status(401).end();
+          });
+
+        // Section.findAll({
+        //     where: {
+        //         CourseID: req.params.courseID,
+        //         SemesterID: req.query.semesterID
+        //     },
+        //     order: [
+        //         ['Name']
+        //     ],
+        //     attributes: ['SectionID', 'Name']
+        // }).then(function(sections) {
+        //
+        //     res.json({
+        //         'Sections': sections
+        //     });
+        // });
     });
-
-    //-----------------------------------------------------------------------------------------------------
-
+    //----------------------------------------------------------------------------------
     //Endpoint to update a course
     router.put('/course/update', function(req, res) {
 
@@ -4653,6 +4671,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(400).end();
         });
     });
+
+    //--------------------------------------------------------------------
+
 
     // endpoint to delete secction
     router.get('/section/delete/:sectionid', function(req, res) {
