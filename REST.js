@@ -3872,7 +3872,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     $like: '%"complete"%'
                 }
             },
-            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status'],
+            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate','ActualEndDate', 'Status'],
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
@@ -4250,7 +4250,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         taskCollection[workflow.WorkflowActivityID].push({
                             'taskActivityID': taskActivity.TaskActivityID,
                             'name': taskActivity.Name,
-                            'type': taskActivity.Type
+                            'type': taskActivity.Type,
+                            'defaults': taskActivity.DueType,
                         });
                         taskCollection[workflow.WorkflowActivityID].sort(function(a, b) {
                             var x = a.taskActivityID < b.taskActivityID ? -1 : 1;
