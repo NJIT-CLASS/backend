@@ -4857,19 +4857,143 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
         });
     });
+    //---------------------------------------------------------------------------
+    //End point to add mutliple users to a section and invite any new ones
+    router.post('/sectionUsers/addMany/:sectionid', function(req, res) {
+      //expects - users
+        return sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+            .then(function(){
+                Promise.mapSeries(req.body.users, (userDetails) => {
+                    return UserLogin.find({
+                        where: {
+                            Email: userDetails.email
+                        },
+                        attributes: ['UserID']
+                    }).then(function(response) {
+                        if (response == null || response.UserID == null) {
+                            return sequelize.transaction(function(t) {
+                                return User.create({
+                                    FirstName: userDetails.firstName,
+                                    LastName: userDetails.lastName,
+                                    Instructor: userDetails.role === 'Instructor'
+                                }, {
+                                    transaction: t
+                                }).then(async function(user) {
+                                    let temp_pass = await password.generate();
+                                    return UserContact.create({
+                                        UserID: user.UserID,
+                                        FirstName: userDetails.firstName,
+                                        LastName: userDetails.lastName,
+                                        Email: userDetails.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
+                                        transaction: t
+                                    })  .then(async function(userCon) {
+                                        return UserLogin.create({
+                                            UserID: user.UserID,
+                                            Email: userDetails.email,
+                                            Password: await password.hash(temp_pass)
+                                        }, {
+                                            transaction: t
+                                        }).then(function(userLogin) {
+                                            let email = new Email();
+                                            email.sendNow(user.UserID, 'invite user', temp_pass);
+                                            return SectionUser.create({
+                                                SectionID: req.params.sectionid,
+                                                UserID: userLogin.UserID,
+                                                Active: userDetails.active,
+                                                Volunteer: userDetails.volunteer,
+                                                Role: userDetails.role
+                                            }, {
+                                                transaction: t
+                                            }).then(function(sectionUser) {
+                                                console.log('Creating user, inviting, and adding to section');
+                                                logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                    req_body: userDetails
+                                                });
 
-    // endpoint to add sectionusers, invite users not yet in system
+                                                return sectionUser;
+
+                                            });
+                                        });
+                                    });
+                                });
+                            })
+                            .catch((err) => {
+                                console.log(err);
+                                logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
+                                    body: userDetails,
+                                    err: err
+
+                                });
+                            });
+
+                        } else {
+                            SectionUser.find({
+                                where: {
+                                    SectionID: req.params.sectionid,
+                                    UserID: response.UserID
+                                },
+                                attributes: ['UserID']
+                            }).then(function(sectionUser) {
+                                if (sectionUser == null || sectionUser.UserID == null) {
+                                    SectionUser.create({
+                                        SectionID: req.params.sectionid,
+                                        UserID: response.UserID,
+                                        Active: userDetails.active,
+                                        Volunteer: userDetails.volunteer,
+                                        Role: userDetails.role
+
+                                    }).then(function(result) {
+                                        console.log('User exists, adding to section');
+                                        logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
+                                            result: result
+                                        });
+                                        return result;
+                                    });
+                                } else {
+                                    console.log('User already in section');
+                                    logger.log('info', '/sectionUsers/addMany', 'user already in system', {
+                                        result: sectionUser
+                                    });
+                                    return sectionUser;
+                                }
+                            });
+                        }
+                    });
+                })
+              .then((results)=> {
+                  console.log(results);
+                  return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                .then(() => {
+                    return res.status(200).end();
+                });
+              }).catch(function(err) {
+                  console.error(err);
+                  logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                      req_body: req.body,
+                      error: err
+                  });
+                  return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                    .then(() => {
+                        res.status(500).end();
+                    });
+              });
+            });
+    });
+    //---------------------------------------------------------------------------
+    // endpoint to add indivudal sectionusers, invite users not yet in system
     router.post('/sectionUsers/:sectionid', function(req, res) {
 
-        //expects -email
-        //        -firstName
-        //        -lastName
-        //        -email
-        //        -sectionid
-        //        -email
-        //        -active
-        //        -body
-        //        -role
+           //expects -email
+           //        -firstName
+           //        -lastName
+           //        -email
+           //        -sectionid
+           //        -email
+           //        -active
+           //        -body
+           //        -role
 
         UserLogin.find({
             where: {
@@ -4880,92 +5004,92 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             if (response == null || response.UserID == null) {
                 return sequelize.transaction(function(t) {
                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 0', {transaction: t})
-                      .then(function() {
-                          return User.create({
-                              FirstName: req.body.firstName,
-                              LastName: req.body.lastName,
-                              Instructor: req.body.role === 'Instructor'
-                          }, {
-                              transaction: t
-                          }).catch(function(err) {
-                              console.error(err);
-                              logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                  req_body: req.body,
-                                  error: err
-                              });
-                              res.status(500).end();
-                          }).then(async function(user) {
-                              let temp_pass = await password.generate();
-                              return UserContact.create({
-                                  UserID: user.UserID,
-                                  FirstName: req.body.firstName,
-                                  LastName: req.body.lastName,
-                                  Email: req.body.email,
-                                  Phone: '(XXX) XXX-XXXX'
-                              }, {
-                                  transaction: t
-                              }).catch(function(err) {
-                                  console.error(err);
-                                  logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                      req_body: req.body,
-                                      error: err
-                                  });
-                                  res.status(500).end();
-                              })
-                                        .then(async function(userCon) {
-                                            return UserLogin.create({
-                                                UserID: user.UserID,
-                                                Email: req.body.email,
-                                                Password: await password.hash(temp_pass)
-                                            }, {
-                                                transaction: t
-                                            }).catch(function(err) {
-                                                console.error(err);
-                                                logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                    req_body: req.body,
-                                                    error: err
-                                                });
-                                                res.status(500).end();
-                                            }).then(function(userLogin) {
-                                                let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', temp_pass);
-                                                return SectionUser.create({
-                                                    SectionID: req.params.sectionid,
-                                                    UserID: userLogin.UserID,
-                                                    Active: req.body.active,
-                                                    Volunteer: req.body.volunteer,
-                                                    Role: req.body.role
-                                                }, {
-                                                    transaction: t
-                                                }).catch(function(err) {
-                                                    console.error(err);
-                                                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                        req_body: req.body,
-                                                        error: err
-                                                    });
+                         .then(function() {
+                             return User.create({
+                                 FirstName: req.body.firstName,
+                                 LastName: req.body.lastName,
+                                 Instructor: req.body.role === 'Instructor'
+                             }, {
+                                 transaction: t
+                             }).catch(function(err) {
+                                 console.error(err);
+                                 logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                     req_body: req.body,
+                                     error: err
+                                 });
+                                 res.status(500).end();
+                             }).then(async function(user) {
+                                 let temp_pass = await password.generate();
+                                 return UserContact.create({
+                                     UserID: user.UserID,
+                                     FirstName: req.body.firstName,
+                                     LastName: req.body.lastName,
+                                     Email: req.body.email,
+                                     Phone: '(XXX) XXX-XXXX'
+                                 }, {
+                                     transaction: t
+                                 }).catch(function(err) {
+                                     console.error(err);
+                                     logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                         req_body: req.body,
+                                         error: err
+                                     });
+                                     res.status(500).end();
+                                 })
+                                           .then(async function(userCon) {
+                                               return UserLogin.create({
+                                                   UserID: user.UserID,
+                                                   Email: req.body.email,
+                                                   Password: await password.hash(temp_pass)
+                                               }, {
+                                                   transaction: t
+                                               }).catch(function(err) {
+                                                   console.error(err);
+                                                   logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                       req_body: req.body,
+                                                       error: err
+                                                   });
+                                                   res.status(500).end();
+                                               }).then(function(userLogin) {
+                                                   let email = new Email();
+                                                   email.sendNow(user.UserID, 'invite user', temp_pass);
+                                                   return SectionUser.create({
+                                                       SectionID: req.params.sectionid,
+                                                       UserID: userLogin.UserID,
+                                                       Active: req.body.active,
+                                                       Volunteer: req.body.volunteer,
+                                                       Role: req.body.role
+                                                   }, {
+                                                       transaction: t
+                                                   }).catch(function(err) {
+                                                       console.error(err);
+                                                       logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                           req_body: req.body,
+                                                           error: err
+                                                       });
 
-                                                    res.status(500).end();
+                                                       res.status(500).end();
 
-                                                }).then(function(sectionUser) {
-                                                    console.log('Creating user, inviting, and adding to section');
-                                                    logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                        req_body: req.body
-                                                    });
-                                                    return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
-                                                        transaction: t
-                                                    })
-                                                        .then(function() {
-                                                            res.json({
-                                                                success: true,
-                                                                message: 'new user'
-                                                            });
+                                                   }).then(function(sectionUser) {
+                                                       console.log('Creating user, inviting, and adding to section');
+                                                       logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                           req_body: req.body
+                                                       });
+                                                       return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
+                                                           transaction: t
+                                                       })
+                                                           .then(function() {
+                                                               res.json({
+                                                                   success: true,
+                                                                   message: 'new user'
+                                                               });
 
-                                                        });
-                                                });
-                                            });
-                                        });
-                          });
-                      });
+                                                           });
+                                                   });
+                                               });
+                                           });
+                             });
+                         });
                 });
 
             } else {
@@ -5004,6 +5128,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         });
     });
+
 
 
     router.delete('/delete/user/:userID', (req, res) => {
