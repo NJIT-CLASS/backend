@@ -1,0 +1,14 @@
+{
+  "ecmaVersion": "7",
+  "libs": [
+    "underscore"
+  ],
+  "loadEagerly": [],
+  "dontLoad": [
+    "node_modules/**"
+  ],
+  "plugins": {
+    "doc_comment": true,
+    "commonjs": {}
+  }
+}

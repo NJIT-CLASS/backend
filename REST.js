@@ -2862,7 +2862,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         await sections.forEach(function(section) {
             //console.log(section.Section);
-            if (section.Section !== null) {
+            if (section.Section !== null && !addedCourseIDs.includes(section.Section.Course.CourseID)) {
                 courses.push({
                     'CourseID': section.Section.Course.CourseID,
                     'Number': section.Section.Course.Number,
@@ -3088,7 +3088,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 attributes: ['Name'],
                 include: [{
                     model: Course,
-                    attributes: ['Number', 'Name', 'Abbreviations']
+                    attributes: ['Number', 'Name']
                 }]
             }]
         }).then(function(Courses) {
@@ -3113,7 +3113,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 attributes: ['Name'],
                 include: [{
                     model: Course,
-                    attributes: ['Number', 'Name', 'Abbreviations']
+                    attributes: ['Number', 'Name']
                 }]
             }]
         }).then(function(Courses) {
@@ -3124,7 +3124,49 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
         });
     });
+    //------------------------------------------------------------
+    //------------------------------------------------------------
 
+    //Get the active sections for a student in a particular course
+    router.get('/getActiveEnrolledSections/:courseID', function(req, res) {
+        SectionUser.findAll({
+            where: {
+                UserID: req.query.studentID,
+                Active: true
+            },
+            attributes: ['Role'],
+            include: [{
+                model: Section,
+                attributes: ['SectionID','Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['CourseID','Number', 'Name']
+                },{
+                    model: Semester,
+                    attributes: ['SemesterID', 'Name']
+                }]
+            }]
+        }).then(function(sections) {
+            let returnSections = sections.filter((section) => {
+              return section.Section.Course.CourseID == req.params.courseID;
+            }).map(section => section.Section);
+            Course.find({
+                where: {
+                    CourseID: req.params.courseID
+                },
+                attributes: ['CourseID', 'Number', 'Name']
+            }).then(function(result) {
+              console.log(`/getActiveEnrolledSections/ Courses for ${req.query.studentID} found `);
+              res.json({
+                  'Error': false,
+                  'Message': 'Success',
+                  'Sections': returnSections,
+                  'Course': result
+              });
+            });
+
+        });
+    });
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to Get Courses Created by an Instructor
@@ -4249,7 +4291,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         //Push the resulting name and TaskActivityID on to javascript object
                         taskCollection[workflow.WorkflowActivityID].push({
                             'taskActivityID': taskActivity.TaskActivityID,
-                            'name': taskActivity.Name,
+                            'name': taskActivity.DisplayName,
                             'type': taskActivity.Type,
                             'defaults': taskActivity.DueType,
                         });
