@@ -3021,42 +3021,72 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     router.post('/password/reset', function(req, res) {
-        if (req.body.HashRequest == null) {
-            console.log('/resetPassword : HashRequest not sent');
-            req.status(401).end();
+        if(req.body.email === null || req.body.email === ''){
+          return res.status(401).end();
         }
-        if (req.body.newPassword == null) {
-            console.log('/resetPassword : newPassword not sent');
-            req.status(401).end();
-        }
-        User.find({
-            where: {
-                UserID: userlogin.UserID
-            }
-        }).then(function(user) {
-            ResetPasswordRequest.find({
-                where: {
-                    RequestHash: req.body.HashRequest
-                }
-            }).then(async function(request) {
-                if (request == null) {
-                    console.log('/resetPassword : HashRequest does not exist');
-                    res.status(401).end();
-                } else {
-                    UserLogin.update({
-                        Password: await password.hash(req.body.newPassword)
-                    }, {
-                        where: {
-                            UserID: request.UserID
-                        }
-                    }).then(function() {
-                        request.destroy();
-                        console.log('/resetPassword : Password updated');
-                        res.status(200).end();
-                    });
-                }
-            });
-        });
+        return UserLogin.findOne({
+          where: {
+            Email: req.body.email
+          }
+        })
+        .then(async (user) => {
+          console.log('found user', user);
+          if(user == null){
+            return res.status(401).end();
+          }
+          let temp_pass = await password.generate();
+          user.Password = await password.hash(temp_pass);
+          user.Pending = true;
+          user.Attempts = 0;
+          user.save().then((result) => {
+            let email = new Email();
+            email.sendNow(result.UserID, 'reset password', temp_pass);
+            res.status(200).end();
+
+          });
+        })
+        .catch((err) => {
+          console.log(err);
+          res.status(500).end();
+        })
+
+
+        // if (req.body.HashRequest == null) {
+        //     console.log('/resetPassword : HashRequest not sent');
+        //     req.status(401).end();
+        // }
+        // if (req.body.newPassword == null) {
+        //     console.log('/resetPassword : newPassword not sent');
+        //     req.status(401).end();
+        // }
+        // User.find({
+        //     where: {
+        //         UserID: userlogin.UserID
+        //     }
+        // }).then(function(user) {
+        //     ResetPasswordRequest.find({
+        //         where: {
+        //             RequestHash: req.body.HashRequest
+        //         }
+        //     }).then(async function(request) {
+        //         if (request == null) {
+        //             console.log('/resetPassword : HashRequest does not exist');
+        //             res.status(401).end();
+        //         } else {
+        //             UserLogin.update({
+        //                 Password: await password.hash(req.body.newPassword)
+        //             }, {
+        //                 where: {
+        //                     UserID: request.UserID
+        //                 }
+        //             }).then(function() {
+        //                 request.destroy();
+        //                 console.log('/resetPassword : Password updated');
+        //                 res.status(200).end();
+        //             });
+        //         }
+        //     });
+        // });
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -3879,7 +3909,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ['Name', 'Type', 'VisualID'],
+                    attributes: ['DisplayName','Name', 'Type', 'VisualID'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -3933,7 +3963,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     }]
                 }, {
                     model: TaskActivity,
-                    attributes: ['Name', 'Type', 'VisualID'],
+                    attributes: ['DisplayName','Name', 'Type', 'VisualID'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -4945,7 +4975,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                 UserID: userLogin.UserID,
                                                 Active: userDetails.active,
                                                 Volunteer: userDetails.volunteer,
-                                                Role: userDetails.role
+                                                Role: req.body.role
                                             }, {
                                                 transaction: t
                                             }).then(function(sectionUser) {
