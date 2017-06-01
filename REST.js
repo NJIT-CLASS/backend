@@ -4975,7 +4975,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                 UserID: userLogin.UserID,
                                                 Active: userDetails.active,
                                                 Volunteer: userDetails.volunteer,
-                                                Role: req.body.role
+                                                Role: userDetails.role
                                             }, {
                                                 transaction: t
                                             }).then(function(sectionUser) {
@@ -5001,7 +5001,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             });
 
                         } else {
-                            SectionUser.find({
+                            return SectionUser.find({
                                 where: {
                                     SectionID: req.params.sectionid,
                                     UserID: response.UserID
@@ -5009,7 +5009,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                 attributes: ['UserID']
                             }).then(function(sectionUser) {
                                 if (sectionUser == null || sectionUser.UserID == null) {
-                                    SectionUser.create({
+                                    return SectionUser.create({
                                         SectionID: req.params.sectionid,
                                         UserID: response.UserID,
                                         Active: userDetails.active,
@@ -5019,7 +5019,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                     }).then(function(result) {
                                         console.log('User exists, adding to section');
                                         logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
-                                            result: result
+                                            body: req.body
                                         });
                                         return result;
                                     });
@@ -5035,7 +5035,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     });
                 })
               .then((results)=> {
-                  console.log(results);
                   return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                 .then(() => {
                     return res.status(200).end();
