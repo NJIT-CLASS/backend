@@ -64,6 +64,7 @@ const multer = require('multer'); //TODO: we may need to limit the file upload s
 var storage = multer({
     dest: './files/'
 });
+
 const logger = require('winston');
 
 logger.configure({
@@ -3022,33 +3023,33 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     router.post('/password/reset', function(req, res) {
         if(req.body.email === null || req.body.email === ''){
-          return res.status(401).end();
+            return res.status(401).end();
         }
         return UserLogin.findOne({
-          where: {
-            Email: req.body.email
-          }
+            where: {
+                Email: req.body.email
+            }
         })
         .then(async (user) => {
-          console.log('found user', user);
-          if(user == null){
-            return res.status(401).end();
-          }
-          let temp_pass = await password.generate();
-          user.Password = await password.hash(temp_pass);
-          user.Pending = true;
-          user.Attempts = 0;
-          user.save().then((result) => {
-            let email = new Email();
-            email.sendNow(result.UserID, 'reset password', temp_pass);
-            res.status(200).end();
+            console.log('found user', user);
+            if(user == null){
+                return res.status(401).end();
+            }
+            let temp_pass = await password.generate();
+            user.Password = await password.hash(temp_pass);
+            user.Pending = true;
+            user.Attempts = 0;
+            user.save().then((result) => {
+                let email = new Email();
+                email.sendNow(result.UserID, 'reset password', temp_pass);
+                res.status(200).end();
 
-          });
+            });
         })
         .catch((err) => {
-          console.log(err);
-          res.status(500).end();
-        })
+            console.log(err);
+            res.status(500).end();
+        });
 
 
         // if (req.body.HashRequest == null) {
@@ -3178,7 +3179,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }]
         }).then(function(sections) {
             let returnSections = sections.filter((section) => {
-              return section.Section.Course.CourseID == req.params.courseID;
+                return section.Section.Course.CourseID == req.params.courseID;
             }).map(section => section.Section);
             Course.find({
                 where: {
@@ -3186,13 +3187,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 },
                 attributes: ['CourseID', 'Number', 'Name']
             }).then(function(result) {
-              console.log(`/getActiveEnrolledSections/ Courses for ${req.query.studentID} found `);
-              res.json({
-                  'Error': false,
-                  'Message': 'Success',
-                  'Sections': returnSections,
-                  'Course': result
-              });
+                console.log(`/getActiveEnrolledSections/ Courses for ${req.query.studentID} found `);
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Sections': returnSections,
+                    'Course': result
+                });
             });
 
         });

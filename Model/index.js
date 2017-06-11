@@ -21,10 +21,10 @@ var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_P
 
 var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification', 'Group',
     'GroupUser', 'Organization', 'ResetPasswordRequest', 'Section',
-    'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
+    'SectionUser', 'Semester', 'TaskActivity','User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference',
+    'FileReference','TaskInstance'
 ];
 
 

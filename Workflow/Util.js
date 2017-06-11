@@ -5,6 +5,7 @@ const Sequelize = require('sequelize');
 // //Sequelize.useCLS(namespace);
 // Sequelize.cls = namespace;
 var models = require('../Model');
+console.log('Models import',models, models.FileReference, models.TaskInstance);
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
 var smtpTransport = require('nodemailer-smtp-transport');
