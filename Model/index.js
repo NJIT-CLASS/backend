@@ -185,7 +185,9 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
-
+    m.Assignment.belongsTo(m.Course,{
+        foreignKey: 'CourseID'
+    });
 
     //has Many Relations
 
@@ -257,6 +259,9 @@ models.forEach(function(model) {
         as: 'TaskInstances',
         foreignKey: 'UserID'
     });
+
+
+
 
     //m.User.hasOne(m.UserLogin,{foreignKey: 'UserID'});
     //m.User.hasOne(m.UserContact,{foreignKey: 'UserID'});

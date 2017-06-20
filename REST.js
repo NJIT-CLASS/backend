@@ -1466,6 +1466,210 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+    //--------------------Start Volunteer Pool APIs---------------------------------------------------------------------------------
+
+
+       //Endpoint to return VolunteerPool list of Volunteers
+    router.get('/VolunteerPool/', function(req, res) {
+
+        VolunteerPool.findAll({
+            attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
+            });
+        }).catch(function(err) {
+            console.log('/VolunteerPool/ ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+      //Endpoint to return count total of Volunteers
+    router.get('/VolunteerPool/countOfUsers', function(req, res) {
+        console.log('VolunteerPool/count was called');
+        VolunteerPool.findAll({
+        }).then(function(rows) {
+            res.json({
+                'Error_': false,
+                'Message': 'Success',
+                'Number of Volunteers': rows.length
+            });
+        }).catch(function(err) {
+            console.log('/VolunteerPool/ ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+      //Endpoint assignments in Section
+    router.get('/AssignmentsBySection/:SectionID', function(req,res){
+        AssignmentInstance.findAll({
+            where:{
+                SectionID: req.params.SectionID
+            },
+            attributes: ['AssignmentInstanceID'],
+            include:[{
+                model: Assignment,
+                attributes: ['AssignmentID','Name','Type', 'DisplayName'],
+                include: [{
+                    model:Course,
+                    attributes: ['CourseID','Name','Number']
+                }]
+            }]
+        }).then(function(assignments){
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Assignments': assignments
+
+            });
+        }
+
+    );
+    });
+
+
+      //Endpoint sections by user
+    router.get('/SectionsByUser/:UserID', function(req,res){
+        SectionUser.findAll({
+            where:{
+                UserID: req.params.UserID,
+      //  UserRole: "Instructor"
+            },
+            include:[{
+                model: Section,
+                include: [{model:Course}]
+            }]
+        }).then(function(section){
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Sections': section
+
+            });
+        }
+
+    );
+    });
+
+
+      //Endpoint to return list of volunteers in a section
+    router.get('/VolunteerPool/VolunteersInSection/:SectionID', function(req, res) {
+        console.log('/VolunteerPool/VolunteersInSection was called');
+
+        var detailArray =[];
+
+        VolunteerPool.findAll({
+            where: {
+                SectionID: req.params.SectionID
+            },
+            attributes:['UserID','AssignmentInstanceID', 'status']
+
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
+            });
+
+        }).catch(function(err) {
+            console.log('/VolunteerPool/ ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+
+      //Endpoint to return VolunteerPool Information for the student
+
+   	router.get('/VolunteerPool/UserInPool/:UserID', function(req, res) {
+       console.log('/VolunteerPool/:UserID was called');
+       VolunteerPool.findAll({
+           where: {
+               UserID: req.params.UserID
+           },
+           attributes: ['UserID', 'SectionID', 'AssignmentInstanceID'],
+           include: [{
+               model: User,
+               attributes: ['UserID', 'UserType', 'UserName']
+           }, {
+               model: AssignmentInstance,
+               attributes: ['AssignmentID']
+           },
+           {
+               model: Section
+           }]
+       }).then(function(rows) {
+           res.json({
+               'Error': false,
+               'Message': 'Success',
+               'Volunteers': rows
+           });
+       }).catch(function(err) {
+           console.log('/VolunteerPool/ ' + err.message);
+           res.status(401).end();
+       });
+
+
+   });
+
+
+
+
+
+      //Endpoint to remove from VolunteerPool
+    router.delete('/VolunteerPool/deleteVolunteer', function(req, res) {
+
+        VolunteerPool.destroy({
+            where: {
+                UserID: 12, //req.body.userID,
+                AssignmentInstanceID: 12,//req.body.AssignmentInstanceID
+            }
+        }).then(function(rows) {
+            console.log('Delete User Success');
+            res.status(200).end();
+        }).catch(function(err) {
+            console.log('/course/deleteuser : ' + err.message);
+
+            res.status(400).end();
+        });
+
+
+    });
+
+
+      //Endpoint to add a user to a course
+    router.post('/VolunteerPool/add', function(req, res) {
+        console.log('/VolunteerPool/add : was called');
+
+        if (req.body.UserID === null || req.body.SectionID === null || req.body.AssignmentInstanceID === null) {
+            console.log('/VolunteerPool/add : Missing attributes');
+            res.status(400).end();
+        }
+
+        console.log('got to create part');
+          //console.log("UserID: " + req.params.UserID);
+        VolunteerPool.create({
+            UserID: req.body.UserID,
+            SectionID: req.body.SectionID,
+            AssignmentInstanceID: req.body.AssignmentInstanceID,
+            status: req.body.status
+        }).then(function(result){
+            res.status(200).end();
+        }).catch(function(err) {
+            console.log(err);
+            res.status(400).end();
+        });
+  //             });
+         // });
+    });
+
+      //-----------------------------------End Volunteer Pool API's--------------------------------------------------------------
 
     //Endpoint for Assignment Manager
     router.post('/getAssignmentGrades/:ai_id', function(req, res) {
@@ -4109,6 +4313,27 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 res.status(404).end();
             });
         });
+    });
+
+
+    //Endpoint to get file references for taskInstanceId
+    router.get('/taskFileReferences/:taskInstanceId', function(req,res) {
+        return TaskInstance.findOne({
+            where: {
+                TaskInstanceID: req.params.taskInstanceId
+            }
+        })
+      .then((ti) => {
+          let files = JSON.parse(ti.FileUpload);
+          return res.status(200).json({
+              Files: files
+          });
+      })
+      .catch(err => {
+          return res.status(401).json({
+              Files: []
+          });
+      });
     });
 
     //Endpoint for all current task data and previous task data and put it in an array
