@@ -3495,7 +3495,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 model: AssignmentInstance,
                 include: [{
                     model: Section,
-                    attributes:['Name'],
+                    attributes:['Name', 'SectionID'],
                     include: [{
                         model: Course,
                         attributes: ['Name', 'Number']
@@ -3523,7 +3523,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
                 'assignment': taskInstanceResult.TaskActivity.Assignment,
                 'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
-                'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name
+                'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name,
+                'sectionName': taskInstanceResult.AssignmentInstance.Section.Name,
+                'sectionID': taskInstanceResult.AssignmentInstance.Section.Name
             });
             // TaskActivity.find({
             //     where: {
@@ -4242,6 +4244,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         var taskCollection = {};
         var isDone = false;
         var DisplayName;
+        var workflowNames = {};
 
         Assignment.find({
             where: {
@@ -4295,6 +4298,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 //WorkflowActivityID -- key
                 result.forEach(function(workflow) {
                     taskCollection[workflow.WorkflowActivityID] = [];
+                    workflowNames[workflow.WorkflowActivityID] = workflow.Name;
                 });
             }
 
@@ -4344,6 +4348,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             if (isDone === true) {
                 res.json({
                     'assignment': DisplayName,
+                    'workflowNames': workflowNames,
                     'sectionIDs': sectionIDs,
                     'taskActivityCollection': taskCollection //returns workflow id follows by task act
                 });
