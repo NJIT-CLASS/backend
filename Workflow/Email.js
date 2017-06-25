@@ -108,7 +108,7 @@ class Email {
       Send an email now given userid and type of email needs to be sent.
     */
     sendNow(userid, type, temp_pass = null) {
-        //return; //for testing purposes
+        //return; //for testting purposes
         var x = this;
         console.log(models.UserLogin);
         models.UserLogin.find({
@@ -180,17 +180,6 @@ class Email {
                     subject: 'Your assignment is overdue - PLA',
                     text: 'You have an assignment that is due. Please check PLA',
                     html: ''
-                });
-                break;
-            case 'reset password':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Your password has been reset - PLA',
-                    text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
-                    html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
-
                 });
                 break;
             default:

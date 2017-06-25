@@ -42,13 +42,13 @@ REST.prototype.stop = function(err) {
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 var schedule = require('node-schedule');
-var Email = require('./Workflow/Email.js');
+var Email = require('./WorkFlow/Email.js');
 var Sequelize = require("sequelize");
 var dateFormat = require('dateformat');
 var Guid = require('guid');
 var models = require('./Model');
-var Manager = require('./Workflow/Manager.js');
-var Allocator = require('./Workflow/Allocator.js');
+var Manager = require('./WorkFlow/Manager.js');
+var Allocator = require('./WorkFlow/Allocator.js');
 var sequelize = require("./Model/index.js").sequelize;
 
 var User = models.User;

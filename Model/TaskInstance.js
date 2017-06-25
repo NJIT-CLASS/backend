@@ -1,11 +1,11 @@
 var moment = require('moment');
 var models = require('../Model');
-var Email = require('../Workflow/Email.js');
+var Email = require('../WorkFlow/Email.js');
 var Promise = require('bluebird');
 var _ = require('underscore');
 var Util = require('../Workflow/Util.js');
 var Grade = require('../Workflow/Grade.js');
-//var Allocator = require('../Workflow/Allocator.js');
+//var Allocator = require('../WorkFlow/Allocator.js');
 const logger = require('winston');
 //var util = new Util();
 
@@ -160,7 +160,7 @@ module.exports = function(sequelize, DataTypes) {
                 return this.EndDate;
             },
 
-            triggerNext: function() {
+            triggerNext: async function() {
                 let x = this;
                 let email = new Email();
 
@@ -173,7 +173,7 @@ module.exports = function(sequelize, DataTypes) {
                 }
 
 
-                return Promise.mapSeries(JSON.parse(x.NextTask), function(taskArray, index) {
+                return Promise.mapSeries(JSON.parse(x.NextTask), function(task, index) {
                     return Promise.mapSeries(taskArray, function(task) {
                         models.TaskInstance.find({
                             where: {
@@ -390,6 +390,17 @@ module.exports = function(sequelize, DataTypes) {
                 }).then(function(ta) {
                     callback(ta.Type);
                 });
+            },
+
+            getType: async function(){
+                var x = this;
+                var ta = await models.TaskActivity.find({
+                    where: {
+                        TaskActivityID: x.TaskActivityID
+                    }
+                });
+
+                return ta.Type;
             },
 
             //findNewDates computes the startDate passed in and find newStartDate and newEndDate
@@ -757,7 +768,7 @@ module.exports = function(sequelize, DataTypes) {
                 //TODO: To check a workflow instance has completed find the task collection from workflow instance and search them all
                 //TODO: To check if a assignement instance has completed find the workflow collection from assignment instance and search through them.
 
-                //await grade.checkWorkflowDone(x.WorkflowInstanceID);
+                await grade.checkWorkflowDone(x.WorkflowInstanceID);
 
                 return Promise.all([x.triverseWorkflow()]).then(function(result) {
                     console.log(result);

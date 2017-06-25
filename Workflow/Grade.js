@@ -48,8 +48,6 @@ class Grade {
         var wa_id = await util.findWorkflowActivityID(ti.WorkflowInstanceID);
         var sec_user_id = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
-        console.log('1',wa_id, sec_user_id, ti.TaskInstanceID);
-
         if(ta.SimpleGrade !== 'none'){
             try{
                 await TaskSimpleGrade.create({
@@ -68,36 +66,32 @@ class Grade {
     }
 
     async getTaskCollection(wi_id){
-        //try{
+        try{
 
-        var x = this;
-        var task_collection = [];
-        console.log('wi_id', wi_id);
-        var wi = await WorkflowInstance.find({
-            where:{
-                WorkflowInstanceID: wi_id
-            }
-        });
-
-        console.log(JSON.parse(wi.TaskCollection));
-
-        await Promise.mapSeries(JSON.parse(wi.TaskCollection), async function(tasks){
-            await Promise.mapSeries(tasks, async function(task){
-                await task_collection.push(task);
+            var x = this;
+            var task_collection = [];
+            var wi = await WorkflowInstance.find({
+                where:{
+                    WorkflowInstanceID: wi_id
+                }
             });
-        });
 
-        return task_collection;
+            await Promise.mapSeries(JSON.parse(wi.TaskCollection), async function(tasks){
+                await Promise.mapSeries(tasks, async function(task){
+                    await task_collection.push(task);
+                });
+            });
 
-        // }catch(err){
-        //     logger.log('error', 'cannot find task collection');
-        // }
+            return task_collection;
+
+        }catch(err){
+            logger.log('error', 'cannot find task collection');
+        }
     }
 
     async getWorkflowCollection(ai_id){
         try{
             var x = this;
-            console.log('ai_id', ai_id);
             var ai = await AssignmentInstance.find({
                 where:{
                     AssignmentInstanceID: ai_id
@@ -116,8 +110,6 @@ class Grade {
         var x = this;
         var wf_collection = await x.getWorkflowCollection(ai_id);
         var workflows_not_done = [];
-
-        console.log('wf_collection', wf_collection);
 
         await Promise.map(JSON.parse(wf_collection), async function(wi_id){
             if(!(await x.checkWorkflowDone(wi_id))){
@@ -143,9 +135,7 @@ class Grade {
         var task_collection = await x.getTaskCollection(wi_id);
         var tasks_not_done = [];
 
-        console.log('task_collection', task_collection);
-
-        await Promise.map(JSON.parse(task_collection), async function(ti_id){
+        await Promise.map(task_collection, async function(ti_id){
             if(!(await x.checkTaskDone(ti_id))){
                 tasks_not_done.push(ti_id);
             }
@@ -161,6 +151,32 @@ class Grade {
             return false;
         }
     }
+
+    async checkTaskDone(ti_id){
+
+        try{
+            var x = this;
+
+            var ti = await TaskInstance.find({
+                where:{
+                    TaskInstanceID: ti_id
+                }
+            });
+
+            if(JSON.parse(ti.Status)[0] === 'complete' || JSON.parse(ti.Status)[0] === 'automatic'){
+                return true;
+            } else {
+                return false;
+            }
+
+        }catch(err){
+            logger.log('error', 'cannot check whether the tasks are done', {
+                TaskInstanceID: ti_id,
+                error: err
+            });
+        }
+    }
+
 
 
 }

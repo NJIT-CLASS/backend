@@ -3,6 +3,7 @@ var TaskFactory = require('./TaskFactory.js');
 var Promise = require('bluebird');
 var Allocator = require('./Allocator.js');
 var Email = require('./Email.js');
+var Make = require('./Make.js');
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -25,6 +26,7 @@ var EmailNotification = models.EmailNotification;
 var taskFactory = new TaskFactory();
 var alloc = new Allocator();
 var email = new Email();
+var make = new Make();
 
 /**
  *
@@ -163,7 +165,7 @@ class Manager {
                 console.log('checkAssignment: ', assignmentInstance.AssignmentInstanceID, result);
                 if (!result)
                     //return taskFactory.createInstances(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
-                    return taskFactory.allocateUsers(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
+                    return make.allocateUsers(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
             });
         }
     }

@@ -21,10 +21,10 @@ var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_P
 
 var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification', 'Group',
     'GroupUser', 'Organization', 'ResetPasswordRequest', 'Section',
-    'SectionUser', 'Semester', 'TaskActivity','User',
+    'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference','TaskInstance'
+    'FileReference'
 ];
 
 
@@ -264,12 +264,6 @@ models.forEach(function(model) {
 
 
 })(module.exports);
-
-
-// const transaction = (task) => {
-//     return cls.getNamespace(NAMESPACE).get('transaction') ? task() : sequelize.transaction(task);
-// };
-
 
 
 module.exports.sequelize = sequelize;

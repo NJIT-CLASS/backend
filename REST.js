@@ -49,13 +49,15 @@ var TaskInstance_Archive = models.TaskInstance_Archive;
 var WorkflowInstance_Archive = models.WorkflowInstance_Archive;
 var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
 
-var Manager = require('./Workflow/Manager.js');
-var Allocator = require('./Workflow/Allocator.js');
-var TaskFactory = require('./Workflow/TaskFactory.js');
+var Manager = require('./WorkFlow/Manager.js');
+var Allocator = require('./WorkFlow/Allocator.js');
+var TaskFactory = require('./WorkFlow/TaskFactory.js');
+var TaskTrigger = require('./WorkFlow/TaskTrigger.js');
 
-var Email = require('./Workflow/Email.js');
-var Util = require('./Workflow/Util.js');
-var Grade = require('./Workflow/Grade.js');
+var Email = require('./WorkFlow/Email.js');
+var Make = require('./WorkFlow/Make.js');
+var Util = require('./WorkFlow/Util.js');
+var Grade = require('./WorkFlow/Grade.js');
 var FlatToNested = require('flat-to-nested');
 var fs = require('fs');
 
@@ -64,7 +66,6 @@ const multer = require('multer'); //TODO: we may need to limit the file upload s
 var storage = multer({
     dest: './files/'
 });
-
 const logger = require('winston');
 
 logger.configure({
@@ -966,29 +967,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         //     }
         // });
 
+        if (req.body.partialAssignmentId !== null) {
+            PartialAssignments.find({
+                where: {
+                    PartialAssignmentID: req.body.partialAssignmentId,
+                    UserID: req.body.userId,
+                    CourseID: req.body.courseId
+                }
+            }).then((result) => {
+                result.destroy();
+            }).catch((err) => {
+                console.error(err);
+            });
+        }
 
         var taskFactory = new TaskFactory();
         console.log('assignment: ', req.body.assignment);
         taskFactory.createAssignment(req.body.assignment).then(function(done) {
             if (done) {
-                console.log({
-                    PartialAssignmentID: req.body.partialAssignmentId,
-                    UserID: req.body.userId,
-                    CourseID: req.body.assignment.AA_course
-                });
-                if (req.body.partialAssignmentId !== null) {
-                    PartialAssignments.destroy({
-                        where: {
-                            PartialAssignmentID: req.body.partialAssignmentId,
-                            UserID: req.body.userId,
-                            CourseID: req.body.assignment.AA_course
-                        }
-                    }).then((result) => {
-                        console.log(result);
-                    }).catch((err) => {
-                        console.error(err);
-                    });
-                }
                 res.status(200).end();
             } else {
                 res.status(400).end();
@@ -1023,6 +1019,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     PartialAssignmentID: req.body.partialAssignmentId
                 }
             }).then((result) => {
+                console.log(result);
+                console.log('PartialAssignmentID:', result.PartialAssignmentID);
                 res.json({
                     'Error': false,
                     'PartialAssignmentID': req.body.partialAssignmentId
@@ -1074,6 +1072,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 CourseID: req.query.courseId
             }
         }).then(result => {
+            console.log(result);
             res.json({
                 'Error': false,
                 'PartialAssignment': result
@@ -1848,7 +1847,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 if (user != null && await password.verify(user.Password, req.body.password)) {
                     // unset past timeout with correct password, login
                     // set attempts back to zero
-                    if (user.Timeout !== null || user.Attempts !== 0) {
+                    if (user.Timeout != null) {
                         sequelize.options.omitNull = false;
                         UserLogin.update({
                             Attempts: 0,
@@ -2041,39 +2040,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     });
 
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to check if user is pending to change password
-    router.get('/user/pendingStatus/:userID', (req, res) => {
-        UserLogin.findOne({
-            where: {
-                UserID: req.params.userID
-            },
-            attributes: ['Pending']
-        })
-        .then(user => {
-            if(user.Pending === true || user.Pending === 1){
-                return res.status(200).json({
-                    Error: false,
-                    Status: true
-                });
-            } else {
-                return res.status(401).json({
-                    Error: false,
-                    Status: false
-                });
-            }
-        })
-        .catch(err => {
-            logger.log('error', '/user/pendingStatus', 'check if user is pending', {
-                params: req.params,
-                error: err
-            });
-            return res.status(500).json({
-                Error: true
-            });
-        });
-    });
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to create a semester
@@ -2404,6 +2370,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         res.status(500).end();
                                     });
                             }).then(async function(userCon) {
+                                console.log('trustpass',req.body.trustpassword);
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
@@ -2417,7 +2384,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                         });
                                 }).then(function(userLogin) {
                                     let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', req.body.trustpassword ?'[user defined]' : req.body.password);
+                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -2629,11 +2596,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             Section.findAll({
                 where: {
                     CourseID: req.params.courseId
-                },
-                include: [{
-                    model: Semester,
-                    attributes: ['SemesterID', 'Name']
-                }]
+                }
             }).then(function(sections) {
                 res.json({
                     'Error': false,
@@ -2668,11 +2631,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 attributes: ['UserID', 'Role', 'Active'],
                 include: {
                     model: User,
-                    attributes: ['FirstName', 'LastName'],
-                    include: [{
-                        model: UserContact,
-                        attributes:['FirstName', 'LastName', 'Email']
-                    }]
+                    attributes: ['FirstName', 'LastName']
                 }
             }).then(function(users) {
                 res.json({
@@ -2687,29 +2646,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //-----------------------------------------------------------------------------------------------------
-    //Endpoint to get sections for specific semester and course
+    router.get('/getCourseSections/:courseID', function(req, res) {
 
-    router.get('/getCourseSections/allowed/:courseID', (req, res) => {
-        sequelize.query(`SELECT DISTINCT SectionID, Name FROM Section WHERE
-        CourseID=${req.params.courseID}
-        AND SemesterID=${req.query.semesterID}
-        AND SectionID IN ( SELECT DISTINCT SectionID FROM SectionUser WHERE UserID=${req.query.userID});`,{ type: sequelize.QueryTypes.SELECT,model: Section})
-        .then(function(sections) {
-            return res.json({
-                'Sections': sections
-            });
-        })
-        .catch((err) => {
-            logger.log('error', '/getCourseSections/:courseID', {
-                params: req.params,
-                query: req.query,
-                error: err
-            });
-            return res.status(401).end();
-        });
-
-    });
-    router.get('/getCourseSections/:courseID', async function(req, res) {
         Section.findAll({
             where: {
                 CourseID: req.params.courseID,
@@ -2720,13 +2658,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             ],
             attributes: ['SectionID', 'Name']
         }).then(function(sections) {
-
             res.json({
                 'Sections': sections
             });
         });
     });
-    //----------------------------------------------------------------------------------
+
+    //-----------------------------------------------------------------------------------------------------
+
     //Endpoint to update a course
     router.put('/course/update', function(req, res) {
 
@@ -2863,7 +2802,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         await sections.forEach(function(section) {
             //console.log(section.Section);
-            if (section.Section !== null && !addedCourseIDs.includes(section.Section.Course.CourseID)) {
+            if (section.Section !== null) {
                 courses.push({
                     'CourseID': section.Section.Course.CourseID,
                     'Number': section.Section.Course.Number,
@@ -3022,72 +2961,42 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     router.post('/password/reset', function(req, res) {
-        if(req.body.email === null || req.body.email === ''){
-            return res.status(401).end();
+        if (req.body.HashRequest == null) {
+            console.log('/resetPassword : HashRequest not sent');
+            req.status(401).end();
         }
-        return UserLogin.findOne({
+        if (req.body.newPassword == null) {
+            console.log('/resetPassword : newPassword not sent');
+            req.status(401).end();
+        }
+        User.find({
             where: {
-                Email: req.body.email
+                UserID: userlogin.UserID
             }
-        })
-        .then(async (user) => {
-            console.log('found user', user);
-            if(user == null){
-                return res.status(401).end();
-            }
-            let temp_pass = await password.generate();
-            user.Password = await password.hash(temp_pass);
-            user.Pending = true;
-            user.Attempts = 0;
-            user.save().then((result) => {
-                let email = new Email();
-                email.sendNow(result.UserID, 'reset password', temp_pass);
-                res.status(200).end();
-
+        }).then(function(user) {
+            ResetPasswordRequest.find({
+                where: {
+                    RequestHash: req.body.HashRequest
+                }
+            }).then(async function(request) {
+                if (request == null) {
+                    console.log('/resetPassword : HashRequest does not exist');
+                    res.status(401).end();
+                } else {
+                    UserLogin.update({
+                        Password: await password.hash(req.body.newPassword)
+                    }, {
+                        where: {
+                            UserID: request.UserID
+                        }
+                    }).then(function() {
+                        request.destroy();
+                        console.log('/resetPassword : Password updated');
+                        res.status(200).end();
+                    });
+                }
             });
-        })
-        .catch((err) => {
-            console.log(err);
-            res.status(500).end();
         });
-
-
-        // if (req.body.HashRequest == null) {
-        //     console.log('/resetPassword : HashRequest not sent');
-        //     req.status(401).end();
-        // }
-        // if (req.body.newPassword == null) {
-        //     console.log('/resetPassword : newPassword not sent');
-        //     req.status(401).end();
-        // }
-        // User.find({
-        //     where: {
-        //         UserID: userlogin.UserID
-        //     }
-        // }).then(function(user) {
-        //     ResetPasswordRequest.find({
-        //         where: {
-        //             RequestHash: req.body.HashRequest
-        //         }
-        //     }).then(async function(request) {
-        //         if (request == null) {
-        //             console.log('/resetPassword : HashRequest does not exist');
-        //             res.status(401).end();
-        //         } else {
-        //             UserLogin.update({
-        //                 Password: await password.hash(req.body.newPassword)
-        //             }, {
-        //                 where: {
-        //                     UserID: request.UserID
-        //                 }
-        //             }).then(function() {
-        //                 request.destroy();
-        //                 console.log('/resetPassword : Password updated');
-        //                 res.status(200).end();
-        //             });
-        //         }
-        //     });
-        // });
     });
 
     //-----------------------------------------------------------------------------------------------------
@@ -3119,7 +3028,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 attributes: ['Name'],
                 include: [{
                     model: Course,
-                    attributes: ['Number', 'Name']
+                    attributes: ['Number', 'Name', 'Abbreviations']
                 }]
             }]
         }).then(function(Courses) {
@@ -3144,7 +3053,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 attributes: ['Name'],
                 include: [{
                     model: Course,
-                    attributes: ['Number', 'Name']
+                    attributes: ['Number', 'Name', 'Abbreviations']
                 }]
             }]
         }).then(function(Courses) {
@@ -3155,49 +3064,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
         });
     });
-    //------------------------------------------------------------
-    //------------------------------------------------------------
 
-    //Get the active sections for a student in a particular course
-    router.get('/getActiveEnrolledSections/:courseID', function(req, res) {
-        SectionUser.findAll({
-            where: {
-                UserID: req.query.studentID,
-                Active: true
-            },
-            attributes: ['Role'],
-            include: [{
-                model: Section,
-                attributes: ['SectionID','Name'],
-                include: [{
-                    model: Course,
-                    attributes: ['CourseID','Number', 'Name']
-                },{
-                    model: Semester,
-                    attributes: ['SemesterID', 'Name']
-                }]
-            }]
-        }).then(function(sections) {
-            let returnSections = sections.filter((section) => {
-                return section.Section.Course.CourseID == req.params.courseID;
-            }).map(section => section.Section);
-            Course.find({
-                where: {
-                    CourseID: req.params.courseID
-                },
-                attributes: ['CourseID', 'Number', 'Name']
-            }).then(function(result) {
-                console.log(`/getActiveEnrolledSections/ Courses for ${req.query.studentID} found `);
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Sections': returnSections,
-                    'Course': result
-                });
-            });
-
-        });
-    });
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to Get Courses Created by an Instructor
@@ -3483,94 +3350,54 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         TaskInstance.find({
             where: {
                 TaskInstanceID: req.params.taskInstanceID
-            },
-            include:[{
-                model: TaskActivity,
-                include: [{
-                    model: Assignment,
-                    attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-                }],
-                attributes: ['Type']
-            },{
-                model: AssignmentInstance,
-                include: [{
-                    model: Section,
-                    attributes:['Name'],
-                    include: [{
-                        model: Course,
-                        attributes: ['Name', 'Number']
-                    },
-                    {
-                        model: Semester,
-                        attributes: ['SemesterID', 'Name']
-                    }]
-                }]
             }
-            ]
-        })
-        .catch(function(err) {
-            //Catch error and print into console.
-            logger.log('error','/taskInstanceTemplate/main/',{error: err});
-            res.status(400).end();
-        })
-        .then(function(taskInstanceResult) {
-            return res.json({
-                'Error': false,
-                'Message': 'Success',
-                'taskActivityID': taskInstanceResult.TaskActivityID,
-                'taskActivityType': taskInstanceResult.TaskActivity.Type,
-                'courseName': taskInstanceResult.AssignmentInstance.Section.Course.Name,
-                'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
-                'assignment': taskInstanceResult.TaskActivity.Assignment,
-                'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
-                'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name
+        }).then(function(taskInstanceResult) {
+            TaskActivity.find({
+                where: {
+                    TaskActivityID: taskInstanceResult.TaskActivityID
+                }
+            }).then(function(taskActivityResult) {
+                Course.find({
+                    where: {
+                        CourseID: req.query.courseID
+                    }
+                }).then(function(courseResult) {
+                    Assignment.find({
+                        where: {
+                            AssignmentID: taskActivityResult.AssignmentID
+                        },
+                        attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
+                    }).then(function(assignmentResult) {
+                        Section.find({
+                            where: {
+                                SectionID: req.query.sectionID
+                            }
+                        }).then(function(sectionResult) {
+                            Semester.find({
+                                where: {
+                                    SemesterID: sectionResult.SemesterID
+                                }
+                            }).then(function(semesterResult) {
+                                res.json({
+                                    'Error': false,
+                                    'Message': 'Success',
+                                    'taskActivityID': taskInstanceResult.TaskActivityID,
+                                    'taskActivityType': taskActivityResult.Type,
+                                    'courseName': courseResult.Name,
+                                    'courseNumber': courseResult.Number,
+                                    'assignment': assignmentResult,
+                                    'semesterID': sectionResult.SemesterID,
+                                    'semesterName': semesterResult.Name
+                                });
+                            }).catch(function(err) {
+                                //Catch error and print into console.
+                                console.log('/taskInstanceTemplate/main/ ' + err);
+                                res.status(400).end();
+                            });
+                        });
+                    });
+                });
             });
-            // TaskActivity.find({
-            //     where: {
-            //         TaskActivityID: taskInstanceResult.TaskActivityID
-            //     }
-            // }).then(function(taskActivityResult) {
-            //     Course.find({
-            //         where: {
-            //             CourseID: req.query.courseID
-            //         }
-            //     }).then(function(courseResult) {
-            //         Assignment.find({
-            //             where: {
-            //                 AssignmentID: taskActivityResult.AssignmentID
-            //             },
-            //             attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-            //         }).then(function(assignmentResult) {
-            //             Section.find({
-            //                 where: {
-            //                     SectionID: req.query.sectionID
-            //                 }
-            //             }).then(function(sectionResult) {
-            //                 Semester.find({
-            //                     where: {
-            //                         SemesterID: sectionResult.SemesterID
-            //                     }
-            //                 }).then(function(semesterResult) {
-            //                     res.json({
-            //                         'Error': false,
-            //                         'Message': 'Success',
-            //                         'taskActivityID': taskInstanceResult.TaskActivityID,
-            //                         'taskActivityType': taskActivityResult.Type,
-            //                         'courseName': courseResult.Name,
-            //                         'courseNumber': courseResult.Number,
-            //                         'assignment': assignmentResult,
-            //                         'semesterID': sectionResult.SemesterID,
-            //                         'semesterName': semesterResult.Name
-            //                     });
-            //                 }).catch(function(err) {
-            //                     //Catch error and print into console.
-            //                     console.log('/taskInstanceTemplate/main/ ' + err);
-            //                     res.status(400).end();
-            //                 });
-            //             });
-            //         });
-            //     });
-            // });
         });
     });
 
@@ -3578,6 +3405,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.post('/taskInstanceTemplate/create/submit', async function(req, res) {
 
         var grade = new Grade();
+        var trigger = new TaskTrigger();
+
         logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
             req_body: req.body
         });
@@ -3616,6 +3445,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             logger.log('error', 'UserID Not Matched');
             return res.status(400).end();
         }
+
         var ti_data = await JSON.parse(ti.Data);
 
         if (!ti_data) {
@@ -3631,10 +3461,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         var newStatus = JSON.parse(ti.Status);
         newStatus[0] = 'complete';
 
+        var final_grade = await trigger.finalGrade(ti,req.body.taskInstanceData);
+
         var done = await TaskInstance.update({
             Data: ti_data,
             ActualEndDate: new Date(),
             Status: JSON.stringify(newStatus),
+            FinalGrade: final_grade
         }, {
             where: {
                 TaskInstanceID: req.body.taskInstanceid,
@@ -3656,13 +3489,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         logger.log('info', 'task instance updated');
         logger.log('info', 'triggering next task');
-        //Trigger next task to start
-        // if(JSON.parse(ti.TaskActivity.AllowReflection) !== 'none'){
-        //     //await new_ti.triggerEdit();
-        // } else {
-        await new_ti.triggerNext();
-      //  }
-        await grade.addSimpleGrade(new_ti.TaskInstanceID);
+        
+        await trigger.next(req.body.taskInstanceid);
+
+        //await grade.addSimpleGrade(new_ti.TaskInstanceID);
 
         if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
             var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id;
@@ -3910,7 +3740,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ['DisplayName','Name', 'Type', 'VisualID'],
+                    attributes: ['Name', 'Type', 'VisualID'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -3945,7 +3775,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     $like: '%"complete"%'
                 }
             },
-            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate','ActualEndDate', 'Status'],
+            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status'],
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
@@ -3964,7 +3794,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     }]
                 }, {
                     model: TaskActivity,
-                    attributes: ['DisplayName','Name', 'Type', 'VisualID'],
+                    attributes: ['Name', 'Type', 'VisualID'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -4119,20 +3949,20 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
         var allocator = new TaskFactory();
 
-        allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function(done) {
+        await allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(async function(done) {
 
             //console.log('done!', done);
             var ar = new Array();
             if (done == null) {
 
-                return TaskInstance.find({
+                await TaskInstance.find({
                     where: {
                         TaskInstanceID: req.params.taskInstanceId
                     },
                     attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
                     include: [{
                         model: TaskActivity,
-                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName']
+                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload']
                     }]
                 })
                     .then((result) => {
@@ -4143,39 +3973,39 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             'superTask': ar
                         });
                     });
-            }
+            } else {
 
 
-            Promise.mapSeries(done, function(task) {
-                return TaskInstance.find({
-                    where: {
-                        TaskInstanceID: task
-                    },
-                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity', 'DisplayName']
+                await Promise.mapSeries(done, async function(task) {
+                    await TaskInstance.find({
+                        where: {
+                            TaskInstanceID: task
+                        },
+                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                        include: [{
+                            model: TaskActivity,
+                            attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
 
-                    }]
-                }).then((result) => {
+                        }]
+                    }).then((result) => {
                     //console.log(result);
                     // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
-                    ar.push(result);
+                        ar.push(result);
 
                     //return allocator.applyViewContstraints(res, req.query.userID, result)
-                });
-            }).then(function() {
-                return TaskInstance.find({
-                    where: {
-                        TaskInstanceID: req.params.taskInstanceId
-                    },
-                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity', 'DisplayName']
+                    });
+                }).then(async function() {
+                    await TaskInstance.find({
+                        where: {
+                            TaskInstanceID: req.params.taskInstanceId
+                        },
+                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                        include: [{
+                            model: TaskActivity,
+                            attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
 
-                    }]
-                })
+                        }]
+                    })
                     .then((result) => {
                         //console.log(result);
 
@@ -4201,7 +4031,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         //     });
                         // })
                     });
-            });
+                });
+            }
 
         }).catch(function(err) {
             console.log(err);
@@ -4209,16 +4040,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
 
 
-        TaskInstance.find({
+        await TaskInstance.find({
             where:{
                 TaskInstanceID: req.params.taskInstanceId
             }
-        }).then(function(ti){
+        }).then(async function(ti){
             var newStatus = JSON.parse(ti.Status);
             if(newStatus[4] === 'not_opened'){
                 newStatus[4] = 'viewed';
                 logger.log('info', 'task opened for the first time, updating status...');
-                TaskInstance.update({
+                await TaskInstance.update({
                     Status: JSON.stringify(newStatus)
                 }, {
                     where: {
@@ -4322,9 +4153,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         //Push the resulting name and TaskActivityID on to javascript object
                         taskCollection[workflow.WorkflowActivityID].push({
                             'taskActivityID': taskActivity.TaskActivityID,
-                            'name': taskActivity.DisplayName,
+                            'name': taskActivity.Name,
                             'type': taskActivity.Type,
-                            'defaults': taskActivity.DueType,
+                            'defaults': taskActivity.DueType
                         });
                         taskCollection[workflow.WorkflowActivityID].sort(function(a, b) {
                             var x = a.taskActivityID < b.taskActivityID ? -1 : 1;
@@ -4610,7 +4441,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.get('/getSubWorkflow/:taskInstanceID', function(req, res) {
+    router.get('/getSubWorkFlow/:taskInstanceID', function(req, res) {
         var taskFactory = new TaskFactory();
         taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function(subworkflow) {
             res.json({
@@ -4756,9 +4587,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(400).end();
         });
     });
-
-    //--------------------------------------------------------------------
-
 
     // endpoint to delete secction
     router.get('/section/delete/:sectionid', function(req, res) {
@@ -4930,142 +4758,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
         });
     });
-    //---------------------------------------------------------------------------
-    //End point to add mutliple users to a section and invite any new ones
-    router.post('/sectionUsers/addMany/:sectionid', function(req, res) {
-      //expects - users
-        return sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-            .then(function(){
-                Promise.mapSeries(req.body.users, (userDetails) => {
-                    return UserLogin.find({
-                        where: {
-                            Email: userDetails.email
-                        },
-                        attributes: ['UserID']
-                    }).then(function(response) {
-                        if (response == null || response.UserID == null) {
-                            return sequelize.transaction(function(t) {
-                                return User.create({
-                                    FirstName: userDetails.firstName,
-                                    LastName: userDetails.lastName,
-                                    Instructor: userDetails.role === 'Instructor'
-                                }, {
-                                    transaction: t
-                                }).then(async function(user) {
-                                    let temp_pass = await password.generate();
-                                    return UserContact.create({
-                                        UserID: user.UserID,
-                                        FirstName: userDetails.firstName,
-                                        LastName: userDetails.lastName,
-                                        Email: userDetails.email,
-                                        Phone: '(XXX) XXX-XXXX'
-                                    }, {
-                                        transaction: t
-                                    })  .then(async function(userCon) {
-                                        return UserLogin.create({
-                                            UserID: user.UserID,
-                                            Email: userDetails.email,
-                                            Password: await password.hash(temp_pass)
-                                        }, {
-                                            transaction: t
-                                        }).then(function(userLogin) {
-                                            let email = new Email();
-                                            email.sendNow(user.UserID, 'invite user', temp_pass);
-                                            return SectionUser.create({
-                                                SectionID: req.params.sectionid,
-                                                UserID: userLogin.UserID,
-                                                Active: userDetails.active,
-                                                Volunteer: userDetails.volunteer,
-                                                Role: userDetails.role
-                                            }, {
-                                                transaction: t
-                                            }).then(function(sectionUser) {
-                                                console.log('Creating user, inviting, and adding to section');
-                                                logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                    req_body: userDetails
-                                                });
 
-                                                return sectionUser;
-
-                                            });
-                                        });
-                                    });
-                                });
-                            })
-                            .catch((err) => {
-                                console.log(err);
-                                logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
-                                    body: userDetails,
-                                    err: err
-
-                                });
-                            });
-
-                        } else {
-                            return SectionUser.find({
-                                where: {
-                                    SectionID: req.params.sectionid,
-                                    UserID: response.UserID
-                                },
-                                attributes: ['UserID']
-                            }).then(function(sectionUser) {
-                                if (sectionUser == null || sectionUser.UserID == null) {
-                                    return SectionUser.create({
-                                        SectionID: req.params.sectionid,
-                                        UserID: response.UserID,
-                                        Active: userDetails.active,
-                                        Volunteer: userDetails.volunteer,
-                                        Role: userDetails.role
-
-                                    }).then(function(result) {
-                                        console.log('User exists, adding to section');
-                                        logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
-                                            body: req.body
-                                        });
-                                        return result;
-                                    });
-                                } else {
-                                    console.log('User already in section');
-                                    logger.log('info', '/sectionUsers/addMany', 'user already in system', {
-                                        result: sectionUser
-                                    });
-                                    return sectionUser;
-                                }
-                            });
-                        }
-                    });
-                })
-              .then((results)=> {
-                  return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                .then(() => {
-                    return res.status(200).end();
-                });
-              }).catch(function(err) {
-                  console.error(err);
-                  logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                      req_body: req.body,
-                      error: err
-                  });
-                  return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                    .then(() => {
-                        res.status(500).end();
-                    });
-              });
-            });
-    });
-    //---------------------------------------------------------------------------
-    // endpoint to add indivudal sectionusers, invite users not yet in system
+    // endpoint to add sectionusers, invite users not yet in system
     router.post('/sectionUsers/:sectionid', function(req, res) {
 
-           //expects -email
-           //        -firstName
-           //        -lastName
-           //        -email
-           //        -sectionid
-           //        -email
-           //        -active
-           //        -body
-           //        -role
+        //expects -email
+        //        -firstName
+        //        -lastName
+        //        -email
+        //        -sectionid
+        //        -email
+        //        -active
+        //        -body
+        //        -role
 
         UserLogin.find({
             where: {
@@ -5074,95 +4779,107 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['UserID']
         }).then(function(response) {
             if (response == null || response.UserID == null) {
-                return sequelize.transaction(function(t) {
-                    return sequelize.query('SET FOREIGN_KEY_CHECKS = 0', {transaction: t})
-                         .then(function() {
-                             return User.create({
-                                 FirstName: req.body.firstName,
-                                 LastName: req.body.lastName,
-                                 Instructor: req.body.role === 'Instructor'
-                             }, {
-                                 transaction: t
-                             }).catch(function(err) {
-                                 console.error(err);
-                                 logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                     req_body: req.body,
-                                     error: err
-                                 });
-                                 res.status(500).end();
-                             }).then(async function(user) {
-                                 let temp_pass = await password.generate();
-                                 return UserContact.create({
-                                     UserID: user.UserID,
-                                     FirstName: req.body.firstName,
-                                     LastName: req.body.lastName,
-                                     Email: req.body.email,
-                                     Phone: '(XXX) XXX-XXXX'
-                                 }, {
-                                     transaction: t
-                                 }).catch(function(err) {
-                                     console.error(err);
-                                     logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                         req_body: req.body,
-                                         error: err
-                                     });
-                                     res.status(500).end();
-                                 })
-                                           .then(async function(userCon) {
-                                               return UserLogin.create({
-                                                   UserID: user.UserID,
-                                                   Email: req.body.email,
-                                                   Password: await password.hash(temp_pass)
-                                               }, {
-                                                   transaction: t
-                                               }).catch(function(err) {
-                                                   console.error(err);
-                                                   logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                       req_body: req.body,
-                                                       error: err
-                                                   });
-                                                   res.status(500).end();
-                                               }).then(function(userLogin) {
-                                                   let email = new Email();
-                                                   email.sendNow(user.UserID, 'invite user', temp_pass);
-                                                   return SectionUser.create({
-                                                       SectionID: req.params.sectionid,
-                                                       UserID: userLogin.UserID,
-                                                       Active: req.body.active,
-                                                       Volunteer: req.body.volunteer,
-                                                       Role: req.body.role
-                                                   }, {
-                                                       transaction: t
-                                                   }).catch(function(err) {
-                                                       console.error(err);
-                                                       logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                           req_body: req.body,
-                                                           error: err
-                                                       });
+                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                    .then(function() {
+                        return sequelize.transaction(function(t) {
+                            return User.create({
+                                FirstName: req.body.firstName,
+                                LastName: req.body.lastName,
+                                Instructor: req.body.role === 'Instructor'
+                            }, {
+                                transaction: t
+                            })
+                                .catch(function(err) {
+                                    console.error(err);
+                                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                        req_body: req.body,
+                                        error: err
+                                    });
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.status(500).end();
+                                        });
+                                })
+                                .then(async function(user) {
+                                    let temp_pass = await password.generate();
+                                    return UserContact.create({
+                                        UserID: user.UserID,
+                                        FirstName: req.body.firstName,
+                                        LastName: req.body.lastName,
+                                        Email: req.body.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
+                                        transaction: t
+                                    }).catch(function(err) {
+                                        console.error(err);
+                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                            req_body: req.body,
+                                            error: err
+                                        });
+                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                                .then(function() {
+                                                    res.status(500).end();
+                                                });
+                                    })
+                                        .then(async function(userCon) {
+                                            return UserLogin.create({
+                                                UserID: user.UserID,
+                                                Email: req.body.email,
+                                                Password: await password.hash(temp_pass)
+                                            }, {
+                                                transaction: t
+                                            }).catch(function(err) {
+                                                console.error(err);
+                                                logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                    req_body: req.body,
+                                                    error: err
+                                                });
+                                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                                    .then(function() {
+                                                        res.status(500).end();
+                                                    });
+                                            }).then(function(userLogin) {
+                                                let email = new Email();
+                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+                                                return SectionUser.create({
+                                                    SectionID: req.params.sectionid,
+                                                    UserID: userLogin.UserID,
+                                                    Active: req.body.active,
+                                                    Volunteer: req.body.volunteer,
+                                                    Role: req.body.role
+                                                }, {
+                                                    transaction: t
+                                                }).catch(function(err) {
+                                                    console.error(err);
+                                                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                        req_body: req.body,
+                                                        error: err
+                                                    });
+                                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                                        .then(function() {
+                                                            res.status(500).end();
+                                                        });
+                                                }).then(function(sectionUser) {
+                                                    console.log('Creating user, inviting, and adding to section');
+                                                    logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                        req_body: req.body
+                                                    });
+                                                    return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
+                                                        transaction: t
+                                                    })
+                                                        .then(function() {
+                                                            res.json({
+                                                                success: true,
+                                                                message: 'new user'
+                                                            });
 
-                                                       res.status(500).end();
-
-                                                   }).then(function(sectionUser) {
-                                                       console.log('Creating user, inviting, and adding to section');
-                                                       logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                           req_body: req.body
-                                                       });
-                                                       return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
-                                                           transaction: t
-                                                       })
-                                                           .then(function() {
-                                                               res.json({
-                                                                   success: true,
-                                                                   message: 'new user'
-                                                               });
-
-                                                           });
-                                                   });
-                                               });
-                                           });
-                             });
-                         });
-                });
+                                                        });
+                                                });
+                                            });
+                                        });
+                                });
+                        });
+                    });
 
             } else {
                 SectionUser.find({
@@ -5200,7 +4917,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         });
     });
-
 
 
     router.delete('/delete/user/:userID', (req, res) => {
@@ -5302,7 +5018,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/test', async function(req, res) {
 
         var tf = new TaskFactory();
-        var users = await tf.debug(1, 1);
+        //var users = await tf.allocateUsers(1, 1);
+        var make = new Make();
+        var users = await make.allocateUsers(1,3);
         //console.log(users);
         res.status(200).end();
     });
@@ -5310,339 +5028,68 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/test2', async function(req, res) {
         var grade = new Grade();
 
-        //var check = await grade.checkAssignmentDone(1);
-        var check = await grade.checkWorkflowDone(1);
+        var check = await grade.checkAssignmentDone(1);
+        //var check = await grade.checkWorkflowDone(1);
 
 
     });
 
-
-    //-----------------------------------------------------------------------------------------------------
-
-
-    //Endpoint for workflow reports
-
-    router.get('/getWorkflowReport/:workflowInstanceID', (req, res) => {
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject){
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [
-                        {
-                            model: TaskActivity,
-                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                        },
-                        {
-                            model: WorkflowInstance,
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                            include: {
-                                model: WorkflowActivity,
-                                attributes: ['WorkflowStructure']
-                            }
-                        },
-                        {
-                            model: User,
-                            attributes: ['UserID', 'FirstName', 'LastName'],
-                            include: [{
-                                model: UserContact,
-                                attributes: ['Email','Alias']
-                            }]
-                        }
-                    ]
-                })
-            .catch(err => reject(err))
-            .then(task => resolve(task));
-            });
-        };
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-        WorkflowInstance.find({
+    router.get('/EveryonesWork/:assignmentInstanceID', async function(req, res) {
+        var everyones_work = {};
+        var ai = await AssignmentInstance.find({
             where: {
-                WorkflowInstanceID: req.params.workflowInstanceID
+                AssignmentInstanceID: req.params.assignmentInstanceID
             }
-        })
-      .then( async (result) => {
-          let mappedTasks = JSON.parse(result.TaskCollection);
-
-          let finalResults = mappedTasks.map(fetchTasks);
-
-          Promise.all(finalResults.map(Promise.all)).then(arrArr => {
-              return res.json({
-                  'Result': arrArr
-              });
-          });
-
-      });
-    });
-
-
-//------------------------------------
-    router.get('/getWorkflowReport/alternate/:workflowInstanceID', async (req, res) => {
-        let workflowInstanceObject = {};
-
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject){
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [
-                        {
-                            model: TaskActivity,
-                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                        },
-                        {
-                            model: WorkflowInstance,
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                            include: {
-                                model: WorkflowActivity,
-                                attributes: ['WorkflowStructure']
-                            }
-                        },
-                        {
-                            model: User,
-                            attributes: ['UserID', 'FirstName', 'LastName'],
-                            include: [{
-                                model: UserContact,
-                                attributes: ['Email','Alias']
-                            }]
-                        }
-                    ]
-                })
-        .catch(err => reject(err))
-        .then(tiData => {
-            if(workflowInstanceObject[tiData.TaskActivity.TaskActivityID]){
-                workflowInstanceObject[tiData.TaskActivity.TaskActivityID].push(tiData);
-            }else{
-                workflowInstanceObject[tiData.TaskActivity.TaskActivityID] = [tiData];
-            }
-            resolve(tiData);
         });
+        await Promise.map(JSON.parse(ai.WorkflowCollection), async function(wi){
+            var wi = await WorkflowInstance.find({
+                where: {
+                    assignmentInstanceID: req.params.assignmentInstanceID
+                }
             });
-        };
-
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-    //key: taskActivityID
-    //value: array of resolved tasks
-        WorkflowInstance.find({
-            where: {
-                WorkflowInstanceID: req.params.workflowInstanceID
-            }
-        })
-        .then( async (result) => {
-            let mappedTasks = JSON.parse(result.TaskCollection);
-
-            let finalResults = mappedTasks.map(fetchTasks);
-
-            Promise.all(finalResults.map(Promise.all)).then(arrArr => {
-                return res.json({
-                    'Result': workflowInstanceObject
-                });
-            });
-
-        });
-    });
-
-
-//---------------------------------------------------------------------------
-//---------------------------------------------------------------------------
-
-// Endpoint to get assignment instance report
-    router.get('/getAssignmentReport/:assignmentInstanceID', function(req,res){
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject){
-                TaskInstance.findOne({
+            await Promise.map(JSON.parse(wi.TaskCollection), async function(ti){
+                var ti = await TaskInstance.findAll({
                     where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [
-                        {
-                            model: TaskActivity,
-                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                        },
-                        {
-                            model: WorkflowInstance,
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                            include: {
-                                model: WorkflowActivity,
-                                attributes: ['WorkflowStructure']
-                            }
-                        },
-                        {
-                            model: User,
-                            attributes: ['UserID', 'FirstName', 'LastName'],
-                            include: [{
-                                model: UserContact,
-                                attributes: ['Email','Alias']
-                            }]
+                        Status: {
+                            $like:'%"complete"%'
                         }
-                    ]
-                })
-          .catch(err => reject(err))
-          .then(task => resolve(task));
-            });
-        };
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-        let fetchWorkflow = (workflowArray) => {
-            return workflowArray.map((workflow) => {
-                return WorkflowInstance.find({
-                    where: {
-                        WorkflowInstanceID: workflow
                     }
-                })
-                .then((result) => {
-                    let mappedTasks = JSON.parse(result.TaskCollection);
-                    return mappedTasks.map(fetchTasks);
                 });
-            });
-        };
+                for (var i=0; i < ti.length; i++) {
+                    if(!everyones_work.hasOwnProperty(ti[i].UserID)){
+                        everyones_work[ti[i].UserID] = [ti[i].TaskInstanceID];
+                    }
+                    else{
+                        everyones_work[ti[i].UserID].push(ti[i].TaskInstanceID);
+                        everyones_work[ti[i].UserID] = everyones_work[ti[i].UserID].filter( function( item, index, inputArray ) {
+                            return inputArray.indexOf(item) == index;
 
-
-        AssignmentInstance.findOne({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            }
-        }).then((aiResult) => {
-            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
-
-            Promise.all(finalResults.map((row) => {
-                return row.map(Promise.all);
-            })).then(arrArr => {
-                return res.json({
-                    'Result': arrArr
-                });
+                        });
+                    }
+                }
             });
         });
-
-
-
-    });
-    //-------------------------------------------------------------------------
-
-    router.get('/getAssignmentReport/alternate/:assignmentInstanceID', (req, res) => {
-        let assignmentObject = {};
-
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject){
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [
-                        {
-                            model: TaskActivity,
-                            attributes: ['Name','DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
-                        },
-                        {
-                            model: WorkflowInstance,
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
-                        },
-                        {
-                            model: User,
-                            attributes: ['UserID', 'FirstName', 'LastName'],
-                            include: [{
-                                model: UserContact,
-                                attributes: ['Email','Alias']
-                            }]
-                        }
-                    ]
-                })
-        .catch(err => reject(err))
-        .then(tiData => {
-            const waID = tiData.WorkflowInstance.WorkflowActivityID;
-            const wiID =  tiData.WorkflowInstance.WorkflowInstanceID;
-            const taID = tiData.TaskActivity.TaskActivityID;
-
-            if(!assignmentObject[waID].WorkflowInstances[wiID]){
-                assignmentObject[waID].WorkflowInstances[wiID] = {};
-            }
-
-            if(assignmentObject[waID].WorkflowInstances[wiID][taID]){
-                assignmentObject[waID].WorkflowInstances[wiID][taID].push(tiData);
-            }else{
-                assignmentObject[waID].WorkflowInstances[wiID][taID] = [tiData];
-            }
-            resolve(tiData);
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'EveryonesWork': everyones_work
         });
-            });
-        };
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-        let fetchWorkflow = (workflowArray) => {
-            return workflowArray.map((workflow) => {
-                return WorkflowInstance.find({
-                    where: {
-                        WorkflowInstanceID: workflow
-                    },
-                    include:[WorkflowActivity]
-                })
-              .then((result) => {
-                  assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
-                      WorkflowInstances: {},
-                      Structure: result.WorkflowActivity.WorkflowStructure
-                  };
-
-                  let mappedTasks = JSON.parse(result.TaskCollection);
-                  return mappedTasks.map(fetchTasks);
-              });
-            });
-        };
-
-
-        AssignmentInstance.findOne({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            }
-        }).then((aiResult) => {
-            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
-
-            Promise.all(finalResults.map((row) => {
-                return row.map(Promise.all);
-            })).then(arrArr => {
-                return res.json({
-                    'Result': assignmentObject
-                });
-            });
-        });
-
-
-
     });
 
 
-    //-------------------------------------------------------------------------
-    //-------------------------------------------------------------------------
-    //-------------------------------------------------------------------------
+    router.post('/revise', async function(req, res){
+        var trigger = new TaskTrigger();
+        console.log('revise');
+        await trigger.revise(req.body.ti_id, req.body.data);
+        res.status(200).end();
+    });
+
+    router.post('/approved', async function(req, res){
+        var trigger = new TaskTrigger();
+
+        await trigger.approved(req.body.ti_id, req.body.data);
+        res.status(200).end();
+    });
 
 };
 
