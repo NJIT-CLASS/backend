@@ -291,19 +291,26 @@ class Make {
 
         await Promise.mapSeries(flat_tree, async function (node) {
             if (node.isSubWorkflow === 0 && node.id !== 0) {
-                var ti = await TaskActivity.find({
+                var ta = await TaskActivity.find({
                     where: {
                         TaskActivityID: node.id
                     }
                 });
 
                 if (_.isEmpty(graph)) {
-                    await Promise.mapSeries(Array(ti.NumberParticipants), async function (zero) {
-                        graph.push({'id': count, 'ta_id': node.id, 'isSubWorkflow': node.isSubWorkflow});
+                    await Promise.mapSeries(Array(ta.NumberParticipants), async function (zero) {
+                        graph.push({
+                            'id': count,
+                            'ta_id': node.id,
+                            'isSubWorkflow': node.isSubWorkflow
+                        });
                         count++;
                     });
                 } else {
-                    await Promise.mapSeries(Array(ti.NumberParticipants), async function (zero) {
+                    var types = await x.whatsNext(node);
+
+                    if()
+                    await Promise.mapSeries(Array(ta.NumberParticipants), async function (zero) {
                         var subworkflow = await x.getSubWorkflow(graph, flat_tree, count);
                     });
 
@@ -314,14 +321,34 @@ class Make {
         });
     }
 
+    async whatsNext(root, flat_tree) {
+        var types = {};
+
+        await Promise.mapSeries(flat_tree, async function (node) {
+            if (node.parent === root.id) {
+                var ta = await TaskActivity.find({
+                    where: {
+                        TaskActivityID: node.id
+                    }
+                });
+
+                if(root.isSubWorkflow === node.isSubWorkflow){
+                    types[ta.Type] = 'same';
+                } else {
+                    types[ta.Type] = 'diff';
+                }
+                
+            }
+
+        });
+
+        return types;
+    }
+
 
     async getSubWorkflow(node, flat_tree, count) {
         var x = this;
-        var wf = [];
-        wf.push({
-            'id': count,
-            'ta_id': node.id
-        });
+
     }
 
     /**
