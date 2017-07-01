@@ -4715,6 +4715,63 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+    router.get('/SectionsByUser/:userId', function(req, res) {
+
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.userId
+            },
+            attributes: ['SectionID'],
+            include: [{
+                model: Section,
+                attributes: ['Name'],
+                include:[
+                    {
+                        model: Course,
+                        attributes: ['CourseID', 'Name', 'Number']
+                    },
+                ]
+
+            }]
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Sections': rows
+            });
+        }).catch(function(err) {
+            console.log('/section: ' + err.message);
+            res.status(401).end();
+        });
+    });
+
+
+         //Endpoint assignments in Section
+    router.get('/AssignmentsBySection/:SectionID', function(req,res){
+        AssignmentInstance.findAll({
+            where:{
+                SectionID: req.params.SectionID
+            },
+            attributes: ['AssignmentInstanceID'],
+            include:[{
+                model: Assignment,
+                attributes: ['AssignmentID','Name','Type', 'DisplayName'],
+                include: [{
+                    model:Course,
+                    attributes: ['CourseID','Name','Number']
+                }]
+            }]
+        }).then(function(assignments){
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Assignments': assignments
+
+            });
+        }
+
+    );
+    });
     //-----------------------------------------------------------------------------------------------------
 
     // endpoint to delete organization
