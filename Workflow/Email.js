@@ -39,7 +39,7 @@ class Email {
 
         EmailNotification.create({
             TaskInstanceID: taskInstanceID
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log(err);
         });
 
@@ -56,7 +56,7 @@ class Email {
             where: {
                 TaskInstanceID: taskInstanceID
             }
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log(err);
         });
     }
@@ -92,7 +92,7 @@ class Email {
         console.log('Sending Mail...');
 
         // Send mail
-        smtpTransporter.sendMail(mailOpts, function(error, response) {
+        smtpTransporter.sendMail(mailOpts, function (error, response) {
             if (error) {
                 console.log(error);
             } else {
@@ -115,75 +115,77 @@ class Email {
             where: {
                 UserID: userid
             }
-        }).then(function(result) {
+        }).then(function (result) {
 
             console.log('Sending Email To: ', result.Email, '...');
 
             switch (type) {
-            case 'create user':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Welcome to PLA!',
-                    text: 'You have succesfully created an account on PLA \n http://pla.njit.edu:4001',
-                    html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: <div>http://pla.njit.edu:4001 <div></p> '
-                });
-                break;
-            case 'invite user':
-                console.log('inviting ' + result.Email);
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Welcome to PLA!',
-                    text: 'You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
-                    html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
-                });
-                break;
-            case 'new task':
-                console.log('notifying ' + result.Email);
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'New Task Awaiting! PLA Admin',
-                    text: 'A new task has been assigned. Please login into \n http://pla.njit.edu:4001 to complete the task',
-                    html: '<p>A new task has been assigned.<div>Please login into http://pla.njit.edu:4001</div></p>'
-                });
-                break;
-            case 'due less than one day':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Participatory Learning Approach- Assignment Due In 1 Day!',
-                    text: 'You have an assignment due within one day. Please check the website and complete immediately!',
-                    html: ''
-                });
-                break;
-            case 'due less than seven days':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Participatory Learning Approach- Assignment Due In A Week!',
-                    text: 'You have an assignment due within a week. Please carefully check the due date!',
-                    html: ''
-                });
-                break;
-            case 'late':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Your assignment is overdue - PLA',
-                    text: 'You have an assignment that is due. Please check PLA',
-                    html: ''
-                });
-                break;
-            default:
-                return null;
+                case 'create user':
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: 'Welcome to PLA!',
+                        text: 'You have succesfully created an account on PLA \n http://pla.njit.edu:4001',
+                        html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: <div>http://pla.njit.edu:4001 <div></p> '
+                    });
+                    break;
+                case 'invite user':
+                    console.log('inviting ' + result.Email);
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: 'Welcome to PLA!',
+                        text: 'You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
+                        html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
+                    });
+                    break;
+                case 'new task':
+                    console.log('notifying ' + result.Email);
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: 'New Task Awaiting! PLA Admin',
+                        text: 'A new task has been assigned. Please login into \n http://pla.njit.edu:4001 to complete the task',
+                        html: '<p>A new task has been assigned.<div>Please login into http://pla.njit.edu:4001</div></p>'
+                    });
+                    break;
+
+                case 'late':
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: 'Your assignment is overdue - PLA',
+                        text: 'You have an assignment that is due. Please check PLA',
+                        html: ''
+                    });
+                    break;
+                case 'remove_reallocated':
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: 'You have removed from a task - PLA',
+                        text: 'You have been removed from a task, a new user has been reallcated to replace your duty',
+                        html: ''
+                    });
+                    break;
+                case 'new_reallocated':
+                    x.send({
+                        from: email,
+                        replyTo: email,
+                        to: result.Email,
+                        subject: 'Reallocated to a new task - PLA',
+                        text: 'Hi, you have been reallocated to a new task, please complete as soon as possible',
+                        html: ''
+                    });
+                    break
+                default:
+                    logger.log('error', '/Workflow/Email/sendNow: email option not found!')
+                    return null;
             }
         });
     }
@@ -195,9 +197,9 @@ class Email {
             where: {
                 TaskInstanceID: taskInstanceId
             }
-        }).then(function(done) {
+        }).then(function (done) {
             console.log('Email Last Send Updated!');
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log(err);
             throw new Error(err);
         });
@@ -218,16 +220,16 @@ class Email {
         //Retrieve entire Email Notification table
         EmailNotification.findAll({
             attributes: ['TaskInstanceID'],
-        }).then(function(list) {
+        }).then(function (list) {
 
             //Check through each item in the list
-            list.forEach(function(result) {
+            list.forEach(function (result) {
 
                 TaskInstance.find({
                     where: {
                         TaskInstanceID: result.TaskInstanceID
                     }
-                }).then(function(taskInstance) {
+                }).then(function (taskInstance) {
                     //if task end date has past delete from Email Notification
                     if (taskInstance.EndDate < now) {
 
@@ -258,7 +260,7 @@ class Email {
                     return null;
                 });
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log(err);
             throw new Error('EmailNotification - Something went wrong...');
         });

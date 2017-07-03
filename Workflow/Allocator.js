@@ -612,13 +612,16 @@ class Allocator {
             user_history: ti_u_hist
         });
 
+        //email.sendNow(ti.UserID, 'removed_reallocated');
+        //email.sendNow(new_u_id, 'new_reallocated');
+
         return TaskInstance.update({
             UserID: new_u_id,
             UserHistory: ti_u_hist,
         }, {
             where: {TaskInstanceID: task_id}}
         ).then(function (res) {
-            logger.log('info', 'task instance updated', {res: res});
+            //logger.log('info', 'task instance updated', {res: res});
             return res;
         }).catch(function (err) {
             logger.log('error', 'task instance update failed', err);

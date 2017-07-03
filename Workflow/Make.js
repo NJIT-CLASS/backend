@@ -70,7 +70,6 @@ class Make {
         var wf_timing = await x.getWorkflowTiming(ai_id); //returns workflow timing from the assignment instance
         var workflows = [];
 
-
         await Promise.mapSeries(users, async function (u_id, i) {
             var new_wfs = await x.createWorkflowInstances(users, ai_id, wf_timing, i); //creates new workflow instances and return the workflow instance ids
             workflows = workflows.concat(new_wfs);
@@ -151,13 +150,33 @@ class Make {
         });
 
         await Promise.mapSeries(JSON.parse(wf_timing).workflows, async function (wf) {
-            var new_wi_id = await x.createWorkflowInstance(wf, ai_id); //creates new workflow instance and return the workflow instance id
-            wfs.push(new_wi_id);
+            await Promise.mapSeries(await x.getNumSet(wf.id), async function () {
+                var new_wi_id = await x.createWorkflowInstance(wf, ai_id); //creates new workflow instance and return the workflow instance id
+                wfs.push(new_wi_id);
 
-            j = await x.createTaskInstances(wf, ai_id, new_wi_id, users, i, j); //creates the new task instances and returns new index of pointer
+                j = await x.createTaskInstances(wf, ai_id, new_wi_id, users, i, j); //creates the new task instances and returns new index of pointer
+            });
         });
 
         return wfs;
+    }
+
+    /**
+     * return NumberOfSets associate to the workflow activity and reutrns an array
+     * 
+     * @param {any} wa_id 
+     * @returns 
+     * @memberof Make
+     */
+    async getNumSet(wa_id) {
+        //console.log('wa_id', wa_id);
+        var wa = await WorkflowActivity.find({
+            where: {
+                WorkflowActivityID: wa_id
+            }
+        });
+
+        return new Array(wa.NumberOfSets);
     }
 
     /**
@@ -207,7 +226,7 @@ class Make {
         var ta_to_u_id = {};
         var ti_to_ta = {};
         var flat_tree = await x.getTreeRoot(wf.id);
-        var graph = await x.getGraph(flat_tree);
+        //var graph = await x.getGraph(flat_tree);
 
         logger.log('info', 'creating new task instances ', {
             workflow: new_wi_id,
@@ -284,41 +303,56 @@ class Make {
     }
 
 
-    async getGraph(flat_tree) {
+    // async getGraph(flat_tree) {
+    //     var x = this;
+    //     var graph = [];
+    //     var count = 1;
+
+    //     await Promise.mapSeries(flat_tree, async function (node) {
+    //         if (node.isSubWorkflow === 0 && node.id !== 0) {
+    //             var ta = await TaskActivity.find({
+    //                 where: {
+    //                     TaskActivityID: node.id
+    //                 }
+    //             });
+
+    //             if (_.isEmpty(graph)) {
+    //                 await Promise.mapSeries(Array(ta.NumberParticipants), async function (zero) {
+    //                     graph.push({
+    //                         'id': count,
+    //                         'ta_id': node.id,
+    //                         'isSubWorkflow': node.isSubWorkflow
+    //                     });
+    //                     count++;
+    //                 });
+
+    //                 var types = await x.whatsNext(node);
+
+    //                 if((types.hasOwnProperty('needs_consolidation') && types.needs_consolidation.type === 'diff') && (types.hasOwnProperty('solve_problem') && types.needs_consolidation.type === 'same')){
+    //                     var graph = await x.merge(node, types, graph);
+    //                 }
+
+    //             } else {
+    //                 var types = await x.whatsNext(node);
+
+    //                 if((types.hasOwnProperty('needs_consolidation') && types.needs_consolidation.type === 'diff') && (types.hasOwnProperty('solve_problem') && types.needs_consolidation.type === 'same')){
+
+    //                 }
+
+    //                 await Promise.mapSeries(Array(ta.NumberParticipants), async function (zero) {
+    //                     var subworkflow = await x.getSubWorkflow(graph, flat_tree, count);
+    //                 });
+
+    //                 graph = subworkflow[0];
+    //                 count = subworkflow[1];
+    //             }
+    //         }
+    //     });
+    // }
+
+    async merge(root, types, graph) {
         var x = this;
-        var graph = [];
-        var count = 1;
 
-        await Promise.mapSeries(flat_tree, async function (node) {
-            if (node.isSubWorkflow === 0 && node.id !== 0) {
-                var ta = await TaskActivity.find({
-                    where: {
-                        TaskActivityID: node.id
-                    }
-                });
-
-                if (_.isEmpty(graph)) {
-                    await Promise.mapSeries(Array(ta.NumberParticipants), async function (zero) {
-                        graph.push({
-                            'id': count,
-                            'ta_id': node.id,
-                            'isSubWorkflow': node.isSubWorkflow
-                        });
-                        count++;
-                    });
-                } else {
-                    var types = await x.whatsNext(node);
-
-                    if()
-                    await Promise.mapSeries(Array(ta.NumberParticipants), async function (zero) {
-                        var subworkflow = await x.getSubWorkflow(graph, flat_tree, count);
-                    });
-
-                    graph = subworkflow[0];
-                    count = subworkflow[1];
-                }
-            }
-        });
     }
 
     async whatsNext(root, flat_tree) {
@@ -332,12 +366,18 @@ class Make {
                     }
                 });
 
-                if(root.isSubWorkflow === node.isSubWorkflow){
-                    types[ta.Type] = 'same';
+                if (root.isSubWorkflow === node.isSubWorkflow) {
+                    types[ta.Type] = {
+                        'type': 'same',
+                        'node': node
+                    };
                 } else {
-                    types[ta.Type] = 'diff';
+                    types[ta.Type] = {
+                        'type': 'diff',
+                        'node': node
+                    };
                 }
-                
+
             }
 
         });
@@ -736,7 +776,8 @@ class Make {
         var endDate = moment(startDate);
 
         if (wf_task.DueType[0] === 'duration') {
-            endDate.add(wf_task.DueType[1], 'minutes');
+            //endDate.add(wf_task.DueType[1], 'minutes');
+            endDate.add(1, 'minutes');
         } else if (wf_task.DueType[0] === 'specificTime') {
             endDate = wf_task.DueType[1];
         }

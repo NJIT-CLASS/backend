@@ -3,9 +3,11 @@ var Promise = require('bluebird');
 var moment = require('moment');
 var consts = require('../Util/constant.js');
 var Email = require('./Email.js');
+var Grade = require('./Grade.js');
 var Util = require('./Util.js');
 var _ = require('underscore');
 
+var FileReference = models.FileReference;
 var User = models.User;
 var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
@@ -15,19 +17,22 @@ var SectionUser = models.SectionUser;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
+var TaskGrade = models.TaskGrade;
+var TaskSimpleGrade = models.TaskSimpleGrade;
 var TaskActivity = models.TaskActivity;
 var Assignment = models.Assignment;
+var AssignmentGrade = models.AssignmentGrade;
 var AssignmentInstance = models.AssignmentInstance;
 
 var WorkflowInstance = models.WorkflowInstance;
+var WorkflowGrade = models.WorkflowGrade;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
-var TaskSimpleGrade = models.TaskSimpleGrade;
-
 
 const logger = require('winston');
 var email = new Email();
+var grade = new Grade();
 
 
 
@@ -47,7 +52,7 @@ class TaskTrigger {
         });
 
         if (ti.NextTask === '[]') { //no more task in this branch
-            await x.completed();
+            await x.completed(ti_id, ti.WorkflowInstanceID, ti.AssignmentInstanceID);
         } else {
             if (await x.hasEdit(ti)) {
                 await x.triggerEdit(ti);
@@ -57,6 +62,12 @@ class TaskTrigger {
         }
     }
 
+    /**
+     * Wrapper to determine the type of next task and trigger
+     * 
+     * @param {any} ti 
+     * @memberof TaskTrigger
+     */
     async trigger(ti) {
         var x = this;
         await Promise.mapSeries(JSON.parse(ti.NextTask), async function (task) { //loop through the list of next tasks
@@ -78,10 +89,34 @@ class TaskTrigger {
         });
     }
 
-    async completed() {
+    
+    async completed(ti_id, wi_id, ai_id) {
         logger.log('info', 'checking if assginment is done...');
 
+        var x = this;
+        var isWorkflowCompleted = false;
+        var isAllCompleted = false;
+        var grade = new Grade();
+        console.log('Checking all subworkflows are completed...');
+        // check if the workflow of the assignment that belongs to the user is completed
+        // check if all the workflow of the assignment that belongs to the user is completed
+
+        //TODO: To check a workflow instance has completed find the task collection from workflow instance and search them all
+        //TODO: To check if a assignement instance has completed find the workflow collection from assignment instance and search through them.
+        var final_grade = await grade.findFinalGrade(ti_id);
+        await grade.addTaskGrade(final_grade.id, final_grade.grade);
+
+        if(await grade.checkAssignmentDone(ai_id)){
+
+        } else if(await grade.checkWorkflowDone(ai_id)){
+
+        } else {
+
+        }
+       
     }
+
+
 
     /**
      * determine whether a task is followed by an edit task
@@ -168,6 +203,12 @@ class TaskTrigger {
         // }
     }
 
+    /**
+     * decide whehter consolidates the previous tasks and determine either bypass or proceed to consolidation task
+     * 
+     * @param {any} ti 
+     * @memberof TaskTrigger
+     */
     async needsConsolidate(ti) {
         //try{
         var x = this;
@@ -175,10 +216,11 @@ class TaskTrigger {
             logger.log('info', 'consolidating tasks...');
 
             var final_grade = await x.findGrades(ti);
+            console.log('final_grade', final_grade);
 
             if (final_grade !== null) { //update final grade if something has returned
                 await TaskInstance.update({
-                    FinalGrade: final_grade
+                    FinalGrade: final_grade[0]
                 }, {
                     where: {
                         TaskInstanceID: ti.TaskInstanceID
@@ -216,7 +258,7 @@ class TaskTrigger {
                 }
             });
             //Check if all grading solution are completed
-            if (JSON.parse(pre.Status)[0] != 'complete') {
+            if (JSON.parse(pre.Status)[0] !== 'complete' && JSON.parse(pre.Status)[0] !== 'automatic' && JSON.parse(pre.Status)[0] !== 'bypassed') {
                 is_all_completed = false;
             }
         });
@@ -245,6 +287,7 @@ class TaskTrigger {
         var x = this;
         var final_grade;
         var grades = [];
+        var maxGrade = 0;
         var triggerConsolidate = false;
 
         await Promise.map(JSON.parse(task.PreviousTask), async function (ti) { //find FinalGrade of PreviousTask
@@ -259,6 +302,25 @@ class TaskTrigger {
 
             if (pre.FinalGrade !== null) { //if no FinalGrade found, dont push
                 grades.push(pre.FinalGrade);
+
+                await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)), function (val) {
+                    if (val !== 'number_of_fields' && JSON.parse(pre.TaskActivity.Fields)[val].field_type == 'assessment') {
+                        if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'grade') {
+                            maxGrade += JSON.parse(pre.TaskActivity.Fields)[val].numeric_max;
+                        } else if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'rating') {
+                            maxGrade += 100;
+                        } else if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'evaluation') {
+                            // How evaluation works?
+                            // if(JSON.parse(pre.Data)[val][0] == 'Easy'){
+                            //
+                            // } else if(JSON.parse(pre.Data)[val][0] == 'Medium'){
+                            //
+                            // } else if(JSON.parse(pre.Data)[val][0] == 'Hard'){
+                            //
+                            // }
+                        }
+                    }
+                })
             }
         });
 
@@ -345,13 +407,42 @@ class TaskTrigger {
      * @param  {[type]}  dispute [description]
      * @return {Promise}    [description]
      */
-    async skipDispute(dispute) {
+    async skipDispute(ti_id) {
         //  try{
 
         var x = this;
 
-        await x.bypass(dispute);
-        await x.next(dispute.TaskInstanceID);
+        var dispute = await TaskInstance.find({
+            where: {
+                TaskInstanceID: ti_id
+            }
+        });
+
+        var date = new Date();
+        var status = JSON.parse(dispute.Status);
+        status[0] = 'complete';
+
+        await TaskInstance.update({
+            Status: JSON.stringify(status),
+            EndDate: date,
+            ActualEndDate: date
+        }, {
+            where: {
+                TaskInstanceID: dispute.TaskInstanceID
+            }
+        });
+
+
+
+        await Promise.map(JSON.parse(dispute.NextTask), async function (task) {
+            var next = await TaskInstance.find({ //assumed needs_consolidation's next task is always consolidation
+                where: {
+                    TaskInstanceID: task.id
+                }
+            });
+
+            await x.bypassAll(next);
+        });
 
         // } catch(err){
         //     logger.log('error', 'failed skipping dispute', {ti_id: ti.TaskInstanceID});
@@ -388,6 +479,29 @@ class TaskTrigger {
         // } catch(err){
         //     logger.log('error', 'failed bypassing task instance', {ti_id: ti.TaskInstanceID});
         // }
+    }
+
+    /**
+     * bypass all the following tasks
+     * 
+     * @param {any} ti 
+     * @memberof TaskTrigger
+     */
+    async bypassAll(ti) {
+        var x = this;
+        await x.bypass(ti);
+
+        if (JSON.parse(ti.NextTask) !== '[]') {
+            await Promise.map(JSON.parse(ti.NextTask), async function (task) {
+                var next = await TaskInstance.find({ //assumed needs_consolidation's next task is always consolidation
+                    where: {
+                        TaskInstanceID: task.id
+                    }
+                });
+
+                await x.bypassAll(next);
+            });
+        }
     }
 
 
@@ -448,7 +562,8 @@ class TaskTrigger {
         var newStartDate = await moment().add(JSON.parse(ta.StartDelay), 'minutes');
         var newEndDate = await moment().add(JSON.parse(ta.StartDelay), 'minutes');
         if (JSON.parse(ta.DueType)[0] === 'duration') {
-            await newEndDate.add(JSON.parse(ta.DueType)[1], 'minutes');
+            //await newEndDate.add(JSON.parse(ta.DueType)[1], 'minutes');
+            await newEndDate.add(1, 'minutes');
         } else if (JSON.parse(ta.DueType)[0] === 'specificTime') {
             newEndDate = await moment(JSON.parse(ta.DueType)[1]).toDate();
         }
@@ -522,9 +637,9 @@ class TaskTrigger {
      * @param {any} data 
      * @memberof TaskTrigger
      */
-    async revise(ti_id, data){
+    async revise(ti_id, data) {
         var x = this;
-        var ti = await TaskInstance.find({//find the revising task
+        var ti = await TaskInstance.find({ //find the revising task
             where: {
                 TaskInstanceID: ti_id
             }
@@ -535,7 +650,7 @@ class TaskTrigger {
         var status = JSON.parse(ti.Status);
         status[0] = 'complete';
 
-       // var final_grade = await x.finalGrade(ti,data);
+        // var final_grade = await x.finalGrade(ti,data);
 
         await TaskInstance.update({
             Data: data,
@@ -574,7 +689,7 @@ class TaskTrigger {
     async approved(ti_id, data) {
 
         var x = this;
-        var ti = await TaskInstance.find({//find the approving task
+        var ti = await TaskInstance.find({ //find the approving task
             where: {
                 TaskInstanceID: ti_id
             }
@@ -621,13 +736,13 @@ class TaskTrigger {
      * @returns 
      * @memberof TaskTrigger
      */
-    async getEdittingTask(ti){
+    async getEdittingTask(ti) {
         var x = this;
         var type = await ti.getType(); //assumed the task type can only be either edit or consolidation
 
-        if(type === 'edit'){ //assumed the original task for edit is the previous task edit -> original_task(show only be one previous task)
+        if (type === 'edit') { //assumed the original task for edit is the previous task edit -> original_task(show only be one previous task)
             var original_task = await TaskInstance.find({
-                where:{
+                where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
                 }
             });
@@ -635,25 +750,50 @@ class TaskTrigger {
             return original_task;
         } else { //this case should happen when type === consolidation. Assumed the orignal task is consolidation -> needs_consolidation -> edit -> original_task
             var needs_consolidation = await TaskInstance.find({
-                where:{
+                where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
                 }
             });
 
             var edit = await TaskInstance.find({
-                where:{
+                where: {
                     TaskInstanceID: JSON.parse(needs_consolidation.PreviousTask)[0].id
                 }
             });
 
             var original_task = await TaskInstance.find({
-                where:{
+                where: {
                     TaskInstanceID: JSON.parse(edit.PreviousTask)[0].id
                 }
             });
 
 
             return original_task;
+        }
+    }
+
+
+    /**
+     * Wrapper to determine which subworkflows to bypass
+     * 
+     * @param {any} ti 
+     * @memberof TaskTrigger
+     */
+    async bypassAllSubworkflows(ti) {
+        var x = this;
+
+        if (JSON.parse(ti.NextTask) !== '[]') {
+            await Promise.map(JSON.parse(ti.NextTask), async function (task) {
+                var next = await TaskInstance.find({
+                    where: {
+                        TaskInstanceID: task.id
+                    }
+                });
+
+                if (ti.IsSubworkflow !== next.IsSubworkflow) {
+                    await x.bypassAll(next);
+                }
+            });
         }
     }
 }
