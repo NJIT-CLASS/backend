@@ -3366,6 +3366,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         TaskInstance.find({
             where: {
                 TaskInstanceID: req.params.taskInstanceID
+<<<<<<< HEAD
             }
         }).then(function (taskInstanceResult) {
             TaskActivity.find({
@@ -3413,6 +3414,51 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         });
                     });
                 });
+=======
+            },
+            include:[{
+                model: TaskActivity,
+                include: [{
+                    model: Assignment,
+                    attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
+                }],
+                attributes: ['Type']
+            },{
+                model: AssignmentInstance,
+                include: [{
+                    model: Section,
+                    attributes:['Name', 'SectionID'],
+                    include: [{
+                        model: Course,
+                        attributes: ['Name', 'Number']
+                    },
+                    {
+                        model: Semester,
+                        attributes: ['SemesterID', 'Name']
+                    }]
+                }]
+            }
+            ]
+        })
+        .catch(function(err) {
+            //Catch error and print into console.
+            logger.log('error','/taskInstanceTemplate/main/',{error: err});
+            res.status(400).end();
+        })
+        .then(function(taskInstanceResult) {
+            return res.json({
+                'Error': false,
+                'Message': 'Success',
+                'taskActivityID': taskInstanceResult.TaskActivityID,
+                'taskActivityType': taskInstanceResult.TaskActivity.Type,
+                'courseName': taskInstanceResult.AssignmentInstance.Section.Course.Name,
+                'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
+                'assignment': taskInstanceResult.TaskActivity.Assignment,
+                'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
+                'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name,
+                'sectionName': taskInstanceResult.AssignmentInstance.Section.Name,
+                'sectionID': taskInstanceResult.AssignmentInstance.Section.Name
+>>>>>>> 11f23da4367f92cf66afc8f4c6bd3901e87ca11a
             });
         });
     });
@@ -4095,6 +4141,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var taskCollection = {};
         var isDone = false;
         var DisplayName;
+        var workflowNames = {};
 
         Assignment.find({
             where: {
@@ -4148,6 +4195,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 //WorkflowActivityID -- key
                 result.forEach(function (workflow) {
                     taskCollection[workflow.WorkflowActivityID] = [];
+                    workflowNames[workflow.WorkflowActivityID] = workflow.Name;
                 });
             }
 
@@ -4197,6 +4245,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             if (isDone === true) {
                 res.json({
                     'assignment': DisplayName,
+                    'workflowNames': workflowNames,
                     'sectionIDs': sectionIDs,
                     'taskActivityCollection': taskCollection //returns workflow id follows by task act
                 });
@@ -4560,6 +4609,63 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+    router.get('/SectionsByUser/:userId', function(req, res) {
+
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.userId
+            },
+            attributes: ['SectionID'],
+            include: [{
+                model: Section,
+                attributes: ['Name'],
+                include:[
+                    {
+                        model: Course,
+                        attributes: ['CourseID', 'Name', 'Number']
+                    },
+                ]
+
+            }]
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Sections': rows
+            });
+        }).catch(function(err) {
+            console.log('/section: ' + err.message);
+            res.status(401).end();
+        });
+    });
+
+
+         //Endpoint assignments in Section
+    router.get('/AssignmentsBySection/:SectionID', function(req,res){
+        AssignmentInstance.findAll({
+            where:{
+                SectionID: req.params.SectionID
+            },
+            attributes: ['AssignmentInstanceID'],
+            include:[{
+                model: Assignment,
+                attributes: ['AssignmentID','Name','Type', 'DisplayName'],
+                include: [{
+                    model:Course,
+                    attributes: ['CourseID','Name','Number']
+                }]
+            }]
+        }).then(function(assignments){
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Assignments': assignments
+
+            });
+        }
+
+    );
+    });
     //-----------------------------------------------------------------------------------------------------
 
     // endpoint to delete organization

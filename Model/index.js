@@ -185,6 +185,8 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
+    m.Assignment.belongsTo(m.Course,{foreignKey: 'CourseID'});
+
 
 
     //has Many Relations
