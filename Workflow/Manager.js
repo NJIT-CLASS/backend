@@ -3,7 +3,10 @@ var TaskFactory = require('./TaskFactory.js');
 var Promise = require('bluebird');
 var Allocator = require('./Allocator.js');
 var Email = require('./Email.js');
+var Make = require('./Make.js');
+var TaskTrigger = require('./TaskTrigger.js');
 
+var FileReference = models.FileReference;
 var User = models.User;
 var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
@@ -13,18 +16,26 @@ var SectionUser = models.SectionUser;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
+var TaskGrade = models.TaskGrade;
+var TaskSimpleGrade = models.TaskSimpleGrade;
 var TaskActivity = models.TaskActivity;
 var Assignment = models.Assignment;
+var AssignmentGrade = models.AssignmentGrade;
 var AssignmentInstance = models.AssignmentInstance;
 
 var WorkflowInstance = models.WorkflowInstance;
+var WorkflowGrade = models.WorkflowGrade;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
+
 var taskFactory = new TaskFactory();
+var trigger = new TaskTrigger();
 var alloc = new Allocator();
 var email = new Email();
+var make = new Make();
+const logger = require('winston');
 
 /**
  *
@@ -33,52 +44,65 @@ var email = new Email();
 
 class Manager {
 
-    check() {
+    async check() {
         var x = this;
-        TaskInstance.findAll({
+
+        logger.log('info', '/Workflow/Manager/check(): initiating...');
+        var lst = await TaskInstance.findAll({
             where: {
                 $or: [{
                     Status: {
-                        $like:'%"started"%'
+                        $like: '%"started"%'
+
                     }
                 }, {
                     Status: {
-                        $like:'%"late_reallocated"%'
+                        $like: '%"late_reallocated"%'
                     }
-                }]
-            },
-            include: [
-                {
-                    model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
-                    include: [{
-                        model: Section,
-                        attributes: ['SectionID'],
-                    }],
-                },
-            ],
-            // raw: true
-        }).then(function(lst) {
-            var res = {};
-            //TODO: for users list, replace it with: get volunteers that are active in section user [see commented lines, TODOs]
-            return Promise.mapSeries(lst, function (it) {
-                // console.log(it.TaskInstanceID, it.AssignmentInstance.Section.SectionID, it.UserID)
-                var secId = it.AssignmentInstance.Section.SectionID;
-                if (!res[secId]) {
-                    res[secId] = {tasks: [], users: []}; //TODO: comment this line once volunteers are used instead
-                    // res[secId] = {tasks: [], users: getActiveVolunteers(secId)} //TODO: uncomment this line once volunteers are used instead
+                }],
+                $and: {
+                    Status: {
+                        $notLike: '%"late"%'
+                    }
                 }
-                res[secId].tasks.push(it);
-                res[secId].users.push(it.UserID); //TODO: call get Volunteers and make sure they are active
-                // console.log(res)
-            }).then(function (done) {
-                // console.log('then....' + res)
-                return Object.keys(res).forEach(function (secId) {
-                    Promise.each(res[secId].tasks, function (task) {
-                        console.log('Checking Task Instance', task.TaskInstanceID);
-                        return x.checkTask(task, res[secId].users);
-                    });
-                });
+            },
+            include: [{
+                model: AssignmentInstance,
+                attributes: ['AssignmentInstanceID', 'AssignmentID', 'WorkflowTiming'],
+                include: [{
+                    model: Section,
+                    attributes: ['SectionID'],
+                }],
+            }, {
+                model: TaskActivity,
+                attributes: ['Type', 'WhatIfLate', 'AtDurationEnd', 'DueType']
+            }]
+            // raw: true
+        });
+
+        var res = {};
+        //TODO: for users list, replace it with: get volunteers that are active in section user [see commented lines, TODOs]
+        await Promise.mapSeries(lst, function (it) {
+            // console.log(it.TaskInstanceID, it.AssignmentInstance.Section.SectionID, it.UserID)
+            var secId = it.AssignmentInstance.Section.SectionID;
+            if (!res[secId]) {
+                res[secId] = {
+                    tasks: [],
+                    users: []
+                }; //TODO: comment this line once volunteers are used instead
+                // res[secId] = {tasks: [], users: getActiveVolunteers(secId)} //TODO: uncomment this line once volunteers are used instead
+            }
+            res[secId].tasks.push(it);
+            //res[secId].users.push(it.UserID); //TODO: call get Volunteers and make sure they are active
+        });
+
+        // console.log('then....' + res)
+        await Object.keys(res).forEach(async function (secId) {
+            var users = await make.getUsersFromSection(secId); //TODO: call get Volunteers instead everyone from that section
+            console.log(users);
+            Promise.each(res[secId].tasks, async function (task) {
+                console.log('Checking Task Instance', task.TaskInstanceID);
+                await x.checkTask(task, users);
             });
         });
         /*var x = this;
@@ -114,13 +138,13 @@ class Manager {
         });*/
     }
 
-    checkTask(task, users) {
+    async checkTask(task, users) {
         //only check for started
         var x = this;
-        var date = task.timeOutTime();
+        var date = await task.timeOutTime();
         var now = new Date();
         if (date < now) {
-            return x.timeOut(task, users);
+            await x.timeOut(task, users);
         }
     }
 
@@ -130,8 +154,8 @@ class Manager {
             where: {
                 Status: '%"late"%'
             }
-        }).then(function(taskInstances) {
-            taskInstances.forEach(function(task) {
+        }).then(function (taskInstances) {
+            taskInstances.forEach(function (task) {
                 email.send(task.UserID, 'late');
             });
         });
@@ -143,8 +167,8 @@ class Manager {
             where: {
                 EndDate: null
             }
-        }).then(function(AIs) {
-            return Promise.mapSeries(AIs, function(assignmentInstance){
+        }).then(function (AIs) {
+            return Promise.mapSeries(AIs, function (assignmentInstance) {
                 console.log('checkAssginments: AssignmentInstanceID', assignmentInstance.AssignmentInstanceID);
                 return x.checkAssignment(assignmentInstance);
             });
@@ -159,11 +183,11 @@ class Manager {
 
         if (startDate < now) {
             console.log('checkAssginment: Start Date has past ', assignmentInstance.AssignmentInstanceID);
-            return x.isStarted(assignmentInstance, function(result) {
+            return x.isStarted(assignmentInstance, function (result) {
                 console.log('checkAssignment: ', assignmentInstance.AssignmentInstanceID, result);
                 if (!result)
                     //return taskFactory.createInstances(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
-                    return taskFactory.allocateUsers(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
+                    return make.allocateUsers(assignmentInstance.SectionID, assignmentInstance.AssignmentInstanceID);
             });
         }
     }
@@ -173,12 +197,12 @@ class Manager {
             where: {
                 AssignmentInstanceID: assignmentInstance.AssignmentInstanceID
             }
-        }).then(function(count) {
+        }).then(function (count) {
             callback(count > 0 ? true : false);
         });
     }
 
-    timeOut(task, users) {
+    async timeOut(task, users) {
         //var alloc = new Allocator();
         //check the option whether keep the same person or allocate to a new person
         //extended date is in DueType second postion
@@ -190,109 +214,114 @@ class Manager {
         //Change parameter WhatIfLate to Array of [action, number(days)];
 
         //decision point to decide change the status whether late, abandon, or complete
-        if (task.Type == 'dispute') {
-            JSON.parse(task.Status)[0] = 'complete';
-            return Promise.map(JSON.parse(task.NextTask), function(task) {
-                TaskInstance.find({
-                    where: {
-                        TaskInstanceID: task
-                    }
-                }).then(function(nextTask) {
-                    JSON.parse(nextTask.Status)[0] = 'bypassed';
-                    //need an algorithm that checks for all subworkflow/workflow complete. Triverse the tree to find all subworkflow.
-                }).then(function(err) {
-                    console.log('Resolve dispute failed to bypass. TaskInstanceID: ', nextTask.TaskInstanceID);
-                    console.log(err);
-                });
-            });
+
+        console.log('timeOut');
+        var x = this;
+        var status = JSON.parse(task.Status);
+        if (task.TaskActivity.Type === 'dispute') {
+            trigger.skipDispute(task.TaskInstanceID);
         } else {
-            return TaskActivity.find({
-                where: {
-                    TaskActivityID: task.TaskActivityID
-                }
-            }).then(function(taskActivity) {
-                switch (taskActivity.AtDurationEnd) {
+
+            switch (task.TaskActivity.AtDurationEnd) {
                 case '"late"':
-                        //check WhatIfLate action
-                    switch (taskActivity.WhatIfLate) {
-                    case '"keep_same_participant"':
-                        JSON.parse(task.Status)[0] = 'late';
-                                //email.sendNow(task.UserID, 'late');
-                        break;
-                    case '"allocate_new_person_from_contingency_pool"':
-                        console.log('TaskInstance ', task.TaskInstanceID, ': Allocating new user to the task...');
-                                //task.Status = 'late_reallocated';
-                        JSON.parse(task.Status)[0] = 'started';
-                                //Run allocation algorithm, extend due date.
-                        task.extendDate(4320);
-                                // task.save()
-                        return alloc.reallocate(task, users).then(function (done) {
-                            console.log(done);
-                            if (!done || !done[0]) return;
-                            console.log('now saving');
-                            return task.save();
-                        });
-                                /*alloc.findSectionUsers(task.AssignmentInstanceID, function(users) {
-                                    alloc.reallocate(task.TaskInstanceID, users);
-                                    task.extendDate(4320);
-                                });*/
-                                //send email to notify user about allocation
-                        break;
-                    case '"allocate_to_different_person_in_same_group"':
-                                //task.Status = 'late_reallocated';
-                        JSON.parse(task.Status)[0] = 'started';
-                                //Run allocation algorithm specifiy with team, extend due date.
-                        alloc.findGroupUsers(task.GroupID, function(users) {
-                                    //alloc.reallocate(task.TaskInstanceID, users);
-                        });
-                                //send email to notify user about allocation
-                        break;
-                    case '"allocate_to_instructor"':
-                        console.log('TaskInstance ', task.TaskInstanceID, ': Allocating instructor to the task...');
-                                //task.Status = 'late_reallocated';
-                        JSON.parse(task.Status)[0] = 'started';
-                                //Run allocation algorithm specifiy with team, extend due date
-                        alloc.findInstructor(task.AssignmentInstanceID, function(instructor) {
-                            alloc.reallocate(task, [instructor], done);
-                            task.extendDate(4320);
-                        });
-                                //send email to notify user about allocation
-                        break;
-                                // case "abandon_task":
-                                //     this.Status = "complete";
-                                //     break;
-                                // case "resolved_task":
-                                //     this.Status = "complete";
-                                //     break;
-                    default:
-                    }
+                    //check WhatIfLate action
+                    await x.whatIfLate(task, users);
                     break;
                 case 'resolve':
-                    JSON.parse(task.Status)[0] = 'complete';
-                        //submitted. Stop task instance and continue subworkflow task status = complete
+                    status[0] = 'complete';
+                    await x.updateStatus(task, status);
+                    await trigger.bypassAllSubworkflows(task);
+                    //submitted. Stop task instance and continue subworkflow task status = complete
                     break;
                 case 'abandon':
-                    JSON.parse(task.Status)[0] = 'abandoned';
-                        //abandoning subworkflow. status = complete
-                        //*add subworkflow complete.
-                        //Skip to subworkflow complete
+                    status[0] = 'abandoned';
+                    await x.updateStatus(task, status);
+                    await trigger.bypassAllSubworkflows(task);
+                    //abandoning subworkflow. status = complete
+                    //*add subworkflow complete.
+                    //Skip to subworkflow complete
                     break;
                 case 'complete':
-                        //change status to complete
-                    JSON.parse(task.Status)[0] = 'complete';
-                        //start nexttask
-                    task.triggerNext();
+                    //change status to complete and begin next tasks`
+                    status[0] = 'complete';
+                    await x.updateStatus(task, status);
+                    await trigger.next(task.TaskInstanceID);
                     break;
                 default:
                     console.log('AtDurationEnd does not fall into any category.');
-                }
-                task.save();
-            });
+            }
+
         }
+
     }
 
+    async updateStatus(task, status) {
+        task.Status = JSON.stringify(status);
+        await task.save();
+    }
 
+    async whatIfLate(task, users) {
+        var x = this;
+        var status = JSON.parse(task.Status);;
+        switch (task.TaskActivity.WhatIfLate) {
+            case '"keep_same_participant"':
+                status[3] = 'late';
+                await x.updateStatus(task, status);
+
+                //email.sendNow(task.UserID, 'late');
+                break;
+            case '"allocate_new_participant_from_contigency_pool"':
+
+                status[5] = 'reallocated_extra_credit';
+                await x.updateStatus(task, status);
+                //Run allocation algorithm, extend due date.
+                await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1]);
+                await alloc.reallocate(task, users).then(async function (done) {
+                    console.log(done);
+                    if (!done || !done[0]) {
+                        return;
+                    } else {
+                        console.log('now saving');
+                        await task.save();
+                    }
+                });
+                //send email to notify user about allocation
+                break;
+            case '"allocate_to_different_person_in_same_group"':
+                status[0] = 'started';
+                await x.updateStatus(task, status);
+                //Run allocation algorithm specifiy with team, extend due date.
+                alloc.findGroupUsers(task.GroupID, function (users) {
+                    //alloc.reallocate(task.TaskInstanceID, users);
+                });
+                //send email to notify user about allocation
+                break;
+            case '"allocate_to_instructor"':
+                console.log('TaskInstance ', task.TaskInstanceID, ': Allocating instructor to the task...');
+                status[0] = 'started';
+                await x.updateStatus(task, status);
+                //Run allocation algorithm specifiy with team, extend due date
+                alloc.findInstructor(task.AssignmentInstanceID, function (instructor) {
+                    alloc.reallocate_user_to_task(task, instructor, false);
+                    task.extendDate(JSON.parse(task.TaskActivity.DueType)[1]);
+                });
+                //send email to notify user about allocation
+                break;
+                // case "abandon_task":
+                //     this.Status = "complete";
+                //     break;
+                // case "resolved_task":
+                //     this.Status = "complete";
+                //     break;
+            default:
+                logger.log('error', '/Workflow/Manager/whatIfLate: Fatal! Unknown case!');
+        }
+    }
 }
+
+
+
+
 
 
 

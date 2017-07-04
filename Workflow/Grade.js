@@ -13,53 +13,63 @@ var SectionUser = models.SectionUser;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
+var TaskGrade = models.TaskGrade;
+var TaskSimpleGrade = models.TaskSimpleGrade;
 var TaskActivity = models.TaskActivity;
 var Assignment = models.Assignment;
+var AssignmentGrade = models.AssignmentGrade;
 var AssignmentInstance = models.AssignmentInstance;
 
 var WorkflowInstance = models.WorkflowInstance;
+var WorkflowGrade = models.WorkflowGrade;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-
+var util = new Util();
 const logger = require('winston');
 
 
 
 class Grade {
 
-    async addSimpleGrade(ti_id){
+    /**
+     * Add simple grade
+     * 
+     * @param {any} ti_id 
+     * @memberof Grade
+     */
+    async addSimpleGrade(ti_id) {
         var x = this;
-        var util = new Util();
 
         var ti = await TaskInstance.find({
-            where:{
+            where: {
                 TaskInstanceID: ti_id
-            }
+            },
+            include: [{
+                model: WorkflowInstance,
+                attributes: ['WorkflowActivityID']
+            },
+            {
+                model: TaskActivity,
+                attributes:['SimpleGrade']
+            }]
         });
+        var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
-        var ta = await TaskActivity.find({
-            where:{
-                TaskActivityID: ti.TaskActivityID
-            }
-        });
-
-        var wa_id = await util.findWorkflowActivityID(ti.WorkflowInstanceID);
-        var sec_user_id = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
-
-        console.log('1',wa_id, sec_user_id, ti.TaskInstanceID);
-
-        if(ta.SimpleGrade !== 'none'){
-            try{
-                await TaskSimpleGrade.create({
+        if (ti.TaskActivity.SimpleGrade !== 'none') {
+            try {
+                var grade = await TaskSimpleGrade.create({
                     TaskInstanceID: ti.TaskInstanceID,
-                    WorkflowActivityID: wa_id,
-                    SectionUserID: sec_user_id,
+                    SectionUserID: sec_user,
+                    WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
                     Grade: 1
                 });
-            } catch(err){
-                logger.log('error', 'cannot create task simple grade', {
+
+                logger.log('info', '/Workflow/Grade/addSimpleGrade: Done! TaskSimpleGradeID: ', grade.TaskSimpleGradeID);
+
+            } catch (err) {
+                logger.log('error', '/Workflow/Grade/addSimpleGrade: cannot create task simple grade', {
                     error: err
                 });
             }
@@ -67,65 +77,163 @@ class Grade {
 
     }
 
-    async getTaskCollection(wi_id){
-        //try{
+    /**
+     * adds task grade
+     * 
+     * @param {any} ti_id 
+     * @param {any} grade 
+     * @memberof Grade
+     */
+    async addTaskGrade(ti_id, grade) {
 
-        var x = this;
-        var task_collection = [];
-        console.log('wi_id', wi_id);
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: ti_id
+            },
+            include: [{
+                model: WorkflowInstance,
+                attributes: ['WorkflowActivityID']
+            }]
+        });
+
+        var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
+
+        var task_grade = await TaskGrade.create({
+            TaskInstanceID: ti_id,
+            WorkflowInstanceID: ti.WorkflowInstanceID,
+            AssignmentInstanceID: ti.AssignmentInstanceID,
+            SectionUserID: sec_user,
+            WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
+            Grade: grade
+        });
+
+        
+
+        logger.log('info', '/Workflow/Grade/addTaskGrade: Done! TaskGradeID: ', task_grade.TaskGradeID);
+    }
+    
+    /**
+     * add workflow grade
+     * 
+     * @param {any} wi_id 
+     * @param {any} user_id 
+     * @param {any} grade 
+     * @memberof Grade
+     */
+    async addWorkflowGrade(wi_id, user_id, grade){
+        
+        console.log('here');
         var wi = await WorkflowInstance.find({
             where:{
                 WorkflowInstanceID: wi_id
             }
         });
 
-        console.log(JSON.parse(wi.TaskCollection));
+        console.log('here2')
+        var sec_user = await util.findSectionUserID(wi.AssignmentInstanceID, user_id);
 
-        await Promise.mapSeries(JSON.parse(wi.TaskCollection), async function(tasks){
-            await Promise.mapSeries(tasks, async function(task){
-                await task_collection.push(task);
-            });
+        console.log('ai_id', wi.AssignmentInstanceID, 'sec_user', sec_user)
+
+        var workflow_grade = await WorkflowGrade.create({
+            WorkflowActivityID: wi.WorkflowActivityID,
+            AssignmentInstanceID: wi.AssignmentInstanceID,
+            SectionUserID: sec_user,
+            Grade: grade
         });
 
-        return task_collection;
-
-        // }catch(err){
-        //     logger.log('error', 'cannot find task collection');
-        // }
+        logger.log('info', '/Workflow/Grade/addWorkflowGrade: Done! WorkflowGradeID: ', workflow_grade.WorkflowGradeID);
     }
 
-    async getWorkflowCollection(ai_id){
-        try{
+    /**
+     * add assignment grade
+     * 
+     * @param {any} ai_id 
+     * @param {any} user_id 
+     * @param {any} grade 
+     * @memberof Grade
+     */
+    async addAssignmentGrade(ai_id, user_id, grade){
+
+        var sec_user = await util.findSectionUserID(ai_id, user_id);
+
+        var assignment_grade = await AssignmentGrade.create({
+            AssignmentInstanceID: ai_id,
+            SectionUserID: sec_user,
+            Grade: grade
+        });
+
+        logger.log('info', '/Workflow/Grade/addAssignmentGrade: Done! AssignmentGradeID: ', assignment_grade.AssignmentGradeID);
+
+    }
+
+
+    /**
+     * Finds and returns task collection
+     * 
+     * @param {any} wi_id 
+     * @returns 
+     * @memberof Grade
+     */
+    async getTaskCollection(wi_id) {
+        try {
+
             var x = this;
-            console.log('ai_id', ai_id);
+            var task_collection = [];
+            var wi = await WorkflowInstance.find({
+                where: {
+                    WorkflowInstanceID: wi_id
+                }
+            });
+
+            return JSON.parse(wi.TaskCollection);
+
+        } catch (err) {
+            logger.log('error', 'cannot find task collection');
+        }
+    }
+
+    /**
+     * finds and returns workflow collection
+     * 
+     * @param {any} ai_id 
+     * @returns 
+     * @memberof Grade
+     */
+    async getWorkflowCollection(ai_id) {
+        try {
+            var x = this;
             var ai = await AssignmentInstance.find({
-                where:{
+                where: {
                     AssignmentInstanceID: ai_id
                 }
             });
 
             return ai.WorkflowCollection;
-        } catch(err){
+        } catch (err) {
             logger.log('error', 'cannot find workflow collection');
         }
     }
 
 
-    //check if all the workflow instances within an assignment is done
-    async checkAssignmentDone(ai_id){
+    /**
+     * checks if all workflows in the assignment is done
+     * 
+     * @param {any} ai_id 
+     * @returns 
+     * @memberof Grade
+     */
+    async checkAssignmentDone(ai_id) {
         var x = this;
         var wf_collection = await x.getWorkflowCollection(ai_id);
         var workflows_not_done = [];
 
-        console.log('wf_collection', wf_collection);
-
-        await Promise.map(JSON.parse(wf_collection), async function(wi_id){
-            if(!(await x.checkWorkflowDone(wi_id))){
+        await Promise.map(JSON.parse(wf_collection), async function (wi_id) {
+            if (!(await x.checkWorkflowDone(wi_id))) {
                 workflows_not_done.push(wi_id);
             }
         });
 
-        if(_.isEmpty(workflows_not_done)){
+        if (_.isEmpty(workflows_not_done)) {
             logger.log('info', 'assignment completed!');
             return true;
         } else {
@@ -137,21 +245,25 @@ class Grade {
 
     }
 
-    //check if all the task instances within a workflow is done
-    async checkWorkflowDone(wi_id){
+    /**
+     * checks if all task instances within a workflow are done
+     * 
+     * @param {any} wi_id 
+     * @returns 
+     * @memberof Grade
+     */
+    async checkWorkflowDone(wi_id) {
         var x = this;
         var task_collection = await x.getTaskCollection(wi_id);
         var tasks_not_done = [];
 
-        console.log('task_collection', task_collection);
-
-        await Promise.map(JSON.parse(task_collection), async function(ti_id){
-            if(!(await x.checkTaskDone(ti_id))){
+        await Promise.map(task_collection, async function (ti_id) {
+            if (!(await x.checkTaskDone(ti_id))) {
                 tasks_not_done.push(ti_id);
             }
         });
 
-        if(_.isEmpty(tasks_not_done)){
+        if (_.isEmpty(tasks_not_done)) {
             logger.log('info', 'workflow completed!');
             return true;
         } else {
@@ -161,6 +273,39 @@ class Grade {
             return false;
         }
     }
+
+    /**
+     * checks if a task is done
+     * 
+     * @param {any} ti_id 
+     * @returns 
+     * @memberof Grade
+     */
+    async checkTaskDone(ti_id) {
+
+        try {
+            var x = this;
+
+            var ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: ti_id
+                }
+            });
+
+            if (JSON.parse(ti.Status)[0] === 'complete' || JSON.parse(ti.Status)[0] === 'automatic' || JSON.parse(ti.Status)[0] === 'bypassed') {
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (err) {
+            logger.log('error', 'cannot check whether the tasks are done', {
+                TaskInstanceID: ti_id,
+                error: err
+            });
+        }
+    }
+
 
 
 }

@@ -207,6 +207,8 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
+    m.Assignment.belongsTo(m.Course,{foreignKey: 'CourseID'});
+
     //has Many Relations
 
     m.Category.hasMany(m.Badge, {
@@ -288,12 +290,6 @@ models.forEach(function(model) {
 
 
 })(module.exports);
-
-
-// const transaction = (task) => {
-//     return cls.getNamespace(NAMESPACE).get('transaction') ? task() : sequelize.transaction(task);
-// };
-
 
 
 module.exports.sequelize = sequelize;

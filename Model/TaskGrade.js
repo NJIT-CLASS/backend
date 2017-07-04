@@ -25,18 +25,24 @@ module.exports = function (sequelize, DataTypes) {
             allowNull: false,
             unique: 'ti_sectionUserId_unq_idx',
         },
+        WorkflowInstanceID: {
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'WorkflowInstanceID',
+            allowNull: false,
+        },
+        AssignmentInstanceID: {
+         //Foreign Key
+         type: DataTypes.INTEGER.UNSIGNED,
+         field: 'AssignmentInstanceID',
+         allowNull: false,
+        },
         WorkflowActivityID: {
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'WorkflowActivityID',
             allowNull: false,
         },
-        /*AssignmentInstanceID: {
-         //Foreign Key
-         type: DataTypes.INTEGER.UNSIGNED,
-         field: 'AssignmentInstanceID',
-         allowNull: false,
-         },*/
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'Grade',
