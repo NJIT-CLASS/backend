@@ -701,6 +701,9 @@ class TaskFactory {
     }
 
     addUserPoints(userID, option){
+
+        console.info('user id', userID);
+
         var $this = this;
 
         UserPoints.find({
@@ -762,17 +765,23 @@ class TaskFactory {
 
     updateUserBadges(userID, UserPoints){
 
-        UserPoints.update(
-            update,
-            {
+        UserBadges.find({
             where: {
-               UserID: userID
-            }
+                UserID: userID
+            },
+            attributes:['QuestionsPoints', 
+                        'HighGradesPoints', 
+                        'SolutionsPoints', 
+                        'GraderPoints', 
+                        'EarlySubmissionPoints', 
+                        'ParticipationPoints']
+
         }).then(function(result) {
-            console.info('Success!!! result is ', result);
+
+ 
         }).catch(function(err) {
-            console.log('Error !!!!', err);
-        });  
+ 
+        });
     }
 
 

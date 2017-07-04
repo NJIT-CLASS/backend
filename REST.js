@@ -3501,7 +3501,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         
         var taskFactory = new TaskFactory();
             
-        switch(ti.type){
+        switch(ti.TaskActivity.Type){
             case 'create_problem':
                 taskFactory.addUserPoints(req.body.userid, {'QuestionsPoints':'100'});
                 break;
