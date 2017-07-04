@@ -1286,8 +1286,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
         logger.log('warn', 'only info');
         logger.log('warn', 'only info', ([1, 2, {
-                k: 'v'
-            },
+            k: 'v'
+        },
             ['hi'],
             function (test) {
                 console.log(test);
@@ -1499,23 +1499,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             // attributes: ['CourseID']
             include: [{
-                    model: Assignment,
+                model: Assignment,
                     // attributes: ["AssignmentInstanceID", "AssignmentID"],
                     /*include: [{
                      model: Section,
                      }],*/
-                },
-                {
-                    model: Section,
-                    include: [{
-                        model: Course,
+            },
+            {
+                model: Section,
+                include: [{
+                    model: Course,
                         // attributes: ["AssignmentInstanceID", "AssignmentID"],
                         /*include: [{
                          model: Section,
                          attributes: ["SectionID"],
                          }],*/
-                    }, ],
-                },
+                }, ],
+            },
                 /*{
                  model: AssignmentGrade,
                  }*/
@@ -1911,26 +1911,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     if (attempts >= 5) {
                         console.log('/login: setting new timeout for ' + user.Email);
                         switch (attempts) {
-                            case 5:
-                                minutes = 1;
-                                break;
-                            case 6:
-                                minutes = 2;
-                                break;
-                            case 7:
-                                minutes = 5;
-                                break;
-                            case 8:
-                                minutes = 10;
-                                break;
-                            case 9:
-                                minutes = 15;
-                                break;
-                            case 10:
-                                minutes = 30;
-                                break;
-                            default:
-                                minutes = 60;
+                        case 5:
+                            minutes = 1;
+                            break;
+                        case 6:
+                            minutes = 2;
+                            break;
+                        case 7:
+                            minutes = 5;
+                            break;
+                        case 8:
+                            minutes = 10;
+                            break;
+                        case 9:
+                            minutes = 15;
+                            break;
+                        case 10:
+                            minutes = 30;
+                            break;
+                        default:
+                            minutes = 60;
                         }
                         let timeout = current_timestamp;
                         timeout.setMinutes(timeout.getMinutes() + minutes);
@@ -2035,13 +2035,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
             include: [{
-                    model: UserLogin,
-                    attributes: ['Email']
-                },
-                {
-                    model: UserContact,
-                    attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
-                }
+                model: UserLogin,
+                attributes: ['Email']
+            },
+            {
+                model: UserContact,
+                attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
+            }
             ]
         }).then(function (user) {
             res.json({
@@ -2607,12 +2607,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 CourseID: req.params.courseId
             },
-            attributes: ['CourseID', 'Number', 'Name']
+            attributes: ['CourseID', 'Number', 'Name', 'Description']
         }).then(function (result) {
             Section.findAll({
                 where: {
                     CourseID: req.params.courseId
-                }
+                },
+                include: [{
+                    model: Semester,
+                    attributes: ['Name']
+                }]
             }).then(function (sections) {
                 res.json({
                     'Error': false,
@@ -3081,6 +3085,50 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+      //------------------------------------------------------------
+    //------------------------------------------------------------
+
+    //Get the active sections for a student in a particular course
+    router.get('/getActiveEnrolledSections/:courseID', function(req, res) {
+        SectionUser.findAll({
+            where: {
+                UserID: req.query.studentID,
+                Active: true
+            },
+            attributes: ['Role'],
+            include: [{
+                model: Section,
+                attributes: ['SectionID','Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['CourseID','Number', 'Name']
+                },{
+                    model: Semester,
+                    attributes: ['SemesterID', 'Name']
+                }]
+            }]
+        }).then(function(sections) {
+            let returnSections = sections.filter((section) => {
+                return section.Section.Course.CourseID == req.params.courseID;
+            }).map(section => section.Section);
+            Course.find({
+                where: {
+                    CourseID: req.params.courseID
+                },
+                attributes: ['CourseID', 'Number', 'Name', 'Description']
+            }).then(function(result) {
+                console.log(`/getActiveEnrolledSections/ Courses for ${req.query.studentID} found `);
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Sections': returnSections,
+                    'Course': result
+                });
+            });
+
+        });
+    });
+
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to Get Courses Created by an Instructor
@@ -3366,55 +3414,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         TaskInstance.find({
             where: {
                 TaskInstanceID: req.params.taskInstanceID
-<<<<<<< HEAD
-            }
-        }).then(function (taskInstanceResult) {
-            TaskActivity.find({
-                where: {
-                    TaskActivityID: taskInstanceResult.TaskActivityID
-                }
-            }).then(function (taskActivityResult) {
-                Course.find({
-                    where: {
-                        CourseID: req.query.courseID
-                    }
-                }).then(function (courseResult) {
-                    Assignment.find({
-                        where: {
-                            AssignmentID: taskActivityResult.AssignmentID
-                        },
-                        attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-                    }).then(function (assignmentResult) {
-                        Section.find({
-                            where: {
-                                SectionID: req.query.sectionID
-                            }
-                        }).then(function (sectionResult) {
-                            Semester.find({
-                                where: {
-                                    SemesterID: sectionResult.SemesterID
-                                }
-                            }).then(function (semesterResult) {
-                                res.json({
-                                    'Error': false,
-                                    'Message': 'Success',
-                                    'taskActivityID': taskInstanceResult.TaskActivityID,
-                                    'taskActivityType': taskActivityResult.Type,
-                                    'courseName': courseResult.Name,
-                                    'courseNumber': courseResult.Number,
-                                    'assignment': assignmentResult,
-                                    'semesterID': sectionResult.SemesterID,
-                                    'semesterName': semesterResult.Name
-                                });
-                            }).catch(function (err) {
-                                //Catch error and print into console.
-                                console.log('/taskInstanceTemplate/main/ ' + err);
-                                res.status(400).end();
-                            });
-                        });
-                    });
-                });
-=======
             },
             include:[{
                 model: TaskActivity,
@@ -3458,7 +3457,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name,
                 'sectionName': taskInstanceResult.AssignmentInstance.Section.Name,
                 'sectionID': taskInstanceResult.AssignmentInstance.Section.Name
->>>>>>> 11f23da4367f92cf66afc8f4c6bd3901e87ca11a
             });
         });
     });
@@ -3808,7 +3806,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ['Name', 'Type', 'VisualID'],
+                    attributes: ['Name','DisplayName', 'Type', 'VisualID'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -3862,7 +3860,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }]
                 }, {
                     model: TaskActivity,
-                    attributes: ['Name', 'Type', 'VisualID'],
+                    attributes: ['Name', 'DisplayName','Type', 'VisualID'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -4024,15 +4022,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             if (done == null) {
 
                 await TaskInstance.find({
-                        where: {
-                            TaskInstanceID: req.params.taskInstanceId
-                        },
-                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
-                        include: [{
-                            model: TaskActivity,
-                            attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload']
-                        }]
-                    })
+                    where: {
+                        TaskInstanceID: req.params.taskInstanceId
+                    },
+                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName']
+                    }]
+                })
                     .then((result) => {
                         //console.log(result);
                         ar.push(result);
@@ -4052,7 +4050,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
                         include: [{
                             model: TaskActivity,
-                            attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
+                            attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity', 'DisplayName']
 
                         }]
                     }).then((result) => {
@@ -4064,16 +4062,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     });
                 }).then(async function () {
                     await TaskInstance.find({
-                            where: {
-                                TaskInstanceID: req.params.taskInstanceId
-                            },
-                            attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
-                            include: [{
-                                model: TaskActivity,
-                                attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity']
+                        where: {
+                            TaskInstanceID: req.params.taskInstanceId
+                        },
+                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                        include: [{
+                            model: TaskActivity,
+                            attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity', 'DisplayName']
 
-                            }]
-                        })
+                        }]
+                    })
                         .then((result) => {
                             //console.log(result);
 
@@ -4861,13 +4859,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Role: req.params.role
             },
             include: [{
-                    model: User,
-                    attributes: ['FirstName', 'LastName']
-                },
-                {
-                    model: UserLogin,
-                    attributes: ['Email']
-                }
+                model: User,
+                attributes: ['FirstName', 'LastName']
+            },
+            {
+                model: UserLogin,
+                attributes: ['Email']
+            }
             ],
             order: [
                 [User, 'LastName'],
@@ -4908,12 +4906,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     .then(function () {
                         return sequelize.transaction(function (t) {
                             return User.create({
-                                    FirstName: req.body.firstName,
-                                    LastName: req.body.lastName,
-                                    Instructor: req.body.role === 'Instructor'
-                                }, {
-                                    transaction: t
-                                })
+                                FirstName: req.body.firstName,
+                                LastName: req.body.lastName,
+                                Instructor: req.body.role === 'Instructor'
+                            }, {
+                                transaction: t
+                            })
                                 .catch(function (err) {
                                     console.error(err);
                                     logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
@@ -4928,24 +4926,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                 .then(async function (user) {
                                     let temp_pass = await password.generate();
                                     return UserContact.create({
-                                            UserID: user.UserID,
-                                            FirstName: req.body.firstName,
-                                            LastName: req.body.lastName,
-                                            Email: req.body.email,
-                                            Phone: '(XXX) XXX-XXXX'
-                                        }, {
-                                            transaction: t
-                                        }).catch(function (err) {
-                                            console.error(err);
-                                            logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                req_body: req.body,
-                                                error: err
-                                            });
-                                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        UserID: user.UserID,
+                                        FirstName: req.body.firstName,
+                                        LastName: req.body.lastName,
+                                        Email: req.body.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
+                                        transaction: t
+                                    }).catch(function (err) {
+                                        console.error(err);
+                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                            req_body: req.body,
+                                            error: err
+                                        });
+                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                                 .then(function () {
                                                     res.status(500).end();
                                                 });
-                                        })
+                                    })
                                         .then(async function (userCon) {
                                             return UserLogin.create({
                                                 UserID: user.UserID,
@@ -4990,8 +4988,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                         req_body: req.body
                                                     });
                                                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
-                                                            transaction: t
-                                                        })
+                                                        transaction: t
+                                                    })
                                                         .then(function () {
                                                             res.json({
                                                                 success: true,
@@ -5048,29 +5046,29 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         console.log('deleting user', req.params.userID);
 
         return sequelize.transaction(function (t) {
-                return UserLogin.destroy({
-                        where: {
-                            UserID: req.params.userID
-                        }
-                    }, {
-                        transaction: t
-                    })
+            return UserLogin.destroy({
+                where: {
+                    UserID: req.params.userID
+                }
+            }, {
+                transaction: t
+            })
                     .then((loginRowsDeleted) => {
                         return UserContact.destroy({
-                                where: {
-                                    UserID: req.params.userID
-                                }
-                            }, {
-                                transaction: t
-                            })
+                            where: {
+                                UserID: req.params.userID
+                            }
+                        }, {
+                            transaction: t
+                        })
                             .then((contactRowsDeleted) => {
                                 return SectionUser.destroy({
-                                        where: {
-                                            UserID: req.params.userID
-                                        }
-                                    }, {
-                                        transaction: t
-                                    })
+                                    where: {
+                                        UserID: req.params.userID
+                                    }
+                                }, {
+                                    transaction: t
+                                })
                                     .then((sectionUsersDeleted) => {
                                         return User.destroy({
                                             where: {
@@ -5083,7 +5081,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             });
 
                     });
-            })
+        })
             .then((result) => {
                 logger.log('info', 'post: /delete/user, user deleted from system', {
                     req_params: req.params,
@@ -5194,6 +5192,329 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         await trigger.approved(req.body.ti_id, req.body.data);
         res.status(200).end();
+    });
+
+
+        //-----------------------------------------------------------------------------------------------------
+
+
+    //Endpoint for workflow reports
+
+    router.get('/getWorkflowReport/:workflowInstanceID', (req, res) => {
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject){
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [
+                        {
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
+                                model: WorkflowActivity,
+                                attributes: ['WorkflowStructure']
+                            }
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
+                                model: UserContact,
+                                attributes: ['Email','Alias']
+                            }]
+                        }
+                    ]
+                })
+            .catch(err => reject(err))
+            .then(task => resolve(task));
+            });
+        };
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+        WorkflowInstance.find({
+            where: {
+                WorkflowInstanceID: req.params.workflowInstanceID
+            }
+        })
+      .then( async (result) => {
+          let mappedTasks = JSON.parse(result.TaskCollection);
+
+          let finalResults = mappedTasks.map(fetchTasks);
+
+          Promise.all(finalResults.map(Promise.all)).then(arrArr => {
+              return res.json({
+                  'Result': arrArr
+              });
+          });
+
+      });
+    });
+
+
+//------------------------------------
+    router.get('/getWorkflowReport/alternate/:workflowInstanceID', async (req, res) => {
+        let workflowInstanceObject = {};
+
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject){
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [
+                        {
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
+                                model: WorkflowActivity,
+                                attributes: ['WorkflowStructure']
+                            }
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
+                                model: UserContact,
+                                attributes: ['Email','Alias']
+                            }]
+                        }
+                    ]
+                })
+        .catch(err => reject(err))
+        .then(tiData => {
+            if(workflowInstanceObject[tiData.TaskActivity.TaskActivityID]){
+                workflowInstanceObject[tiData.TaskActivity.TaskActivityID].push(tiData);
+            }else{
+                workflowInstanceObject[tiData.TaskActivity.TaskActivityID] = [tiData];
+            }
+            resolve(tiData);
+        });
+            });
+        };
+
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+    //key: taskActivityID
+    //value: array of resolved tasks
+        WorkflowInstance.find({
+            where: {
+                WorkflowInstanceID: req.params.workflowInstanceID
+            }
+        })
+        .then( async (result) => {
+            let mappedTasks = JSON.parse(result.TaskCollection);
+
+            let finalResults = mappedTasks.map(fetchTasks);
+
+            Promise.all(finalResults.map(Promise.all)).then(arrArr => {
+                return res.json({
+                    'Result': workflowInstanceObject
+                });
+            });
+
+        });
+    });
+
+
+//---------------------------------------------------------------------------
+//---------------------------------------------------------------------------
+
+// Endpoint to get assignment instance report
+    router.get('/getAssignmentReport/:assignmentInstanceID', function(req,res){
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject){
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [
+                        {
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
+                                model: WorkflowActivity,
+                                attributes: ['WorkflowStructure']
+                            }
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
+                                model: UserContact,
+                                attributes: ['Email','Alias']
+                            }]
+                        }
+                    ]
+                })
+          .catch(err => reject(err))
+          .then(task => resolve(task));
+            });
+        };
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+        let fetchWorkflow = (workflowArray) => {
+            return workflowArray.map((workflow) => {
+                return WorkflowInstance.find({
+                    where: {
+                        WorkflowInstanceID: workflow
+                    }
+                })
+                .then((result) => {
+                    let mappedTasks = JSON.parse(result.TaskCollection);
+                    return mappedTasks.map(fetchTasks);
+                });
+            });
+        };
+
+
+        AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        }).then((aiResult) => {
+            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
+            let finalResults = fetchWorkflow(workflowsList);
+
+            Promise.all(finalResults.map((row) => {
+                return row.map(Promise.all);
+            })).then(arrArr => {
+                return res.json({
+                    'Result': arrArr
+                });
+            });
+        });
+
+
+
+    });
+    //-------------------------------------------------------------------------
+
+    router.get('/getAssignmentReport/alternate/:assignmentInstanceID', (req, res) => {
+        let assignmentObject = {};
+
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject){
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes:['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [
+                        {
+                            model: TaskActivity,
+                            attributes: ['Name','DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
+                                model: UserContact,
+                                attributes: ['Email','Alias']
+                            }]
+                        }
+                    ]
+                })
+        .catch(err => reject(err))
+        .then(tiData => {
+            const waID = tiData.WorkflowInstance.WorkflowActivityID;
+            const wiID =  tiData.WorkflowInstance.WorkflowInstanceID;
+            const taID = tiData.TaskActivity.TaskActivityID;
+
+            if(!assignmentObject[waID].WorkflowInstances[wiID]){
+                assignmentObject[waID].WorkflowInstances[wiID] = {};
+            }
+
+            if(assignmentObject[waID].WorkflowInstances[wiID][taID]){
+                assignmentObject[waID].WorkflowInstances[wiID][taID].push(tiData);
+            }else{
+                assignmentObject[waID].WorkflowInstances[wiID][taID] = [tiData];
+            }
+            resolve(tiData);
+        });
+            });
+        };
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+        let fetchWorkflow = (workflowArray) => {
+            return workflowArray.map((workflow) => {
+                return WorkflowInstance.find({
+                    where: {
+                        WorkflowInstanceID: workflow
+                    },
+                    include:[WorkflowActivity]
+                })
+              .then((result) => {
+                  assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
+                      WorkflowInstances: {},
+                      Structure: result.WorkflowActivity.WorkflowStructure
+                  };
+
+                  let mappedTasks = JSON.parse(result.TaskCollection);
+                  return mappedTasks.map(fetchTasks);
+              });
+            });
+        };
+
+
+        AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        }).then((aiResult) => {
+            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
+            let finalResults = fetchWorkflow(workflowsList);
+
+            Promise.all(finalResults.map((row) => {
+                return row.map(Promise.all);
+            })).then(arrArr => {
+                return res.json({
+                    'Result': assignmentObject
+                });
+            });
+        });
+
+
+
     });
 
 };
