@@ -19,6 +19,10 @@ var UserContact = models.UserContact;
 var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
+var Badge = models.Badge;
+var Category = models.Category;
+var UserPoints = models.UserPoints;
+var UserBadges = models.UserBadges;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
@@ -1344,9 +1348,9 @@ class TaskFactory {
                     WorkflowInstanceID: ai.AssignmentInstanceID
                 }
             }).then(function(wi) {
-                where: {
+                // where: {
 
-                }
+                // }
             });
         });
     }
@@ -1507,6 +1511,45 @@ class TaskFactory {
             });
         });
     }
+
+    updateUserPoints(userID, option){
+        
+        var update = {};  
+
+        if(option.hasOwnProperty('QuestionsPoints')){
+            update.QuestionsPoints = option.QuestionsPoints;
+        }
+        if(option.hasOwnProperty('HighGradesPoints')){
+            update.HighGradesPoints = option.HighGradesPoints;
+        }
+        if(option.hasOwnProperty('SolutionsPoints')){
+            update.SolutionsPoints = option.SolutionsPoints;
+        }
+        if(option.hasOwnProperty('GraderPoints')){
+            update.GraderPoints = option.GraderPoints;
+        }
+        if(option.hasOwnProperty('EarlySubmissionPoints')){
+            update.EarlySubmissionPoints = option.EarlySubmissionPoints;
+        }
+        if(option.hasOwnProperty('ParticipationPoints')){
+            update.ParticipationPoints = option.ParticipationPoints;
+        }
+
+        UserPoints.update(
+            update,
+            {
+            where: {
+               UserID: userID
+            }
+        }).then(function(result) {
+            console.info('Success!!! result is ', result);
+        }).catch(function(err) {
+            console.log('Error !!!!', err);
+        });  
+
+    }
+
+
 }
 
 

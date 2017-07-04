@@ -19,6 +19,10 @@ var UserContact = models.UserContact;
 var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
+var Badge = models.Badge;
+var Category = models.Category;
+var UserPoints = models.UserPoints;
+var UserBadges = models.UserBadges;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
@@ -989,7 +993,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     });
                 }
                 res.status(200).end();
-            } else {
+            } 
+            else {
                 res.status(400).end();
             }
         });
@@ -3621,7 +3626,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }, ],
         });
 
-        console.log(JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
+        console.log('=======>', JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
 
         logger.log('info', 'task instance updated');
         logger.log('info', 'triggering next task');
@@ -3643,6 +3648,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function(pre_ti) {
                 logger.log('info', 'task instance found', pre_ti.toJSON());
+                
                 ti_data = JSON.parse(pre_ti.Data);
 
                 if (!ti_data) {
@@ -5273,7 +5279,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         var tf = new TaskFactory();
         var users = await tf.debug(1, 1);
-        //console.log(users);
+        console.log(users);
         res.status(200).end();
     });
 
@@ -5613,6 +5619,77 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-------------------------------------------------------------------------
     //-------------------------------------------------------------------------
     //-------------------------------------------------------------------------
+
+
+    //Endpoints to get user's badges
+    router.get('/userBadges/:userID', async function(req, res) {
+
+        User.find({
+            where: {
+                UserID:  req.params.userID
+            },
+            attributes:[],
+            include: [
+                {
+                    model: Badge,
+                    attributes: ['BadgeID', 'Name', 'Description']
+                }
+            ]
+        }).then(function(result) {
+            if (!result){
+                res.json({
+                    'Error': false,
+                    'badges': result
+                });
+                return;
+            }
+
+            res.json({
+                'Error': false,
+                'badges': result
+            });
+        }).catch(function(err) {
+            console.log('/userBadges/: ' + err);
+            res.status(401).end();
+        });
+    });
+
+
+    //Endpoint to get user's points
+    router.get('/userPoints/:userID', async function(req, res) {
+
+        UserPoints.find({
+            where: {
+                UserID:  req.params.userID
+            },
+            attributes:['QuestionsPoints', 'HighGradesPoints', 'SolutionsPoints', 'GraderPoints', 'EarlySubmissionPoints', 'ParticipationPoints'],
+            include: [
+                {
+                    model: User,
+                    attributes: ['UserID', 'FirstName', 'LastName']
+                }
+            ]
+        }).then(function(result) {
+            if (!result){
+                res.json({
+                    'Error': false,
+                    'points': result
+                });
+                return;
+            } 
+
+            var taskFactory = new TaskFactory();
+            taskFactory.updateUserPoints(1, {'HighGradesPoints':'900'});
+
+            res.json({
+                'Error': false,
+                'points': result
+            });
+        }).catch(function(err) {
+            console.log('/userPoints/: ' + err);
+            res.status(401).end();
+        });
+    });
 
 };
 

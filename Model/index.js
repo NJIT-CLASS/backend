@@ -10,6 +10,7 @@ var settings = require('../backend_settings');
 var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
     host: settings.DB_HOST,
     dialect: 'mysql',
+    port: 3307,
     omitNull: true,
     pool: {
         max: 5,
@@ -24,10 +25,8 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference',
+    'FileReference', 'Badge', 'Category', 'UserBadges', 'UserPoints'
 ];
-
-
 
 
 
@@ -41,16 +40,39 @@ models.forEach(function(model) {
     //Belongs To Relations
     //Sorted By Foreign Key
 
+    m.UserBadges.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
+    m.UserBadges.belongsTo(m.Badge, { 
+        foreignKey: 'BadgeID'
+    });
+
+    m.User.belongsToMany(m.Badge, { 
+        through: m.UserBadges,
+        foreignKey: 'UserID',
+        otherKey: 'BadgeID'
+    });
+    
+    m.UserPoints.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
+
     m.Course.belongsTo(m.User, {
         foreignKey: 'CreatorID'
+    });
+
+    m.Badge.belongsTo(m.Category, {
+        foreignKey: 'CategoryID'
     });
 
     m.User.hasOne(m.UserLogin, {
         foreignKey: 'UserID'
     });
+
     m.User.hasOne(m.UserContact, {
         foreignKey: 'UserID'
     });
+
     m.UserLogin.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
@@ -185,10 +207,12 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
-
-
     //has Many Relations
 
+    m.Category.hasMany(m.Badge, {
+        as: 'Category',
+        foreignKey: 'CategoryID'
+    });
     m.Assignment.hasMany(m.AssignmentInstance, {
         as: 'AssignmentInstances',
         foreignKey: 'AssignmentID'
