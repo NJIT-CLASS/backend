@@ -5802,7 +5802,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                Status: 'saved',
                ReplyLevel: req.body.ReplyLevel,
                Parents: req.body.Parents,
-               Delete: 0
+               Delete: 0,
+               Hide: 0,
+               Viewed: 0
 
            }).then(function(result){
              res.status(200).end();
@@ -5996,7 +5998,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         console.log('comments/countOfUsers was called');
         Comments.findAll({
           where: {
-              CommentID: req.params.AssignmentInstanceID,
+              AssignmentInstanceID: req.params.AssignmentInstanceID,
               Delete: 0
           }
         }).then(function(rows) {
@@ -6015,7 +6017,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         console.log('comments/countOfRating was called');
         Comments.findAll({
           where: {
-              CommentID: req.params.AssignmentInstanceID,
+              AssignmentInstanceID: req.params.AssignmentInstanceID,
               Rating: {$not: null},
               Delete: 0
           }
@@ -6082,7 +6084,129 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //-------------------------------------------------------------------------
-
+    router.get('/comments/ai/:assignmentInstanceID',function(req, res) {
+      console.log('comments/ai/:assignmentInstanceID was called');
+      Comments.findAll({
+          where: {
+              AssignmentInstanceID: req.params.AssignmentInstanceID,
+              Delete: 0
+          },
+          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+        }).then(function(rows) {
+            res.json({
+                'Error_': false,
+                'Message': 'Success',
+                'Comments': rows
+            });
+        }).catch(function(err) {
+            console.log('comments/ai ' + err.message);
+            res.status(401).end();
+        });
+    });
+    //-------------------------------------------------------------------------
+    router.get('/comments/commentID/:CommentsID',function(req, res) {
+      console.log('/comments/commentID/:CommentsID');
+      Comments.findAll({
+          where: {
+              CommentsID: req.params.CommentsID,
+              Delete: 0
+          },
+          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+        }).then(function(rows) {
+            res.json({
+                'Error_': false,
+                'Message': 'Success',
+                'Comments': rows
+            });
+        }).catch(function(err) {
+            console.log('comments/ai ' + err.message);
+            res.status(401).end();
+        });
+    });
+    //-------------------------------------------------------------------------
+    router.get('/comments/userID/:UserID',function(req, res) {
+      console.log('/comments/userID/:UserID');
+      Comments.findAll({
+          where: {
+              UserID: req.params.UserID,
+              Delete: 0
+          },
+          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+        }).then(function(rows) {
+            res.json({
+                'Error_': false,
+                'Message': 'Success',
+                'Comments': rows
+            });
+        }).catch(function(err) {
+            console.log('comments/ai ' + err.message);
+            res.status(401).end();
+        });
+    });
+    //-------------------------------------------------------------------------
+    router.put('/comments/hide', function(req, res) {
+        if (req.body.CommentsID  == null) {
+            console.log("/comments/hide : CommentsID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        Comments.update({
+                Hide: 1
+        }, {
+            where: {
+                CommentID: req.body.CommentID,
+                Delete: 0
+            }
+        }).then(function(result) {
+            Comments.find({
+                where: {
+                    CommentID: req.body.CommentID
+                }
+            }).then(function(CommentsUpdated) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result,
+                    "Rating": CommentsUpdated
+                });
+            });
+        }).catch(function(err) {
+            console.log('/comment/hide: ' + err);
+            res.status(401).end();
+        });
+    });
+    //-------------------------------------------------------------------------
+    router.put('/comments/unhide', function(req, res) {
+        if (req.body.CommentsID  == null) {
+            console.log("/comments/unhide : CommentsID cannot be null");
+            res.status(400).end();
+            return;
+        }
+        Comments.update({
+                Hide: 0
+        }, {
+            where: {
+                CommentID: req.body.CommentID,
+                Delete: 0
+            }
+        }).then(function(result) {
+            Comments.find({
+                where: {
+                    CommentID: req.body.CommentID
+                }
+            }).then(function(CommentsUpdated) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result,
+                    "Rating": CommentsUpdated
+                });
+            });
+        }).catch(function(err) {
+            console.log('/comment/unhide: ' + err);
+            res.status(401).end();
+        });
+    });
     //-------------------------------------------------------------------------
 
 };
