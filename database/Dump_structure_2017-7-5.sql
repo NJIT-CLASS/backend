@@ -659,6 +659,9 @@ CREATE TABLE `Comments` (
   `ReplyLevel` int(10) DEFAULT NULL,
   `Parents` int(10) DEFAULT NULL,
   `Delete` int(10) DEFAULT NULL,
+  `Hide` int(10) DEFAULT NULL,
+  `Viewed` int(10) DEFAULT NULL,
+  
   PRIMARY KEY (`CommentsID`),
   UNIQUE KEY `CommentsID` (`CommentsID`),
   KEY `UserID` (`UserID`),
