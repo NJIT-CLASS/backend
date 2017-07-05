@@ -48,6 +48,7 @@ var TaskActivity_Archive = models.TaskActivity_Archive;
 var TaskInstance_Archive = models.TaskInstance_Archive;
 var WorkflowInstance_Archive = models.WorkflowInstance_Archive;
 var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
+var Comments = models.Comments;
 
 var Manager = require('./Workflow/Manager.js');
 var Allocator = require('./Workflow/Allocator.js');
@@ -172,7 +173,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         console.log('VolunteerPool/count was called');
         VolunteerPool.findAll({}).then(function(rows) {
             res.json({
-                'Error_': false,
+                'Error': false,
                 'Message': 'Success',
                 'Number of Volunteers': rows.length
             });
@@ -2644,7 +2645,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
 
         }).catch(function(err) {
-            console.log('/course ERROR_WJE : ' + err.message);
+            console.log('/course ErrorWJE : ' + err.message);
             res.status(400).end();
         });
 
@@ -6003,7 +6004,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           }
         }).then(function(rows) {
             res.json({
-                'Error_': false,
+                'Error': false,
                 'Message': 'Success',
                 'Number of Comments': rows.length
             });
@@ -6023,7 +6024,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           }
         }).then(function(rows) {
             res.json({
-                'Error_': false,
+                'Error': false,
                 'Message': 'Success',
                 'Number of Rating': rows.length
             });
@@ -6094,7 +6095,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
-                'Error_': false,
+                'Error': false,
                 'Message': 'Success',
                 'Comments': rows
             });
@@ -6114,7 +6115,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
-                'Error_': false,
+                'Error': false,
                 'Message': 'Success',
                 'Comments': rows
             });
@@ -6134,7 +6135,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
-                'Error_': false,
+                'Error': false,
                 'Message': 'Success',
                 'Comments': rows
             });
