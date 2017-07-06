@@ -161,7 +161,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var grade = new Grade();
 
         //grade.addSimpleGrade(1);
-        //grade.addTaskGrade(1, 99);
+        grade.addTaskGrade(1, 99, 100);
         await grade.addWorkflowGrade(1, 3, 99);
         await grade.addAssignmentGrade(1, 3, 99);
         res.status(200).end();
@@ -3364,103 +3364,55 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             req_query: req.query
         });
         TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceID
-<<<<<<< HEAD
-            }
-        }).then(function (taskInstanceResult) {
-            TaskActivity.find({
                 where: {
-                    TaskActivityID: taskInstanceResult.TaskActivityID
-                }
-            }).then(function (taskActivityResult) {
-                Course.find({
-                    where: {
-                        CourseID: req.query.courseID
-                    }
-                }).then(function (courseResult) {
-                    Assignment.find({
-                        where: {
-                            AssignmentID: taskActivityResult.AssignmentID
-                        },
-                        attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-                    }).then(function (assignmentResult) {
-                        Section.find({
-                            where: {
-                                SectionID: req.query.sectionID
-                            }
-                        }).then(function (sectionResult) {
-                            Semester.find({
-                                where: {
-                                    SemesterID: sectionResult.SemesterID
-                                }
-                            }).then(function (semesterResult) {
-                                res.json({
-                                    'Error': false,
-                                    'Message': 'Success',
-                                    'taskActivityID': taskInstanceResult.TaskActivityID,
-                                    'taskActivityType': taskActivityResult.Type,
-                                    'courseName': courseResult.Name,
-                                    'courseNumber': courseResult.Number,
-                                    'assignment': assignmentResult,
-                                    'semesterID': sectionResult.SemesterID,
-                                    'semesterName': semesterResult.Name
-                                });
-                            }).catch(function (err) {
-                                //Catch error and print into console.
-                                console.log('/taskInstanceTemplate/main/ ' + err);
-                                res.status(400).end();
-                            });
-                        });
-                    });
-                });
-=======
-            },
-            include:[{
-                model: TaskActivity,
+                    TaskInstanceID: req.params.taskInstanceID
+                },
                 include: [{
-                    model: Assignment,
-                    attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-                }],
-                attributes: ['Type']
-            },{
-                model: AssignmentInstance,
-                include: [{
-                    model: Section,
-                    attributes:['Name', 'SectionID'],
+                    model: TaskActivity,
                     include: [{
-                        model: Course,
-                        attributes: ['Name', 'Number']
-                    },
-                    {
-                        model: Semester,
-                        attributes: ['SemesterID', 'Name']
+                        model: Assignment,
+                        attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
+                    }],
+                    attributes: ['Type']
+                }, {
+                    model: AssignmentInstance,
+                    include: [{
+                        model: Section,
+                        attributes: ['Name', 'SectionID'],
+                        include: [{
+                                model: Course,
+                                attributes: ['Name', 'Number']
+                            },
+                            {
+                                model: Semester,
+                                attributes: ['SemesterID', 'Name']
+                            }
+                        ]
                     }]
                 }]
-            }
-            ]
-        })
-        .catch(function(err) {
-            //Catch error and print into console.
-            logger.log('error','/taskInstanceTemplate/main/',{error: err});
-            res.status(400).end();
-        })
-        .then(function(taskInstanceResult) {
-            return res.json({
-                'Error': false,
-                'Message': 'Success',
-                'taskActivityID': taskInstanceResult.TaskActivityID,
-                'taskActivityType': taskInstanceResult.TaskActivity.Type,
-                'courseName': taskInstanceResult.AssignmentInstance.Section.Course.Name,
-                'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
-                'assignment': taskInstanceResult.TaskActivity.Assignment,
-                'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
-                'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name,
-                'sectionName': taskInstanceResult.AssignmentInstance.Section.Name,
-                'sectionID': taskInstanceResult.AssignmentInstance.Section.Name
->>>>>>> 11f23da4367f92cf66afc8f4c6bd3901e87ca11a
+            })
+            .catch(function (err) {
+                //Catch error and print into console.
+                logger.log('error', '/taskInstanceTemplate/main/', {
+                    error: err
+                });
+                res.status(400).end();
+            })
+            .then(function (taskInstanceResult) {
+                return res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'taskActivityID': taskInstanceResult.TaskActivityID,
+                    'taskActivityType': taskInstanceResult.TaskActivity.Type,
+                    'courseName': taskInstanceResult.AssignmentInstance.Section.Course.Name,
+                    'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
+                    'assignment': taskInstanceResult.TaskActivity.Assignment,
+                    'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
+                    'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name,
+                    'sectionName': taskInstanceResult.AssignmentInstance.Section.Name,
+                    'sectionID': taskInstanceResult.AssignmentInstance.Section.Name
+                });
             });
-        });
     });
 
     // Endpoint to submit the taskInstance input and sync into database
@@ -3556,44 +3508,44 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         //await grade.addSimpleGrade(new_ti.TaskInstanceID);
 
-        if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
-            var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id;
-            logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id);
+        // if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
+        //     var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id;
+        //     logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id);
 
-            TaskInstance.find({
-                where: {
-                    TaskInstanceID: pre_ti_id
-                }
-            }).then(function (pre_ti) {
-                logger.log('info', 'task instance found', pre_ti.toJSON());
-                ti_data = JSON.parse(pre_ti.Data);
+        //     TaskInstance.find({
+        //         where: {
+        //             TaskInstanceID: pre_ti_id
+        //         }
+        //     }).then(function (pre_ti) {
+        //         logger.log('info', 'task instance found', pre_ti.toJSON());
+        //         ti_data = JSON.parse(pre_ti.Data);
 
-                if (!ti_data) {
-                    ti_data = [];
-                }
-                ti_data.push(req.body.taskInstanceData);
+        //         if (!ti_data) {
+        //             ti_data = [];
+        //         }
+        //         ti_data.push(req.body.taskInstanceData);
 
-                logger.log('info', 'updating task instance', {
-                    ti_data: ti_data
-                });
+        //         logger.log('info', 'updating task instance', {
+        //             ti_data: ti_data
+        //         });
 
-                return TaskInstance.update({
-                    Data: ti_data,
-                }, {
-                    where: {
-                        TaskInstanceID: pre_ti.TaskInstanceID,
-                    },
-                }).then(function (done) {
-                    logger.log('info', 'task instance updated', {
-                        done: done
-                    });
-                }).catch(function (err) {
-                    logger.log('error', 'task instance update failed', {
-                        err: err
-                    });
-                });
-            });
-        }
+        //         return TaskInstance.update({
+        //             Data: ti_data,
+        //         }, {
+        //             where: {
+        //                 TaskInstanceID: pre_ti.TaskInstanceID,
+        //             },
+        //         }).then(function (done) {
+        //             logger.log('info', 'task instance updated', {
+        //                 done: done
+        //             });
+        //         }).catch(function (err) {
+        //             logger.log('error', 'task instance update failed', {
+        //                 err: err
+        //             });
+        //         });
+        //     });
+        // }
 
         return res.status(200).end();
 
@@ -4609,7 +4561,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.get('/SectionsByUser/:userId', function(req, res) {
+    router.get('/SectionsByUser/:userId', function (req, res) {
 
         SectionUser.findAll({
             where: {
@@ -4619,52 +4571,50 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [{
                 model: Section,
                 attributes: ['Name'],
-                include:[
-                    {
-                        model: Course,
-                        attributes: ['CourseID', 'Name', 'Number']
-                    },
-                ]
+                include: [{
+                    model: Course,
+                    attributes: ['CourseID', 'Name', 'Number']
+                }, ]
 
             }]
-        }).then(function(rows) {
+        }).then(function (rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success',
                 'Sections': rows
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/section: ' + err.message);
             res.status(401).end();
         });
     });
 
 
-         //Endpoint assignments in Section
-    router.get('/AssignmentsBySection/:SectionID', function(req,res){
+    //Endpoint assignments in Section
+    router.get('/AssignmentsBySection/:SectionID', function (req, res) {
         AssignmentInstance.findAll({
-            where:{
+            where: {
                 SectionID: req.params.SectionID
             },
             attributes: ['AssignmentInstanceID'],
-            include:[{
+            include: [{
                 model: Assignment,
-                attributes: ['AssignmentID','Name','Type', 'DisplayName'],
+                attributes: ['AssignmentID', 'Name', 'Type', 'DisplayName'],
                 include: [{
-                    model:Course,
-                    attributes: ['CourseID','Name','Number']
+                    model: Course,
+                    attributes: ['CourseID', 'Name', 'Number']
                 }]
             }]
-        }).then(function(assignments){
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Assignments': assignments
+        }).then(function (assignments) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Assignments': assignments
 
-            });
-        }
+                });
+            }
 
-    );
+        );
     });
     //-----------------------------------------------------------------------------------------------------
 
@@ -5187,6 +5137,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         console.log('revise');
         await trigger.revise(req.body.ti_id, req.body.data);
         res.status(200).end();
+
     });
 
     router.post('/approved', async function (req, res) {
@@ -5194,6 +5145,37 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         await trigger.approved(req.body.ti_id, req.body.data);
         res.status(200).end();
+    });
+
+    router.get('/getWorkflow/:ti_id', async function (req, res) {
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.ti_id
+            },
+            include: [{
+                model: WorkflowInstance,
+                attributes: ['TaskCollection']
+            }]
+        });
+
+        var json = {};
+
+        await Promise.mapSeries(JSON.parse(ti.WorkflowInstance.TaskCollection), async function (ti_id) {
+            var new_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: ti_id
+                }
+            });
+            json[ti_id] = new_ti;
+        });
+
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'Workflow': json
+        });
+
     });
 
 };

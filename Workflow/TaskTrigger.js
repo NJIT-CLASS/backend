@@ -89,31 +89,33 @@ class TaskTrigger {
         });
     }
 
-    
+
     async completed(ti_id, wi_id, ai_id) {
-        logger.log('info', 'checking if assginment is done...');
 
         var x = this;
-        var isWorkflowCompleted = false;
-        var isAllCompleted = false;
-        var grade = new Grade();
-        console.log('Checking all subworkflows are completed...');
         // check if the workflow of the assignment that belongs to the user is completed
         // check if all the workflow of the assignment that belongs to the user is completed
 
         //TODO: To check a workflow instance has completed find the task collection from workflow instance and search them all
         //TODO: To check if a assignement instance has completed find the workflow collection from assignment instance and search through them.
-        var final_grade = await grade.findFinalGrade(ti_id);
-        await grade.addTaskGrade(final_grade.id, final_grade.grade);
 
-        if(await grade.checkAssignmentDone(ai_id)){
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: ti_id
+            }
+        });
 
-        } else if(await grade.checkWorkflowDone(ai_id)){
+        var final_grade = await grade.findFinalGrade(ti);
+        await grade.addTaskGrade(final_grade.id, final_grade.grade, final_grade.max_grade);
+
+        if (await grade.checkAssignmentDone(ai_id)) {
+
+        } else if (await grade.checkWorkflowDone(ai_id)) {
 
         } else {
 
         }
-       
+
     }
 
 
@@ -181,9 +183,12 @@ class TaskTrigger {
         } else if (status[2].substr(0, 13) === 'being_revised') {
             var regExp = /\(([^)]+)\)/;
             var matches = regExp.exec(status[2]);
-            matches = parseInt(matches);
+            console.log('matches0', matches);
+            matches = parseInt(matches[1]);
+            console.log('matches', matches);
             matches++;
-            status[2] = 'being_revised' + matches;
+            console.log('matches2', matches);
+            status[2] = 'being_revised(' + JSON.stringify(matches) + ')';
         } else {
             status[2] = 'submitted_for_approval';
         }
@@ -304,7 +309,7 @@ class TaskTrigger {
                 grades.push(pre.FinalGrade);
 
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)), function (val) {
-                    if (val !== 'number_of_fields' && JSON.parse(pre.TaskActivity.Fields)[val].field_type == 'assessment') {
+                    if (JSON.parse(pre.TaskActivity.Fields)[val].field_type !== undefined && val !== 'number_of_fields' && JSON.parse(pre.TaskActivity.Fields)[val].field_type == 'assessment') {
                         if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'grade') {
                             maxGrade += JSON.parse(pre.TaskActivity.Fields)[val].numeric_max;
                         } else if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'rating') {
@@ -320,7 +325,7 @@ class TaskTrigger {
                             // }
                         }
                     }
-                })
+                });
             }
         });
 
@@ -593,10 +598,15 @@ class TaskTrigger {
                 TaskActivityID: ti.TaskActivityID
             }
         });
-
-        var keys = Object.keys(data); //find the latest version of the data
+        console.log(data);
+        if (typeof data === 'string') {
+            var keys = Object.keys(JSON.parse(data)); //find the latest version of the data
+        } else {
+            var keys = Object.keys(data); //find the latest version of the data
+        }
 
         await Promise.mapSeries(keys, function (val) {
+            //if (typeof JSON.parse(ta.Fields)[val].field_type !== undefined) {
             if (val !== 'number_of_fields' && JSON.parse(ta.Fields)[val].field_type === 'assessment') {
                 if (JSON.parse(ta.Fields)[val].assessment_type === 'grade') {
                     grade += parseInt(data[val][0]);
@@ -613,6 +623,7 @@ class TaskTrigger {
                     // }
                 }
             }
+            // }
         });
 
         if (grade === 0) {
@@ -629,6 +640,96 @@ class TaskTrigger {
         //     logger.log('error', 'failed finding final grades', {ti_id: ti.TaskInstanceID});
         // }
     }
+
+    async findFinalGrade(ti) {
+        var x = this;
+        console.log('traversing the workflow to find final grade...');
+        if (ti.FinalGrade !== null) {
+
+            logger.log('info', '/Workflow/TaskTrigger/findFinalGrade: final grade found! The final grade is:', ti.FinalGrade);
+
+            var wi = await WorkflowInstance.find({
+                where: {
+                    WorkflowInstanceID: ti.WorkflowInstanceID
+                },
+            });
+
+            var original = await x.gradeBelongsTo(ti);
+            //return [wi.WorkflowActivityID, ti.TaskInstanceID, ti.FinalGrade];
+
+            return {'id': original.id, 'grade': ti.FinalGrade, 'max_grade': original.max_grade};
+
+        } else if (ti.FinalGrade === null && ti.PreviousTask != null) {
+
+            var pre_ti = TaskInstance.find({
+                where: {
+                    TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
+                }
+            });
+
+            if (pre_ti.IsSubworkflow === ti.IsSubworkflow) {
+                var data = await x.findFinalGrade(pre_ti);
+                return data;
+            } else {
+                console.log('no grades found.');
+                return null;
+            }
+        } else {
+            console.log('no grades found.');
+            return null;
+        }
+    }
+
+    async gradeBelongsTo(ti) {
+        var x = this;
+        //logger.log('info', '/Workflow/TaskTrigger/gradeBelongsTo: searching for user...');
+        var ta = await TaskActivity.find({
+            where: {
+                TaskActivityID: ti.TaskActivityID
+            }
+        });
+
+        if (ta.Type === 'grade_problem') {
+            var pre_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
+                }
+            });
+            
+            var max_grade = 0;
+            await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function (val) {
+                    if (JSON.parse(ti.TaskActivity.Fields)[val].field_type !== undefined && val !== 'number_of_fields' && JSON.parse(ti.TaskActivity.Fields)[val].field_type == 'assessment') {
+                        if (JSON.parse(ti.TaskActivity.Fields)[val].assessment_type == 'grade') {
+                            maxGrade += JSON.parse(ti.TaskActivity.Fields)[val].numeric_max;
+                        } else if (JSON.parse(ti.TaskActivity.Fields)[val].assessment_type == 'rating') {
+                            maxGrade += 100;
+                        } else if (JSON.parse(ti.TaskActivity.Fields)[val].assessment_type == 'evaluation') {
+                            // How evaluation works?
+                            // if(JSON.parse(ti.Data)[val][0] == 'Easy'){
+                            //
+                            // } else if(JSON.parse(ti.Data)[val][0] == 'Medium'){
+                            //
+                            // } else if(JSON.parse(ti.Data)[val][0] == 'Hard'){
+                            //
+                            // }
+                        }
+                    }
+                });
+
+            logger.log('info', '/Workflow/TaskTrigger/gradeBelongsTo: userID found:', pre_ti.UserID);
+            return {'id':pre_ti.TaskInstanceID, 'max_grade': max_grade};
+        } else {
+            var pre_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
+                }
+            });
+
+            var ti_id = await x.gradeBelongsTo(pre_ti);
+            return ti_id;
+        }
+    }
+
 
     /**
      * Revise and Resubmit
@@ -650,13 +751,19 @@ class TaskTrigger {
         var status = JSON.parse(ti.Status);
         status[0] = 'complete';
 
-        // var final_grade = await x.finalGrade(ti,data);
+        var final_grade = await x.finalGrade(ti, data);
+
+        var ti_data = await JSON.parse(ti.Data);
+        if (!ti_data) {
+            ti_data = [];
+        }
+        await ti_data.push(JSON.parse(data));
 
         await TaskInstance.update({
-            Data: data,
+            Data: ti_data,
             ActualEndDate: new Date(),
-            Status: JSON.stringify(status)
-            //FinalGrade: final_grade
+            Status: JSON.stringify(status),
+            FinalGrade: final_grade
         }, {
             where: {
                 TaskInstanceID: ti.TaskInstanceID
@@ -664,11 +771,17 @@ class TaskTrigger {
         });
 
         //update the original task status
+        // var original_data = JSON.parse(original_task.Data);
+        // if (!original_data) {
+        //     original_data = [];
+        // }
+        // original_data.push(data);
         var status = JSON.parse(original_task.Status);
         status[0] = 'started';
 
         await TaskInstance.update({
             Status: JSON.stringify(status),
+            //Data: JSON.stringify(original_data)
         }, {
             where: {
                 TaskInstanceID: original_task.TaskInstanceID
@@ -702,13 +815,19 @@ class TaskTrigger {
         var status = JSON.parse(ti.Status);
         status[0] = 'complete';
 
-        //var final_grade = await x.finalGrade(ti,data);
+        var ti_data = await JSON.parse(ti.Data);
+        if (!ti_data) {
+            ti_data = [];
+        }
+        await ti_data.push(JSON.parse(data));
+
+        var final_grade = await x.finalGrade(ti, data);
 
         await TaskInstance.update({
-            Data: data,
+            Data: ti_data,
             ActualEndDate: new Date(),
-            Status: JSON.stringify(status)
-            //FinalGrade: final_grade
+            Status: JSON.stringify(status),
+            FinalGrade: final_grade
         }, {
             where: {
                 TaskInstanceID: ti.TaskInstanceID
@@ -717,11 +836,17 @@ class TaskTrigger {
 
 
         //update the original task status
+        // var original_data = JSON.parse(original_task.Data);
+        // if (!original_data) {
+        //     original_data = [];
+        // }
+        // original_data.push(data);
         var status = JSON.parse(original_task.Status);
         status[2] = 'approved';
 
         await TaskInstance.update({
             Status: JSON.stringify(status),
+            //Data: JSON.stringify(original_data)
         }, {
             where: {
                 TaskInstanceID: ti.TaskInstanceID

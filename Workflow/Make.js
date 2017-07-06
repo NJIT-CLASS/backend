@@ -776,8 +776,8 @@ class Make {
         var endDate = moment(startDate);
 
         if (wf_task.DueType[0] === 'duration') {
-            //endDate.add(wf_task.DueType[1], 'minutes');
-            endDate.add(1, 'minutes');
+            endDate.add(wf_task.DueType[1], 'minutes');
+            //endDate.add(1, 'minutes');
         } else if (wf_task.DueType[0] === 'specificTime') {
             endDate = wf_task.DueType[1];
         }

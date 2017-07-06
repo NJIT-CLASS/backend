@@ -82,9 +82,10 @@ class Grade {
      * 
      * @param {any} ti_id 
      * @param {any} grade 
+     * @param {any} max_grade 
      * @memberof Grade
      */
-    async addTaskGrade(ti_id, grade) {
+    async addTaskGrade(ti_id, grade, max_grade) {
 
         var ti = await TaskInstance.find({
             where: {
@@ -104,7 +105,8 @@ class Grade {
             AssignmentInstanceID: ti.AssignmentInstanceID,
             SectionUserID: sec_user,
             WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
-            Grade: grade
+            Grade: grade,
+            MaxGrade:max_grade
         });
 
         
