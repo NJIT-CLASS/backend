@@ -4017,6 +4017,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
         var allocator = new TaskFactory();
 
+        let taskActivityAttributes = ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName', 'AllowRevision'];
+
         await allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(async function (done) {
 
             //console.log('done!', done);
@@ -4030,7 +4032,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
                     include: [{
                         model: TaskActivity,
-                        attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName']
+                        attributes: taskActivityAttributes
                     }]
                 })
                     .then((result) => {
@@ -4052,7 +4054,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
                         include: [{
                             model: TaskActivity,
-                            attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity', 'DisplayName']
+                            attributes: taskActivityAttributes
 
                         }]
                     }).then((result) => {
@@ -4070,7 +4072,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
                         include: [{
                             model: TaskActivity,
-                            attributes: ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'VersionEvaluation', 'SeeSibblings', 'SeeSameActivity', 'DisplayName']
+                            attributes: taskActivityAttributes
 
                         }]
                     })
@@ -5202,7 +5204,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             include: [{
                 model: WorkflowInstance,
-                attributes: ['TaskCollection']
+                attributes: ['TaskCollection'],
+                include: [{
+                    model: WorkflowActivity,
+                    attributes: ['WorkflowStructure']
+                }]
             }]
         });
 
@@ -5212,7 +5218,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             var new_ti = await TaskInstance.find({
                 where: {
                     TaskInstanceID: ti_id
-                }
+                },
+                include:[ TaskActivity]
             });
             json[ti_id] = new_ti;
         });
@@ -5221,7 +5228,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         res.json({
             'Error': false,
             'Message': 'Success',
-            'Workflow': json
+            'Workflow': json,
+            'WorkflowTree':  ti.WorkflowInstance.WorkflowActivity.WorkflowStructure
         });
     });
         //-----------------------------------------------------------------------------------------------------
