@@ -47,13 +47,14 @@ class Grade {
                 TaskInstanceID: ti_id
             },
             include: [{
-                model: WorkflowInstance,
-                attributes: ['WorkflowActivityID']
-            },
-            {
-                model: TaskActivity,
-                attributes:['SimpleGrade']
-            }]
+                    model: WorkflowInstance,
+                    attributes: ['WorkflowActivityID']
+                },
+                {
+                    model: TaskActivity,
+                    attributes: ['SimpleGrade']
+                }
+            ]
         });
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
@@ -106,14 +107,14 @@ class Grade {
             SectionUserID: sec_user,
             WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
             Grade: grade,
-            MaxGrade:max_grade
+            MaxGrade: max_grade
         });
 
-        
+
 
         logger.log('info', '/Workflow/Grade/addTaskGrade: Done! TaskGradeID: ', task_grade.TaskGradeID);
     }
-    
+
     /**
      * add workflow grade
      * 
@@ -122,26 +123,38 @@ class Grade {
      * @param {any} grade 
      * @memberof Grade
      */
-    async addWorkflowGrade(wi_id, user_id, grade){
-        
-        console.log('here');
+    async addWorkflowGrade(wi_id, sec_user, grade) {
+
+        console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade',grade);
         var wi = await WorkflowInstance.find({
-            where:{
+            where: {
                 WorkflowInstanceID: wi_id
             }
         });
 
-        console.log('here2')
-        var sec_user = await util.findSectionUserID(wi.AssignmentInstanceID, user_id);
+        //var sec_user = await util.findSectionUserID(wi.AssignmentInstanceID, user_id);
 
-        console.log('ai_id', wi.AssignmentInstanceID, 'sec_user', sec_user)
-
-        var workflow_grade = await WorkflowGrade.create({
-            WorkflowActivityID: wi.WorkflowActivityID,
-            AssignmentInstanceID: wi.AssignmentInstanceID,
-            SectionUserID: sec_user,
-            Grade: grade
+        var w_grade = await WorkflowGrade.find({
+            where: {
+                AssignmentInstanceID: wi.AssignmentInstanceID,
+                SectionUserID: sec_user
+            }
         });
+
+        if (w_grade === null) {
+            var workflow_grade = await WorkflowGrade.create({
+                WorkflowActivityID: wi.WorkflowActivityID,
+                AssignmentInstanceID: wi.AssignmentInstanceID,
+                SectionUserID: sec_user,
+                Grade: grade
+            });
+        } else {
+            var total = t_grade.grade + grade;
+            await w_grade.update({
+                Grade: total
+            });
+        }
+
 
         logger.log('info', '/Workflow/Grade/addWorkflowGrade: Done! WorkflowGradeID: ', workflow_grade.WorkflowGradeID);
     }
@@ -154,15 +167,30 @@ class Grade {
      * @param {any} grade 
      * @memberof Grade
      */
-    async addAssignmentGrade(ai_id, user_id, grade){
+    async addAssignmentGrade(ai_id, sec_user, grade) {
 
-        var sec_user = await util.findSectionUserID(ai_id, user_id);
+        //var sec_user = await util.findSectionUserID(ai_id, user_id);
 
-        var assignment_grade = await AssignmentGrade.create({
-            AssignmentInstanceID: ai_id,
-            SectionUserID: sec_user,
-            Grade: grade
+        var a_grade = await AssignmentGrade.find({
+            where: {
+                AssignmentInstanceID: ai_id,
+                SectionUserID: sec_user
+            }
         });
+
+        if (a_grade === null) {
+            var assignment_grade = await AssignmentGrade.create({
+                AssignmentInstanceID: ai_id,
+                SectionUserID: sec_user,
+                Grade: grade
+            });
+        } else {
+            var total = a_grade.grade + grade;
+            await a_grade.update({
+                Grade: total
+            });
+        }
+
 
         logger.log('info', '/Workflow/Grade/addAssignmentGrade: Done! AssignmentGradeID: ', assignment_grade.AssignmentGradeID);
 
@@ -305,6 +333,103 @@ class Grade {
                 TaskInstanceID: ti_id,
                 error: err
             });
+        }
+    }
+
+
+    async findFinalGrade(ti) {
+        var x = this;
+        console.log('traversing the workflow to find final grade...');
+        if (ti.FinalGrade !== null) {
+
+            logger.log('info', '/Workflow/Grade/findFinalGrade: final grade found! The final grade is:', ti.FinalGrade);
+
+            var wi = await WorkflowInstance.find({
+                where: {
+                    WorkflowInstanceID: ti.WorkflowInstanceID
+                },
+            });
+
+            var original = await x.gradeBelongsTo(ti);
+            //return [wi.WorkflowActivityID, ti.TaskInstanceID, ti.FinalGrade];
+
+            return {
+                'id': original.id,
+                'grade': ti.FinalGrade,
+                'max_grade': original.max_grade
+            };
+
+        } else if (ti.FinalGrade === null && ti.PreviousTask != null) {
+
+            var pre_ti = TaskInstance.find({
+                where: {
+                    TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
+                }
+            });
+
+            if (pre_ti.IsSubworkflow === ti.IsSubworkflow) {
+                var data = await x.findFinalGrade(pre_ti);
+                return data;
+            } else {
+                console.log('no grades found.');
+                return null;
+            }
+        } else {
+            console.log('no grades found.');
+            return null;
+        }
+    }
+
+    async gradeBelongsTo(ti) {
+        var x = this;
+        //logger.log('info', '/Workflow/Grade/gradeBelongsTo: searching for user...');
+        var ta = await TaskActivity.find({
+            where: {
+                TaskActivityID: ti.TaskActivityID
+            }
+        });
+
+        if (ta.Type === 'grade_problem') {
+            var pre_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
+                }
+            });
+
+            var maxGrade = 0;
+            await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function (val) {
+                if (val !== 'number_of_fields' && JSON.parse(ta.Fields)[val].field_type == 'assessment') {
+                    if (JSON.parse(ta.Fields)[val].assessment_type == 'grade') {
+                        maxGrade += JSON.parse(ta.Fields)[val].numeric_max;
+                    } else if (JSON.parse(ta.Fields)[val].assessment_type == 'rating') {
+                        maxGrade += 100;
+                    } else if (JSON.parse(ta.Fields)[val].assessment_type == 'evaluation') {
+                        // How evaluation works?
+                        // if(JSON.parse(ti.Data)[val][0] == 'Easy'){
+                        //
+                        // } else if(JSON.parse(ti.Data)[val][0] == 'Medium'){
+                        //
+                        // } else if(JSON.parse(ti.Data)[val][0] == 'Hard'){
+                        //
+                        // }
+                    }
+                }
+            });
+
+            logger.log('info', '/Workflow/Grade/gradeBelongsTo: userID found:', pre_ti.UserID);
+            return {
+                'id': pre_ti.TaskInstanceID,
+                'max_grade': maxGrade
+            };
+        } else {
+            var pre_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
+                }
+            });
+
+            var ti_id = await x.gradeBelongsTo(pre_ti);
+            return ti_id;
         }
     }
 
