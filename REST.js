@@ -20,7 +20,7 @@ var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
 var Badge = models.Badge;
-var Category = models.Category;
+var BadgeCategory = models.BadgeCategory;
 var UserPoints = models.UserPoints;
 var UserBadges = models.UserBadges;
 
@@ -5625,7 +5625,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Endpoint for user courses
     router.get('/studentCourses/:userID/:semesterID', async function(req, res) {
 
-        let select = `SELECT DISTINCT c.Name, c.Number, c.Description FROM course AS c 
+        let select = `SELECT DISTINCT c.Name, c.Number, c.Description, s.CourseID FROM course AS c 
                       JOIN section AS s ON s.CourseID = c.CourseID
                       JOIN sectionuser AS us ON us.SectionID = s.SectionID
                       WHERE us.UserID =? AND s.SemesterID=?`;
@@ -5654,8 +5654,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Endpoint for badge categorie
     router.get('/badgeCategories', async function(req, res) {
 
-        let select = `SELECT CategoryID, Name, Description, Tier1Points, Tier2Points, Tier3Points
-                      FROM category limit 1`;
+        let select = `SELECT CategoryID, Name, Description, Tier1Baddges, Tier2Baddges, Tier3Baddges
+                      FROM badgecategory`;
 
         sequelize.query(select,
         { 

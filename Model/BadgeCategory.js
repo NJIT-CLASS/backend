@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Category', {
+    return sequelize.define('BadgeCategory', {
         CategoryID: {
             //Unique identifier for Category 
             type: DataTypes.INTEGER.UNSIGNED,
@@ -21,19 +21,19 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Description',
             allowNull: true
         },
-        Tier1Points: {
+        Tier1Baddges: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier1Points',
+            field: 'Tier1Baddges',
             allowNull: false
         },
-        Tier2Points: {
+        Tier2Baddges: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier2Points',
+            field: 'Tier2Baddges',
             allowNull: false
         },
-        Tier3Points: {
+        Tier3Baddges: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier3Points',
+            field: 'Tier3Baddges',
             allowNull: false
         },
     }, {
@@ -54,6 +54,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'Category'
+        tableName: 'badgecategory'
     });
 };

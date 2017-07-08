@@ -25,7 +25,7 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference', 'Badge', 'Category', 'UserBadges', 'UserPoints'
+    'FileReference', 'Badge', 'BadgeCategory', 'UserBadges', 'UserPoints'
 ];
 
 
@@ -61,7 +61,7 @@ models.forEach(function(model) {
         foreignKey: 'CreatorID'
     });
 
-    m.Badge.belongsTo(m.Category, {
+    m.Badge.belongsTo(m.BadgeCategory, {
         foreignKey: 'CategoryID'
     });
 
@@ -211,8 +211,8 @@ models.forEach(function(model) {
 
     //has Many Relations
 
-    m.Category.hasMany(m.Badge, {
-        as: 'Category',
+    m.BadgeCategory.hasMany(m.Badge, {
+        as: 'BadgeCategory',
         foreignKey: 'CategoryID'
     });
     m.Assignment.hasMany(m.AssignmentInstance, {
