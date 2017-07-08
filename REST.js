@@ -5584,7 +5584,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         UserPoints.find({
             where: {
-                UserID:  req.params.userID
+                UserID:  req.params.userID, 
+                courseID: req.params.userID, 
+                semesterID: req.params.semesterID
             },
             attributes:['QuestionsPoints', 
                         'HighGradesPoints', 
@@ -5620,6 +5622,58 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+    //Endpoint for user courses
+    router.get('/studentCourses/:userID/:semesterID', async function(req, res) {
+
+        let select = `SELECT DISTINCT c.Name, c.Number, c.Description FROM course AS c 
+                      JOIN section AS s ON s.CourseID = c.CourseID
+                      JOIN sectionuser AS us ON us.SectionID = s.SectionID
+                      WHERE us.UserID =? AND s.SemesterID=?`;
+ 
+        sequelize.query(select,
+        { 
+            replacements: [
+                req.params.userID, 
+                req.params.semesterID
+            ], 
+            type: sequelize.QueryTypes.SELECT 
+        }).then(result => {
+     
+            if(!result){
+                result = [];
+            }
+            res.json({
+                'Error': false,
+                'courses': result
+            });
+        }).catch(()=>{
+            res.status(401).end();
+        });
+    });
+
+    //Endpoint for badge categorie
+    router.get('/badgeCategories', async function(req, res) {
+
+        let select = `SELECT CategoryID, Name, Description, Tier1Points, Tier2Points, Tier3Points
+                      FROM category limit 1`;
+
+        sequelize.query(select,
+        { 
+            type: sequelize.QueryTypes.SELECT 
+        }).then(result => {
+ 
+            if(!result){
+                result = [];
+            }
+
+            res.json({
+                'Error': false,
+                'categories': result
+            });
+        }).catch(()=>{
+            res.status(401).end();
+        });
+    });
 };
 
 module.exports = REST_ROUTER;

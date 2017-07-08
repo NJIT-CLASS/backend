@@ -8,6 +8,22 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false,
             primaryKey: true
         },
+        SemesterID: {
+            //The Semester 
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SemesterID',
+            allowNull: false,
+            primaryKey: true
+        },
+        CourseID: {
+            //The Course 
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
+            allowNull: false,
+            primaryKey: true
+        },
         QuestionsPoints: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'QuestionsPoints',
