@@ -125,7 +125,7 @@ class Grade {
      */
     async addWorkflowGrade(wi_id, sec_user, grade) {
 
-        console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade',grade);
+        console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
         var wi = await WorkflowInstance.find({
             where: {
                 WorkflowInstanceID: wi_id
@@ -359,9 +359,9 @@ class Grade {
                 'max_grade': original.max_grade
             };
 
-        } else if (ti.FinalGrade === null && ti.PreviousTask != null) {
+        } else if (ti.FinalGrade === null && ti.PreviousTask !== null) {
 
-            var pre_ti = TaskInstance.find({
+            var pre_ti = await TaskInstance.find({
                 where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
                 }

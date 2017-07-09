@@ -53,7 +53,7 @@ class TaskTrigger {
         });
 
         if (ti.NextTask === '[]') { //no more task in this branch
-            await x.completed(ti_id, ti.WorkflowInstanceID, ti.AssignmentInstanceID);
+            await x.completed(ti_id);
         } else {
             if (await x.hasEdit(ti)) {
                 await x.triggerEdit(ti);
@@ -478,6 +478,7 @@ class TaskTrigger {
      * @return {Promise}    [description]
      */
     async bypass(ti) {
+        var x = this;
         logger.log('info', 'bypassing task instance...', {
             ti_id: ti.TaskInstanceID
         });
@@ -499,7 +500,7 @@ class TaskTrigger {
         });
 
         if (ti.NextTask === '[]') { //no more task in this branch
-            await x.completed(ti_id, ti.WorkflowInstanceID, ti.AssignmentInstanceID);
+            await x.completed(ti.TaskInstanceID);
         }
 
 
@@ -687,11 +688,11 @@ class TaskTrigger {
 
         var final_grade = await x.finalGrade(ti, data);
 
-        var ti_data = await JSON.parse(ti.Data);
+        var ti_data = JSON.parse(ti.Data);
         if (!ti_data) {
             ti_data = [];
         }
-        await ti_data.push(JSON.parse(data));
+        await ti_data.push(data);
 
         await TaskInstance.update({
             Data: ti_data,
@@ -749,11 +750,11 @@ class TaskTrigger {
         var status = JSON.parse(ti.Status);
         status[0] = 'complete';
 
-        var ti_data = await JSON.parse(ti.Data);
+        var ti_data = JSON.parse(ti.Data);
         if (!ti_data) {
             ti_data = [];
         }
-        await ti_data.push(JSON.parse(data));
+        await ti_data.push(data);
 
         var final_grade = await x.finalGrade(ti, data);
 
