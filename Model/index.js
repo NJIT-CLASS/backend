@@ -43,16 +43,16 @@ models.forEach(function(model) {
     m.UserBadges.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
-    m.UserBadges.belongsTo(m.Badge, { 
+    m.UserBadges.belongsTo(m.Badge, {
         foreignKey: 'BadgeID'
     });
 
-    m.User.belongsToMany(m.Badge, { 
+    m.User.belongsToMany(m.Badge, {
         through: m.UserBadges,
         foreignKey: 'UserID',
         otherKey: 'BadgeID'
     });
-    
+
     m.UserPoints.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
@@ -207,14 +207,19 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
-    m.Assignment.belongsTo(m.Course,{foreignKey: 'CourseID'});
+    m.Assignment.belongsTo(m.Course, { foreignKey: 'CourseID' });
 
     //has Many Relations
-
     m.BadgeCategory.hasMany(m.Badge, {
-        as: 'BadgeCategory',
-        foreignKey: 'CategoryID'
+        foreignKey: 'CategoryID',
+        constraints: false
     });
+
+    m.Badge.belongsTo(m.BadgeCategory, {
+        foreignKey: 'CategoryID',
+        constraints: false
+    });
+
     m.Assignment.hasMany(m.AssignmentInstance, {
         as: 'AssignmentInstances',
         foreignKey: 'AssignmentID'
