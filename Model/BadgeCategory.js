@@ -21,19 +21,19 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Description',
             allowNull: true
         },
-        Tier1Baddges: {
+        Tier1Instances: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier1Baddges',
+            field: 'Tier1Instances',
             allowNull: false
         },
-        Tier2Baddges: {
+        Tier2Instances: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier2Baddges',
+            field: 'Tier2Instances',
             allowNull: false
         },
-        Tier3Baddges: {
+        Tier3Instances: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier3Baddges',
+            field: 'Tier3Instances',
             allowNull: false
         },
     }, {

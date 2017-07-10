@@ -21,7 +21,7 @@ var Section = models.Section;
 var SectionUser = models.SectionUser;
 var Badge = models.Badge;
 var BadgeCategory = models.BadgeCategory;
-var UserPoints = models.UserPoints;
+var UserPointIntances = models.UserPointIntances;
 var UserBadges = models.UserBadges;
 
 var Semester = models.Semester;
@@ -3500,19 +3500,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         var taskFactory = new TaskFactory();
 
-        switch (ti.TaskActivity.Type) {
-            case 'create_problem':
-                taskFactory.addUserPoints(req.body.userid, { 'QuestionsPoints': '100' });
-                break;
-            case 'solve_problem':
-                taskFactory.addUserPoints(req.body.userid, { 'SolutionsPoints': '100' });
-                break;
-            case 'grade_problem':
-                taskFactory.addUserPoints(req.body.userid, { 'GraderPoints': '100' });
-                break;
-            default:
-                //To be implemented
-        }
+        // switch (ti.TaskActivity.Type) {
+        //     case 'create_problem':
+        //         taskFactory.addUserPoints(req.body.userid, { 'QuestionsPoints': '100' });
+        //         break;
+        //     case 'solve_problem':
+        //         taskFactory.addUserPoints(req.body.userid, { 'SolutionsPoints': '100' });
+        //         break;
+        //     case 'grade_problem':
+        //         taskFactory.addUserPoints(req.body.userid, { 'GraderPoints': '100' });
+        //         break;
+        //     default:
+        //         //To be implemented
+        // }
 
         if (JSON.parse(ti.Status)[0] === 'complete') {
             logger.log('error', 'The task has been complted already');
@@ -5570,44 +5570,51 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
 
-    //Endpoint to get user's points
-    router.get('/userPoints/:userID', async function(req, res) {
+    //Endpoint to get the user's Progress
+    router.get('/userProgress/:userID/:semesterID/:categoryID', async function(req, res) {
 
-        UserPoints.find({
+        BadgeCategory.findAll({
             where: {
-                UserID: req.params.userID,
-                courseID: req.params.userID,
-                semesterID: req.params.semesterID
+                CategoryID: req.params.categoryID
             },
-            attributes: ['QuestionsPoints',
-                'HighGradesPoints',
-                'SolutionsPoints',
-                'GraderPoints',
-                'EarlySubmissionPoints',
-                'ParticipationPoints'
+            attributes: [
+                'CategoryID',
+                'CourseID',
+                'SectionID',
+                'SemesterID',
+                'Name',
+                'Description',
+                'Tier1Instances',
+                'Tier2Instances',
+                'Tier3Instances'
             ],
             include: [{
-                model: User,
-                attributes: ['UserID', 'FirstName', 'LastName']
+                model: UserPointIntances,
+                as: 'UserPoints',
+                attributes: [
+                    'QuestionsPointInstance',
+                    'HighGradesPointInstance',
+                    'SolutionsPointInstance',
+                    'GraderPointInstance',
+                    'EarlySubmissionPointInstance',
+                    'ParticipationPointInstance'
+                ]
             }]
         }).then(function(result) {
             if (!result) {
                 res.json({
                     'Error': false,
-                    'points': result
+                    'points': []
                 });
                 return;
             }
 
-            // var taskFactory = new TaskFactory();
-            // taskFactory.addUserPoints(1, {'HighGradesPoints':'100'});
-
             res.json({
                 'Error': false,
-                'points': result
+                'categories': result
             });
         }).catch(function(err) {
-            console.log('/userPoints/: ' + err);
+            console.log('/badgeCategories/: ' + err);
             res.status(401).end();
         });
     });
@@ -5615,7 +5622,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoint for user courses
     router.get('/studentCourses/:userID/:semesterID', async function(req, res) {
 
-        let select = `SELECT DISTINCT c.Name, c.Number, c.Description, s.CourseID FROM course AS c 
+        let select = `SELECT DISTINCT c.Name, c.Number, c.Description, c.CourseID, 
+                      s.SectionID, s.SemesterID, s.Name SectionName
+                      FROM course AS c 
                       JOIN section AS s ON s.CourseID = c.CourseID
                       JOIN sectionuser AS us ON us.SectionID = s.SectionID
                       WHERE us.UserID =? AND s.SemesterID=?`;
@@ -5641,16 +5650,21 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //Endpoint for badge categorie
-    router.get('/badgeCategories', async function(req, res) {
+    router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
         BadgeCategory.findAll({
+            where: {
+                CourseID: req.params.courseID,
+                SectionID: req.params.sectionID,
+                SemesterID: req.params.semesterID
+            },
             attributes: [
                 'CategoryID',
                 'Name',
                 'Description',
-                'Tier1Baddges',
-                'Tier2Baddges',
-                'Tier3Baddges'
+                'Tier1Instances',
+                'Tier2Instances',
+                'Tier3Instances'
             ],
             include: [{
                 model: Badge,

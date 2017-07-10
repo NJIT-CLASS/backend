@@ -1,6 +1,6 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('UserPoints', {
-       UserID: {
+    return sequelize.define('UserPointIntances', {
+        UserID: {
             //The User
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
@@ -8,40 +8,47 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false,
             primaryKey: true
         },
-        SemesterID: {
+        BadgeCategoryID: {
             //The Semester 
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SemesterID',
+            field: 'BadgeCategoryID',
             allowNull: false,
             primaryKey: true
         },
-        CourseID: {
-            //The Course 
-            //Foreign Key
+        TaskInstanceID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CourseID',
-            allowNull: false,
-            primaryKey: true
-        },
-        QuestionsPoints: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'QuestionsPoints',
+            field: 'TaskInstanceID',
             allowNull: true
         },
-        HighGradesPoints: {
+        QuestionsPointInstance: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'HighGradesPoints',
+            field: 'QuestionsPointInstance',
             allowNull: true
         },
-        SolutionsPoitns: {
+        HighGradesPointInstance: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SolutionsPoints',
+            field: 'HighGradesPointInstance',
             allowNull: true
         },
-        GraderPoitns: {
+        SolutionsPointInstance: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'GraderPoints',
+            field: 'SolutionsPointInstance',
+            allowNull: true
+        },
+        GraderPointInstance: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'GraderPointInstance',
+            allowNull: true
+        },
+        EarlySubmissionPointInstance: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'EarlySubmissionPointInstance',
+            allowNull: true
+        },
+        ParticipationPointInstance: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'ParticipationPointInstance',
             allowNull: true
         },
     }, {
@@ -62,6 +69,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'UserPoints'
+        tableName: 'userPointInstances'
     });
 };
