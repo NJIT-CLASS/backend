@@ -250,12 +250,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     //Endpoint to remove from VolunteerPool
-    router.delete('/VolunteerPool/deleteVolunteer', function (req, res) {
-
+    router.post('/VolunteerPool/deleteVolunteer', function (req, res) {
+        
         VolunteerPool.destroy({
             where: {
-                UserID: 12, //req.body.userID,
-                AssignmentInstanceID: 12, //req.body.AssignmentInstanceID
+                UserID: req.body.UserID,
+                SectionID: req.body.SectionID
+                //AssignmentInstanceID: req.body.AssignmentInstanceID
             }
         }).then(function (rows) {
             console.log('Delete User Success');
@@ -276,7 +277,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/VolunteerPool/add', function (req, res) {
         console.log('/VolunteerPool/add : was called');
 
-        if (req.body.UserID === null || req.body.SectionID === null || req.body.AssignmentInstanceID === null) {
+        if (req.body.UserID === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/) {
             console.log('/VolunteerPool/add : Missing attributes');
             res.status(400).end();
         }
@@ -286,7 +287,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         VolunteerPool.create({
             UserID: req.body.UserID,
             SectionID: req.body.SectionID,
-            AssignmentInstanceID: req.body.AssignmentInstanceID
+           // AssignmentInstanceID: req.body.AssignmentInstanceID
         }).then(function (rows) {
             console.log('add User Success');
             res.status(200).end();
@@ -4865,7 +4866,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             include: [{
                 model: User,
-                attributes: ['FirstName', 'LastName']
+                attributes: ['FirstName', 'LastName'],
+                include: [{
+                    model: VolunteerPool
+                }]
             },
             {
                 model: UserLogin,
@@ -4880,7 +4884,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['UserID', 'Active', 'Volunteer', 'Role']
         }).then(function (SectionUsers) {
             console.log('/sectionUsers called');
-            res.json({
+            SectionUsers = SectionUsers.map( user => {
+                let newUser  = user;
+                newUser.Volunteer = user.User.VolunteerPools.length != 0;
+                return newUser;
+            });
+            return res.json({
                 'Error': false,
                 'SectionUsers': SectionUsers
             });
