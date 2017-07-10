@@ -1544,7 +1544,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     User.find({
                         where: {
                             UserID: sectionUser.UserID
-                        }
+                        },
+                        include: [{
+                            model: UserContact
+                        }]
                     }).then(function (user) {
                         if (!user) return;
 

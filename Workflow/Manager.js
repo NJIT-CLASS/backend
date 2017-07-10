@@ -272,6 +272,23 @@ class Manager {
                 break;
             case '"allocate_new_participant_from_contigency_pool"':
 
+                status[5] = 'reallocated_no_extra_credit';
+                await x.updateStatus(task, status);
+                //Run allocation algorithm, extend due date.
+                await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1]);
+                await alloc.reallocate(task, users, false).then(async function (done) {
+                    console.log(done);
+                    if (!done || !done[0]) {
+                        return;
+                    } else {
+                        console.log('now saving');
+                        await task.save();
+                    }
+                });
+                //send email to notify user about allocation
+                break;
+            case '"allocate_new_participant_extra_credit"':
+
                 status[5] = 'reallocated_extra_credit';
                 await x.updateStatus(task, status);
                 //Run allocation algorithm, extend due date.

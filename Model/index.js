@@ -91,9 +91,9 @@ models.forEach(function(model) {
     m.VolunteerPool.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
-    m.VolunteerPool.belongsTo(m.AssignmentInstance, {
-        foreignKey: 'AssignmentInstanceID'
-    });
+    // m.VolunteerPool.belongsTo(m.AssignmentInstance, {
+    //     foreignKey: 'AssignmentInstanceID'
+    // });
     m.VolunteerPool.belongsTo(m.Section, {
         foreignKey: 'SectionID'
     });
