@@ -5580,6 +5580,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 SemesterID: req.params.semesterID
             },
             attributes: [
+                'CategoryID',
                 'CourseID',
                 'SectionID',
                 'SemesterID',
