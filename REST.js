@@ -5582,8 +5582,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'CourseID',
                 'SectionID',
                 'SemesterID',
-                'Name',
-                'Description',
                 'Tier1Instances',
                 'Tier2Instances',
                 'Tier3Instances'
@@ -5611,7 +5609,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
             res.json({
                 'Error': false,
-                'categories': result
+                'progress': result
             });
         }).catch(function(err) {
             console.log('/badgeCategories/: ' + err);
