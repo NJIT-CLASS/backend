@@ -139,7 +139,7 @@ DROP TABLE IF EXISTS `badges`;
 
 CREATE TABLE `badges` (
   `BadgeID` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `CategoryID` int(10) unsigned NOT NULL,
+  `BadgeCategoryID` int(10) unsigned NOT NULL,
   `Name` varchar(100) COLLATE latin1_spanish_ci NOT NULL,
   `Description` text COLLATE latin1_spanish_ci,
   `logo` varchar(200) COLLATE latin1_spanish_ci DEFAULT NULL,
@@ -148,7 +148,7 @@ CREATE TABLE `badges` (
 
 /*Data for the table `badges` */
 
-insert  into `badges`(`BadgeID`,`CategoryID`,`Name`,`Description`,`logo`) values 
+insert  into `badges`(`BadgeID`,`BadgeCategoryID`,`Name`,`Description`,`logo`) values 
 (1,1,'TEST 1','This is a great badge!',NULL),
 (2,1,'TEST 2','This is another great badge',NULL);
 
