@@ -5571,16 +5571,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Endpoint to get the user's Progress
-    router.get('/userProgress/:userID/:courseID/:sectionID/:semesterID', async function(req, res) {
+    router.get('/userProgress/:userID/:categoryID', async function(req, res) {
 
         BadgeCategory.findAll({
             where: {
-                CourseID: req.params.courseID,
-                SectionID: req.params.sectionID,
-                SemesterID: req.params.semesterID
+                BadgeCategoryID: req.params.categoryID,
             },
             attributes: [
-                'CategoryID',
+                'BadgeCategoryID',
                 'CourseID',
                 'SectionID',
                 'SemesterID',
@@ -5595,13 +5593,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 },
                 as: 'UserPoints',
                 attributes: [
-                    'UserID',
-                    'QuestionsPointInstance',
-                    'HighGradesPointInstance',
-                    'SolutionsPointInstance',
-                    'GraderPointInstance',
-                    'EarlySubmissionPointInstance',
-                    'ParticipationPointInstance'
+                    'PointInstances'
                 ]
             }]
         }).then(function(result) {
@@ -5663,7 +5655,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 SemesterID: req.params.semesterID
             },
             attributes: [
-                'CategoryID',
+                'BadgeCategoryID',
                 'Name',
                 'Description',
                 'Tier1Instances',

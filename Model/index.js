@@ -62,7 +62,7 @@ models.forEach(function(model) {
     });
 
     m.Badge.belongsTo(m.BadgeCategory, {
-        foreignKey: 'CategoryID'
+        foreignKey: 'BadgeCategoryID'
     });
 
     m.User.hasOne(m.UserLogin, {
@@ -211,12 +211,12 @@ models.forEach(function(model) {
 
     //has Many Relations
     m.BadgeCategory.hasMany(m.Badge, {
-        foreignKey: 'CategoryID',
+        foreignKey: 'BadgeCategoryID',
         constraints: false
     });
 
     m.Badge.belongsTo(m.BadgeCategory, {
-        foreignKey: 'CategoryID',
+        foreignKey: 'BadgeCategoryID',
         constraints: false
     });
 

@@ -16,40 +16,13 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false,
             primaryKey: true
         },
-        TaskInstanceID: {
+        PointInstances: {
+            //The Course 
+            //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskInstanceID',
-            allowNull: true
-        },
-        QuestionsPointInstance: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'QuestionsPointInstance',
-            allowNull: true
-        },
-        HighGradesPointInstance: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'HighGradesPointInstance',
-            allowNull: true
-        },
-        SolutionsPointInstance: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SolutionsPointInstance',
-            allowNull: true
-        },
-        GraderPointInstance: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'GraderPointInstance',
-            allowNull: true
-        },
-        EarlySubmissionPointInstance: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'EarlySubmissionPointInstance',
-            allowNull: true
-        },
-        ParticipationPointInstance: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'ParticipationPointInstance',
-            allowNull: true
+            field: 'PointInstances',
+            allowNull: false,
+            primaryKey: true
         },
     }, {
         timestamps: false,

@@ -1,9 +1,9 @@
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('BadgeCategory', {
-        CategoryID: {
+        BadgeCategoryID: {
             //Unique identifier for Category 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryID',
+            field: 'BadgeCategoryID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
