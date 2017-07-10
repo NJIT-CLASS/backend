@@ -5571,7 +5571,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Endpoint to get the user's Progress
-    router.get('/userProgress/:userID/:semesterID/:categoryID', async function(req, res) {
+    router.get('/userProgress/:categoryID', async function(req, res) {
 
         BadgeCategory.findAll({
             where: {
