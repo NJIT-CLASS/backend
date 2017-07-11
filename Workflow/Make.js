@@ -30,6 +30,7 @@ var TaskSimpleGrade = models.TaskSimpleGrade;
 
 var tree = new TreeModel();
 var flatToNested = new FlatToNested();
+var email = new Email();
 
 const logger = require('winston');
 
