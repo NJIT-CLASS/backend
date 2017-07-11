@@ -19,7 +19,14 @@ module.exports = function(sequelize, DataTypes) {
             //Unique identifier for assignment instance
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'AssignmentInstanceID',
+            field: 'TaskInstanceID',
+            allowNull: false
+        },
+        TaskInstanceID: {
+            //Unique identifier for assignment instance
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'TaskInstanceID',
             allowNull: false
         },
         Type: {
