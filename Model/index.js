@@ -88,9 +88,7 @@ models.forEach(function(model) {
         foreignKey: 'CourseID'
     });
 
-    m.VolunteerPool.belongsTo(m.User, {
-        foreignKey: 'UserID'
-    });
+   
     // m.VolunteerPool.belongsTo(m.AssignmentInstance, {
     //     foreignKey: 'AssignmentInstanceID'
     // });
@@ -257,6 +255,9 @@ models.forEach(function(model) {
     });
     m.User.hasMany(m.TaskInstance, {
         as: 'TaskInstances',
+        foreignKey: 'UserID'
+    });
+    m.User.hasMany(m.VolunteerPool, {
         foreignKey: 'UserID'
     });
 
