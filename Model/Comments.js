@@ -20,14 +20,14 @@ module.exports = function(sequelize, DataTypes) {
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'TaskInstanceID',
-            allowNull: false
+            allowNull: true
         },
         TaskInstanceID: {
             //Unique identifier for assignment instance
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'TaskInstanceID',
-            allowNull: false
+            allowNull: true
         },
         Type: {
             type: DataTypes.STRING,
