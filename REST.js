@@ -49,6 +49,7 @@ var TaskInstance_Archive = models.TaskInstance_Archive;
 var WorkflowInstance_Archive = models.WorkflowInstance_Archive;
 var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
 var Comments = models.Comments;
+var Contact = models.Contact;
 
 var Manager = require('./Workflow/Manager.js');
 var Allocator = require('./Workflow/Allocator.js');
@@ -243,7 +244,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log('Delete User Success');
             res.status(200).end();
         }).catch(function(err) {
-            console.log('/course/deleteuser : ' + err.message);
+            console.log('/course/`delete`user : ' + err.message);
 
             res.status(400).end();
         });
@@ -5785,7 +5786,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
        router.post('/comments/add', function(req, res) {
            console.log("/comments/add : was called");
 
-           if (req.body.UserID === null || req.body.SectionID === null || req.body.AssignmentInstanceID === null || req.body.Type === null || req.body.CommentText === null || req.body.Rating === null || req.body.ReplyLevel === null) {
+           if (req.body.UserID === null || req.body.SectionID === null || req.body.TaskInstanceID === null || req.body.AssignmentInstanceID === null ||req.body.Type === null || req.body.CommentText === null || req.body.Rating === null || req.body.ReplyLevel === null) {
                console.log("/comments/add : Missing attributes");
                res.status(400).end();
            }
@@ -5795,7 +5796,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
            Comments.create({
                CommentsID: req.body.CommentsID,
                UserID: req.body.UserID,
-               AssignmentInstanceID: req.body.AssignmentInstanceID,
+               TaskInstanceID: req.body.TaskInstanceID,
+               AssignmentInstanceID:req.body.AssignmentInstanceID,
                Type: req.body.Type,
                CommentsText: req.body.CommentText,
                Rating: req.body.Rating,
@@ -5854,7 +5856,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      });
  });
 
- //------------------------------------------------------------------------------------------
+ //-----------------------------------------------------------------------------
  router.put('/comments/delete', function(req, res) {
 
      if (req.body.CommentsID  == null) {
@@ -5889,7 +5891,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      });
  });
 
- //------------------------------------------------------------------------------------------
+ //------------------------------------------------------------------------------
 
  router.put('/comments/setFlag', function(req, res) {
 
@@ -6085,14 +6087,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //-------------------------------------------------------------------------
-    router.get('/comments/ai/:assignmentInstanceID',function(req, res) {
-      console.log('comments/ai/:assignmentInstanceID was called');
+    router.get('/comments/ai/:AssignmentInstanceID',function(req, res) {
+      console.log('comments/ai/:AssignmentInstanceID was called');
       Comments.findAll({
           where: {
               AssignmentInstanceID: req.params.AssignmentInstanceID,
               Delete: 0
           },
-          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
                 'Error': false,
@@ -6105,6 +6107,26 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
     //-------------------------------------------------------------------------
+    router.get('/comments/ti/:TaskInstanceID',function(req, res) {
+      console.log('comments/ti/:TaskInstanceID was called');
+      Comments.findAll({
+          where: {
+              TaskInstanceID: req.params.TaskInstanceID,
+              Delete: 0
+          },
+          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Comments': rows
+            });
+        }).catch(function(err) {
+            console.log('comments/ti ' + err.message);
+            res.status(401).end();
+        });
+    });
+    //-------------------------------------------------------------------------
     router.get('/comments/commentID/:CommentsID',function(req, res) {
       console.log('/comments/commentID/:CommentsID');
       Comments.findAll({
@@ -6112,7 +6134,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
               CommentsID: req.params.CommentsID,
               Delete: 0
           },
-          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
                 'Error': false,
@@ -6132,7 +6154,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
               UserID: req.params.UserID,
               Delete: 0
           },
-          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
                 'Error': false,
@@ -6208,7 +6230,126 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
     });
-    //-------------------------------------------------------------------------
+    //------------------------Contact APIs-------------------------------------
+    router.get('/contact/add/:UserID', function(req, res) {
+        console.log("/contact/add : was called");
+        User.findAll({
+            where: {
+                UserID: req.params.UserID
+            },
+            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup']
+        }).then(function(rows) {
+            console.log("Creating UserID,FirstName,LastName,OrganizationGroup.");
+            Contact.create({
+                UserID: rows[0].UserID,
+                FirstName: rows[0].FirstName,
+                LastName: rows[0].LastName,
+                OrganizationGroup: rows[0].OrganizationGroup
+            });
+            res.status(401).end();
+        }).catch(function(err) {
+            console.log('/contact/add/:UserID' + err.message);
+            res.status(401).end();
+        });
+        UserLogin.findAll({
+            where: {
+                UserID: req.params.UserID
+            },
+            attributes: ['Email']
+        }).then(function(rows2) {
+            console.log("Adding Email");
+            Contact.update({
+                Email: rows2[0].Email
+              }, {
+                  where: {
+                      UserID: req.params.UserID
+                  },
+            });
+            res.status(401).end();
+        }).catch(function(err) {
+            console.log('/contact/add/:UserID' + err.message);
+            res.status(401).end();
+        });
+      });
+
+    //---------------------------------------------------------------------------
+    router.delete('/contact/delete/:UserID', function(req, res) {
+
+        Contact.destroy({
+            where: {
+                UserID: req.params.UserID
+            }
+        }).then(function(rows) {
+            console.log('Delete User Success');
+            res.status(200).end();
+        }).catch(function(err) {
+            console.log('/contact/delete/:UserID: ' + err.message);
+
+            res.status(400).end();
+        });
+
+
+    });
+
+    //---------------------------------------------------------------------------
+    router.get('/contact', function(req, res) {
+
+        Contact.findAll({
+          attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Contact': rows
+            });
+        }).catch(function(err) {
+            console.log('/contact: ' + err.message);
+            res.status(401).end();
+        });
+    });
+    //---------------------------------------------------------------------------
+    router.get('/contact/organizationGroup/:OrganizationGroup', function(req, res) {
+
+        Contact.findAll({
+          where: {
+              OrganizationGroup: req.params.OrganizationGroup
+          },
+          attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Contact': rows
+            });
+        }).catch(function(err) {
+            console.log('/contact: ' + err.message);
+            res.status(401).end();
+        });
+    });
+    //---------------------------------------------------------------------------
+    router.get('/contact/global/:Global', function(req, res) {
+
+        Contact.findAll({
+          where: {
+              Global: req.params.Global
+          },
+          attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Contact': rows
+            });
+        }).catch(function(err) {
+            console.log('/contact: ' + err.message);
+            res.status(401).end();
+        });
+    });
+
+
+
+
+    //---------------------------------------------------------------------------
 
 };
 
