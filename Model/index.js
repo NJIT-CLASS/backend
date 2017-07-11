@@ -24,7 +24,7 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity','User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference','TaskInstance','Comments'
+    'FileReference','TaskInstance','Comments','Contact'
 ];
 
 
@@ -55,6 +55,10 @@ models.forEach(function(model) {
         foreignKey: 'UserID'
     });
     m.UserContact.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
+
+    m.Contact.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
     m.SectionUser.belongsTo(m.UserLogin, {
