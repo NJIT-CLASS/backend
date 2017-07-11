@@ -5801,7 +5801,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                Type: req.body.Type,
                CommentsText: req.body.CommentText,
                Rating: req.body.Rating,
-               Flag: 0,
+               Flag: req.body.Flag,
                Status: 'saved',
                ReplyLevel: req.body.ReplyLevel,
                Parents: req.body.Parents,
@@ -6230,6 +6230,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
     });
+
+
     //------------------------Contact APIs-------------------------------------
     router.get('/contact/add/:UserID', function(req, res) {
         console.log("/contact/add : was called");
