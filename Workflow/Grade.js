@@ -2,6 +2,8 @@ var models = require('../Model');
 var Promise = require('bluebird');
 var Util = require('./Util.js');
 var _ = require('underscore');
+var moment = require('moment');
+
 
 var FileReference = models.FileReference;
 var User = models.User;
@@ -48,7 +50,7 @@ class Grade {
             },
             include: [{
                     model: WorkflowInstance,
-                    attributes: ['WorkflowActivityID']
+                    attributes: ['WorkflowActivityID', 'TaskCollection']
                 },
                 {
                     model: TaskActivity,
@@ -58,13 +60,30 @@ class Grade {
         });
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
-        if (ti.TaskActivity.SimpleGrade !== 'none') {
+        var user_history = JSON.parse(ti.UserHistory);
+
+        if (ti.TaskActivity.SimpleGrade !== 'none' && ti.TaskActivity.SimpleGrade.substr(0, 11) === 'off_per_day') {
+            var avg_grade = await x.getAverageSimpleGrade(JSON.parse(ti.WorkflowInstance.TaskCollection));
+            if (JSON.parse(ti.Status)[3] === 'late') {
+                var days_late = await x.getNumberOfDaysLate(ti);
+                var regExp = /\(([^)]+)\)/;
+                var matches = regExp.exec(ti.TaskActivity.SimpleGrade);
+                matches = parseInt(matches[1]);
+
+                avg_grade = avg_grade - avg_grade * (matches / 100) * days_late;
+
+                if (avg_grade < 0) {
+                    avg_grade = 0;
+                }
+            }
+
             try {
                 var grade = await TaskSimpleGrade.create({
                     TaskInstanceID: ti.TaskInstanceID,
                     SectionUserID: sec_user,
                     WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
-                    Grade: 1
+                    IsExtraCredit: user_history[user_history.length - 1].is_extra_credit,
+                    Grade: avg_grade
                 });
 
                 logger.log('info', '/Workflow/Grade/addSimpleGrade: Done! TaskSimpleGradeID: ', grade.TaskSimpleGradeID);
@@ -100,6 +119,8 @@ class Grade {
 
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
+        var user_history = JSON.parse(ti.UserHistory);
+
         var task_grade = await TaskGrade.create({
             TaskInstanceID: ti_id,
             WorkflowInstanceID: ti.WorkflowInstanceID,
@@ -107,6 +128,7 @@ class Grade {
             SectionUserID: sec_user,
             WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
             Grade: grade,
+            IsExtraCredit: user_history[user_history.length - 1].is_extra_credit,
             MaxGrade: max_grade
         });
 
@@ -434,6 +456,18 @@ class Grade {
     }
 
 
+    async getAverageSimpleGrade(task_collection) {
+        var grade = 100;
+        var length = task_collection.length;
+        return grade / length;
+    }
+
+    async getNumberOfDaysLate(ti) {
+        var now = moment();
+        var endDate = ti.EndDate;
+        now.diff(endDate, 'days');
+        return now.diff(endDate, 'days') + 1;
+    }
 
 }
 

@@ -52,6 +52,8 @@ class TaskTrigger {
             }
         });
 
+        await grade.addSimpleGrade(ti_id);
+
         if (ti.NextTask === '[]') { //no more task in this branch
             await x.completed(ti_id);
         } else {
@@ -200,11 +202,8 @@ class TaskTrigger {
         } else if (status[2].substr(0, 13) === 'being_revised') {
             var regExp = /\(([^)]+)\)/;
             var matches = regExp.exec(status[2]);
-            console.log('matches0', matches);
             matches = parseInt(matches[1]);
-            console.log('matches', matches);
             matches++;
-            console.log('matches2', matches);
             status[2] = 'being_revised(' + JSON.stringify(matches) + ')';
         } else {
             status[2] = 'submitted_for_approval';
