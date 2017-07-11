@@ -6347,8 +6347,35 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
     });
+    //---------------------------------------------------------------------------
+
+    router.get('/VolunteerPool/:UserID', function(req, res) {
+
+        VolunteerPool.findAll({
+          where: {
+              UserID: req.params.UserID
+          },
+            attributes: ['VolunteerPoolID', 'UserID', 'SectionID', 'AssignmentInstanceID','status']
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
+            });
+        }).catch(function(err) {
+            console.log('/VolunteerPool/:UserID ' + err.message);
+            res.status(401).end();
+        });
 
 
+    });
+    //---------------------------------------------------------------------------
+
+
+    //---------------------------------------------------------------------------
+
+
+    //---------------------------------------------------------------------------
 
 
     //---------------------------------------------------------------------------
