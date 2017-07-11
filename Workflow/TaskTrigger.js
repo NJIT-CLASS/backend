@@ -560,7 +560,7 @@ class TaskTrigger {
                     TaskInstanceID: ti.TaskInstanceID
                 }
             }).then(function () {
-                //email.sendNow(nextTask.UserID, 'new task', null);
+                email.sendNow(nextTask.UserID, 'new task', null);
             });
 
             logger.log('info', 'trigger completed', {

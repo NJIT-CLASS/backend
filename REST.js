@@ -2330,7 +2330,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         }
                     }).then(function (done) {
                         console.log('/update/password: Password updated successfully');
-                        //email.sendNow(user.UserID, 'new password');
+                        email.sendNow(user.UserID, 'new password');
                         res.status(200).end();
                     }).catch(function (err) {
                         console.log(err);
