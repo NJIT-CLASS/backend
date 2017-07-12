@@ -195,6 +195,17 @@ class Email {
                             html: ''
                         });
                         break;
+
+                    case 'reset password':
+                        x.send({from: email,
+                            replyTo: email,
+                            to: result.Email,
+                            subject: 'Your password has been reset - PLA',
+                            text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
+                            html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
+
+                        });
+                        break;
                     default:
                         logger.log('error', '/Workflow/Email/sendNow: email option not found!');
                         return null;
@@ -205,7 +216,7 @@ class Email {
             logger.log('info', '/Email: email servier currently not activated');
         }
     }
-    
+
     //Update Email Last Sent in Task Instance to Now.
     updateEmailLastSent(taskInstanceId) {
         TaskInstance.update({
