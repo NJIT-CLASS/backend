@@ -1,6 +1,6 @@
 var moment = require('moment');
 var models = require('../Model');
-var Email = require('../WorkFlow/Email.js');
+var Email = require('../Workflow/Email.js');
 var Promise = require('bluebird');
 var _ = require('underscore');
 var Util = require('../Workflow/Util.js');
