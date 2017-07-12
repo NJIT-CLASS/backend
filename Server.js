@@ -3,12 +3,8 @@ var mysql = require('mysql');
 var bodyParser = require('body-parser');
 var rest = require('./REST.js');
 var app = express();
-<<<<<<< HEAD
 var settings = require("./backend_settings");
 const logger = require('winston');
-=======
-var settings = require('./backend_settings');
->>>>>>> ededa947c6d89ada38b6829bd007b2e6d2a4ad90
 
 
 var schedule = require('node-schedule');
