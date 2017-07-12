@@ -5,6 +5,7 @@ var TaskFactory = require('./TaskFactory.js');
 var _ = require('underscore');
 var Email = require('./Email.js');
 
+
 var User = models.User;
 var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
@@ -596,6 +597,7 @@ class Allocator {
     //updateDB
     //TODO: IMMEDIATE! Add a checker for for assignee constraints
     reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
+        let email = new Email();
         if (is_extra_credit == null) {
             is_extra_credit = true;
         }
