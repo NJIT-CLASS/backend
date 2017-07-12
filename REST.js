@@ -5805,7 +5805,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                Status: 'saved',
                ReplyLevel: req.body.ReplyLevel,
                Parents: req.body.Parents,
-               Delete: 0,
                Hide: 0,
                Viewed: 0
 
@@ -5835,7 +5834,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      }, {
          where: {
              CommentsID: req.body.CommentsID,
-             Delete: 0
+             Delete: null
          }
      }).then(function(result) {
          Comments.find({
@@ -5870,7 +5869,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      }, {
          where: {
              CommentsID: req.body.CommentsID,
-             Delete: 0
+             Delete: null
          }
      }).then(function(result) {
          Comments.find({
@@ -5906,7 +5905,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      }, {
          where: {
              CommentID: req.body.CommentID,
-             Delete: 0
+             Delete: null
          }
      }).then(function(result) {
          Comments.find({
@@ -5940,7 +5939,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }, {
             where: {
                 CommentID: req.body.CommentID,
-                Delete: 0
+                Delete: null
             }
         }).then(function(result) {
             Comments.find({
@@ -5975,7 +5974,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }, {
             where: {
                 CommentID: req.body.CommentID,
-                Delete: 0
+                Delete: null
             }
         }).then(function(result) {
             Comments.find({
@@ -6002,7 +6001,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         Comments.findAll({
           where: {
               AssignmentInstanceID: req.params.AssignmentInstanceID,
-              Delete: 0
+              Delete: null
           }
         }).then(function(rows) {
             res.json({
@@ -6022,7 +6021,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           where: {
               AssignmentInstanceID: req.params.AssignmentInstanceID,
               Rating: {$not: null},
-              Delete: 0
+              Delete: null
           }
         }).then(function(rows) {
             res.json({
@@ -6043,7 +6042,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           where: {
               Parents: req.params.CommentID,
               Rating: {$not: null},
-              Delete: 0
+              Delete: null
           }
         });
         Promise.map(JSON.parse(c.Rating), function(t){
@@ -6068,7 +6067,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           where: {
               UserID: req.params.userID,
               Rating: {$not: null},
-              Delete: 0
+              Delete: null
           }
         });
         Promise.map(JSON.parse(c.Rating), function(t){
@@ -6092,7 +6091,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
       Comments.findAll({
           where: {
               AssignmentInstanceID: req.params.AssignmentInstanceID,
-              Delete: 0
+              Delete: null
           },
           attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
@@ -6112,7 +6111,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
       Comments.findAll({
           where: {
               TaskInstanceID: req.params.TaskInstanceID,
-              Delete: 0
+              Delete: null
           },
           attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
@@ -6162,13 +6161,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
     //-------------------------------------------------------------------------
     router.get('/comments/commentID/:CommentsID',function(req, res) {
-      console.log('/comments/commentID/:CommentsID');
+      console.log('/comments/commentID/:CommentsID was called');
       Comments.findAll({
           where: {
               CommentsID: req.params.CommentsID,
-              Delete: 0
-          },
-          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+              Delete: null
+          }
+          //,
+          //attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
                 'Error': false,
@@ -6176,7 +6176,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'Comments': rows
             });
         }).catch(function(err) {
-            console.log('comments/ai ' + err.message);
+            console.log('comments/commentID/:CommentsID ' + err.message);
             res.status(401).end();
         });
     });
@@ -6186,7 +6186,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
       Comments.findAll({
           where: {
               UserID: req.params.UserID,
-              Delete: 0
+              Delete: null
           },
           attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
@@ -6212,7 +6212,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }, {
             where: {
                 CommentID: req.body.CommentID,
-                Delete: 0
+                Delete: null
             }
         }).then(function(result) {
             Comments.find({
@@ -6244,7 +6244,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }, {
             where: {
                 CommentID: req.body.CommentID,
-                Delete: 0
+                Delete: null
             }
         }).then(function(result) {
             Comments.find({
