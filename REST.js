@@ -2868,158 +2868,41 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to get start a password reset request
-    router.post('/resetPassword', function (req, res) {
-        if (req.body.email == null) {
-            console.log('/resetPassword : Email not sent');
-            req.status(401).end();
-            return;
-        }
-        var guid = Guid.create();
-        //What is Guid?
-
-        UserLogin.find({
-            where: {
-                Email: req.body.email
-            }
-        }).then(function (userlogin) {
-            if (userlogin == null) {
-                console.log('/resetPassword : Email does not exist');
-                res.status(401).end();
-            } else {
-                User.find({
-                    where: {
-                        UserID: userlogin.UserID
-                    }
-                }).then(function (user) {
-                    user.getResetPasswordRequest().then(function (PasswordRequest) {
-                        Guid.isGuid(guid);
-                        var value = guid.value;
-                        if (PasswordRequest != null) {
-                            ResetPasswordRequest.update({
-                                RequestHash: value
-                            }, {
-                                where: {
-                                    UserID: PasswordRequest.UserID
-                                }
-                            }).then(function () {
-                                console.log('/resetPassword : Record updated ');
-                                res.status(200).end();
-                            });
-                        } else {
-                            var newRequest = ResetPasswordRequest.build({
-                                UserID: user.UserID,
-                                RequestHash: value
-                            });
-                            newRequest.save().then(function () {
-                                console.log('/resetPassword : Record created ');
-                                res.status(200).end();
-                            }).catch(function (error) {
-                                // Ooops, do some error-handling
-                                console.log('/resetPassword : Error while inserting ' + error.message);
-                                res.status(401).end();
-                            });
-
-                        }
-                    });
-                });
-            }
-        });
-    });
-
     //-----------------------------------------------------------------------------------------------------
 
-    //still need fixing
-    router.get('/getPasswordResetRequest', function (req, res) {
-        /*var query = "select ?? from ?? where ??=?";
-        var table = ["UserID", "ResetPasswordRequest", "RequestHash", req.query.PasswordHash];
-        query = mysql.format(query, table);
-        connection.query(query, function(err, result) {
-            if (err) {
-                console.log("/getPasswordResetRequest : " + err.message);
-                res.status(404).end();
-            } else {
-                if (result.length > 0) {
-                    console.log("/getPasswordResetRequest : Request found");
-                    res.json({
-                        "Error": false,
-                        "Message": "Success",
-                        "UserID": result
-                    });
-                } else {
-                    console.log("/getPasswordReset : Request not found");
-                    res.json({
-                        "Error": true,
-                        "Message": "Request Password not found"
-                    });
-                }
-            }
-        });*/
-
-        ResetPasswordRequest.find({
-            where: {
-                RequestHash: req.query.PasswordHash
-            },
-            attributes: ['UserID']
-        }).then(function (result) {
-            if (result.length > 0) {
-                console.log('/getPasswordResetRequest : Request found');
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'UserID': result
-                });
-            } else {
-                console.log('/getPasswordReset : Request not found');
-                res.json({
-                    'Error': true,
-                    'Message': 'Request Password not found'
-                });
-            }
-        }).catch(function (err) {
-            console.log('/getPasswordResetRequest : ' + err.message);
-            res.status(404).end();
-        });
-    });
+ 
 
     //-----------------------------------------------------------------------------------------------------
 
     router.post('/password/reset', function (req, res) {
-        if (req.body.HashRequest == null) {
-            console.log('/resetPassword : HashRequest not sent');
-            req.status(401).end();
+        if(req.body.email === null || req.body.email === ''){
+            return res.status(401).end();
         }
-        if (req.body.newPassword == null) {
-            console.log('/resetPassword : newPassword not sent');
-            req.status(401).end();
-        }
-        User.find({
+
+        return UserLogin.findOne({
             where: {
-                UserID: userlogin.UserID
+                Email: req.body.email
             }
-        }).then(function (user) {
-            ResetPasswordRequest.find({
-                where: {
-                    RequestHash: req.body.HashRequest
-                }
-            }).then(async function (request) {
-                if (request == null) {
-                    console.log('/resetPassword : HashRequest does not exist');
-                    res.status(401).end();
-                } else {
-                    UserLogin.update({
-                        Password: await password.hash(req.body.newPassword)
-                    }, {
-                        where: {
-                            UserID: request.UserID
-                        }
-                    }).then(function () {
-                        request.destroy();
-                        console.log('/resetPassword : Password updated');
-                        res.status(200).end();
-                    });
-                }
+        })
+        .then(async (user) => {
+            console.log('found user', user);
+            if(user == null){
+                return res.status(401).end();
+            }
+            let temp_pass = await password.generate();
+            user.Password = await password.hash(temp_pass);
+            user.Pending = true;
+            user.Attempts = 0;
+            user.save().then((result) => {
+                let email = new Email();
+                email.sendNow(result.UserID, 'reset password', temp_pass);
+                res.status(200).end();
+
             });
+        })
+        .catch((err) => {
+            console.log(err);
+            res.status(500).end();
         });
     });
 
