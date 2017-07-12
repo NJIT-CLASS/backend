@@ -779,7 +779,7 @@ class Make {
         if (wf_task.DueType[0] === 'duration') {
             endDate.add(wf_task.DueType[1], 'minutes');
             //endDate.add(1, 'minutes');
-        } else if (wf_task.DueType[0] === 'specificTime') {
+        } else if (wf_task.DueType[0] === 'specific time') {
             endDate = wf_task.DueType[1];
         }
 

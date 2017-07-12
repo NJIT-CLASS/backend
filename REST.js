@@ -4902,7 +4902,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     // endpoint to add sectionusers, invite users not yet in system
-    router.post('/sectionUsers/:sectionid', function (req, res) {
+    router.post('/sectionUsers/:sectionid', async function (req, res) {
 
         //expects -email
         //        -firstName
@@ -4914,7 +4914,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //        -body
         //        -role
 
-        UserLogin.find({
+         UserLogin.find({
             where: {
                 Email: req.body.email
             },

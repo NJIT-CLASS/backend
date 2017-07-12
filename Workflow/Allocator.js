@@ -3,7 +3,7 @@ var Promise = require('bluebird');
 var moment = require('moment');
 var TaskFactory = require('./TaskFactory.js');
 var _ = require('underscore');
-var Email = require('./Email.js')
+var Email = require('./Email.js');
 
 var User = models.User;
 var UserLogin = models.UserLogin;

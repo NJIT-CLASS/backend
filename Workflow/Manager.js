@@ -96,12 +96,10 @@ class Manager {
             //res[secId].users.push(it.UserID); //TODO: call get Volunteers and make sure they are active
         });
 
-        // console.log('then....' + res)
         await Object.keys(res).forEach(async function (secId) {
             var users = await make.getUsersFromSection(secId); //TODO: call get Volunteers instead everyone from that section
             console.log(users);
             Promise.each(res[secId].tasks, async function (task) {
-                console.log('Checking Task Instance', task.TaskInstanceID);
                 await x.checkTask(task, users);
             });
         });
