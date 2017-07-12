@@ -799,7 +799,7 @@ class Make {
                         TaskInstanceID: task
                     }
                 });
-                //email.sendNow(ti.UserID, 'new task', null);
+                email.sendNow(ti.UserID, 'new task', null);
             });
         });
 

@@ -268,7 +268,7 @@ class Manager {
                 status[3] = 'late';
                 await x.updateStatus(task, status);
 
-                //email.sendNow(task.UserID, 'late');
+                email.sendNow(task.UserID, 'late');
                 break;
             case '"allocate_new_participant_from_contigency_pool"':
 

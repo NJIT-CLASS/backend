@@ -612,8 +612,8 @@ class Allocator {
             user_history: ti_u_hist
         });
 
-        //email.sendNow(ti.UserID, 'removed_reallocated');
-        //email.sendNow(new_u_id, 'new_reallocated');
+        email.sendNow(ti.UserID, 'removed_reallocated');
+        email.sendNow(new_u_id, 'new_reallocated');
 
         return TaskInstance.update({
             UserID: new_u_id,

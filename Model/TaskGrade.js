@@ -48,6 +48,11 @@ module.exports = function (sequelize, DataTypes) {
             field: 'Grade',
             allowNull: false
         },
+        IsExtraCredit: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'IsExtraCredit',
+            allowNull: false,
+        },
         MaxGrade:{
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'MaxGrade',
