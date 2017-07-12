@@ -1509,13 +1509,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             {
                 model: Section,
                 include: [{
-                        model: Course,
+                    model: Course,
                         // attributes: ["AssignmentInstanceID", "AssignmentID"],
                         /*include: [{
                          model: Section,
                          attributes: ["SectionID"],
                          }],*/
-                    }, ],
+                }, ],
             },
                 /*{
                  model: AssignmentGrade,
@@ -2296,7 +2296,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }).then(function (userLogin) {
                     console.log('/user/create: New user added to the system');
                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-                    //email.sendNow(user.UserID, 'create user');
+                    email.sendNow(user.UserID, 'create user');
                     res.status(200).end();
                 }).catch(function (err) {
                     console.log(err);
@@ -2307,6 +2307,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     router.post('/update/password', function (req, res) {
+        let email = new Email();
         if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
             console.log('/update/password : Missing attributes');
             res.status(400).end();
@@ -3300,18 +3301,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
         TaskInstance.find({
             where: {
-                    TaskInstanceID: req.params.taskInstanceID
-                },
+                TaskInstanceID: req.params.taskInstanceID
+            },
             include: [{
-                    model: TaskActivity,
-                    include: [{
-                        model: Assignment,
-                        attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-                    }],
-                    attributes: ['Type']
-                }, {
-                    model: AssignmentInstance,
-                    include: [{
+                model: TaskActivity,
+                include: [{
+                    model: Assignment,
+                    attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
+                }],
+                attributes: ['Type']
+            }, {
+                model: AssignmentInstance,
+                include: [{
                         model: Section,
                         attributes: ['Name', 'SectionID'],
                         include: [{
@@ -3325,7 +3326,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         ]
                     }]
 
-                }]
+            }]
         })
             .catch(function (err) {
                 //Catch error and print into console.
@@ -3919,13 +3920,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 await TaskInstance.find({
                     where: {
-                            TaskInstanceID: req.params.taskInstanceId
-                        },
+                        TaskInstanceID: req.params.taskInstanceId
+                    },
                     attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
                     include: [{
-                            model: TaskActivity,
-                            attributes: taskActivityAttributes
-                        }]
+                        model: TaskActivity,
+                        attributes: taskActivityAttributes
+                    }]
                 })
                     .then((result) => {
                         //console.log(result);
@@ -3959,14 +3960,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }).then(async function () {
                     await TaskInstance.find({
                         where: {
-                                TaskInstanceID: req.params.taskInstanceId
-                            },
+                            TaskInstanceID: req.params.taskInstanceId
+                        },
                         attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
                         include: [{
-                                model: TaskActivity,
-                                attributes: taskActivityAttributes
+                            model: TaskActivity,
+                            attributes: taskActivityAttributes
 
-                            }]
+                        }]
                     })
                         .then((result) => {
                             //console.log(result);
@@ -4549,11 +4550,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }]
         }).then(function (assignments) {
             res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Assignments': assignments
+                'Error': false,
+                'Message': 'Success',
+                'Assignments': assignments
 
-                });
+            });
         }
 
         );
@@ -4812,8 +4813,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                 LastName: req.body.lastName,
                                 Instructor: req.body.role === 'Instructor'
                             }, {
-                                    transaction: t
-                                })
+                                transaction: t
+                            })
                                 .catch(function (err) {
                                     console.error(err);
                                     logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
@@ -4834,18 +4835,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         Email: req.body.email,
                                         Phone: '(XXX) XXX-XXXX'
                                     }, {
-                                            transaction: t
-                                        }).catch(function (err) {
-                                            console.error(err);
-                                            logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                        transaction: t
+                                    }).catch(function (err) {
+                                        console.error(err);
+                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
                                                 req_body: req.body,
                                                 error: err
                                             });
-                                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                                 .then(function () {
                                                     res.status(500).end();
                                                 });
-                                        })
+                                    })
                                         .then(async function (userCon) {
                                             return UserLogin.create({
                                                 UserID: user.UserID,
@@ -4949,28 +4950,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         return sequelize.transaction(function (t) {
             return UserLogin.destroy({
-                    where: {
-                            UserID: req.params.userID
-                        }
-                }, {
-                        transaction: t
-                    })
+                where: {
+                    UserID: req.params.userID
+                }
+            }, {
+                transaction: t
+            })
                     .then((loginRowsDeleted) => {
                         return UserContact.destroy({
                             where: {
-                                    UserID: req.params.userID
-                                }
+                                UserID: req.params.userID
+                            }
                         }, {
-                                transaction: t
-                            })
+                            transaction: t
+                        })
                             .then((contactRowsDeleted) => {
                                 return SectionUser.destroy({
                                     where: {
-                                            UserID: req.params.userID
-                                        }
+                                        UserID: req.params.userID
+                                    }
                                 }, {
-                                        transaction: t
-                                    })
+                                    transaction: t
+                                })
                                     .then((sectionUsersDeleted) => {
                                         return User.destroy({
                                             where: {
@@ -5142,30 +5143,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
                     where: {
-                            TaskInstanceID: taskInstanceID
-                        },
+                        TaskInstanceID: taskInstanceID
+                    },
                     attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
                     include: [{
-                            model: TaskActivity,
-                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                        },
-                        {
-                            model: WorkflowInstance,
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                            include: {
-                                    model: WorkflowActivity,
-                                    attributes: ['WorkflowStructure']
-                                }
-                        },
-                        {
-                            model: User,
-                            attributes: ['UserID', 'FirstName', 'LastName'],
-                            include: [{
-                                    model: UserContact,
-                                    attributes: ['Email', 'Alias']
-                                }]
+                        model: TaskActivity,
+                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                        include: {
+                            model: WorkflowActivity,
+                            attributes: ['WorkflowStructure']
                         }
-                        ]
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
+                        include: [{
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
                 })
                     .catch(err => reject(err))
                     .then(task => resolve(task));
@@ -5180,8 +5181,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         WorkflowInstance.find({
             where: {
-                    WorkflowInstanceID: req.params.workflowInstanceID
-                }
+                WorkflowInstanceID: req.params.workflowInstanceID
+            }
         })
             .then(async(result) => {
                 let mappedTasks = JSON.parse(result.TaskCollection);
@@ -5206,30 +5207,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
                     where: {
-                            TaskInstanceID: taskInstanceID
-                        },
+                        TaskInstanceID: taskInstanceID
+                    },
                     attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
                     include: [{
-                            model: TaskActivity,
-                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                        },
-                        {
-                            model: WorkflowInstance,
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                            include: {
-                                    model: WorkflowActivity,
-                                    attributes: ['WorkflowStructure']
-                                }
-                        },
-                        {
-                            model: User,
-                            attributes: ['UserID', 'FirstName', 'LastName'],
-                            include: [{
-                                    model: UserContact,
-                                    attributes: ['Email', 'Alias']
-                                }]
+                        model: TaskActivity,
+                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                        include: {
+                            model: WorkflowActivity,
+                            attributes: ['WorkflowStructure']
                         }
-                        ]
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
+                        include: [{
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
                 })
                     .catch(err => reject(err))
                     .then(tiData => {
@@ -5254,8 +5255,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //value: array of resolved tasks
         WorkflowInstance.find({
             where: {
-                    WorkflowInstanceID: req.params.workflowInstanceID
-                }
+                WorkflowInstanceID: req.params.workflowInstanceID
+            }
         })
             .then(async(result) => {
                 let mappedTasks = JSON.parse(result.TaskCollection);
@@ -5281,30 +5282,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
                     where: {
-                            TaskInstanceID: taskInstanceID
-                        },
+                        TaskInstanceID: taskInstanceID
+                    },
                     attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
                     include: [{
-                            model: TaskActivity,
-                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                        },
-                        {
-                            model: WorkflowInstance,
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                            include: {
-                                    model: WorkflowActivity,
-                                    attributes: ['WorkflowStructure']
-                                }
-                        },
-                        {
-                            model: User,
-                            attributes: ['UserID', 'FirstName', 'LastName'],
-                            include: [{
-                                    model: UserContact,
-                                    attributes: ['Email', 'Alias']
-                                }]
+                        model: TaskActivity,
+                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                        include: {
+                            model: WorkflowActivity,
+                            attributes: ['WorkflowStructure']
                         }
-                        ]
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
+                        include: [{
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
                 })
                     .catch(err => reject(err))
                     .then(task => resolve(task));
@@ -5321,8 +5322,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return workflowArray.map((workflow) => {
                 return WorkflowInstance.find({
                     where: {
-                            WorkflowInstanceID: workflow
-                        }
+                        WorkflowInstanceID: workflow
+                    }
                 })
                     .then((result) => {
                         let mappedTasks = JSON.parse(result.TaskCollection);
@@ -5361,26 +5362,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
                     where: {
-                            TaskInstanceID: taskInstanceID
-                        },
+                        TaskInstanceID: taskInstanceID
+                    },
                     attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
                     include: [{
-                            model: TaskActivity,
-                            attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
-                        },
-                        {
-                            model: WorkflowInstance,
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
-                        },
-                        {
-                            model: User,
-                            attributes: ['UserID', 'FirstName', 'LastName'],
-                            include: [{
-                                    model: UserContact,
-                                    attributes: ['Email', 'Alias']
-                                }]
-                        }
-                        ]
+                        model: TaskActivity,
+                        attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
+                        include: [{
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
                 })
                     .catch(err => reject(err))
                     .then(tiData => {
@@ -5412,8 +5413,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return workflowArray.map((workflow) => {
                 return WorkflowInstance.find({
                     where: {
-                            WorkflowInstanceID: workflow
-                        },
+                        WorkflowInstanceID: workflow
+                    },
                     include: [WorkflowActivity]
                 })
                     .then((result) => {
