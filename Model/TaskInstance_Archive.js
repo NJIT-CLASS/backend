@@ -1,8 +1,8 @@
 var moment = require('moment');
 var models = require('../Model');
-var email = require('../WorkFlow/Email.js');
+var email = require('../Workflow/Email.js');
 var Promise = require('bluebird');
-//var Allocator = require('../WorkFlow/Allocator.js');
+//var Allocator = require('../Workflow/Allocator.js');
 
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('TaskInstance_Archive', {
@@ -289,7 +289,7 @@ module.exports = function(sequelize, DataTypes) {
                                         }
                                     }).catch(function(err) {
                                         console.log(err);
-                                        throw Error("Cannot start next task!");
+                                        throw Error('Cannot start next task!');
                                         return null;
                                     });
                                 });
@@ -309,15 +309,15 @@ module.exports = function(sequelize, DataTypes) {
                     //console.log('ta_result', ta_result);
                     var newStartDate = moment().add(JSON.parse(ta_result.StartDelay), 'minutes');
                     var newEndDate = moment().add(JSON.parse(ta_result.StartDelay), 'minutes');
-                    if (JSON.parse(ta_result.DueType)[0] === "duration") {
+                    if (JSON.parse(ta_result.DueType)[0] === 'duration') {
                         newEndDate.add(JSON.parse(ta_result.DueType)[1], 'minutes');
-                    } else if (JSON.parse(ta_result.DueType)[0] === "specificTime") {
+                    } else if (JSON.parse(ta_result.DueType)[0] === 'specificTime') {
                         newEndDate = moment(JSON.parse(ta_result.DueType)[1]).toDate();
                     }
                     callback([newStartDate, newEndDate]);
                 }).catch(function(err) {
                     console.log(err);
-                    throw Error("Cannot find Date!");
+                    throw Error('Cannot find Date!');
                 });
             },
 
@@ -390,7 +390,7 @@ module.exports = function(sequelize, DataTypes) {
                     callback(ta_result);
                 }).catch(function(err) {
                     console.log(err);
-                    throw Error("Cannot find TaskActivity!");
+                    throw Error('Cannot find TaskActivity!');
                 });
             },
 
@@ -404,7 +404,7 @@ module.exports = function(sequelize, DataTypes) {
                     callback(ta_result.DueType);
                 }).catch(function(err) {
                     console.log(err);
-                    throw Error("Cannot find DueType!");
+                    throw Error('Cannot find DueType!');
                 });
             },
 
@@ -428,7 +428,7 @@ module.exports = function(sequelize, DataTypes) {
                 }).then(function(done) {
                     if (isAllCompleted) {
                         //if isAllCompleted = true then find the grades in previous grading solution tasks
-                        console.log("Consolidating Tasks...");
+                        console.log('Consolidating Tasks...');
                         x.findGrades(function(grades) {
                             var max = Math.max.apply(null, grades);
                             var min = Math.min.apply(null, grades);
@@ -439,9 +439,9 @@ module.exports = function(sequelize, DataTypes) {
                                 }
                             }).then(function(ta_result) {
                                 if (ta_result.FunctionType === 'max') {
-                                    x.FinalGrade = max
+                                    x.FinalGrade = max;
                                 } else if (ta_result.FunctionType === 'min') {
-                                    x.FinalGrade = min
+                                    x.FinalGrade = min;
                                 } else if (ta_result.FunctionType === 'average') {
                                     x.FinalGrade = (max + min) / 2;
                                 }
@@ -458,7 +458,7 @@ module.exports = function(sequelize, DataTypes) {
             },
 
             findGrades: function(callback) {
-                var grades = []
+                var grades = [];
                 Promise.map(JSON.parse(x.PreviousTask), function(ti_id) {
                     models.TaskInstance.find({
                         where: {

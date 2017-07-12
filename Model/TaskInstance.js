@@ -5,7 +5,7 @@ var Promise = require('bluebird');
 var _ = require('underscore');
 var Util = require('../Workflow/Util.js');
 var Grade = require('../Workflow/Grade.js');
-//var Allocator = require('../WorkFlow/Allocator.js');
+//var Allocator = require('../Workflow/Allocator.js');
 const logger = require('winston');
 //var util = new Util();
 
