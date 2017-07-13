@@ -6110,24 +6110,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
       var re = {};
       console.log('comments/ti/:TaskInstanceID was called');
-      var rows =await Comments.findAll({
+      await Comments.findAll({
           where: {
               TaskInstanceID: req.params.TaskInstanceID,
               Delete: null
           }
-        }).catch(function(err) {
-            console.log('comments/ti ' + err.message);
-            res.status(401).end();
+        }).then(function(rows) {
+          for (var i=0; i < rows.length; i++) {
+            if(rows[i].Parents === null){
+              re[rows[i].CommentsID] = [rows[i].CommentsID];
+            }
+            else {
+              re[rows[i].Parents].push(rows[i].CommentsID);
+            }
+          }
         });
+
         //await Promise.map(JSON.parse(rows.CommentsID), async function(ti){
-        for (var i=0; i < rows.length; i++) {
-          if(rows[i].Parents == null){
-            re[rows[i].CommentsID] = [];
-          }
-          else {
-            re[rows[i].Parents].push(rows[i].CommentsID);
-          }
-        }
+
     //  });
             res.json({
                 'Error': false,
