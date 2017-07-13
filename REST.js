@@ -6105,37 +6105,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
     });
+
     //-------------------------------------------------------------------------
-    /* router.get('/comments/ti/:TaskInstanceID',function(req, res) {
+    router.get('/comments/ti/:TaskInstanceID',function(req, res) {
+      var re = {}
       console.log('comments/ti/:TaskInstanceID was called');
-      Comments.findAll({
-          where: {
-              TaskInstanceID: req.params.TaskInstanceID,
-              Delete: null
-          },
-          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Comments': rows
-            });
-        }).catch(function(err) {
-            console.log('comments/ti ' + err.message);
-            res.status(401).end();
-        });
-    }); */
-    //-------------------------------------------------------------------------
-    router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
-      var re = {};
-      console.log('comments/ti/:TaskInstanceID was called');
-      var rows = await Comments.findAll({
+      var rows = Comments.findAll({
           where: {
               TaskInstanceID: req.params.TaskInstanceID,
               Delete: null
           }
-          //,
-          // attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).catch(function(err) {
             console.log('comments/ti ' + err.message);
             res.status(401).end();
@@ -6148,10 +6127,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             re[rows[i].Parents].push(rows[i].CommentsID);
           }
         }
-          //   re[rows[i].UserID] = re[rows[i].UserID].filter( function( item, index, inputArray ) {
-            //  return inputArray.indexOf(item) == index;
-              //});
-
             res.json({
                 'Error': false,
                 'Message': 'Success',
