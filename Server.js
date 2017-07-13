@@ -72,9 +72,9 @@ sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 var rule = new schedule.RecurrenceRule();
 rule.minute = 1;
 //'1 * * * * *' 1 minute.
-var job = schedule.scheduleJob('1 * * * * *', function (time) {
-    manager.check();
-});
+// var job = schedule.scheduleJob('1 * * * * *', function (time) {
+//     manager.check();
+// });
 
 
 //-----------------------------------------------------------------------------------------------------------------------------------------

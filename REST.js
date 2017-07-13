@@ -3313,18 +3313,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }, {
                 model: AssignmentInstance,
                 include: [{
-                        model: Section,
-                        attributes: ['Name', 'SectionID'],
-                        include: [{
-                            model: Course,
-                            attributes: ['Name', 'Number']
-                        },
-                        {
-                            model: Semester,
-                            attributes: ['SemesterID', 'Name']
-                        }
-                        ]
-                    }]
+                    model: Section,
+                    attributes: ['Name', 'SectionID'],
+                    include: [{
+                        model: Course,
+                        attributes: ['Name', 'Number']
+                    },
+                    {
+                        model: Semester,
+                        attributes: ['SemesterID', 'Name']
+                    }
+                    ]
+                }]
 
             }]
         })
@@ -4839,9 +4839,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     }).catch(function (err) {
                                         console.error(err);
                                         logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                req_body: req.body,
-                                                error: err
-                                            });
+                                            req_body: req.body,
+                                            error: err
+                                        });
                                         sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                                 .then(function () {
                                                     res.status(500).end();
@@ -5136,143 +5136,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-----------------------------------------------------------------------------------------------------
 
 
-    //Endpoint for workflow reports
-
-    router.get('/getWorkflowReport/:workflowInstanceID', (req, res) => {
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject) {
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                    },
-                    {
-                        model: WorkflowInstance,
-                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                        include: {
-                            model: WorkflowActivity,
-                            attributes: ['WorkflowStructure']
-                        }
-                    },
-                    {
-                        model: User,
-                        attributes: ['UserID', 'FirstName', 'LastName'],
-                        include: [{
-                            model: UserContact,
-                            attributes: ['Email', 'Alias']
-                        }]
-                    }
-                    ]
-                })
-                    .catch(err => reject(err))
-                    .then(task => resolve(task));
-            });
-        };
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-        WorkflowInstance.find({
-            where: {
-                WorkflowInstanceID: req.params.workflowInstanceID
-            }
-        })
-            .then(async(result) => {
-                let mappedTasks = JSON.parse(result.TaskCollection);
-
-                let finalResults = mappedTasks.map(fetchTasks);
-
-                Promise.all(finalResults.map(Promise.all)).then(arrArr => {
-                    return res.json({
-                        'Result': arrArr
-                    });
-                });
-
-            });
-    });
-
-
-    //------------------------------------
-    router.get('/getWorkflowReport/alternate/:workflowInstanceID', async(req, res) => {
-        let workflowInstanceObject = {};
-
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject) {
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                    },
-                    {
-                        model: WorkflowInstance,
-                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                        include: {
-                            model: WorkflowActivity,
-                            attributes: ['WorkflowStructure']
-                        }
-                    },
-                    {
-                        model: User,
-                        attributes: ['UserID', 'FirstName', 'LastName'],
-                        include: [{
-                            model: UserContact,
-                            attributes: ['Email', 'Alias']
-                        }]
-                    }
-                    ]
-                })
-                    .catch(err => reject(err))
-                    .then(tiData => {
-                        if (workflowInstanceObject[tiData.TaskActivity.TaskActivityID]) {
-                            workflowInstanceObject[tiData.TaskActivity.TaskActivityID].push(tiData);
-                        } else {
-                            workflowInstanceObject[tiData.TaskActivity.TaskActivityID] = [tiData];
-                        }
-                        resolve(tiData);
-                    });
-            });
-        };
-
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-        //key: taskActivityID
-        //value: array of resolved tasks
-        WorkflowInstance.find({
-            where: {
-                WorkflowInstanceID: req.params.workflowInstanceID
-            }
-        })
-            .then(async(result) => {
-                let mappedTasks = JSON.parse(result.TaskCollection);
-
-                let finalResults = mappedTasks.map(fetchTasks);
-
-                Promise.all(finalResults.map(Promise.all)).then(arrArr => {
-                    return res.json({
-                        'Result': workflowInstanceObject
-                    });
-                });
-
-            });
-    });
-
-
     //---------------------------------------------------------------------------
     //---------------------------------------------------------------------------
 
@@ -5327,7 +5190,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 })
                     .then((result) => {
                         let mappedTasks = JSON.parse(result.TaskCollection);
-                        return mappedTasks.map(fetchTasks);
+                        return mappedTasks.map(fetchTask);
                     });
             });
         };
@@ -5341,9 +5204,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             let workflowsList = JSON.parse(aiResult.WorkflowCollection);
             let finalResults = fetchWorkflow(workflowsList);
 
-            Promise.all(finalResults.map((row) => {
-                return row.map(Promise.all);
-            })).then(arrArr => {
+             Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
                 return res.json({
                     'Result': arrArr
                 });
@@ -5403,11 +5264,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         };
 
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
+        // let fetchTasks = (tasksArray) => {
+        //     return tasksArray.map((individualTask) => {
+        //         return fetchTask(individualTask);
+        //     });
+        // };
 
         let fetchWorkflow = (workflowArray) => {
             return workflowArray.map((workflow) => {
@@ -5424,7 +5285,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         };
 
                         let mappedTasks = JSON.parse(result.TaskCollection);
-                        return mappedTasks.map(fetchTasks);
+                        return mappedTasks.map(fetchTask);
+                    })
+                    .catch(err => {
+                        console.log(err);
                     });
             });
         };
@@ -5437,16 +5301,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then((aiResult) => {
             let workflowsList = JSON.parse(aiResult.WorkflowCollection);
             let finalResults = fetchWorkflow(workflowsList);
-
-            Promise.all(finalResults.map((row) => {
-                return row.map(Promise.all);
-            })).then(arrArr => {
+            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
                 return res.json({
                     'Result': assignmentObject
                 });
-            });
+            }).catch(err => {
+                        console.log(err);
+                    });
         });
-
 
 
     });
