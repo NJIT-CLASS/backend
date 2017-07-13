@@ -127,6 +127,7 @@ class Email {
                     UserID: userid
                 }
             }).then(function (result) {
+                console.log('result.Email', result.Email)
                 var send = result.Email;
                 send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');

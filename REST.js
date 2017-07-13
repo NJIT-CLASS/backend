@@ -4827,6 +4827,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         });
                                 })
                                 .then(async function (user) {
+                                    console.log(user.UserID);
                                     let temp_pass = await password.generate();
                                     return UserContact.create({
                                         UserID: user.UserID,
@@ -5424,7 +5425,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         };
 
                         let mappedTasks = JSON.parse(result.TaskCollection);
-                        return mappedTasks.map(fetchTasks);
+                        console.log('mappedTasks', mappedTasks)
+                        return mappedTasks.map(fetchTask);
                     });
             });
         };
@@ -5434,12 +5436,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             }
-        }).then((aiResult) => {
+        }).then(async (aiResult) => {
             let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
+            let finalResults = await fetchWorkflow(workflowsList);
+
+            console.log('fetchWorkflow', finalResults)
 
             Promise.all(finalResults.map((row) => {
-                return row.map(Promise.all);
+                return row;
             })).then(arrArr => {
                 return res.json({
                     'Result': assignmentObject
