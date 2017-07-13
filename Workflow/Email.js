@@ -4,6 +4,7 @@ var nodemailer = require('nodemailer');
 var smtpTransport = require('nodemailer-smtp-transport');
 
 
+var FileReference = models.FileReference;
 var User = models.User;
 var UserLogin = models.UserLogin;
 var UserContact = models.UserContact;
@@ -13,17 +14,25 @@ var SectionUser = models.SectionUser;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
+var TaskGrade = models.TaskGrade;
+var TaskSimpleGrade = models.TaskSimpleGrade;
 var TaskActivity = models.TaskActivity;
 var Assignment = models.Assignment;
+var AssignmentGrade = models.AssignmentGrade;
 var AssignmentInstance = models.AssignmentInstance;
 
 var WorkflowInstance = models.WorkflowInstance;
+var WorkflowGrade = models.WorkflowGrade;
 var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
+const logger = require('winston');
+
 var email = 'njitplamaster@gmail.com';
 var password = 'plamaster123';
+
+var active = true;
 
 /*
   Constructor
@@ -107,99 +116,108 @@ class Email {
     /*
       Send an email now given userid and type of email needs to be sent.
     */
-    sendNow(userid, type, temp_pass = null) {
+    async sendNow(userid, type, temp_pass = null) {
         //return; //for testting purposes
-        var x = this;
-        console.log(models.UserLogin);
-        models.UserLogin.find({
-            where: {
-                UserID: userid
-            }
-        }).then(function (result) {
+        if (active) {
 
-            console.log('Sending Email To: ', result.Email, '...');
+            var x = this;
+            console.log(models.UserLogin);
+            await models.UserLogin.find({
+                where: {
+                    UserID: userid
+                }
+            }).then(function (result) {
+                console.log('result.Email', result.Email)
+                var send = result.Email;
+                send = 'qxl2@njit.edu';
+                console.log('Sending Email To: ', send, '...');
 
-            switch (type) {
-            case 'create user':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Welcome to PLA!',
-                    text: 'You have succesfully created an account on PLA \n http://pla.njit.edu:4001',
-                    html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: <div>http://pla.njit.edu:4001 <div></p> '
-                });
-                break;
-            case 'invite user':
-                console.log('inviting ' + result.Email);
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Welcome to PLA!',
-                    text: 'You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
-                    html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
-                });
-                break;
-            case 'new task':
-                console.log('notifying ' + result.Email);
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'New Task Awaiting! PLA Admin',
-                    text: 'A new task has been assigned. Please login into \n http://pla.njit.edu:4001 to complete the task',
-                    html: '<p>A new task has been assigned.<div>Please login into http://pla.njit.edu:4001</div></p>'
-                });
-                break;
+                switch (type) {
+                    case 'create user':
+                        x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: 'Welcome to PLA!',
+                            text: 'You have succesfully created an account on PLA \n http://pla.njit.edu:4001',
+                            html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: <div>http://pla.njit.edu:4001 <div></p> '
+                        });
+                        break;
+                    case 'invite user':
+                        console.log('inviting ' + send);
+                        x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: 'Welcome to PLA!',
+                            text: 'You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
+                            html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
+                        });
+                        break;
+                    case 'new task':
+                        console.log('notifying ' + send);
+                        x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: 'New Task Awaiting! PLA Admin',
+                            text: 'A new task has been assigned. Please login into \n http://pla.njit.edu:4001 to complete the task',
+                            html: '<p>A new task has been assigned.<div>Please login into http://pla.njit.edu:4001</div></p>'
+                        });
+                        break;
 
-            case 'late':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Your assignment is overdue - PLA',
-                    text: 'You have an assignment that is due. Please check PLA',
-                    html: ''
-                });
-                break;
-            case 'remove_reallocated':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'You have removed from a task - PLA',
-                    text: 'You have been removed from a task, a new user has been reallcated to replace your duty',
-                    html: ''
-                });
-                break;
-            case 'new_reallocated':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Reallocated to a new task - PLA',
-                    text: 'Hi, you have been reallocated to a new task, please complete as soon as possible',
-                    html: ''
-                });
-                break;
-            case 'reset password':
-                x.send({
-                    from: email,
-                    replyTo: email,
-                    to: result.Email,
-                    subject: 'Your password has been reset - PLA',
-                    text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
-                    html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
+                    case 'late':
+                        x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: 'Your assignment is overdue - PLA',
+                            text: 'You have an assignment that is due. Please check PLA',
+                            html: ''
+                        });
+                        break;
+                    case 'remove_reallocated':
+                        x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: 'You have removed from a task - PLA',
+                            text: 'You have been removed from a task, a new user has been reallcated to replace your duty',
+                            html: ''
+                        });
+                        break;
+                    case 'new_reallocated':
+                        x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: 'Reallocated to a new task - PLA',
+                            text: 'Hi, you have been reallocated to a new task, please complete as soon as possible',
+                            html: ''
+                        });
+                        break;
 
-                });
-                break;
-            default:
-                logger.log('error', '/Workflow/Email/sendNow: email option not found!');
-                return null;
-            }
-        });
+                    case 'reset password':
+                        x.send({from: email,
+                            replyTo: email,
+                            to: result.Email,
+                            subject: 'Your password has been reset - PLA',
+                            text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
+                            html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
+
+                        });
+                        break;
+                    default:
+                        logger.log('error', '/Workflow/Email/sendNow: email option not found!');
+                        return null;
+                }
+            });
+
+        } else {
+            logger.log('info', '/Email: email servier currently not activated');
+        }
     }
+
     //Update Email Last Sent in Task Instance to Now.
     updateEmailLastSent(taskInstanceId) {
         TaskInstance.update({

@@ -3,6 +3,7 @@ var Promise = require('bluebird');
 var moment = require('moment');
 var TaskFactory = require('./TaskFactory.js');
 var _ = require('underscore');
+var Email = require('./Email.js');
 
 
 var User = models.User;
@@ -22,6 +23,7 @@ var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
 const logger = require('winston');
+var email = new Email();
 
 class Allocator {
 

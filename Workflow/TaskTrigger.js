@@ -560,7 +560,7 @@ class TaskTrigger {
                     TaskInstanceID: ti.TaskInstanceID
                 }
             }).then(function () {
-                email.sendNow(nextTask.UserID, 'new task', null);
+                email.sendNow(ti.UserID, 'new task', null);
             });
 
             logger.log('info', 'trigger completed', {
@@ -592,7 +592,7 @@ class TaskTrigger {
         if (JSON.parse(ta.DueType)[0] === 'duration') {
             await newEndDate.add(JSON.parse(ta.DueType)[1], 'minutes');
             //await newEndDate.add(1, 'minutes');
-        } else if (JSON.parse(ta.DueType)[0] === 'specificTime') {
+        } else if (JSON.parse(ta.DueType)[0] === 'specific time') {
             newEndDate = await moment(JSON.parse(ta.DueType)[1]).toDate();
         }
 
