@@ -6107,35 +6107,48 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //-------------------------------------------------------------------------
-    router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
-      var re = {};
-      console.log('comments/ti/:TaskInstanceID was called');
-      await Comments.findAll({
-          where: {
-              TaskInstanceID: req.params.TaskInstanceID,
-              Delete: null
+router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
+  console.log('comments/ti/:TaskInstanceID was called');
+  var parents = await Comments.findAll({
+      where: {
+          TaskInstanceID: req.params.TaskInstanceID,
+          Delete: null,
+          Parents: null
+      }
+    }).catch(function(err) {
+        console.log('comments/ti ' + err.message);
+        res.status(401).end();
+    });
+    var children = await Comments.findAll({
+        where: {
+            TaskInstanceID: req.params.TaskInstanceID,
+            Delete: null,
+            Parents: {$ne: 0}
+        }
+      }).catch(function(err) {
+          console.log('comments/ti ' + err.message);
+          res.status(401).end();
+      });
+
+    while (children.length > 1) {
+      for (var j = (children.length-1); j >= 0; j--) {
+        for (var i = 0; i < parents.length; i++) {
+          if (children[j] != null && parents[i].CommentsID == children[j].Parents) {
+            parents.splice((i+1), 0, children.splice(j, 1)[0])
           }
-        }).then(function(rows) {
-          for (var i=0; i < rows.length; i++) {
-            if(rows[i].Parents === null){
-              re[rows[i].CommentsID] = [rows[i].CommentsID];
-            }
-            else {
-              re[rows[i].Parents].push(rows[i].CommentsID);
-            }
-          }
+        }
+      }
+    }
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'children':children,
+            'Comments': parents
         });
 
-        //await Promise.map(JSON.parse(rows.CommentsID), async function(ti){
+});
 
-    //  });
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Comments': re
-            });
-
-    });
     //-------------------------------------------------------------------------
     router.get('/comments/commentID/:CommentsID',function(req, res) {
       console.log('/comments/commentID/:CommentsID was called');
