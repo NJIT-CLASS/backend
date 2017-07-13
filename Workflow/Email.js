@@ -127,10 +127,10 @@ class Email {
                     UserID: userid
                 }
             }).then(function (result) {
-                console.log('result.Email', result.Email)
                 var send = result.Email;
                 send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
+                console.log('userid, type, temp_pass', userid, type, temp_pass);
 
                 switch (type) {
                     case 'create user':
@@ -200,7 +200,7 @@ class Email {
                     case 'reset password':
                         x.send({from: email,
                             replyTo: email,
-                            to: result.Email,
+                            to: send,
                             subject: 'Your password has been reset - PLA',
                             text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + temp_pass,
                             html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + temp_pass + '</p>'
