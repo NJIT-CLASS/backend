@@ -6107,10 +6107,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //-------------------------------------------------------------------------
-    router.get('/comments/ti/:TaskInstanceID',function(req, res) {
-      var re = {}
+    router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
+      var re = {};
       console.log('comments/ti/:TaskInstanceID was called');
-      var rows = Comments.findAll({
+      var rows =await Comments.findAll({
           where: {
               TaskInstanceID: req.params.TaskInstanceID,
               Delete: null
@@ -6119,6 +6119,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log('comments/ti ' + err.message);
             res.status(401).end();
         });
+        //await Promise.map(JSON.parse(rows.CommentsID), async function(ti){
         for (var i=0; i < rows.length; i++) {
           if(rows[i].Parents == null){
             re[rows[i].CommentsID] = [];
@@ -6127,6 +6128,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             re[rows[i].Parents].push(rows[i].CommentsID);
           }
         }
+    //  });
             res.json({
                 'Error': false,
                 'Message': 'Success',
