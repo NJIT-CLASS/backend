@@ -273,7 +273,7 @@ class Manager {
                 status[5] = 'reallocated_no_extra_credit';
                 await x.updateStatus(task, status);
                 //Run allocation algorithm, extend due date.
-                await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1]);
+                await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
                 await alloc.reallocate(task, users, false).then(async function (done) {
                     console.log(done);
                     if (!done || !done[0]) {
@@ -290,7 +290,7 @@ class Manager {
                 status[5] = 'reallocated_extra_credit';
                 await x.updateStatus(task, status);
                 //Run allocation algorithm, extend due date.
-                await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1]);
+                await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
                 await alloc.reallocate(task, users).then(async function (done) {
                     console.log(done);
                     if (!done || !done[0]) {
@@ -316,9 +316,9 @@ class Manager {
                 status[0] = 'started';
                 await x.updateStatus(task, status);
                 //Run allocation algorithm specifiy with team, extend due date
-                alloc.findInstructor(task.AssignmentInstanceID, function (instructor) {
-                    alloc.reallocate_user_to_task(task, instructor, false);
-                    task.extendDate(JSON.parse(task.TaskActivity.DueType)[1]);
+                await alloc.findInstructor(task.AssignmentInstanceID, async function (instructor) {
+                    await alloc.reallocate_user_to_task(task, instructor, false);
+                    await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
                 });
                 //send email to notify user about allocation
                 break;

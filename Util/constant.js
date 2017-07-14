@@ -1,3 +1,7 @@
+export const MASTER_EMAIL = 'njitplamaster@gmail.com';
+export const MASTER_PASSWORD = 'plamaster123';
+export const EMAIL_SERVER_STATUS = true;
+
 exports.EXECUTION_STATUS ={
   NOT_YET_STARTED: 'not_yet_started', //default
   STARTED: 'started',

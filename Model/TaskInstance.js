@@ -9,7 +9,7 @@ var Grade = require('../Workflow/Grade.js');
 const logger = require('winston');
 //var util = new Util();
 
-module.exports = function(sequelize, DataTypes) {
+module.exports = function (sequelize, DataTypes) {
     return sequelize.define('TaskInstance', {
         TaskInstanceID: {
             //Unique Identifier for the task instance.
@@ -151,7 +151,7 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         instanceMethods: {
-            timeOutTime: function() {
+            timeOutTime: function () {
                 if (this.StartDate == null) {
                     throw Error('Start time for instance cannot be null.');
                 } else if (this.EndDate == null) {
@@ -160,7 +160,7 @@ module.exports = function(sequelize, DataTypes) {
                 return this.EndDate;
             },
 
-            triggerNext: async function() {
+            triggerNext: async function () {
                 let x = this;
                 let email = new Email();
 
@@ -173,19 +173,19 @@ module.exports = function(sequelize, DataTypes) {
                 }
 
 
-                return Promise.mapSeries(JSON.parse(x.NextTask), function(task, index) {
-                    return Promise.mapSeries(taskArray, function(task) {
+                return Promise.mapSeries(JSON.parse(x.NextTask), function (task, index) {
+                    return Promise.mapSeries(taskArray, function (task) {
                         models.TaskInstance.find({
                             where: {
                                 TaskInstanceID: task.id
                             }
-                        }).then(function(nextTask) {
+                        }).then(function (nextTask) {
                             models.TaskActivity.find({
                                 where: {
                                     TaskActivityID: nextTask.TaskActivityID
                                 }
-                            }).then(function(ta_result) {
-                                return x.findType(function(type) {
+                            }).then(function (ta_result) {
+                                return x.findType(function (type) {
                                     if (ta_result.Type === 'needs_consolidation' && nextTask.FinalGrade == null) {
                                         nextTask.needsConsolidate();
                                     } else if (type === 'consolidation' && x.FinalGrade == null && JSON.parse(x.Status)[0] !== 'bypassed') {
@@ -199,7 +199,7 @@ module.exports = function(sequelize, DataTypes) {
                                     else {
                                         //findNewDates return an array of [newStartDate, newEndDate]
                                         console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
-                                        var dates = nextTask.findNewDates(function(dates) {
+                                        var dates = nextTask.findNewDates(function (dates) {
                                             var newStatus = JSON.parse(nextTask.Status);
                                             newStatus[0] = 'started';
                                             models.TaskInstance.update({
@@ -210,9 +210,9 @@ module.exports = function(sequelize, DataTypes) {
                                                 where: {
                                                     TaskInstanceID: nextTask.TaskInstanceID
                                                 }
-                                            }).then(function(done){
-                                              //email.sendNow(nextTask.UserID, 'new task', null);
-                                            }).catch(function(err) {
+                                            }).then(function (done) {
+                                                //email.sendNow(nextTask.UserID, 'new task', null);
+                                            }).catch(function (err) {
                                                 console.log(err);
                                                 throw Error('Cannot start next task!');
                                                 return null;
@@ -226,7 +226,7 @@ module.exports = function(sequelize, DataTypes) {
                 });
             },
 
-            triggerEdit: function() {
+            triggerEdit: function () {
                 let x = this;
                 let email = new Email();
 
@@ -243,7 +243,7 @@ module.exports = function(sequelize, DataTypes) {
             },
 
 
-            skipDispute: function() {
+            skipDispute: function () {
 
                 let x = this;
                 //checks if conditions are met
@@ -260,19 +260,19 @@ module.exports = function(sequelize, DataTypes) {
                 x.Status = JSON.stringify(newStat);
                 x.ActualEndDate = newDate;
 
-                return Promise.all([x.save()]).then(function() {
-                    return Promise.mapSeries(JSON.parse(x.NextTask), function(taskArray, index) {
-                        return Promise.mapSeries(taskArray, function(task) {
+                return Promise.all([x.save()]).then(function () {
+                    return Promise.mapSeries(JSON.parse(x.NextTask), function (taskArray, index) {
+                        return Promise.mapSeries(taskArray, function (task) {
                             models.TaskInstance.find({
                                 where: {
                                     TaskInstanceID: task.id
                                 }
-                            }).then(function(nextTask) {
+                            }).then(function (nextTask) {
                                 models.TaskActivity.find({
                                     where: {
                                         TaskActivityID: nextTask.TaskActivityID
                                     }
-                                }).then(function(ta_result) {
+                                }).then(function (ta_result) {
 
                                     //findNewDates return an array of [newStartDate, newEndDate]
                                     console.log('Skipping dispute task... Current TaskInstanceID:', x.TaskInstanceID);
@@ -288,7 +288,7 @@ module.exports = function(sequelize, DataTypes) {
                                         where: {
                                             TaskInstanceID: nextTask.TaskInstanceID
                                         }
-                                    }).catch(function(err) {
+                                    }).catch(function (err) {
                                         console.log(err);
                                         throw Error('Cannot start next task!');
                                         return null;
@@ -301,7 +301,7 @@ module.exports = function(sequelize, DataTypes) {
             },
 
             //After needs consolidation, if the grades do not exceed threshold, skip consolidation
-            skipConsolidation: function() {
+            skipConsolidation: function () {
 
                 let x = this;
                 //checks if conditions are met
@@ -311,19 +311,19 @@ module.exports = function(sequelize, DataTypes) {
 
                 var newDate = new Date();
 
-                return Promise.all([x.save()]).then(function() {
-                    return Promise.mapSeries(JSON.parse(x.NextTask), function(taskArray, index) {
-                        return Promise.mapSeries(taskArray, function(task) {
+                return Promise.all([x.save()]).then(function () {
+                    return Promise.mapSeries(JSON.parse(x.NextTask), function (taskArray, index) {
+                        return Promise.mapSeries(taskArray, function (task) {
                             models.TaskInstance.find({
                                 where: {
                                     TaskInstanceID: task.id
                                 }
-                            }).then(function(nextTask) {
+                            }).then(function (nextTask) {
                                 models.TaskActivity.find({
                                     where: {
                                         TaskActivityID: nextTask.TaskActivityID
                                     }
-                                }).then(function(ta_result) {
+                                }).then(function (ta_result) {
 
                                     //findNewDates return an array of [newStartDate, newEndDate]
                                     console.log('Skipping consolidation task... Current TaskInstanceID:', x.TaskInstanceID);
@@ -338,18 +338,18 @@ module.exports = function(sequelize, DataTypes) {
                                         where: {
                                             TaskInstanceID: nextTask.TaskInstanceID
                                         }
-                                    }).then(function(done) {
-                                        return Promise.mapSeries(JSON.parse(nextTask.NextTask), function(taskArray, index) {
-                                            return Promise.mapSeries(taskArray, function(task) {
+                                    }).then(function (done) {
+                                        return Promise.mapSeries(JSON.parse(nextTask.NextTask), function (taskArray, index) {
+                                            return Promise.mapSeries(taskArray, function (task) {
                                                 models.TaskInstance.find({
                                                     where: {
                                                         TaskInstanceID: task.id
                                                     }
-                                                }).then(function(nextNextTask) {
+                                                }).then(function (nextNextTask) {
 
                                                     //findNewDates return an array of [newStartDate, newEndDate]
                                                     console.log('Triggering next task to start... Current TaskInstanceID:', x.TaskInstanceID);
-                                                    var dates = nextTask.findNewDates(function(dates) {
+                                                    var dates = nextTask.findNewDates(function (dates) {
                                                         var newStatus = JSON.parse(nextNextTask.Status);
                                                         newStatus[0] = 'started';
                                                         models.TaskInstance.update({
@@ -360,7 +360,7 @@ module.exports = function(sequelize, DataTypes) {
                                                             where: {
                                                                 TaskInstanceID: nextNextTask.TaskInstanceID
                                                             }
-                                                        }).catch(function(err) {
+                                                        }).catch(function (err) {
                                                             console.log(err);
                                                             throw Error('Cannot start next task!');
                                                             return null;
@@ -369,7 +369,7 @@ module.exports = function(sequelize, DataTypes) {
                                                 });
                                             });
                                         });
-                                    }).catch(function(err) {
+                                    }).catch(function (err) {
                                         console.log(err);
                                         throw Error('Cannot start next task!');
                                         return null;
@@ -381,18 +381,18 @@ module.exports = function(sequelize, DataTypes) {
                 });
             },
 
-            findType: function(callback) {
+            findType: function (callback) {
                 var x = this;
                 return models.TaskActivity.find({
                     where: {
                         TaskActivityID: x.TaskActivityID
                     }
-                }).then(function(ta) {
+                }).then(function (ta) {
                     callback(ta.Type);
                 });
             },
 
-            getType: async function(){
+            getType: async function () {
                 var x = this;
                 var ta = await models.TaskActivity.find({
                     where: {
@@ -404,12 +404,12 @@ module.exports = function(sequelize, DataTypes) {
             },
 
             //findNewDates computes the startDate passed in and find newStartDate and newEndDate
-            findNewDates: function(callback) {
+            findNewDates: function (callback) {
                 models.TaskActivity.find({
                     where: {
                         TaskActivityID: this.TaskActivityID
                     }
-                }).then(function(ta_result) {
+                }).then(function (ta_result) {
                     //console.log('ta_result', ta_result);
                     var newStartDate = moment().add(JSON.parse(ta_result.StartDelay), 'minutes');
                     var newEndDate = moment().add(JSON.parse(ta_result.StartDelay), 'minutes');
@@ -419,18 +419,25 @@ module.exports = function(sequelize, DataTypes) {
                         newEndDate = moment(JSON.parse(ta_result.DueType)[1]).toDate();
                     }
                     callback([newStartDate, newEndDate]);
-                }).catch(function(err) {
+                }).catch(function (err) {
                     console.log(err);
                     throw Error('Cannot find Date!');
                 });
             },
 
-            extendDate: function(time) {
+            extendDate: function (time, dueType) {
                 var x = this;
-                var newEndDate = moment().add(time, 'minutes');
+                if (dueType === 'specific time') {
+                    var newEndDate = moment().add(2880, 'minutes');
 
-                x.EndDate = newEndDate;
-                x.save();
+                    x.EndDate = newEndDate;
+                    x.save();
+                } else {
+                    var newEndDate = moment().add(time, 'minutes');
+
+                    x.EndDate = newEndDate;
+                    x.save();
+                }
             },
 
             // //finds the students from the same section
@@ -485,56 +492,56 @@ module.exports = function(sequelize, DataTypes) {
             //     });
             // },
 
-            getTaskActivity: function(callback) {
+            getTaskActivity: function (callback) {
                 models.TaskActivity.find({
                     where: {
                         TaskActivityID: this.TaskActivityID
                     }
-                }).then(function(ta_result) {
+                }).then(function (ta_result) {
                     callback(ta_result);
-                }).catch(function(err) {
+                }).catch(function (err) {
                     console.log(err);
                     throw Error('Cannot find TaskActivity!');
                 });
             },
 
-            findDueType: function(callback) {
+            findDueType: function (callback) {
                 models.TaskActivity.find({
                     where: {
                         TaskActivityID: this.TaskActivityID
                     }
-                }).then(function(ta_result) {
+                }).then(function (ta_result) {
                     //console.log('ta_result', ta_result);
                     callback(ta_result.DueType);
-                }).catch(function(err) {
+                }).catch(function (err) {
                     console.log(err);
                     throw Error('Cannot find DueType!');
                 });
             },
 
             //Consolidate grading tasks
-            needsConsolidate: function() {
+            needsConsolidate: function () {
                 var x = this;
                 var isAllCompleted = true;
                 var triggerConsolidate = false;
                 console.log('Checking all grading solution complete...');
-                return Promise.map(JSON.parse(x.PreviousTask), function(ti) {
+                return Promise.map(JSON.parse(x.PreviousTask), function (ti) {
                     return models.TaskInstance.find({
                         where: {
                             TaskInstanceID: ti.id
                         }
-                    }).then(function(ti_result) {
+                    }).then(function (ti_result) {
                         //Check if all grading solution are completed
                         if (JSON.parse(ti_result.Status)[0] != 'complete') {
                             console.log('Grading tasks pending...');
                             isAllCompleted = false;
                         }
                     });
-                }).then(function(done) {
+                }).then(function (done) {
                     if (isAllCompleted) {
                         //if isAllCompleted = true then find the grades in previous grading solution tasks
                         console.log('Consolidating Tasks...');
-                        return x.findNeedsConsolidationGrades(function(grades, maxGrade) {
+                        return x.findNeedsConsolidationGrades(function (grades, maxGrade) {
                             console.log('grades', grades);
                             console.log('maxGrade is: ', maxGrade);
                             var max = Math.max.apply(null, grades);
@@ -544,7 +551,7 @@ module.exports = function(sequelize, DataTypes) {
                                 where: {
                                     TaskActivityID: x.TaskActivityID
                                 }
-                            }).then(function(ta_result) {
+                            }).then(function (ta_result) {
 
                                 //checks if the grades exceed threshold
                                 if (JSON.parse(ta_result.TriggerConsolidationThreshold)[1] == 'percent') {
@@ -571,7 +578,7 @@ module.exports = function(sequelize, DataTypes) {
                                     x.FinalGrade = (max + min) / 2;
                                 }
                                 x.save();
-                            }).then(function() {
+                            }).then(function () {
                                 console.log('All tasks completed!', triggerConsolidate);
                                 if (triggerConsolidate) {
                                     console.log('Threshold exceed!');
@@ -589,7 +596,7 @@ module.exports = function(sequelize, DataTypes) {
                 });
             },
 
-            findNeedsConsolidationGrades: function(callback) {
+            findNeedsConsolidationGrades: function (callback) {
 
                 console.log('computing grades...');
 
@@ -597,7 +604,7 @@ module.exports = function(sequelize, DataTypes) {
                 var grades = [];
                 var maxGrade = 0;
                 var numParticipants;
-                return Promise.map(JSON.parse(x.PreviousTask), function(ti) {
+                return Promise.map(JSON.parse(x.PreviousTask), function (ti) {
                     var grade = 0;
                     return models.TaskInstance.find({
                         where: {
@@ -606,10 +613,10 @@ module.exports = function(sequelize, DataTypes) {
                         include: [{
                             model: models.TaskActivity
                         }]
-                    }).then(function(ti_result) {
+                    }).then(function (ti_result) {
                         var keys = Object.keys(JSON.parse(ti_result.Data));
                         numParticipants = ti_result.TaskActivity.NumberParticipants;
-                        return Promise.mapSeries(keys, function(val) {
+                        return Promise.mapSeries(keys, function (val) {
                             if (val !== 'number_of_fields' && JSON.parse(ti_result.TaskActivity.Fields)[val].field_type == 'assessment') {
                                 if (JSON.parse(ti_result.TaskActivity.Fields)[val].assessment_type == 'grade') {
                                     grade += parseInt(JSON.parse(ti_result.Data)[val][0]);
@@ -628,21 +635,21 @@ module.exports = function(sequelize, DataTypes) {
                                     // }
                                 }
                             }
-                        }).then(function() {
+                        }).then(function () {
                             grades.push(grade);
-                        }).catch(function(err) {
+                        }).catch(function (err) {
                             console.log(err);
                         });
                     });
-                }).then(function(done) {
+                }).then(function (done) {
                     callback(grades, maxGrade / numParticipants);
-                }).catch(function(err) {
+                }).catch(function (err) {
                     console.log(err);
                 });
             },
 
 
-            consolidate: function() {
+            consolidate: function () {
                 var x = this;
 
                 var grade = 0;
@@ -650,11 +657,11 @@ module.exports = function(sequelize, DataTypes) {
                     where: {
                         TaskActivityID: x.TaskActivityID
                     },
-                }).then(function(ta_result) {
+                }).then(function (ta_result) {
                     console.log(JSON.parse(x.Data), x.TaskInstanceID);
                     var keys = Object.keys(JSON.parse(x.Data));
 
-                    return Promise.mapSeries(keys, function(val) {
+                    return Promise.mapSeries(keys, function (val) {
                         if (val !== 'number_of_fields' && JSON.parse(ta_result.Fields)[val].field_type == 'assessment') {
                             if (JSON.parse(ta_result.Fields)[val].assessment_type == 'grade') {
                                 grade += parseInt(JSON.parse(x.Data)[val][0]);
@@ -671,21 +678,21 @@ module.exports = function(sequelize, DataTypes) {
                                 // }
                             }
                         }
-                    }).then(function() {
+                    }).then(function () {
                         //insert grade
                         console.log('consolidated grade: ', grade);
                         x.FinalGrade = grade;
                         x.save();
-                    }).then(function(done) {
+                    }).then(function (done) {
                         x.triggerNext();
-                    }).catch(function(err) {
+                    }).catch(function (err) {
                         console.log(err);
                     });
                 });
 
             },
 
-            findConsolidationAndDisputeGrade: function(callback) {
+            findConsolidationAndDisputeGrade: function (callback) {
                 console.log('computing grades...');
 
                 var x = this;
@@ -695,10 +702,10 @@ module.exports = function(sequelize, DataTypes) {
                     where: {
                         TaskActivityID: x.TaskActivityID
                     },
-                }).then(function(ta_result) {
+                }).then(function (ta_result) {
                     var keys = Object.keys(JSON.parse(x.Data));
 
-                    return Promise.mapSeries(keys, function(val) {
+                    return Promise.mapSeries(keys, function (val) {
                         if (val !== 'number_of_fields' && JSON.parse(ta_result.Fields)[val].field_type == 'assessment') {
                             if (JSON.parse(ta_result.Fields)[val].assessment_type == 'grade') {
                                 grade += parseInt(JSON.parse(x.Data)[val][0]);
@@ -715,48 +722,48 @@ module.exports = function(sequelize, DataTypes) {
                                 // }
                             }
                         }
-                    }).then(function() {
+                    }).then(function () {
                         callback(grade);
-                    }).catch(function(err) {
+                    }).catch(function (err) {
                         console.log(err);
                     });
                 });
             },
 
-            retrieveNeedsConsolidationGrades: function(callback) {
+            retrieveNeedsConsolidationGrades: function (callback) {
                 var x = this;
                 var grade = [];
 
-                return Promise.mapSeries(JSON.parse(x.PreviousTask), function(ti) {
+                return Promise.mapSeries(JSON.parse(x.PreviousTask), function (ti) {
                     return models.TaskInstance.find({
                         where: {
                             TaskInstanceID: ti.id
                         }
-                    }).then(function(needsConsolidation) {
-                        return needsConsolidation.findNeedsConsolidationGrades(function(grades, maxGrade) {
+                    }).then(function (needsConsolidation) {
+                        return needsConsolidation.findNeedsConsolidationGrades(function (grades, maxGrade) {
                             callback(grades, maxGrade);
                         });
                     });
                 });
             },
 
-            resolveDispute: function() {
+            resolveDispute: function () {
                 var x = this;
                 console.log('resolving dispute grade...');
-                return x.findConsolidationAndDisputeGrade(function(grade) {
+                return x.findConsolidationAndDisputeGrade(function (grade) {
                     console.log('disputed grade: ', grade);
                     x.FinalGrade = grade;
                     x.save();
-                }).then(function(done) {
+                }).then(function (done) {
                     x.triggerNext();
-                }).catch(function(err) {
+                }).catch(function (err) {
                     console.log(err);
                 });
             },
 
 
 
-            completed: async function() {
+            completed: async function () {
                 var x = this;
                 var isWorkflowCompleted = false;
                 var isAllCompleted = false;
@@ -770,7 +777,7 @@ module.exports = function(sequelize, DataTypes) {
 
                 await grade.checkWorkflowDone(x.WorkflowInstanceID);
 
-                return Promise.all([x.triverseWorkflow()]).then(function(result) {
+                return Promise.all([x.triverseWorkflow()]).then(function (result) {
                     console.log(result);
                     if (result[0] !== null || result === null) {
                         return models.WorkflowInstance.find({
@@ -780,16 +787,16 @@ module.exports = function(sequelize, DataTypes) {
                             include: [{
                                 model: models.AssignmentInstance
                             }]
-                        }).then(function(wi) {
+                        }).then(function (wi) {
                             console.log('Searching final grade belongs to...');
-                            return Promise.all([x.gradeBelongsTo()]).then(function(userid) {
+                            return Promise.all([x.gradeBelongsTo()]).then(function (userid) {
                                 console.log(userid);
                                 return models.SectionUser.find({
                                     where: {
                                         UserID: userid[0],
                                         SectionID: wi.AssignmentInstance.SectionID
                                     }
-                                }).then(function(user) {
+                                }).then(function (user) {
                                     console.log('result', user.SectionUserID, result);
 
                                     return models.TaskGrade.create({
@@ -821,7 +828,7 @@ module.exports = function(sequelize, DataTypes) {
 
 
             //Trace the previous tasks to find the final grade
-            triverseWorkflow: function() {
+            triverseWorkflow: function () {
                 var x = this;
                 console.log('traversing the workflow to find final grade...');
                 if (x.FinalGrade !== null) {
@@ -832,7 +839,7 @@ module.exports = function(sequelize, DataTypes) {
                         where: {
                             WorkflowInstanceID: x.WorkflowInstanceID
                         },
-                    }).then(function(wi) {
+                    }).then(function (wi) {
                         //[WorkflowActivityID, TaskInstanceID, FinalGrade]
                         return [wi.WorkflowActivityID, x.TaskInstanceID, x.FinalGrade];
                     });
@@ -844,7 +851,7 @@ module.exports = function(sequelize, DataTypes) {
                             TaskInstanceID: JSON.parse(x.PreviousTask)[0].id
                         }
                     }).then(ti_result => {
-                            //Check if all grading solution are completed
+                        //Check if all grading solution are completed
                         return ti_result.triverseWorkflow();
                     });
                     //})
@@ -855,14 +862,14 @@ module.exports = function(sequelize, DataTypes) {
             },
 
             //Find final grade belongs to which user
-            gradeBelongsTo: function() {
+            gradeBelongsTo: function () {
                 var x = this;
 
                 return models.TaskActivity.find({
                     where: {
                         TaskActivityID: x.TaskActivityID
                     }
-                }).then(function(ta_result) {
+                }).then(function (ta_result) {
                     if (ta_result.Type === 'grade_problem') {
                         //return Promise.map(JSON.parse(x.PreviousTask), ti => {
                         return models.TaskInstance.find({

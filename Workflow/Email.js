@@ -1,3 +1,5 @@
+
+import {MASTER_EMAIL, MASTER_PASSWORD, EMAIL_SERVER_STATUS} from '../Util/constant.js';
 var models = require('../Model');
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
@@ -29,10 +31,9 @@ var EmailNotification = models.EmailNotification;
 
 const logger = require('winston');
 
-var email = 'njitplamaster@gmail.com';
-var password = 'plamaster123';
-
-var active = true;
+var email = MASTER_EMAIL;
+var password = MASTER_PASSWORD;
+var active = EMAIL_SERVER_STATUS;
 
 /*
   Constructor
@@ -118,6 +119,7 @@ class Email {
     */
     async sendNow(userid, type, temp_pass = null) {
         //return; //for testting purposes
+
         if (active) {
 
             var x = this;
@@ -126,15 +128,14 @@ class Email {
                 where: {
                     UserID: userid
                 }
-            }).then(function (result) {
+            }).then(async function (result) {
                 var send = result.Email;
                 send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
-                console.log('userid, type, temp_pass', userid, type, temp_pass);
 
                 switch (type) {
                     case 'create user':
-                        x.send({
+                        await x.send({
                             from: email,
                             replyTo: email,
                             to: send,
@@ -145,7 +146,7 @@ class Email {
                         break;
                     case 'invite user':
                         console.log('inviting ' + send);
-                        x.send({
+                        await x.send({
                             from: email,
                             replyTo: email,
                             to: send,
@@ -156,7 +157,7 @@ class Email {
                         break;
                     case 'new task':
                         console.log('notifying ' + send);
-                        x.send({
+                        await x.send({
                             from: email,
                             replyTo: email,
                             to: send,
@@ -167,7 +168,7 @@ class Email {
                         break;
 
                     case 'late':
-                        x.send({
+                        await x.send({
                             from: email,
                             replyTo: email,
                             to: send,
@@ -177,7 +178,7 @@ class Email {
                         });
                         break;
                     case 'remove_reallocated':
-                        x.send({
+                        await x.send({
                             from: email,
                             replyTo: email,
                             to: send,
@@ -187,7 +188,7 @@ class Email {
                         });
                         break;
                     case 'new_reallocated':
-                        x.send({
+                        await x.send({
                             from: email,
                             replyTo: email,
                             to: send,
@@ -198,7 +199,7 @@ class Email {
                         break;
 
                     case 'reset password':
-                        x.send({from: email,
+                        await x.send({from: email,
                             replyTo: email,
                             to: send,
                             subject: 'Your password has been reset - PLA',

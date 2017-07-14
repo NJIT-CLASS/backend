@@ -3304,7 +3304,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     TaskInstanceID: req.params.taskInstanceID
                 },
                 include: [{
-<<<<<<< HEAD
                     model: TaskActivity,
                     include: [{
                         model: Assignment,
@@ -3326,20 +3325,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             }
                         ]
                     }]
-=======
-                    model: Section,
-                    attributes: ['Name', 'SectionID'],
-                    include: [{
-                        model: Course,
-                        attributes: ['Name', 'Number']
-                    },
-                    {
-                        model: Semester,
-                        attributes: ['SemesterID', 'Name']
-                    }
-                    ]
-                }]
->>>>>>> 7b01d74f878d320a12640e1d6cea9d231ef304df
 
                 }]
             })
@@ -4971,7 +4956,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     console.log(user.UserID);
                                     let temp_pass = await password.generate();
                                     return UserContact.create({
-<<<<<<< HEAD
                                             UserID: user.UserID,
                                             FirstName: req.body.firstName,
                                             LastName: req.body.lastName,
@@ -4986,22 +4970,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                 error: err
                                             });
                                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-=======
-                                        UserID: user.UserID,
-                                        FirstName: req.body.firstName,
-                                        LastName: req.body.lastName,
-                                        Email: req.body.email,
-                                        Phone: '(XXX) XXX-XXXX'
-                                    }, {
-                                        transaction: t
-                                    }).catch(function (err) {
-                                        console.error(err);
-                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                            req_body: req.body,
-                                            error: err
-                                        });
-                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
->>>>>>> 7b01d74f878d320a12640e1d6cea9d231ef304df
                                                 .then(function () {
                                                     res.status(500).end();
                                                 });
@@ -5295,7 +5263,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-----------------------------------------------------------------------------------------------------
 
 
-<<<<<<< HEAD
     //Endpoint for workflow reports
 
     router.get('/getWorkflowReport/:workflowInstanceID', (req, res) => {
@@ -5433,8 +5400,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
 
-=======
->>>>>>> 7b01d74f878d320a12640e1d6cea9d231ef304df
     //---------------------------------------------------------------------------
     //---------------------------------------------------------------------------
 

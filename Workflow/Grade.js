@@ -43,7 +43,7 @@ class Grade {
      */
     async addSimpleGrade(ti_id) {
         var x = this;
-
+        console.log('ti_id', ti_id)
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: ti_id
@@ -58,6 +58,8 @@ class Grade {
                 }
             ]
         });
+
+        console.log('ti',ti);
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
         var user_history = JSON.parse(ti.UserHistory);
