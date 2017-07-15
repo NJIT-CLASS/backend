@@ -3502,13 +3502,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         // switch (ti.TaskActivity.Type) {
         //     case 'create_problem':
-        //         taskFactory.addUserPoints(req.body.userid, { 'QuestionsPoints': '100' });
+        //         taskFactory.addUserBadgeInstance(req.body.userid, ['QuestionsPoints']);
         //         break;
         //     case 'solve_problem':
-        //         taskFactory.addUserPoints(req.body.userid, { 'SolutionsPoints': '100' });
+        //         taskFactory.addUserBadgeInstance(req.body.userid, ['SolutionsPoints']);
         //         break;
         //     case 'grade_problem':
-        //         taskFactory.addUserPoints(req.body.userid, { 'GraderPoints': '100' });
+        //         taskFactory.addUserBadgeInstance(req.body.userid, ['GraderPoints']);
         //         break;
         //     default:
         //         //To be implemented
@@ -5539,11 +5539,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     //Endpoints to get user's badges
-    router.get('/userBadges/:userID', async function(req, res) {
+    router.get('/userBadges/:userID/:courseID', async function(req, res) {
 
         User.find({
             where: {
-                UserID: req.params.userID
+                UserID: req.params.userID,
+                CourseID: req.params.courseID
             },
             attributes: [],
             include: [{
@@ -5645,7 +5646,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //Endpoint for badge categorie
+    //Endpoint for badge category
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
         BadgeCategory.findAll({
