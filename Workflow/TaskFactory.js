@@ -19,6 +19,10 @@ var UserContact = models.UserContact;
 var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
+var Badge = models.Badge;
+var BadgeCategory = models.BadgeCategory;
+var UserPointIntances = models.UserPointIntances;
+var UserBadges = models.UserBadges;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
@@ -66,7 +70,7 @@ class TaskFactory {
 
         console.log('Creating assignment instance...');
         //Iterate through all sectionIDs passed in and promise each is returned before next execution
-        await Promise.mapSeries(sectionIDs, async function (sectionid) {
+        await Promise.mapSeries(sectionIDs, async function(sectionid) {
             //creates new AssignmentInstance
             var ai = await AssignmentInstance.create({
                 //creates attributes
@@ -87,15 +91,15 @@ class TaskFactory {
     }
 
     async updateWorkflowTiming(wf_timing) {
-        await Promise.mapSeries(wf_timing.workflows, async function (workflow, index) {
-            await Promise.mapSeries(wf_timing.workflows[index].tasks, async function (task) {
+        await Promise.mapSeries(wf_timing.workflows, async function(workflow, index) {
+            await Promise.mapSeries(wf_timing.workflows[index].tasks, async function(task) {
                 await TaskActivity.update({
                     DueType: task.DueType
                 }, {
                     where: {
                         TaskActivityID: task.id
                     }
-                }).catch(function (err) {
+                }).catch(function(err) {
                     console.log('Update WorkflowTiming Failed!');
                     console.log(err);
                 });
@@ -113,7 +117,7 @@ class TaskFactory {
             where: {
                 AssignmentInstanceID: ai_id
             }
-        }).catch(function (err) {
+        }).catch(function(err) {
             logger.log('error', 'error has been found /TaskFactory.js/getWorkflowTiming(ai_id)');
         });
 
@@ -151,10 +155,10 @@ class TaskFactory {
                     $notLike: '%"complete"%',
                 },
             }
-        }).then(function (sibling_tis) {
+        }).then(function(sibling_tis) {
             logger.log('debug', 'check sibling tasks');
 
-            return Promise.map(sibling_tis, function (sibling_ti) {
+            return Promise.map(sibling_tis, function(sibling_ti) {
                 if (!ti.TaskActivity.SeeSibblings) {
                     if (sibling_ti.PreviousTask == ti.PreviousTask) {
                         logger.log('debug', 'sibling task not completed, return res');
@@ -164,7 +168,7 @@ class TaskFactory {
                         });
                     }
                 }
-            }).then(function (done) {
+            }).then(function(done) {
                 return TaskInstance.findAll({
                     where: {
                         TaskActivityID: ti.TaskActivityID,
@@ -173,7 +177,7 @@ class TaskFactory {
                             $notLike: '%"complete"%',
                         },
                     }
-                }).then(function (same_ta_tis) {
+                }).then(function(same_ta_tis) {
                     logger.log('debug', 'same act check apply view constraints to task instance');
 
                     if (!ti.TaskActivity.SeeSameActivity) {
@@ -198,7 +202,7 @@ class TaskFactory {
             user_id: user_id
         });
         var x = this;
-        pre_tis.forEach(function (ti, i) {
+        pre_tis.forEach(function(ti, i) {
             if (user_id == cur_ti.UserID) {
                 if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
                     x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation);
@@ -247,19 +251,19 @@ class TaskFactory {
     getNumberParticipants(taskActivityID) {
         console.log('Finding number of participants in task activity: ', taskActivityID, '...');
         var numParticipants = [];
-        return new Promise(function (resolve, reject) {
+        return new Promise(function(resolve, reject) {
             return TaskActivity.find({
                 where: {
                     TaskActivityID: taskActivityID
                 }
-            }).then(function (result) {
+            }).then(function(result) {
                 //console.log('NumberParticipants ', result.NumberParticipants);
                 for (var i = 0; i < result.NumberParticipants; i++) {
                     numParticipants.push(0);
                 }
 
                 resolve(numParticipants);
-            }).catch(function (err) {
+            }).catch(function(err) {
                 console.log('Finding number of participants failed!');
                 console.log(err);
                 reject(numParticipants);
@@ -274,17 +278,17 @@ class TaskFactory {
             console.log('ta_array undefined.');
         } else {
             //Iterate through ta_array
-            return Promise.mapSeries(ta_array, function (task) {
+            return Promise.mapSeries(ta_array, function(task) {
                 return TaskActivity.find({
                     where: {
                         TaskActivityID: task
                     }
-                }).then(function (result) {
+                }).then(function(result) {
                     var assigneeConstraints = JSON.parse(result.AssigneeConstraints);
                     //Loop through Assignee Constraints
                     for (var item in assigneeConstraints[2]) {
                         var temp = [];
-                        assigneeConstraints[2][item].forEach(function (index) {
+                        assigneeConstraints[2][item].forEach(function(index) {
                             temp.push(ta_array[index]);
                         });
                         assigneeConstraints[2][item] = temp;
@@ -298,7 +302,7 @@ class TaskFactory {
                         }
                     });
                 });
-            }).catch(function (err) {
+            }).catch(function(err) {
                 console.log('Updating Assignee Constraint Failure');
                 console.log(err);
             });
@@ -323,13 +327,13 @@ class TaskFactory {
             SemesterID: assignment.AA_semester,
             GradeDistribution: assignment.AA_grade_distribution,
             Documentation: assignment.AA_documentation,
-        }).then(function (assignmentResult) {
+        }).then(function(assignmentResult) {
             //Keep track all the workflow activities created under assignment
             var WA_array = [];
             console.log('Assignment creation successful!');
             console.log('AssignmentID: ', assignmentResult.AssignmentID);
             //Iterate through array of workflow activities (Created WorkflowActivity in order)
-            return Promise.mapSeries(assignment.WorkflowActivity, function (workflow, index) {
+            return Promise.mapSeries(assignment.WorkflowActivity, function(workflow, index) {
                 console.log('Creating workflow activity...');
                 return WorkflowActivity.create({
                     AssignmentID: assignmentResult.AssignmentID,
@@ -340,14 +344,14 @@ class TaskFactory {
                     Documentation: workflow.WA_documentation,
                     GroupSize: workflow.WA_default_group_size,
                     WorkflowStructure: workflow.WorkflowStructure,
-                }).then(function (workflowResult) {
+                }).then(function(workflowResult) {
                     console.log('Workflow creation successful!');
                     console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
                     WA_array.push(workflowResult.WorkflowActivityID);
                     //Keep track all the task activities within each workflow
                     TA_array = [];
                     //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
-                    return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function (task) {
+                    return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function(task) {
                         console.log('Creating task activity...');
                         return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
@@ -382,17 +386,17 @@ class TaskFactory {
                             VersionEvaluation: task.VersionEvaluation,
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
-                        }).then(function (taskResult) {
+                        }).then(function(taskResult) {
                             console.log('Task creation successful!');
                             console.log('TaskActivityID: ', taskResult.TaskActivityID);
                             TA_array.push(taskResult.TaskActivityID);
-                        }).catch(function (err) {
+                        }).catch(function(err) {
                             console.log('Workflow creation failed');
                             //Loggin error
                             console.log(err);
                             return false;
                         });
-                    }).then(function (done) {
+                    }).then(function(done) {
                         //Replace all fake IDs within workflow activity grade distribution with real WorkflowActivityID
                         //(Assumed all task activities are created in order)
                         var WA_gradeDistribution = {};
@@ -415,13 +419,13 @@ class TaskFactory {
                         x.replaceTreeID(workflowResult.WorkflowActivityID, TA_array, workflowResult.WorkflowStructure);
                         //reset TA_array
                         TA_array = [];
-                    }).catch(function (err) {
+                    }).catch(function(err) {
                         console.log('Workflow creation failed');
                         //Loggin error
                         console.log(err);
                         return false;
                     });
-                }).then(function (done) {
+                }).then(function(done) {
                     //After all WorkflowActivities are created update the list of WorkflowActivities in Assignment
                     var AA_gradeDistribution = {};
                     var AA_count = 0;
@@ -439,7 +443,7 @@ class TaskFactory {
                     });
                     TA_array = [];
                 });
-            }).catch(function (err) {
+            }).catch(function(err) {
                 // err is the reason why rejected the promise chain returned to the transaction callback
                 console.log('Assignment creation failed');
                 //Loggin error
@@ -454,7 +458,7 @@ class TaskFactory {
         var replacedTree = tree;
         var count = 0;
 
-        return Promise.map(replacedTree, function (node, index) {
+        return Promise.map(replacedTree, function(node, index) {
             if (node.id != -1 && node.hasOwnProperty('parent')) {
                 replacedTree[index]['id'] = ta_array[count];
                 replacedTree[index]['parent'] = ta_array[replacedTree[index].parent];
@@ -464,7 +468,7 @@ class TaskFactory {
                 count++;
             }
 
-        }).then(function (done) {
+        }).then(function(done) {
             WorkflowActivity.update({
                 WorkflowStructure: replacedTree
             }, {
@@ -487,13 +491,13 @@ class TaskFactory {
             let flatTree = JSON.parse(wa.WorkflowStructure);
             let it;
 
-            await Promise.mapSeries(flatTree, function (node) {
+            await Promise.mapSeries(flatTree, function(node) {
                 if (node.id === ta_id) {
                     it = node;
                 }
             });
 
-            await Promise.mapSeries(flatTree, function (node) {
+            await Promise.mapSeries(flatTree, function(node) {
                 if (node.hasOwnProperty('parent')) {
                     if (node.parent === it.id && node.isSubWorkflow !== it.isSubWorkflow) {
                         return true;
@@ -516,10 +520,10 @@ class TaskFactory {
             where: {
                 WorkflowActivityID: wa_id
             }
-        }).then(function (wa_result) {
+        }).then(function(wa_result) {
             let treeRoot = tree.parse(flatToNested.convert(JSON.parse(wa_result.WorkflowStructure)));
             callback(treeRoot, wa_result.TaskActivityCollection, JSON.parse(wa_result.WorkflowStructure));
-        }).catch(function (err) {
+        }).catch(function(err) {
             console.log(err);
             console.log('getTree(wa_id, callback) failed retrieving tree');
         });
@@ -530,15 +534,15 @@ class TaskFactory {
             where: {
                 AssignmentInstanceID: ai_id
             }
-        }).then(function (ai) {
+        }).then(function(ai) {
             WorkflowInstance.find({
                 where: {
                     WorkflowInstanceID: ai.AssignmentInstanceID
                 }
-            }).then(function (wi) {
-                where: {
+            }).then(function(wi) {
+                // where: {
 
-                }
+                // }
             });
         });
     }
@@ -586,17 +590,17 @@ class TaskFactory {
         var x = this;
         //subworkflow = [];
         console.log('finding subworkflow of task instance', ti_id, '...');
-        return new Promise(function (resolve, reject) {
+        return new Promise(function(resolve, reject) {
             TaskInstance.find({
                 where: {
                     TaskInstanceID: ti_id
                 }
-            }).then(function (ti) {
+            }).then(function(ti) {
                 var s = subworkflow;
                 if (ti.NextTask === null || typeof ti.NextTask === undefined) {
                     resolve(null);
                 } else {
-                    return Promise.mapSeries(JSON.parse(ti.NextTask), function (task) {
+                    return Promise.mapSeries(JSON.parse(ti.NextTask), function(task) {
                         //  return Promise.mapSeries(taskArray, function(task) {
                         return TaskInstance.find({
                             where: {
@@ -610,19 +614,19 @@ class TaskFactory {
                                 model: TaskActivity,
                                 attributes: ['Type']
                             }]
-                        }).then(function (nextTask) {
+                        }).then(function(nextTask) {
                             //assumed 0 will not be subworkflow
                             if (ti.IsSubWorkflow < nextTask.IsSubWorkflow && nextTask.IsSubWorkflow != 0) {
                                 //new subworkflow
                                 console.log('found a subworkflow!');
 
                                 s.push(nextTask);
-                                return x.getNextTask(nextTask.TaskInstanceID, s).then(function (wf) {
+                                return x.getNextTask(nextTask.TaskInstanceID, s).then(function(wf) {
 
                                     if (wf !== null) {
                                         s = wf;
-                                        return Promise.mapSeries(s, function (task, index) {
-                                            return x.getSubWorkflow(task.TaskInstanceID, new Array()).then(function (sw) {
+                                        return Promise.mapSeries(s, function(task, index) {
+                                            return x.getSubWorkflow(task.TaskInstanceID, new Array()).then(function(sw) {
                                                 if (!s[index].hasOwnProperty('SubWorkflow')) {
                                                     s[index].setDataValue('SubWorkflow', sw);
                                                 } else {
@@ -632,14 +636,14 @@ class TaskFactory {
                                             });
                                         });
                                     }
-                                }).then(function (done) {
+                                }).then(function(done) {
                                     resolve(s);
                                 });
                             }
                         });
 
                         //});
-                    }).then(function (done) {
+                    }).then(function(done) {
                         console.log('No subworkflow found', ti.TaskInstanceID, '...');
                         resolve(null);
                     });
@@ -655,17 +659,17 @@ class TaskFactory {
 
         console.log('finding task instance', ti_id, '...');
 
-        return new Promise(function (resolve, reject) {
+        return new Promise(function(resolve, reject) {
             TaskInstance.find({
                 where: {
                     TaskInstanceID: ti_id
                 }
-            }).then(function (ti) {
+            }).then(function(ti) {
                 var w = workflow;
                 if (_.isEmpty(JSON.parse(ti.NextTask)) || typeof ti.NextTask === undefined) {
                     resolve(null);
                 } else {
-                    return Promise.mapSeries(JSON.parse(ti.NextTask), function (task) {
+                    return Promise.mapSeries(JSON.parse(ti.NextTask), function(task) {
                         //return Promise.mapSeries(taskArray, function(task) {
                         return TaskInstance.find({
                             where: {
@@ -679,15 +683,15 @@ class TaskFactory {
                                 model: TaskActivity,
                                 attributes: ['Type']
                             }]
-                        }).then(function (nextTask) {
+                        }).then(function(nextTask) {
                             if (nextTask.IsSubWorkflow == ti.IsSubWorkflow) {
                                 w.push(nextTask);
                                 next = nextTask.TaskInstanceID;
                             }
                         });
                         //  });
-                    }).then(function (done) {
-                        x.getNextTask(next, w).then(function (result) {
+                    }).then(function(done) {
+                        x.getNextTask(next, w).then(function(result) {
                             resolve(w);
                         });
                     });
@@ -696,30 +700,118 @@ class TaskFactory {
         });
     }
 
+    addUserBadgeInstance(userID, courseID, option) {
+
+        console.info('user id', userID);
+
+        var $this = this;
+
+        UserPointIntances.find({
+            where: {
+                UserID: userID
+            },
+            attributes: [
+                'QuestionsPoints',
+                'HighGradesPoints',
+                'SolutionsPoints',
+                'GraderPoints',
+                'EarlySubmissionPoints',
+                'ParticipationPoints'
+            ]
+
+        }).then(function(result) {
+
+            var update = {};
+
+            if (option.indexOf('QuestionsPoints') > -1) {
+                update.QuestionsPoints = parseInt(result['QuestionsPoints']) + 1;
+            }
+            if (option.indexOf('HighGradesPoints') > -1) {
+                update.HighGradesPoints = parseInt(result['HighGradesPoints']) + 1;
+            }
+            if (option.indexOf('SolutionsPoints') > -1) {
+                update.SolutionsPoints = parseInt(result['SolutionsPoints']) + 1;
+            }
+            if (option.indexOf('GraderPoints') > -1) {
+                update.GraderPoints = parseInt(result['GraderPoints']) + 1;
+            }
+            if (option.indexOf('EarlySubmissionPoints') > -1) {
+                update.EarlySubmissionPoints = parseInt(result['EarlySubmissionPoints']) + 1;
+            }
+            if (option.indexOf('ParticipationPoints') > -1) {
+                update.ParticipationPoints = parseInt(result['ParticipationPoints']) + 1;
+            }
+
+            $this.updateUserPoints(userID, update);
+
+
+        }).catch(function(err) {
+
+        });
+
+    }
+
+    updateUserPoints(userID, update) {
+
+        UserPoints.update(
+            update, {
+                where: {
+                    UserID: userID
+                }
+            }).then(function(result) {
+            console.info('Success!!! result is ', result);
+        }).catch(function(err) {
+            console.log('Error !!!!', err);
+        });
+    }
+
+    updateUserBadges(userID, UserPoints) {
+
+        UserBadges.find({
+            where: {
+                UserID: userID
+            },
+            attributes: ['QuestionsPoints',
+                'HighGradesPoints',
+                'SolutionsPoints',
+                'GraderPoints',
+                'EarlySubmissionPoints',
+                'ParticipationPoints'
+            ]
+
+        }).then(function(result) {
+
+
+        }).catch(function(err) {
+
+        });
+    }
+
+
     findPreviousTasks(ti_id, previousTasks) {
         var x = this;
-        return new Promise(function (resolve, reject) {
+        return new Promise(function(resolve, reject) {
             TaskInstance.find({
                 where: {
                     TaskInstanceID: ti_id
                 }
-            }).then(function (taskInstance) {
+            }).then(function(taskInstance) {
                 var p = previousTasks;
                 if (taskInstance.PreviousTask === null || typeof taskInstance.PreviousTask === undefined) {
                     resolve(null);
                 } else {
                     console.log('Previous Task', taskInstance.PreviousTask);
-                    return Promise.mapSeries(JSON.parse(taskInstance.PreviousTask), function (task) {
+                    return Promise.mapSeries(JSON.parse(taskInstance.PreviousTask), function(task) {
                         // console.log('find previous task ', task)
                         p.push(task.id);
                         //p.push(JSON.parse(taskInstance.PreviousTask).id);
-                    }).then(function (done) {
-                        x.findPreviousTasks(JSON.parse(taskInstance.PreviousTask)[0].id, p).then(function (result) {
+                    }).then(function(done) {
+                        x.findPreviousTasks(JSON.parse(taskInstance.PreviousTask)[0].id, p).then(function(result) {
                             resolve(p);
                         });
                     });
                 }
-            }).catch(function (err) {
+            }).catch(function(err) {
                 console.log('Cannot find previous tasks', err);
                 //throw new Error('Cannot find previous tasks');
             });
