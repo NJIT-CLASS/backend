@@ -73,6 +73,17 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'Delete',
             allowNull: true
+        },
+        Time: {
+            // date and time after which user will be allowed to log in
+            type: DataTypes.DATE,
+            field: 'Time',
+            allowNull: true
+        },
+        Complete : {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Complete',
+            allowNull: true
         }
 
     }, {

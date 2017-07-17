@@ -39,6 +39,12 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.JSON,
             field: 'OrganizationGroup',
             allowTrue: true
+        },
+        Test: {
+            type: DataTypes.BOOLEAN,
+            field: 'Test',
+            allowNull: false,
+            defaultValue: false
         }
         //UserType: {
         //    //User type either instructor or student
