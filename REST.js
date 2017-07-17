@@ -5690,6 +5690,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+
+
     //Endpoint for badge categories
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
