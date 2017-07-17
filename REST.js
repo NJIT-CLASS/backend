@@ -5786,7 +5786,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
        router.post('/comments/add', function(req, res) {
            console.log("/comments/add : was called");
 
-           if (req.body.UserID === null || req.body.SectionID === null || req.body.TaskInstanceID === null || req.body.AssignmentInstanceID === null ||req.body.Type === null || req.body.CommentText === null || req.body.Rating === null || req.body.ReplyLevel === null) {
+           if (req.body.UserID === null || req.body.SectionID === null || req.body.TaskInstanceID === null || req.body.AssignmentInstanceID === null ||req.body.Type === null || req.body.CommentText === null || req.body.Rating === null || req.body.ReplyLevel === null || req.body.Complete === null  ) {
                console.log("/comments/add : Missing attributes");
                res.status(400).end();
            }
@@ -5806,7 +5806,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                ReplyLevel: req.body.ReplyLevel,
                Parents: req.body.Parents,
                Hide: 0,
-               Viewed: 0
+               Viewed: 0,
+               Complete: req.body.Complete
 
            }).then(function(result){
              res.status(200).end();
@@ -5816,7 +5817,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                    });
        })
  //------------------------------------------------------------------------------------------
- router.put('/comments/edit', function(req, res) {
+ router.post('/comments/edit', function(req, res) {
 
      if (req.body.CommentsID  == null) {
          console.log("/comments/edit : CommentsID cannot be null");
@@ -5834,7 +5835,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      }, {
          where: {
              CommentsID: req.body.CommentsID,
-             Delete: null
+             Delete: null,
+             Complete: 1
          }
      }).then(function(result) {
          Comments.find({
@@ -5856,7 +5858,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
  });
 
  //-----------------------------------------------------------------------------
- router.put('/comments/delete', function(req, res) {
+ router.post('/comments/delete', function(req, res) {
 
      if (req.body.CommentsID  == null) {
          console.log("/comments/delete : CommentsID cannot be null");
@@ -5892,7 +5894,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
  //------------------------------------------------------------------------------
 
- router.put('/comments/setFlag', function(req, res) {
+ router.post('/comments/setFlag', function(req, res) {
 
      if (req.body.CommentsID  == null) {
          console.log("/comments/setFlag : CommentsID cannot be null");
@@ -5926,7 +5928,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      });
  });
     //-------------------------------------------------------------------------
-    router.put('/comments/removeFlag', function(req, res) {
+    router.post('/comments/removeFlag', function(req, res) {
 
         if (req.body.CommentsID  == null) {
             console.log("/comments/removeFlag : CommentsID cannot be null");
@@ -5961,7 +5963,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
        //-------------------------------------------------------------------------
 
-    router.put('/comments/rating', function(req, res) {
+    router.post('/comments/rating', function(req, res) {
 
         if (req.body.CommentsID  == null) {
             console.log("/comments/rating : CommentsID cannot be null");
@@ -6107,47 +6109,52 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //-------------------------------------------------------------------------
-router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
-  console.log('comments/ti/:TaskInstanceID was called');
-  var parents = await Comments.findAll({
-      where: {
-          TaskInstanceID: req.params.TaskInstanceID,
-          Delete: null,
-          Parents: null
-      }
-    }).catch(function(err) {
-        console.log('comments/ti ' + err.message);
-        res.status(401).end();
-    });
-    var children = await Comments.findAll({
-        where: {
-            TaskInstanceID: req.params.TaskInstanceID,
-            Delete: null,
-            Parents: {$ne: 0}
-        }
-      }).catch(function(err) {
-          console.log('comments/ti ' + err.message);
-          res.status(401).end();
-      });
+    router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
+          console.log('comments/ti/:TaskInstanceID was called');
+          var parents = await Comments.findAll({
+              where: {
+                  TaskInstanceID: req.params.TaskInstanceID,
+                  Delete: null,
+                  Parents: null
+              }
+            }).catch(function(err) {
+                console.log('comments/ti ' + err.message);
+                res.status(401).end();
+            });
+            var children = await Comments.findAll({
+                where: {
+                    TaskInstanceID: req.params.TaskInstanceID,
+                    Delete: null,
+                    Parents: {$ne: null}
+                }
+              }).catch(function(err) {
+                  console.log('comments/ti ' + err.message);
+                  res.status(401).end();
+              });
 
-    while (children.length > 1) {
-      for (var j = (children.length-1); j >= 0; j--) {
-        for (var i = 0; i < parents.length; i++) {
-          if (children[j] != null && parents[i].CommentsID == children[j].Parents) {
-            parents.splice((i+1), 0, children.splice(j, 1)[0])
-          }
-        }
-      }
-    }
+              for (var j = 0; j < children.length; j++) {
+                for (var i = 0; i < parents.length; i++) {
+                  if (parents[i].CommentsID == children[j].Parents) {
+                    if (i < parents.length) {
+                      i++;
+                      var m = i;
+                    }
+                    while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
+                      i++;
+                    }
+                    parents.splice(i, 0, children[j]);
+                    break;
+                  }
+                }
+              }
 
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'children':children,
-            'Comments': parents
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Comments': parents
+                });
+
         });
-
-});
 
     //-------------------------------------------------------------------------
     router.get('/comments/commentID/:CommentsID',function(req, res) {
@@ -6191,7 +6198,7 @@ router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
         });
     });
     //-------------------------------------------------------------------------
-    router.put('/comments/hide', function(req, res) {
+    router.post('/comments/hide', function(req, res) {
         if (req.body.CommentsID  == null) {
             console.log("/comments/hide : CommentsID cannot be null");
             res.status(400).end();
@@ -6223,7 +6230,7 @@ router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
         });
     });
     //-------------------------------------------------------------------------
-    router.put('/comments/unhide', function(req, res) {
+    router.post('/comments/unhide', function(req, res) {
         if (req.body.CommentsID  == null) {
             console.log("/comments/unhide : CommentsID cannot be null");
             res.status(400).end();
@@ -6394,7 +6401,56 @@ router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
 
     });
     //---------------------------------------------------------------------------
+    router.get('/userManagement',async function(req, res) {
+        console.log("/userManagement : was called");
+        await User.findAll({
+            attributes: ['UserID','FirstName', 'LastName', 'OrganizationGroup', 'Admin','Test','Instructor'],
+            include: [{
+                model: UserContact,
+                attributes: ['Email', 'FirstName', 'LastName']
+            },{
 
+                  model: UserLogin,
+                  attributes: ['Email','Pending','Attempts', 'Timeout', 'Blocked']
+            }
+
+          ]
+        }).then(function(result) {
+            console.log('Assignments have been found!');
+            res.json({
+                'Error': false,
+                'Assignments': result
+                });
+            }).catch(function(err) {
+            console.log('/userManagement (User table)' + err.message);
+            res.status(401).end();
+        });
+/*
+        var re2 = await UserContact.findAll({
+            attributes: ['UserID', 'FirstName', 'LastName']
+        }).catch(function(err) {
+            console.log('/userManagement (UserContact table)' + err.message);
+            res.status(401).end();
+        });
+
+        var re3 = await UserLogin.findAll({
+            attributes: ['UserID', 'Email', 'Timeout', 'Blocked']
+        }).catch(function(err) {
+            console.log('/userManagement (UserLogin table)' + err.message);
+            res.status(401).end();
+        });
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            're': re,
+            're2': re2,
+            're3': re3,
+
+        });
+*/
+
+    });
 
     //---------------------------------------------------------------------------
 
