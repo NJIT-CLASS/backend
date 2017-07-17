@@ -5690,7 +5690,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //Endpoint for badge categorie
+    //Endpoint for badge categories
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
         BadgeCategory.findAll({
@@ -5730,6 +5730,40 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+    //get section users
+    router.get('/sectionUsers/:sectionID', async function(req, res) {
+        let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) AS TotalPoints, u.FirstName, u.LastName, ProfilePicture
+                      FROM SectionUser AS su
+                      LEFT JOIN user AS u ON u.UserID = su.UserID
+                      LEFT JOIN badgecategory AS bc ON bc.SectionID = su.SectionID
+                      LEFT JOIN userpointinstances AS upi ON upi.BadgeCategoryID = bc.BadgeCategoryID AND upi.UserID = su.UserID
+                      WHERE su.SectionID = ?
+                      GROUP BY UserID
+                      ORDER BY TotalPoints DESC`;
+
+        sequelize.query(select, {
+            replacements: [
+                req.params.sectionID
+            ],
+            type: sequelize.QueryTypes.SELECT
+        }).then(result => {
+            if (!result) {
+                result = [];
+            }
+            var rank = 1;
+            result.forEach(function(element) {
+                element.Rank = rank++;
+            });
+
+            res.json({
+                'Error': false,
+                'students': result
+            });
+
+        }).catch(() => {
+            res.status(401).end();
+        });
+    });
 };
 
 module.exports = REST_ROUTER;
