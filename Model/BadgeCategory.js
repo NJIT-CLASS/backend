@@ -9,6 +9,21 @@ module.exports = function(sequelize, DataTypes) {
             autoIncrement: true,
             unique: true
         },
+        SemesterID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SemesterID',
+            allowNull: false
+        },
+        SectionID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SectionID',
+            allowNull: false
+        },
+        CourseID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
+            allowNull: false
+        },
         Name: {
             //Name of the Categorty.
             type: DataTypes.STRING,

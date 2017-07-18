@@ -9,7 +9,7 @@ module.exports = function(sequelize, DataTypes) {
             autoIncrement: true,
             unique: true
         },
-        CategryID: {
+        CategoryID: {
             //The Badge Category
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
