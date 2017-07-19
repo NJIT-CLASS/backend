@@ -697,7 +697,7 @@ CREATE TABLE `CommentsArchive` (
   `Time` date DEFAULT NULL,
   `Complete` tinyint(1) DEFAULT NULL,
   
-  PRIMARY KEY (`CommentsID`)
+  PRIMARY KEY (`CommentsArchiveID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
