@@ -5871,7 +5871,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                  "Error": false,
                  "Message": "Success"
              });
-         });
      }).catch(function(err) {
          console.log('/comments/edit: ' + err);
          res.status(401).end();
