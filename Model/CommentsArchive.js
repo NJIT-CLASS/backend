@@ -1,11 +1,17 @@
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('CommentsArchive', {
+        CommentsArchiveID: {
+            //Unique identifier for the user
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CommentsArchiveID',
+            allowNull: true,
+            primaryKey: true,
+        },
         CommentsID: {
             //Unique identifier for the user
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'CommentsID',
             allowNull: true,
-            primaryKey: true,
         },
         UserID: {
             //Unique identifier for the user
