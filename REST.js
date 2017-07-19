@@ -5848,8 +5848,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                Status: rows[0].Status,
                ReplyLevel: rows[0].ReplyLevel,
                Parents: rows[0].Parents,
-               Hide: row[0].Hide,
-               Viewed: row[0].Viewed,
+               Hide: rows[0].Hide,
+               Viewed: rows[0].Viewed,
                Time:rows[0].Time,
                Complete: rows[0].Complete
              });
