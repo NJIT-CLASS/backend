@@ -5864,21 +5864,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
              CommentsText: req.body.CommentsText
      }, {
          where: {
-             CommentsID: req.body.CommentsID,
-             Delete: null,
-             Complete: 1
+             CommentsID: req.body.CommentsID
          }
      }).then(function(result) {
-         Comments.find({
-             where: {
-                 CommentsID: req.body.CommentsID
-             }
-         }).then(function(CommentsUpdated) {
-             res.json({
+                 res.json({
                  "Error": false,
-                 "Message": "Success",
-                 "Result": result,
-                 "CommentsUpdated": CommentsUpdated
+                 "Message": "Success"
              });
          });
      }).catch(function(err) {
