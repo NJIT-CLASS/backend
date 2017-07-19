@@ -5831,33 +5831,33 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
          res.status(400).end();
          return;
      };
-     Comments.find({
+     Comments.findAll({
          where: {
              CommentsID: req.body.CommentsID
-         }.then(function(row){
+         }
+       }).then(function(rows){
            CommentsArchive.create({
-               CommentsID: row[0].CommentsID,
-               UserID: row[0].UserID,
-               TaskInstanceID: row[0].TaskInstanceID,
-               AssignmentInstanceID:row[0].AssignmentInstanceID,
-               Type: row[0].Type,
-               CommentsText: row[0].CommentText,
-               Rating: row[0].Rating,
-               Flag: row[0].Flag,
-               Status: row[0].Status,
-               ReplyLevel: row[0].ReplyLevel,
-               Parents: row[0].Parents,
+               CommentsID: rows[0].CommentsID,
+               UserID: rows[0].UserID,
+               TaskInstanceID: rows[0].TaskInstanceID,
+               AssignmentInstanceID:rows[0].AssignmentInstanceID,
+               Type: rows[0].Type,
+               CommentsText: rows[0].CommentText,
+               Rating: rows[0].Rating,
+               Flag: rows[0].Flag,
+               Status: rows[0].Status,
+               ReplyLevel: rows[0].ReplyLevel,
+               Parents: rows[0].Parents,
                Hide: row[0].Hide,
                Viewed: row[0].Viewed,
-               Time:row[0].Time,
-               Complete: row[0].Complete
+               Time:rows[0].Time,
+               Complete: rows[0].Complete
              });
              console.log("/comments/edit : Comments archived");
            }).catch(function(err) {
              console.log('/comments/edit (CommentsArchive): ' + err);
              res.status(401).end();
-           })
-      });
+           });
 
 
      Comments.update({
