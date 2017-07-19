@@ -5842,7 +5842,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                TaskInstanceID: rows[0].TaskInstanceID,
                AssignmentInstanceID:rows[0].AssignmentInstanceID,
                Type: rows[0].Type,
-               CommentsText: rows[0].CommentText,
+               CommentsText: rows[0].CommentsText,
                Rating: rows[0].Rating,
                Flag: rows[0].Flag,
                Status: rows[0].Status,
