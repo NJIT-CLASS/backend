@@ -658,7 +658,7 @@ CREATE TABLE `Comments` (
   `Hide` int(10) DEFAULT NULL,
   `Viewed` int(10) DEFAULT NULL,
   `Time` date DEFAULT NULL,
-  `Complete` date DEFAULT NULL,
+  `Complete` tinyint(1) DEFAULT NULL,
   
   PRIMARY KEY (`CommentsID`),
   UNIQUE KEY `CommentsID` (`CommentsID`),
@@ -679,10 +679,10 @@ DROP TABLE IF EXISTS `CommentsArchive`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `CommentsArchive` (
   `CommentsArchiveID` int(10) unsigned NOT NULL AUTO_INCREMENT,
-  `CommentsID` int(10) DEFAULT NULL,
-  `UserID` int(10) DEFAULT NULL,  
-  `TaskInstanceID` int(10) DEFAULT NULL,
-  `AssignmentInstanceID` int(10) DEFAULT NULL,
+  `CommentsID` int(10) unsigned NOT NULL,
+  `UserID` int(10) unsigned NOT NULL,  
+  `TaskInstanceID` int(10) unsigned NOT NULL,
+  `AssignmentInstanceID` int(10) unsigned NOT NULL,
   `Type` varchar(40) DEFAULT NULL,
   `CommentsText` varchar(255) DEFAULT NULL,  
   `Rating` int(10) DEFAULT NULL,
@@ -695,7 +695,7 @@ CREATE TABLE `CommentsArchive` (
   `Hide` int(10) DEFAULT NULL,
   `Viewed` int(10) DEFAULT NULL,
   `Time` date DEFAULT NULL,
-  `Complete` date DEFAULT NULL,
+  `Complete` tinyint(1) DEFAULT NULL,
   
   PRIMARY KEY (`CommentsID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
