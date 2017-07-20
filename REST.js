@@ -6240,7 +6240,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 res.json({
                     "Error": false,
                     "Message": "Success",
-                    "Result": result,
                     "Rating": CommentsUpdated
                 });
             });
@@ -6272,7 +6271,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 res.json({
                     "Error": false,
                     "Message": "Success",
-                    "Result": result,
                     "Rating": CommentsUpdated
                 });
             });
