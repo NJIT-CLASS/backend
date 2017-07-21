@@ -84,6 +84,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'Complete',
             allowNull: true
+        },
+        Hide: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Hide',
+            allowNull: true
         }
 
     }, {
