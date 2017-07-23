@@ -5640,6 +5640,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 attributes: [
                     'PointInstances'
                 ]
+            }, {
+                model: Badge,
+                attributes: ['BadgeID', 'Name', 'Description', 'logo']
             }]
         }).then(function(result) {
             if (!result) {
@@ -5773,9 +5776,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //get section users with their ranking
     router.get('/getSectionsRanking/:semesterID', async function(req, res) {
         let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) 
-                      AS TotalPoints, u.FirstName, u.LastName, ProfilePicture
+                      AS TotalPoints, u.FirstName, u.LastName, u.ProfilePicture, s.Name SectionName, s.Description SectionDescription
                       FROM SectionUser AS su
                       LEFT JOIN user AS u ON u.UserID = su.UserID
+                      LEFT JOIN section AS s ON s.SectionID = su.SectionID
                       LEFT JOIN category AS c ON c.SectionID = su.SectionID
                       LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
                       WHERE c.SemesterID = ?
