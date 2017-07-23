@@ -20,7 +20,7 @@ var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
 var Badge = models.Badge;
-var BadgeCategory = models.BadgeCategory;
+var Category = models.Category;
 var UserPointIntances = models.UserPointIntances;
 var UserBadges = models.UserBadges;
 

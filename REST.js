@@ -20,7 +20,7 @@ var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
 var Badge = models.Badge;
-var BadgeCategory = models.BadgeCategory;
+var Category = models.Category;
 var UserPointIntances = models.UserPointIntances;
 var UserBadges = models.UserBadges;
 
@@ -5618,12 +5618,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoint to get the user's Progress
     router.get('/userProgress/:userID/:categoryID', async function(req, res) {
 
-        BadgeCategory.findAll({
+        Category.findAll({
             where: {
-                BadgeCategoryID: req.params.categoryID,
+                CategoryID: req.params.categoryID,
             },
             attributes: [
-                'BadgeCategoryID',
+                'CategoryID',
                 'CourseID',
                 'SectionID',
                 'SemesterID',
@@ -5655,7 +5655,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'progress': result
             });
         }).catch(function(err) {
-            console.log('/badgeCategories/: ' + err);
+            console.log('/userProgress/: ' + err);
             res.status(401).end();
         });
     });
@@ -5695,14 +5695,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoint for badge categories
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
-        BadgeCategory.findAll({
+        Category.findAll({
             where: {
                 CourseID: req.params.courseID,
                 SectionID: req.params.sectionID,
                 SemesterID: req.params.semesterID
             },
             attributes: [
-                'BadgeCategoryID',
+                'CategoryID',
                 'Name',
                 'Description',
                 'Tier1Instances',
@@ -5732,20 +5732,59 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //get section users
-    router.get('/sectionUsers/:sectionID', async function(req, res) {
-        let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) AS TotalPoints, u.FirstName, u.LastName, ProfilePicture
+    //get section users with their ranking
+    router.get('/sectionUsers/:semesterID/:courseID/:sectionID', async function(req, res) {
+        let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) 
+                      AS TotalPoints, u.FirstName, u.LastName, ProfilePicture
                       FROM SectionUser AS su
                       LEFT JOIN user AS u ON u.UserID = su.UserID
-                      LEFT JOIN badgecategory AS bc ON bc.SectionID = su.SectionID
-                      LEFT JOIN userpointinstances AS upi ON upi.BadgeCategoryID = bc.BadgeCategoryID AND upi.UserID = su.UserID
-                      WHERE su.SectionID = ?
+                      LEFT JOIN category AS c ON c.SectionID = su.SectionID
+                      LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
+                      WHERE su.SectionID = ? AND c.SemesterID = ? AND c.CourseID = ?
                       GROUP BY UserID
                       ORDER BY TotalPoints DESC`;
 
         sequelize.query(select, {
             replacements: [
-                req.params.sectionID
+                req.params.sectionID,
+                req.params.semesterID,
+                req.params.courseID
+            ],
+            type: sequelize.QueryTypes.SELECT
+        }).then(result => {
+            if (!result) {
+                result = [];
+            }
+            var rank = 1;
+            result.forEach(function(element) {
+                element.Rank = rank++;
+            });
+
+            res.json({
+                'Error': false,
+                'students': result
+            });
+
+        }).catch(() => {
+            res.status(401).end();
+        });
+    });
+
+    //get section users with their ranking
+    router.get('/getSectionsRanking/:semesterID', async function(req, res) {
+        let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) 
+                      AS TotalPoints, u.FirstName, u.LastName, ProfilePicture
+                      FROM SectionUser AS su
+                      LEFT JOIN user AS u ON u.UserID = su.UserID
+                      LEFT JOIN category AS c ON c.SectionID = su.SectionID
+                      LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
+                      WHERE c.SemesterID = ?
+                      GROUP BY UserID
+                      ORDER BY TotalPoints DESC`;
+
+        sequelize.query(select, {
+            replacements: [
+                req.params.semesterID
             ],
             type: sequelize.QueryTypes.SELECT
         }).then(result => {

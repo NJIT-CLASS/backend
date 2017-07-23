@@ -25,7 +25,7 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference', 'Badge', 'BadgeCategory', 'UserBadges', 'UserPointIntances'
+    'FileReference', 'Badge', 'Category', 'UserBadges', 'UserPointIntances'
 ];
 
 
@@ -61,8 +61,8 @@ models.forEach(function(model) {
         foreignKey: 'CreatorID'
     });
 
-    m.Badge.belongsTo(m.BadgeCategory, {
-        foreignKey: 'BadgeCategoryID'
+    m.Badge.belongsTo(m.Category, {
+        foreignKey: 'CategoryID'
     });
 
     m.User.hasOne(m.UserLogin, {
@@ -110,7 +110,7 @@ models.forEach(function(model) {
         foreignKey: 'CourseID'
     });
 
-   
+
     // m.VolunteerPool.belongsTo(m.AssignmentInstance, {
     //     foreignKey: 'AssignmentInstanceID'
     // });
@@ -208,25 +208,25 @@ models.forEach(function(model) {
     m.Assignment.belongsTo(m.Course, { foreignKey: 'CourseID' });
 
     //has Many Relations
-    m.BadgeCategory.hasMany(m.Badge, {
-        foreignKey: 'BadgeCategoryID',
+    m.Category.hasMany(m.Badge, {
+        foreignKey: 'CategoryID',
         constraints: false
     });
 
-    m.Badge.belongsTo(m.BadgeCategory, {
-        foreignKey: 'BadgeCategoryID',
+    m.Badge.belongsTo(m.Category, {
+        foreignKey: 'CategoryID',
         constraints: false
     });
 
     //has Many Relations
-    m.BadgeCategory.hasMany(m.UserPointIntances, {
-        foreignKey: 'BadgeCategoryID',
+    m.Category.hasMany(m.UserPointIntances, {
+        foreignKey: 'CategoryID',
         as: 'UserPoints',
         constraints: false
     });
 
-    m.UserPointIntances.belongsTo(m.BadgeCategory, {
-        foreignKey: 'BadgeCategoryID',
+    m.UserPointIntances.belongsTo(m.Category, {
+        foreignKey: 'CategoryID',
         constraints: false
     });
 

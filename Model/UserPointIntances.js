@@ -8,11 +8,10 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false,
             primaryKey: true
         },
-        BadgeCategoryID: {
-            //The Semester 
+        CategoryID: {
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeCategoryID',
+            field: 'CategoryID',
             allowNull: false,
             primaryKey: true
         },
