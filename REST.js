@@ -5693,8 +5693,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-
-
     //Endpoint for badge categories
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
@@ -5736,9 +5734,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //get section users with their ranking
-    router.get('/sectionUsers/:semesterID/:courseID/:sectionID', async function(req, res) {
+    router.get('/sectionUsers/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
         let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) 
-                      AS TotalPoints, u.FirstName, u.LastName, ProfilePicture
+                      AS TotalPoints, u.FirstName, u.LastName, u.ProfilePicture
                       FROM SectionUser AS su
                       LEFT JOIN user AS u ON u.UserID = su.UserID
                       LEFT JOIN category AS c ON c.SectionID = su.SectionID
@@ -5759,13 +5757,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 result = [];
             }
             var rank = 1;
+            var currentStudent = {};
             result.forEach(function(element) {
                 element.Rank = rank++;
+                if (element.UserID == req.params.userID) {
+                    currentStudent = element;
+                }
             });
 
             res.json({
                 'Error': false,
-                'students': result
+                'students': result,
+                'currentStudent': currentStudent
             });
 
         }).catch(() => {
@@ -5776,10 +5779,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //get section users with their ranking
     router.get('/getSectionsRanking/:semesterID', async function(req, res) {
         let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) 
-                      AS TotalPoints, u.FirstName, u.LastName, u.ProfilePicture, s.Name SectionName, s.Description SectionDescription
+                      AS TotalPoints, u.FirstName, u.LastName, u.ProfilePicture,
+                      course.Number courseNumber, course.Name courseName, semester.Name semesterName
                       FROM SectionUser AS su
+                      LEFT JOIN section ON section.SectionID = su.SectionID
                       LEFT JOIN user AS u ON u.UserID = su.UserID
-                      LEFT JOIN section AS s ON s.SectionID = su.SectionID
+                      LEFT JOIN course ON course.CourseID = section.CourseID
+                      LEFT JOIN semester ON semester.SemesterID = section.SemesterID
                       LEFT JOIN category AS c ON c.SectionID = su.SectionID
                       LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
                       WHERE c.SemesterID = ?
