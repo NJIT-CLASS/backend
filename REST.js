@@ -50,6 +50,7 @@ var WorkflowInstance_Archive = models.WorkflowInstance_Archive;
 var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
 var Comments = models.Comments;
 var CommentsArchive = models.CommentsArchive;
+var CommentsViewed = models.CommentsViewed;
 var Contact = models.Contact;
 
 var Manager = require('./Workflow/Manager.js');
@@ -5692,45 +5693,41 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
      //-----------------------------------------------------------------------------------------------------
 
-     router.get("/reallocate_pools/:ai_id", function(req, res) {
+     router.get("/reallocatepools/:ai_id", function(req, res) {
             var reallocate = new Allocator();
             var ai_id = req.params.ai_id;
-            var manually_chosen = {};
-            var pools = reallocate.reallocate_pools(ai_id);
+            //var manually_chosen = {};
+            var pools = reallocate.get_ai_volunteers(ai_id);
+            var volunteer_pool, section_students, section_instructors;
+
             if (pools[volunteer_pool] == null){
-              res.json({
-                  "volunteer_pool": false
-              });
-              if (pools[volunteer_pool] == null){
-                res.json({
-                    "section_students": false
-                });
+                  volunteer_pool = false;
+
+              if (pools[section_students] == null){
+                    section_students = false;
 
                   return Promise.each(pools[section_instructors], function (si) {
                       return reallocate.reallocate(si, pools[section_instructors])
                   })
-                    res.json({
-                        "section_instructors": true
-                    });
+                        section_instructors = true;
               }
               else{
                 return Promise.each(pools[section_students], function (ss) {
                     return reallocate.reallocate(ss, pools[section_students])
                 })
-                  res.json({
-                      "section_students": true
-                  });
+                      section_students = true;
                 }
             }
             else {
               return Promise.each(pools[volunteer_pool], function (vo) {
                   return reallocate.reallocate(vo, pools[volunteer_pool])
               })
-                res.json({
-                    "volunteer_pool": true
-                });
+                    volunteer_pool = true;
             }
              res.json({
+                 "volunteer_pool": volunteer_pool,
+                 "section_students": section_students,
+                 "section_instructors": section_instructors,
                  "reallocate": pools
              });
 
@@ -5911,6 +5908,25 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
          res.status(401).end();
      });
  });
+ //-------------------------------------------------------------------------
+      router.post('/comments/viewed', function(req, res) {
+          if (req.body.CommentsID  == null) {
+              console.log("/comments/viewed : CommentsID cannot be null");
+              res.status(400).end();
+              return;
+          };
+          CommentsViewed.create({
+              CommentsID: req.body.CommentsID,
+              UserID: req.body.UserID,
+              Time: req.body.Time,
+
+          }).then(function(result){
+            res.status(200).end();
+          }).catch(function(err) {
+                      console.log(err);
+                      res.status(400).end();
+                  });
+      });
 
  //------------------------------------------------------------------------------
 
