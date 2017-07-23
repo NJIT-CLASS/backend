@@ -5780,15 +5780,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         return
   })
 
- //---------------------comment APIs----------------------------------------------
+ //---------------------comments APIs----------------------------------------------
        router.post('/comments/add', function(req, res) {
            console.log("/comments/add : was called");
 
-           if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
-                console.log("/comments/add : Missing attributes");
-                res.status(400).end();
-            }
-
+           if (req.body.UserID === null || req.body.SectionID === null || req.body.TaskInstanceID === null || req.body.AssignmentInstanceID === null ||req.body.Type === null || req.body.CommentsText === null || req.body.Rating === null || req.body.ReplyLevel === null || req.body.Complete === null  ) {
+               console.log("/comments/add : Missing attributes");
+               res.status(400).end();
+           }
 
            console.log("got to create part");
 
@@ -5801,12 +5800,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                CommentsText: req.body.CommentsText,
                Rating: req.body.Rating,
                Flag: req.body.Flag,
-               Status: req.body.Status,
+               Status: 'saved',
                ReplyLevel: req.body.ReplyLevel,
                Parents: req.body.Parents,
                Hide: 0,
                Viewed: 0,
-               Time:req.body.Time,
+               //Time:req.body.Time,
                Complete: req.body.Complete
 
            }).then(function(result){
@@ -5859,16 +5858,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
      Comments.update({
-          Type: req.body.Type,
-          CommentsText: req.body.CommentsText,
-          Rating: req.body.Rating,
-          Flag: req.body.Flag,
-          Status: req.body.Status,
-          ReplyLevel: req.body.ReplyLevel,
-          Parents: req.body.Parents,
-          Time: req.body.Time,
-          Complete: req.body.Complete
-
+             CommentsText: req.body.CommentsText
      }, {
          where: {
              CommentsID: req.body.CommentsID
@@ -6469,38 +6459,63 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log('/userManagement (User table)' + err.message);
             res.status(401).end();
         });
-/*
-        var re2 = await UserContact.findAll({
-            attributes: ['UserID', 'FirstName', 'LastName']
-        }).catch(function(err) {
-            console.log('/userManagement (UserContact table)' + err.message);
-            res.status(401).end();
-        });
-
-        var re3 = await UserLogin.findAll({
-            attributes: ['UserID', 'Email', 'Timeout', 'Blocked']
-        }).catch(function(err) {
-            console.log('/userManagement (UserLogin table)' + err.message);
-            res.status(401).end();
-        });
-
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            're': re,
-            're2': re2,
-            're3': re3,
-
-        });
-*/
-
     });
 
     //---------------------------------------------------------------------------
 
+    router.get('/userManagement/blocked/:UserID', function(req, res) {
+        console.log("/userManagement/blocked : was called");
 
+        UserLogin.update({
+                Blocked: 1
+        }, {
+            where: {
+                UserID: req.params.UserID
+            }
+        }).then(function(update) {
+            UserLogin.find({
+                where: {
+                    UserID: req.params.UserID
+                }
+            }).then(function(result) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result
+                });
+            });
+        }).catch(function(err) {
+            console.log('/userManagement/blocked/ ' + err);
+            res.status(401).end();
+        });
+    });
     //---------------------------------------------------------------------------
+    router.get('/userManagement/unblocked/:UserID', function(req, res) {
+        console.log("/userManagement/unblocked : was called");
 
+        UserLogin.update({
+                Blocked: 0
+        }, {
+            where: {
+                UserID: req.params.UserID
+            }
+        }).then(function(update) {
+            UserLogin.find({
+                where: {
+                    UserID: req.params.UserID
+                }
+            }).then(function(result) {
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result
+                });
+            });
+        }).catch(function(err) {
+            console.log('/userManagement/unblocked/ ' + err);
+            res.status(401).end();
+        });
+    });
 
     //---------------------------------------------------------------------------
 
