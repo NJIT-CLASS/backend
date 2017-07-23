@@ -5784,10 +5784,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
        router.post('/comments/add', function(req, res) {
            console.log("/comments/add : was called");
 
-           if (req.body.UserID === null || req.body.SectionID === null || req.body.TaskInstanceID === null || req.body.AssignmentInstanceID === null ||req.body.Type === null || req.body.CommentsText === null || req.body.Rating === null || req.body.ReplyLevel === null || req.body.Complete === null  ) {
-               console.log("/comments/add : Missing attributes");
-               res.status(400).end();
-           }
+           if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
+                console.log("/comments/add : Missing attributes");
+                res.status(400).end();
+            }
+
 
            console.log("got to create part");
 
@@ -5800,12 +5801,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                CommentsText: req.body.CommentsText,
                Rating: req.body.Rating,
                Flag: req.body.Flag,
-               Status: 'saved',
+               Status: req.body.Status,
                ReplyLevel: req.body.ReplyLevel,
                Parents: req.body.Parents,
                Hide: 0,
                Viewed: 0,
-               //Time:req.body.Time,
+               Time:req.body.Time,
                Complete: req.body.Complete
 
            }).then(function(result){
@@ -5858,7 +5859,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
      Comments.update({
-             CommentsText: req.body.CommentsText
+          Type: req.body.Type,
+          CommentsText: req.body.CommentsText,
+          Rating: req.body.Rating,
+          Flag: req.body.Flag,
+          Status: req.body.Status,
+          ReplyLevel: req.body.ReplyLevel,
+          Parents: req.body.Parents,
+          Time: req.body.Time,
+          Complete: req.body.Complete
+
      }, {
          where: {
              CommentsID: req.body.CommentsID
@@ -6459,10 +6469,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log('/userManagement (User table)' + err.message);
             res.status(401).end();
         });
+
     });
 
     //---------------------------------------------------------------------------
-
     router.get('/userManagement/blocked/:UserID', function(req, res) {
         console.log("/userManagement/blocked : was called");
 
@@ -6516,7 +6526,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
     });
-
     //---------------------------------------------------------------------------
 
 };
