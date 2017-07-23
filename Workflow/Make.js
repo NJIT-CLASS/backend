@@ -32,7 +32,7 @@ var tree = new TreeModel();
 var flatToNested = new FlatToNested();
 var email = new Email();
 
-const logger = require('winston');
+const logger = require('./Logger.js');
 
 var execution = consts.EXECUTION_STATUS;
 var cancellation = consts.CANCELLATION_STATUS;

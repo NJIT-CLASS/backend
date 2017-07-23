@@ -6,7 +6,7 @@ var _ = require('underscore');
 var Util = require('../Workflow/Util.js');
 var Grade = require('../Workflow/Grade.js');
 //var Allocator = require('../Workflow/Allocator.js');
-const logger = require('winston');
+const logger = require('../Workflow/Logger.js');
 //var util = new Util();
 
 module.exports = function (sequelize, DataTypes) {

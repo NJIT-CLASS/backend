@@ -1,35 +1,42 @@
-const Sequelize = require('sequelize');
-// const cls = require('continuation-local-storage'),
-//     namespace = cls.createNamespace('my-very-own-namespace');
-// const NAMESPACE = 'my-very-own-namespace';
-// //Sequelize.useCLS(namespace);
-// Sequelize.cls = namespace;
-var models = require('../Model');
+import {
+    Assignment,
+    AssignmentGrade,
+    AssignmentInstance,
+    AssignmentInstance_Archive,
+    Assignment_Archive,
+    Course,
+    CourseBackUp,
+    EmailNotification,
+    FileReference,
+    Organization,
+    PartialAssignments,
+    ResetPasswordRequest,
+    Section,
+    SectionUser,
+    Semester,
+    TaskActivity,
+    TaskActivity_Archive,
+    TaskGrade,
+    TaskInstance,
+    TaskInstance_Archive,
+    TaskSimpleGrade,
+    User,
+    UserContact,
+    UserLogin,
+    VolunteerPool,
+    WorkflowActivity,
+    WorkflowActivity_Archive,
+    WorkflowGrade,
+    WorkflowInstance,
+    WorkflowInstance_Archive
+} from '../Util/models.js';
+
+
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
 var smtpTransport = require('nodemailer-smtp-transport');
-var sequelize = require('../Model/index.js').sequelize;
-var FileReference = models.FileReference;
-var User = models.User;
-var UserLogin = models.UserLogin;
-var UserContact = models.UserContact;
-var Course = models.Course;
-var Section = models.Section;
-var SectionUser = models.SectionUser;
-
-var Semester = models.Semester;
-var TaskInstance = models.TaskInstance;
-var TaskActivity = models.TaskActivity;
-var Assignment = models.Assignment;
-var AssignmentInstance = models.AssignmentInstance;
-
-var WorkflowInstance = models.WorkflowInstance;
-var WorkflowActivity = models.WorkflowActivity;
-var ResetPasswordRequest = models.ResetPasswordRequest;
-var EmailNotification = models.EmailNotification;
-
-
-const logger = require('winston');
+//var sequelize = require('../Model/index.js').sequelize;
+const logger = require('./Logger.js');
 
 /*
  Constructor
@@ -46,11 +53,11 @@ class Util {
             file_infos: file_infos
         });
         var me = this;
-        return Promise.all(file_infos.map(function(file_info) {
+        return Promise.all(file_infos.map(function (file_info) {
             return me.addFileRef(user_id, file_info);
-        })).then(function(file_refs) {
+        })).then(function (file_refs) {
             logger.log('info', 'file references added', {
-                file_refs: file_refs.map(function(it) {
+                file_refs: file_refs.map(function (it) {
                     return it.toJSON();
                 })
             });
@@ -71,54 +78,54 @@ class Util {
             UserID: user_id,
             Info: file_info,
             LastUpdated: new Date(),
-        }).then(function(file_ref) {
+        }).then(function (file_ref) {
             logger.log('debug', 'file reference added', file_ref.toJSON());
             return file_ref;
-        }).catch(function(err) {
+        }).catch(function (err) {
             logger.log('error', 'add file reference failed', err);
             return err;
         });
     }
 
-    async findWorkflowActivityID(wi_id){
-        try{
-            console.log('wi_id',wi_id);
+    async findWorkflowActivityID(wi_id) {
+        try {
+            console.log('wi_id', wi_id);
             var wi = await WorkflowInstance.find({
-                where:{
+                where: {
                     WorkflowInstanceID: wi_id
                 }
             });
             console.log('WorkflowInstanceID', wi.WorkflowActivityID);
             return wi.WorkflowActivityID;
-        } catch (err){
+        } catch (err) {
 
             logger.log('error', 'cannot find workflow activity from workflow instance', {
                 wi_id: wi_id,
-                error:err
+                error: err
             });
         }
 
     }
 
-    async findSectionUserID(ai_id, user_id){
-        try{
+    async findSectionUserID(ai_id, user_id) {
+        try {
             var ai_id = await AssignmentInstance.find({
-                where:{
+                where: {
                     AssignmentInstanceID: ai_id
                 }
             });
 
             var sec_user = await SectionUser.find({
-                where:{
+                where: {
                     SectionID: ai_id.SectionID,
                     UserID: user_id
                 }
             });
 
             return sec_user.SectionUserID;
-        } catch (err){
+        } catch (err) {
             logger.log('error', 'cannot find section user id ', {
-                ai_id:ai_id,
+                ai_id: ai_id,
                 user_id: user_id,
                 error: err
             });

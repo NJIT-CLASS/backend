@@ -35,7 +35,7 @@ var trigger = new TaskTrigger();
 var alloc = new Allocator();
 var email = new Email();
 var make = new Make();
-const logger = require('winston');
+const logger = require('./Logger.js');
 
 /**
  *

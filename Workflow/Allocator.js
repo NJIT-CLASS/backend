@@ -22,7 +22,7 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-const logger = require('winston');
+const logger = require('./Logger.js');
 var email = new Email();
 
 class Allocator {
@@ -411,7 +411,7 @@ class Allocator {
                 },
                 AssignmentInstanceID: ai_id,
                 Status: {
-                    $notIn: ['complete'],
+                    $notLike: '%"viewed"%',
                     //TODO: For future: get only non-opened task instances
                 }
             }

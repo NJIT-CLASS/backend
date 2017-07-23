@@ -1,4 +1,37 @@
-var models = require('../Model');
+import {
+    Assignment,
+    AssignmentGrade,
+    AssignmentInstance,
+    AssignmentInstance_Archive,
+    Assignment_Archive,
+    Course,
+    CourseBackUp,
+    EmailNotification,
+    FileReference,
+    Organization,
+    PartialAssignments,
+    ResetPasswordRequest,
+    Section,
+    SectionUser,
+    Semester,
+    TaskActivity,
+    TaskActivity_Archive,
+    TaskGrade,
+    TaskInstance,
+    TaskInstance_Archive,
+    TaskSimpleGrade,
+    User,
+    UserContact,
+    UserLogin,
+    VolunteerPool,
+    WorkflowActivity,
+    WorkflowActivity_Archive,
+    WorkflowGrade,
+    WorkflowInstance,
+    WorkflowInstance_Archive
+} from '../Util/models.js';
+
+//var models = require('../Model');
 var Promise = require('bluebird');
 var moment = require('moment');
 var consts = require('../Util/constant.js');
@@ -7,30 +40,8 @@ var Grade = require('./Grade.js');
 var Util = require('./Util.js');
 var _ = require('underscore');
 
-var FileReference = models.FileReference;
-var User = models.User;
-var UserLogin = models.UserLogin;
-var UserContact = models.UserContact;
-var Course = models.Course;
-var Section = models.Section;
-var SectionUser = models.SectionUser;
 
-var Semester = models.Semester;
-var TaskInstance = models.TaskInstance;
-var TaskGrade = models.TaskGrade;
-var TaskSimpleGrade = models.TaskSimpleGrade;
-var TaskActivity = models.TaskActivity;
-var Assignment = models.Assignment;
-var AssignmentGrade = models.AssignmentGrade;
-var AssignmentInstance = models.AssignmentInstance;
-
-var WorkflowInstance = models.WorkflowInstance;
-var WorkflowGrade = models.WorkflowGrade;
-var WorkflowActivity = models.WorkflowActivity;
-var ResetPasswordRequest = models.ResetPasswordRequest;
-var EmailNotification = models.EmailNotification;
-
-const logger = require('winston');
+const logger = require('./Logger.js');
 var email = new Email();
 var grade = new Grade();
 var util = new Util();
@@ -57,8 +68,8 @@ class TaskTrigger {
         if (ti.NextTask === '[]') { //no more task in this branch
             await x.completed(ti_id);
         } else {
-            if (await x.hasEdit(ti)) {
-                await x.triggerEdit(ti);
+            if (await x.hasEditOrComment(ti)) {
+                await x.triggerEditOrComment(ti);
             } else {
                 await x.trigger(ti);
             }
@@ -144,7 +155,7 @@ class TaskTrigger {
      * @param  {[type]}  ti [description]
      * @return {Promise}    [description]
      */
-    async hasEdit(ti) {
+    async hasEditOrComment(ti) {
         //try{
         var bool = false;
 
@@ -158,7 +169,7 @@ class TaskTrigger {
 
             var type = await next_task.getType();
 
-            if (type === 'edit') {
+            if (type === 'edit' || type === 'comment') {
                 bool = true;
             }
         });
@@ -177,7 +188,7 @@ class TaskTrigger {
      * @param  {[type]}  ti [description]
      * @return {Promise}    [description]
      */
-    async triggerEdit(ti) {
+    async triggerEditOrComment(ti) {
         //try{
         var x = this;
         await Promise.mapSeries(JSON.parse(ti.NextTask), async function (task) { //loop through the list of next tasks
@@ -189,7 +200,7 @@ class TaskTrigger {
 
             var type = await next_task.getType();
 
-            if (type === 'edit') {
+            if (type === 'edit' || type === 'comment') {
                 await x.triggerNext(next_task);
             }
         });

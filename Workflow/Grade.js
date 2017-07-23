@@ -1,35 +1,44 @@
-var models = require('../Model');
+import {
+    Assignment,
+    AssignmentGrade,
+    AssignmentInstance,
+    AssignmentInstance_Archive,
+    Assignment_Archive,
+    Course,
+    CourseBackUp,
+    EmailNotification,
+    FileReference,
+    Organization,
+    PartialAssignments,
+    ResetPasswordRequest,
+    Section,
+    SectionUser,
+    Semester,
+    TaskActivity,
+    TaskActivity_Archive,
+    TaskGrade,
+    TaskInstance,
+    TaskInstance_Archive,
+    TaskSimpleGrade,
+    User,
+    UserContact,
+    UserLogin,
+    VolunteerPool,
+    WorkflowActivity,
+    WorkflowActivity_Archive,
+    WorkflowGrade,
+    WorkflowInstance,
+    WorkflowInstance_Archive
+} from '../Util/models.js';
+
+//var models = require('../Model');
 var Promise = require('bluebird');
 var Util = require('./Util.js');
 var _ = require('underscore');
 var moment = require('moment');
 
-
-var FileReference = models.FileReference;
-var User = models.User;
-var UserLogin = models.UserLogin;
-var UserContact = models.UserContact;
-var Course = models.Course;
-var Section = models.Section;
-var SectionUser = models.SectionUser;
-
-var Semester = models.Semester;
-var TaskInstance = models.TaskInstance;
-var TaskGrade = models.TaskGrade;
-var TaskSimpleGrade = models.TaskSimpleGrade;
-var TaskActivity = models.TaskActivity;
-var Assignment = models.Assignment;
-var AssignmentGrade = models.AssignmentGrade;
-var AssignmentInstance = models.AssignmentInstance;
-
-var WorkflowInstance = models.WorkflowInstance;
-var WorkflowGrade = models.WorkflowGrade;
-var WorkflowActivity = models.WorkflowActivity;
-var ResetPasswordRequest = models.ResetPasswordRequest;
-var EmailNotification = models.EmailNotification;
-
 var util = new Util();
-const logger = require('winston');
+const logger = require('./Logger.js');
 
 
 
@@ -43,7 +52,6 @@ class Grade {
      */
     async addSimpleGrade(ti_id) {
         var x = this;
-        console.log('ti_id', ti_id)
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: ti_id
@@ -58,8 +66,6 @@ class Grade {
                 }
             ]
         });
-
-        console.log('ti',ti);
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
         var user_history = JSON.parse(ti.UserHistory);
