@@ -5784,10 +5784,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
        router.post('/comments/add', function(req, res) {
            console.log("/comments/add : was called");
 
-           if (req.body.UserID === null || req.body.SectionID === null || req.body.TaskInstanceID === null || req.body.AssignmentInstanceID === null ||req.body.Type === null || req.body.CommentText === null || req.body.Rating === null || req.body.ReplyLevel === null || req.body.Complete === null  ) {
-               console.log("/comments/add : Missing attributes");
-               res.status(400).end();
-           }
+           if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
+                console.log("/comments/add : Missing attributes");
+                res.status(400).end();
+            }
+
 
            console.log("got to create part");
 
@@ -5797,15 +5798,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                TaskInstanceID: req.body.TaskInstanceID,
                AssignmentInstanceID:req.body.AssignmentInstanceID,
                Type: req.body.Type,
-               CommentsText: req.body.CommentText,
+               CommentsText: req.body.CommentsText,
                Rating: req.body.Rating,
                Flag: req.body.Flag,
-               Status: 'saved',
+               Status: req.body.Status,
                ReplyLevel: req.body.ReplyLevel,
                Parents: req.body.Parents,
                Hide: 0,
                Viewed: 0,
-               //Time:req.body.Time,
+               Time:req.body.Time,
                Complete: req.body.Complete
 
            }).then(function(result){
@@ -5858,7 +5859,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
      Comments.update({
-             CommentsText: req.body.CommentsText
+          Type: req.body.Type,
+          CommentsText: req.body.CommentsText,
+          Rating: req.body.Rating,
+          Flag: req.body.Flag,
+          Status: req.body.Status,
+          ReplyLevel: req.body.ReplyLevel,
+          Parents: req.body.Parents,
+          Time: req.body.Time,
+          Complete: req.body.Complete
+
      }, {
          where: {
              CommentsID: req.body.CommentsID
@@ -5942,13 +5952,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
              Flag: 1
      }, {
          where: {
-             CommentID: req.body.CommentID,
+             CommentsID: req.body.CommentsID,
              Delete: null
          }
      }).then(function(result) {
          Comments.find({
              where: {
-                 CommentID: req.body.CommentID
+                 CommentsID: req.body.CommentsID
              }
          }).then(function(CommentsUpdated) {
              res.json({
@@ -5976,13 +5986,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Flag: 0
         }, {
             where: {
-                CommentID: req.body.CommentID,
+                CommentsID: req.body.CommentsID,
                 Delete: null
             }
         }).then(function(result) {
             Comments.find({
                 where: {
-                    CommentID: req.body.CommentID
+                    CommentsID: req.body.CommentsID
                 }
             }).then(function(CommentsUpdated) {
                 res.json({
@@ -6011,13 +6021,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Rating: req.body.Rating
         }, {
             where: {
-                CommentID: req.body.CommentID,
+                CommentsID: req.body.CommentsID,
                 Delete: null
             }
         }).then(function(result) {
             Comments.find({
                 where: {
-                    CommentID: req.body.CommentID
+                    CommentsID: req.body.CommentsID
                 }
             }).then(function(CommentsUpdated) {
                 res.json({
@@ -6073,12 +6083,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
     //-------------------------------------------------------------------------
-    router.get('/comments/aveRating/comment/:CommentID', function(req, res) {
+    router.get('/comments/aveRating/comment/:CommentsID', function(req, res) {
         console.log('/comments/aveRating/comment/ was called');
         var total = 0.0;
         var c = Comments.findAll({
           where: {
-              Parents: req.params.CommentID,
+              Parents: req.params.CommentsID,
               Rating: {$not: null},
               Delete: null
           }
@@ -6193,8 +6203,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
 
     //-------------------------------------------------------------------------
-    router.get('/comments/commentID/:CommentsID',function(req, res) {
-      console.log('/comments/commentID/:CommentsID was called');
+    router.get('/comments/CommentsID/:CommentsID',function(req, res) {
+      console.log('/comments/CommentsID/:CommentsID was called');
       Comments.findAll({
           where: {
               CommentsID: req.params.CommentsID,
@@ -6209,7 +6219,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'Comments': rows
             });
         }).catch(function(err) {
-            console.log('comments/commentID/:CommentsID ' + err.message);
+            console.log('comments/CommentsID/:CommentsID ' + err.message);
             res.status(401).end();
         });
     });
@@ -6244,13 +6254,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Hide: 1
         }, {
             where: {
-                CommentID: req.body.CommentID,
+                CommentsID: req.body.CommentsID,
                 Delete: null
             }
         }).then(function(result) {
             Comments.find({
                 where: {
-                    CommentID: req.body.CommentID
+                    CommentsID: req.body.CommentsID
                 }
             }).then(function(CommentsUpdated) {
                 res.json({
@@ -6275,13 +6285,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Hide: 0
         }, {
             where: {
-                CommentID: req.body.CommentID,
+                CommentsID: req.body.CommentsID,
                 Delete: null
             }
         }).then(function(result) {
             Comments.find({
                 where: {
-                    CommentID: req.body.CommentID
+                    CommentsID: req.body.CommentsID
                 }
             }).then(function(CommentsUpdated) {
                 res.json({
