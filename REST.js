@@ -5734,7 +5734,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //get section users with their ranking
-    router.get('/sectionUsers/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
+    router.get('/getSectionRanking/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
         let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) 
                       AS TotalPoints, u.FirstName, u.LastName, u.ProfilePicture
                       FROM SectionUser AS su
