@@ -594,10 +594,9 @@ class Allocator {
         });
     }
 
-    //updateDB
     //TODO: IMMEDIATE! Add a checker for for assignee constraints
     reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
-        let email = new Email();
+
         if (is_extra_credit == null) {
             is_extra_credit = true;
         }
@@ -610,6 +609,7 @@ class Allocator {
             user_id: new_u_id,
             is_extra_credit: is_extra_credit,
         });
+
         logger.log('info', 'update a task instance with a new user and user history', {
             task_instance: ti.toJSON(),
             new_user_id: new_u_id,
