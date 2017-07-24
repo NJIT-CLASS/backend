@@ -3966,7 +3966,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         //console.log(result);
                         // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
                         ar.push(result);
-                        console.log('ar3', ar);
 
                         view_constraint = await allocator.applyViewContstraints(res, req.query.userID, result);
                     });

@@ -336,7 +336,7 @@ class TaskTrigger {
                 grades.push(pre.FinalGrade);
 
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)), function (val) {
-                    if (JSON.parse(pre.TaskActivity.Fields)[val].field_type !== undefined && val !== 'number_of_fields' && JSON.parse(pre.TaskActivity.Fields)[val].field_type == 'assessment') {
+                    if (JSON.parse(pre.TaskActivity.Fields)[val].field_type !== undefined && (val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(pre.TaskActivity.Fields)[val].field_type == 'assessment') {
                         if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'grade') {
                             maxGrade += JSON.parse(pre.TaskActivity.Fields)[val].numeric_max;
                         } else if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'rating') {
@@ -641,7 +641,7 @@ class TaskTrigger {
 
         await Promise.mapSeries(keys, function (val) {
             //if (typeof JSON.parse(ta.Fields)[val].field_type !== undefined) {
-            if (val !== 'number_of_fields' && JSON.parse(ta.Fields)[val].field_type === 'assessment') {
+            if ((val !== 'number_of_fields' && val !== 'revise_and_resubmit')  && JSON.parse(ta.Fields)[val].field_type === 'assessment') {
                 if (JSON.parse(ta.Fields)[val].assessment_type === 'grade') {
                     grade += parseInt(data[val][0]);
                 } else if (JSON.parse(ta.Fields)[val].assessment_type === 'rating') {
@@ -688,7 +688,10 @@ class TaskTrigger {
         var ti = await TaskInstance.find({ //find the revising task
             where: {
                 TaskInstanceID: ti_id
-            }
+            },
+            include: [{
+                model: TaskActivity
+            }]
         });
         var original_task = await x.getEdittingTask(ti); //find the original task that been editted
 
@@ -715,18 +718,19 @@ class TaskTrigger {
             }
         });
 
-        //update the original task status
-        // var original_data = JSON.parse(original_task.Data);
-        // if (!original_data) {
-        //     original_data = [];
-        // }
-        // original_data.push(data);
+        //update the original task statusnp
+        var original_data = JSON.parse(original_task.Data);
+        if (!original_data) {
+            original_data = [];
+        }
+        original_data[original_data.length-1].revise_and_resubmit = {'data': data, 'fields': JSON.parse(ti.TaskActivity.Fields)};
+
         var status = JSON.parse(original_task.Status);
         status[0] = 'started';
 
         await TaskInstance.update({
             Status: JSON.stringify(status),
-            //Data: JSON.stringify(original_data)
+            Data: original_data
         }, {
             where: {
                 TaskInstanceID: original_task.TaskInstanceID
@@ -810,7 +814,7 @@ class TaskTrigger {
         var x = this;
         var type = await ti.getType(); //assumed the task type can only be either edit or consolidation
 
-        if (type === 'edit') { //assumed the original task for edit is the previous task edit -> original_task(show only be one previous task)
+        if (type === 'edit' || type === 'comment') { //assumed the original task for edit is the previous task edit -> original_task(show only be one previous task)
             var original_task = await TaskInstance.find({
                 where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id

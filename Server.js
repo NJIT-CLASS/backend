@@ -55,27 +55,27 @@ REST.prototype.stop = function (err) {
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 
-sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-    .then(function () {
-        return sequelize.sync({
-            //force: true
-        });
-    })
-    .then(function () {
-        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-    })
-    .then(function () {
-        console.log('Database synchronised.');
-    }, function (err) {
-        console.log(err);
-    });
+// sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+//     .then(function () {
+//         return sequelize.sync({
+//             //force: true
+//         });
+//     })
+//     .then(function () {
+//         return sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+//     })
+//     .then(function () {
+//         console.log('Database synchronised.');
+//     }, function (err) {
+//         console.log(err);
+//     });
 
 var rule = new schedule.RecurrenceRule();
 rule.minute = 1;
 //'1 * * * * *' 1 minute.
-// var job = schedule.scheduleJob('1 * * * * *', function (time) {
-//     manager.check();
-// });
+var job = schedule.scheduleJob('1 * * * * *', function (time) {
+    manager.check();
+});
 
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
