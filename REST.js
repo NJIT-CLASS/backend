@@ -996,16 +996,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 console.error(err);
                 res.status(400).end();
             });
-<<<<<<< HEAD
-        }
-
-        var taskFactory = new TaskFactory();
-        logger.log('info', '/assignment/create: creating assignment...');
-        taskFactory.createAssignment(req.body.assignment).then(function (done) {
-            if (done) {
-                res.status(200).end();
-            } else {
-=======
         } else {
             PartialAssignments.update({
                 PartialAssignmentName: req.body.assignment.AA_name,
@@ -1028,7 +1018,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 });
             }).catch((result) => {
                 console.error(result);
->>>>>>> e66a8b3d7a770b4427cad20c5c06b9901a5b31eb
                 res.status(400).end();
             });
         }
@@ -3977,7 +3966,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         //console.log(result);
                         // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
                         ar.push(result);
-                        console.log('ar3', ar)
+                        console.log('ar3', ar);
 
                         view_constraint = await allocator.applyViewContstraints(res, req.query.userID, result);
                     });
@@ -4005,7 +3994,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     view_constraint = await allocator.applyViewContstraints(res, req.query.userID, ti);
                     if (view_constraint === false || view_constraint === undefined) {
                         if (res._headerSent) { // if already responded (response sent)
-                            return
+                            return;
                         }
                         // update data field of all tasks with the appropriate allowed version
                         ar =  await allocator.applyVersionContstraints(ar, ti, req.query.userID);
