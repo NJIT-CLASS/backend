@@ -481,6 +481,7 @@ class Make {
             //     'parents': parents
             // });
 
+            console.log('Type', ta.Type);
             if ((ta.Type === 'needs_consolidation' || obj.ta.isSubWorkflow === isSubWorkflow) && !(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
                 let stat;
                 if (ta.Type === 'needs_consolidation') {
@@ -626,7 +627,7 @@ class Make {
                 alloc_users.push(users[index]);
                 index = index + 1;
             } else {
-                if (_.isEmpty(assign_constr[2])) {
+                if (_.isEmpty(assign_constr[2]) || (!assign_constr[2].hasOwnProperty('same_as') && !assign_constr[2].hasOwnProperty('not'))) {
                     alloc_users.push(users[index]);
                     index++;
                 } else if (assign_constr[2].hasOwnProperty('same_as') && place === 0) { // check if assignee constraints has "same_as", if there is more than 1 participants only the first user is same as
@@ -778,7 +779,7 @@ class Make {
 
         if (wf_task.DueType[0] === 'duration') {
             endDate.add(wf_task.DueType[1], 'minutes');
-            //endDate.add(1, 'minutes');
+           // endDate.add(1, 'minutes');
         } else if (wf_task.DueType[0] === 'specific time') {
             endDate = wf_task.DueType[1];
         }

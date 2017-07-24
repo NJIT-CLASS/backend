@@ -362,7 +362,7 @@ class TaskFactory {
                             temp.push(ta_array[index]);
                         });
                         assigneeConstraints[2][item] = temp;
-                        console.log('AssigneeConstraints', temp);
+                        //console.log('AssigneeConstraints', temp);
                     }
                     return TaskActivity.update({
                         AssigneeConstraints: assigneeConstraints
@@ -384,7 +384,7 @@ class TaskFactory {
     createAssignment(assignment) {
         var x = this;
         var TA_array = [];
-        console.log('Creating assignment activity...');
+        //console.log('Creating assignment activity...');
         //Create assignment activity
         return Assignment.create({
             OwnerID: assignment.AA_userID,
@@ -400,11 +400,11 @@ class TaskFactory {
         }).then(function (assignmentResult) {
             //Keep track all the workflow activities created under assignment
             var WA_array = [];
-            console.log('Assignment creation successful!');
-            console.log('AssignmentID: ', assignmentResult.AssignmentID);
+            //console.log('Assignment creation successful!');
+            //console.log('AssignmentID: ', assignmentResult.AssignmentID);
             //Iterate through array of workflow activities (Created WorkflowActivity in order)
             return Promise.mapSeries(assignment.WorkflowActivity, function (workflow, index) {
-                console.log('Creating workflow activity...');
+               // console.log('Creating workflow activity...');
                 return WorkflowActivity.create({
                     AssignmentID: assignmentResult.AssignmentID,
                     Type: workflow.WA_type,
@@ -415,14 +415,14 @@ class TaskFactory {
                     GroupSize: workflow.WA_default_group_size,
                     WorkflowStructure: workflow.WorkflowStructure,
                 }).then(function (workflowResult) {
-                    console.log('Workflow creation successful!');
-                    console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
+                    //console.log('Workflow creation successful!');
+                   // console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
                     WA_array.push(workflowResult.WorkflowActivityID);
                     //Keep track all the task activities within each workflow
                     TA_array = [];
                     //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
                     return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function (task) {
-                        console.log('Creating task activity...');
+                      //  console.log('Creating task activity...');
                         return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
                             AssignmentID: workflowResult.AssignmentID,
@@ -457,8 +457,8 @@ class TaskFactory {
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
                         }).then(function (taskResult) {
-                            console.log('Task creation successful!');
-                            console.log('TaskActivityID: ', taskResult.TaskActivityID);
+                            //console.log('Task creation successful!');
+                            //console.log('TaskActivityID: ', taskResult.TaskActivityID);
                             TA_array.push(taskResult.TaskActivityID);
                         }).catch(function (err) {
                             console.log('Workflow creation failed');

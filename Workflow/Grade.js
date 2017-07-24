@@ -428,7 +428,7 @@ class Grade {
 
             var maxGrade = 0;
             await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function (val) {
-                if (val !== 'number_of_fields' && JSON.parse(ta.Fields)[val].field_type == 'assessment') {
+                if ((val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(ta.Fields)[val].field_type == 'assessment') {
                     if (JSON.parse(ta.Fields)[val].assessment_type == 'grade') {
                         maxGrade += JSON.parse(ta.Fields)[val].numeric_max;
                     } else if (JSON.parse(ta.Fields)[val].assessment_type == 'rating') {
