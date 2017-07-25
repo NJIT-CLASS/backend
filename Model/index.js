@@ -126,6 +126,11 @@ models.forEach(function(model) {
     m.TaskSimpleGrade.belongsTo(m.TaskInstance, {
         foreignKey: 'TaskInstanceID'
     });
+
+    m.TaskInstance.belongsTo(m.TaskSimpleGrade, {
+        foreignKey: 'TaskInstanceID'
+    });
+
     m.TaskSimpleGrade.belongsTo(m.WorkflowActivity, {
         foreignKey: 'WorkflowActivityID'
     });
