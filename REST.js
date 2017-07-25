@@ -4000,7 +4000,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     view_constraint = await allocator.applyViewContstraints(res, req.query.userID, ti);
                     if (view_constraint === false || view_constraint === undefined) {
                         if (res._headerSent) { // if already responded (response sent)
-                            return
+                            return;
                         }
                         // update data field of all tasks with the appropriate allowed version
                         ar =  await allocator.applyVersionContstraints(ar, ti, req.query.userID);
