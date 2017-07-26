@@ -52,6 +52,7 @@ class Grade {
      */
     async addSimpleGrade(ti_id) {
         var x = this;
+
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: ti_id
@@ -113,7 +114,7 @@ class Grade {
      * @param {any} max_grade 
      * @memberof Grade
      */
-    async addTaskGrade(ti_id, grade, max_grade) {
+    async addTaskGrade(ti_id, grade, max_grade, ) {
 
         var ti = await TaskInstance.find({
             where: {
@@ -475,6 +476,27 @@ class Grade {
         var endDate = ti.EndDate;
         now.diff(endDate, 'days');
         return now.diff(endDate, 'days') + 1;
+    }
+
+    async getStudentSimpleGrade(user_id, ai_id) {
+
+        var tis = await TaskInstance.findAll({
+            Where: {
+                UserID: user_id,
+                AssignmentInstanceID: ai_id,
+                Status: {
+                    $notLike: '%"automatic"%'
+                }
+            },
+            include: [{
+                model: TaskActivity
+            },{
+                model: TaskSimpleGrade
+            }]
+        });
+
+
+        return tis;
     }
 
 }

@@ -133,10 +133,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         var grade = new Grade();
 
+        var grades = await grade.getStudentSimpleGrade(1,1);
+
+        res.json({
+            error: false,
+            grades: grades
+        });
+
         //grade.addSimpleGrade(1);
-        grade.addTaskGrade(1, 99, 100);
-        await grade.addWorkflowGrade(1, 3, 99);
-        await grade.addAssignmentGrade(1, 3, 99);
+       // grade.addTaskGrade(1, 99, 100);
+       // await grade.addWorkflowGrade(1, 3, 99);
+        //await grade.addAssignmentGrade(1, 3, 99);
         res.status(200).end();
     });
 

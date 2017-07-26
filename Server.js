@@ -6,7 +6,6 @@ var app = express();
 var settings = require("./backend_settings");
 const logger = require('./Workflow/Logger.js');
 
-
 var schedule = require('node-schedule');
 var Email = require('./Workflow/Email.js');
 var Sequelize = require('sequelize');
