@@ -9,24 +9,15 @@ module.exports = function(sequelize, DataTypes) {
             autoIncrement: true,
             unique: true
         },
+        BadgeTemplateID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'BadgeTemplateID',
+            allowNull: false
+        },
         CategoryID: {
-            //The Badge Category
-            //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'CategoryID',
             allowNull: false
-        },
-        Name: {
-            //Name of the Badge.
-            type: DataTypes.STRING,
-            field: 'Name',
-            allowNull: false
-        },
-        Description: {
-            //Description of the Badge
-            type: DataTypes.TEXT,
-            field: 'Description',
-            allowNull: true
         }
     }, {
         timestamps: false,

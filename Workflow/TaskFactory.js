@@ -12,6 +12,7 @@ var consts = require('../Util/constant.js');
 var Email = require('./Email.js');
 var Util = require('./Util.js');
 var _ = require('underscore');
+const sequelize = require('../Model/index.js').sequelize;
 
 var User = models.User;
 var UserLogin = models.UserLogin;
@@ -785,6 +786,33 @@ class TaskFactory {
         }).catch(function(err) {
 
         });
+    }
+
+    rankingSnapshot() {
+
+
+        let select = 'SELECT SemesterID,Name,StartDate,EndDate FROM Semester ORDER BY SemesterID DESC';
+
+        sequelize.query(select, {
+            type: sequelize.QueryTypes.SELECT
+        }).then(semesters => {
+
+            semesters.forEach((semester) => {
+                let start = new Date(semester.StartDate);
+                let end = new Date(semester.EndDate);
+                let now = new Date();
+
+                if (start <= now && now <= end) {
+                    console.info('This is the semester ', semester);
+                } else {
+                    console.info('not between...');
+                }
+            });
+
+        }).catch((err) => {
+            console.info('something went wrong', err);
+        });
+
     }
 
 

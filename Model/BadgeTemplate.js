@@ -1,9 +1,9 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Category', {
-        CategoryID: {
-            //Unique identifier for Category 
+    return sequelize.define('BadgeTemplate', {
+        BadgeTemplateID: {
+            //Unique identifier for Badge 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryID',
+            field: 'BadgeTemplateID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
@@ -12,38 +12,24 @@ module.exports = function(sequelize, DataTypes) {
         CategoryTemplateID: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'CategoryTemplateID',
-            allowNull: false,
-        },
-        SemesterID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SemesterID',
             allowNull: false
         },
-        SectionID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SectionID',
+        Name: {
+            type: DataTypes.STRING,
+            field: 'Name',
             allowNull: false
         },
-        CourseID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CourseID',
-            allowNull: false
+        Description: {
+            //Description of the Badge
+            type: DataTypes.TEXT,
+            field: 'Description',
+            allowNull: true
         },
-        Tier1Instances: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier1Instances',
+        Logo: {
+            type: DataTypes.STRING,
+            field: 'Logo',
             allowNull: false
-        },
-        Tier2Instances: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier2Instances',
-            allowNull: false
-        },
-        Tier3Instances: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier3Instances',
-            allowNull: false
-        },
+        }
     }, {
         timestamps: false,
 
@@ -62,6 +48,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'category'
+        tableName: 'BadgeTemplate'
     });
 };

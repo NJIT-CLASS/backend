@@ -1,28 +1,13 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('BadgeCategory', {
-        BadgeCategoryID: {
-            //Unique identifier for Category 
+    return sequelize.define('CategoryTemplate', {
+        CategoryTemplateID: {
+            //Unique identifier for CategoryTemplate 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeCategoryID',
+            field: 'CategoryTemplateID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
-        },
-        SemesterID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SemesterID',
-            allowNull: false
-        },
-        SectionID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SectionID',
-            allowNull: false
-        },
-        CourseID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CourseID',
-            allowNull: false
         },
         Name: {
             //Name of the Categorty.
@@ -69,6 +54,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'badgecategory'
+        tableName: 'categorytemplate'
     });
 };

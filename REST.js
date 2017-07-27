@@ -20,7 +20,9 @@ var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
 var Badge = models.Badge;
+var BadgeTemplate = models.BadgeTemplate;
 var Category = models.Category;
+var CategoryTemplate = models.CategoryTemplate;
 var UserPointIntances = models.UserPointIntances;
 var UserBadges = models.UserBadges;
 
@@ -3395,6 +3397,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             logger.log('error', 'The task has been complted already');
             return res.status(403).end();
         }
+        //Amadou here
+        console.info('this is the tast instance::::::::', ti);
+        console.info('this is the tast instance::::::::', ti.TaskActivity);
 
         logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
@@ -5585,31 +5590,29 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      ************************************************************************************************************/
     //Endpoints to get user's badges
     router.get('/userBadges/:userID', async function(req, res) {
+        let select = `SELECT u.UserID, b.BadgeID, bt.Name, bt.Description, bt.Logo, c.SemesterID, c.CourseID, c.SectionID, c.CategoryID
+                        FROM  badges AS b
+                        JOIN userbadges AS ub ON b.BadgeID = ub.BadgeID 
+                        JOIN user AS u ON u.UserID = ub.UserID 
+                        JOIN category AS c ON c.CategoryID = b.CategoryID
+                        JOIN badgetemplate AS bt ON bt.BadgeTemplateID = b.BadgeTemplateID
+                        WHERE u.UserID = ?`;
 
-        User.find({
-            where: {
-                UserID: req.params.userID
-            },
-            attributes: [],
-            include: [{
-                model: Badge,
-                attributes: ['BadgeID', 'Name', 'Description']
-            }]
-        }).then(function(result) {
+        sequelize.query(select, {
+            replacements: [
+                req.params.userID
+            ],
+            type: sequelize.QueryTypes.SELECT
+        }).then(result => {
             if (!result) {
-                res.json({
-                    'Error': false,
-                    'badges': result
-                });
-                return;
+                result = [];
             }
-
             res.json({
                 'Error': false,
                 'badges': result
             });
-        }).catch(function(err) {
-            console.log('/userBadges/: ' + err);
+
+        }).catch(() => {
             res.status(401).end();
         });
     });
@@ -5617,48 +5620,46 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint to get the user's Progress
     router.get('/userProgress/:userID/:categoryID', async function(req, res) {
+        let select = `SELECT c.CategoryID, c.CourseID, c.SectionID, c.SemesterID, 
+                      c.Tier1Instances, c.Tier2Instances, c.Tier3Instances, upi.pointInstances,
+                      bt.Name, bt.Description, bt.Logo, upi.UserID, b.BadgeID
+                      FROM category AS c
+                      JOIN userpointinstances upi ON upi.CategoryID = c.CategoryID
+                      JOIN badges b ON b.CategoryID = c.CategoryID
+                      JOIN badgetemplate bt ON bt.BadgeTemplateID = b.BadgeTemplateID
+                      WHERE upi.UserID =? AND c.CategoryID =?
+                      ORDER BY c.CategoryID ASC`;
 
-        Category.findAll({
-            where: {
-                CategoryID: req.params.categoryID,
-            },
-            attributes: [
-                'CategoryID',
-                'CourseID',
-                'SectionID',
-                'SemesterID',
-                'Tier1Instances',
-                'Tier2Instances',
-                'Tier3Instances'
+        sequelize.query(select, {
+            replacements: [
+                req.params.userID,
+                req.params.categoryID
             ],
-            include: [{
-                model: UserPointIntances,
-                where: {
-                    UserID: req.params.userID
-                },
-                as: 'UserPoints',
-                attributes: [
-                    'PointInstances'
-                ]
-            }, {
-                model: Badge,
-                attributes: ['BadgeID', 'Name', 'Description', 'logo']
-            }]
-        }).then(function(result) {
+            type: sequelize.QueryTypes.SELECT
+        }).then(result => {
             if (!result) {
-                res.json({
-                    'Error': false,
-                    'points': []
-                });
-                return;
+                result = [];
+            }
+            var progress = { badges: [] };
+            for (var x = 0; x < result.length; x++) {
+                progress.UserID = result[x].UserID;
+                progress.CategoryID = result[x].CategoryID;
+                progress.CourseID = result[x].CourseID;
+                progress.SectionID = result[x].SectionID;
+                progress.SemesterID = result[x].SemesterID;
+                progress.Tier1Instances = result[x].Tier1Instances;
+                progress.Tier2Instances = result[x].Tier2Instances;
+                progress.Tier3Instances = result[x].Tier3Instances;
+                progress.pointInstances = result[x].pointInstances;
+                progress.badges.push({ id: result[x].BadgeID, name: result[x].Name, description: result[x].Description, logo: result[x].Logo });
             }
 
             res.json({
                 'Error': false,
-                'progress': result
+                'progress': progress
             });
-        }).catch(function(err) {
-            console.log('/userProgress/: ' + err);
+
+        }).catch(() => {
             res.status(401).end();
         });
     });
@@ -5667,11 +5668,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/studentCourses/:userID/:semesterID', async function(req, res) {
 
         let select = `SELECT DISTINCT c.Name, c.Number, c.Description, c.CourseID, 
-                    s.SectionID, s.SemesterID, s.Name SectionName
-                    FROM course AS c 
-                    JOIN section AS s ON s.CourseID = c.CourseID
-                    JOIN sectionuser AS us ON us.SectionID = s.SectionID
-                    WHERE us.UserID =? AND s.SemesterID=?`;
+                        s.SectionID, s.SemesterID, s.Name SectionName
+                        FROM course AS c 
+                        JOIN section AS s ON s.CourseID = c.CourseID
+                        JOIN sectionuser AS us ON us.SectionID = s.SectionID
+                        WHERE us.UserID =? AND s.SemesterID=?`;
 
         sequelize.query(select, {
             replacements: [
@@ -5696,41 +5697,55 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoint for badge categories
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
-        Category.findAll({
-            where: {
-                CourseID: req.params.courseID,
-                SectionID: req.params.sectionID,
-                SemesterID: req.params.semesterID
-            },
-            attributes: [
-                'CategoryID',
-                'Name',
-                'Description',
-                'Tier1Instances',
-                'Tier2Instances',
-                'Tier3Instances'
-            ],
-            include: [{
-                model: Badge,
-                attributes: ['BadgeID', 'Name', 'Description', 'logo']
-            }]
-        }).then(function(result) {
-            if (!result) {
-                res.json({
-                    'Error': false,
-                    'points': result
-                });
-                return;
-            }
+        var select = `SELECT c.CategoryID,c.Tier1Instances,c.Tier2Instances,c.Tier3Instances,
+                      ct.Name, ct.Description
+                      FROM category c 
+                      join categorytemplate ct on ct.CategoryTemplateID = c.CategoryTemplateID
+                      WHERE c.CourseID=? 
+                      AND c.sectionID=?
+                      AND c.SemesterID=?`;
 
-            res.json({
-                'Error': false,
-                'categories': result
+        sequelize.query(select, {
+                replacements: [
+                    req.params.courseID,
+                    req.params.sectionID,
+                    req.params.semesterID
+                ],
+                type: sequelize.QueryTypes.SELECT
+            }).then(categories => {
+                if (!categories) {
+                    categories = [];
+                }
+
+                categories.forEach((item) => {
+
+                    var select = `SELECT DISTINCT bt.Name, bt.Description, b.BadgeID, b.CategoryID
+                                    FROM badges b
+                                    JOIN badgetemplate bt ON bt.BadgeTemplateID = b.BadgeTemplateID 
+                                    JOIN category c ON c.CategoryID = b.CategoryID
+                                    WHERE c.CategoryID = ${item.CategoryID}`;
+
+                    console.info('select here', select);
+
+                    sequelize.query(select).then(function(badges) {
+                        if (badges.length > 0) {
+                            item.badges = badges[0];
+                        } else {
+                            item.badges = [];
+                        }
+                    });
+                });
+
+                setTimeout(() => {
+                    res.json({
+                        'Error': false,
+                        'categories': categories
+                    });
+                }, 1000);
+            })
+            .catch(() => {
+                res.status(401).end();
             });
-        }).catch(function(err) {
-            console.log('/badgeCategories/: ' + err);
-            res.status(401).end();
-        });
     });
 
     //get section users with their ranking
@@ -5778,19 +5793,20 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //get section users with their ranking
     router.get('/getSectionsRanking/:semesterID', async function(req, res) {
-        let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) 
-                      AS TotalPoints, u.FirstName, u.LastName, u.ProfilePicture,
-                      course.Number courseNumber, course.Name courseName, semester.Name semesterName
+        let select = `SELECT semester.SemesterID, section.SectionID, course.CourseID,
+                      su.UserID,  ROUND(AVG(IFNULL(upi.PointInstances,0))) AS AveragePoints,
+                      course.Number CourseNumber, course.Name CourseName, semester.Name SemesterName
                       FROM SectionUser AS su
                       LEFT JOIN section ON section.SectionID = su.SectionID
-                      LEFT JOIN user AS u ON u.UserID = su.UserID
+                      LEFT JOIN USER AS u ON u.UserID = su.UserID
                       LEFT JOIN course ON course.CourseID = section.CourseID
                       LEFT JOIN semester ON semester.SemesterID = section.SemesterID
                       LEFT JOIN category AS c ON c.SectionID = su.SectionID
                       LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
-                      WHERE c.SemesterID = ?
-                      GROUP BY UserID
-                      ORDER BY TotalPoints DESC`;
+                      WHERE c.SemesterID =?
+                      GROUP BY section.SectionID, semester.SemesterID, course.CourseID
+                      ORDER BY AveragePoints DESC
+                      Limit 10`;
 
         sequelize.query(select, {
             replacements: [
@@ -5808,7 +5824,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
             res.json({
                 'Error': false,
-                'students': result
+                'sections': result
             });
 
         }).catch(() => {
