@@ -804,6 +804,9 @@ class TaskFactory {
 
                 if (start <= now && now <= end) {
                     console.info('This is the semester ', semester);
+
+
+
                 } else {
                     console.info('not between...');
                 }
