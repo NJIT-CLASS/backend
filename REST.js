@@ -3262,14 +3262,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Email: req.params.email
             }
         }).then(function (user) {
+
             res.json({
                 'UserID': user.UserID
             });
         }).catch(function (e) {
             console.log('getUserID ' + e);
-            res.json({
-                'UserID': -1
+            UserContact.find({
+                Email: req.params.email
+                
+            }).then(function(user){
+                res.json({
+                    'UserID': user.UserID
+                });
+            })
+            .catch(function(e){
+                console.log('getUserID ' + e);
+                
+                res.json({
+                    'UserID': -1
+                });
             });
+            
         });
     });
 
@@ -3752,6 +3766,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         TaskInstance.findAll({
             where: {
+
+
                 UserID: req.params.userID,
                 Status: {
                     $like: '%"complete"%'
