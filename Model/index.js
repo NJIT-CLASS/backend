@@ -25,7 +25,8 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference', 'Badge', 'BadgeTemplate', 'Category', , 'CategoryTemplate', 'UserBadges', 'UserPointIntances'
+    'FileReference', 'Badge', 'BadgeTemplate', 'Category', , 'CategoryTemplate', 'UserBadges', 'UserPointIntances',
+    'StudentRankSnapchot', 'SectionRankSnapchot'
 ];
 
 
@@ -87,6 +88,15 @@ models.forEach(function(model) {
     m.Section.belongsTo(m.Semester, {
         foreignKey: 'SemesterID'
     });
+
+    m.Category.belongsTo(m.CategoryTemplate, {
+        foreignKey: 'CategoryTemplateID'
+    });
+
+    m.Badge.belongsTo(m.BadgeTemplate, {
+        foreignKey: 'BadgeTemplateID'
+    });
+
     m.Section.belongsTo(m.Course, {
         foreignKey: 'CourseID'
     });
@@ -214,14 +224,6 @@ models.forEach(function(model) {
         constraints: false
     });
 
-    m.BadgeTemplate.hasMany(m.Badge, {
-        as: 'BadgeTemplate',
-        foreignKey: 'BadgeTemplateID'
-    });
-
-    m.Badge.belongsTo(m.BadgeTemplate, {
-        foreignKey: 'BadgeTemplateID'
-    });
 
     m.Badge.belongsTo(m.Category, {
         foreignKey: 'CategoryID',
@@ -257,6 +259,7 @@ models.forEach(function(model) {
         as: 'TaskInstances',
         foreignKey: 'AssignmentInstanceID'
     });
+
     m.AssignmentInstance.hasMany(m.WorkflowInstance, {
         as: 'WorkflowInstances',
         foreignKey: 'AssignmentInstanceID'
@@ -271,9 +274,20 @@ models.forEach(function(model) {
         as: 'AssignmentInstances',
         foreignKey: 'SectionID'
     });
+
     m.Semester.hasMany(m.Section, {
         as: 'Sections',
         foreignKey: 'SemesterID'
+    });
+
+    m.CategoryTemplate.hasMany(m.Category, {
+        as: 'Categories',
+        foreignKey: 'CategoryTemplateID'
+    });
+
+    m.BadgeTemplate.hasMany(m.Badge, {
+        as: 'Badges',
+        foreignKey: 'BadgeTemplateID'
     });
 
     m.Section.hasMany(m.SectionUser, {

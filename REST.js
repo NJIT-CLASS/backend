@@ -25,6 +25,8 @@ var Category = models.Category;
 var CategoryTemplate = models.CategoryTemplate;
 var UserPointIntances = models.UserPointIntances;
 var UserBadges = models.UserBadges;
+var StudentRankSnapchot = models.StudentRankSnapchot;
+var SectionRankSnapchot = models.SectionRankSnapchot;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
@@ -5591,7 +5593,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoints to get user's badges
     router.get('/userBadges/:userID', async function(req, res) {
         let select = `SELECT u.UserID, b.BadgeID, bt.Name, bt.Description, bt.Logo, c.SemesterID, c.CourseID, c.SectionID, c.CategoryID
-                        FROM  badges AS b
+                        FROM  badge AS b
                         JOIN userbadges AS ub ON b.BadgeID = ub.BadgeID 
                         JOIN user AS u ON u.UserID = ub.UserID 
                         JOIN category AS c ON c.CategoryID = b.CategoryID
@@ -5612,7 +5614,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'badges': result
             });
 
-        }).catch(() => {
+        }).catch((err) => {
+            console.info(err);
             res.status(401).end();
         });
     });
@@ -5625,7 +5628,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                       bt.Name, bt.Description, bt.Logo, upi.UserID, b.BadgeID
                       FROM category AS c
                       JOIN userpointinstances upi ON upi.CategoryID = c.CategoryID
-                      JOIN badges b ON b.CategoryID = c.CategoryID
+                      JOIN badge b ON b.CategoryID = c.CategoryID
                       JOIN badgetemplate bt ON bt.BadgeTemplateID = b.BadgeTemplateID
                       WHERE upi.UserID =? AND c.CategoryID =?
                       ORDER BY c.CategoryID ASC`;
@@ -5659,7 +5662,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'progress': progress
             });
 
-        }).catch(() => {
+        }).catch((err) => {
+            console.info(err);
             res.status(401).end();
         });
     });
@@ -5720,12 +5724,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 categories.forEach((item) => {
 
                     var select = `SELECT DISTINCT bt.Name, bt.Description, b.BadgeID, b.CategoryID
-                                    FROM badges b
+                                    FROM badge b
                                     JOIN badgetemplate bt ON bt.BadgeTemplateID = b.BadgeTemplateID 
                                     JOIN category c ON c.CategoryID = b.CategoryID
                                     WHERE c.CategoryID = ${item.CategoryID}`;
-
-                    console.info('select here', select);
 
                     sequelize.query(select).then(function(badges) {
                         if (badges.length > 0) {
@@ -5748,89 +5750,102 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
     });
 
-    //get section users with their ranking
+    //get section users with their ranking wither ther current user
     router.get('/getSectionRanking/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
-        let select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) 
-                      AS TotalPoints, u.FirstName, u.LastName, u.ProfilePicture
-                      FROM SectionUser AS su
-                      LEFT JOIN user AS u ON u.UserID = su.UserID
-                      LEFT JOIN category AS c ON c.SectionID = su.SectionID
-                      LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
-                      WHERE su.SectionID = ? AND c.SemesterID = ? AND c.CourseID = ?
-                      GROUP BY UserID
-                      ORDER BY TotalPoints DESC`;
 
-        sequelize.query(select, {
-            replacements: [
-                req.params.sectionID,
-                req.params.semesterID,
-                req.params.courseID
+        StudentRankSnapchot.findAll({
+            where: {
+                SectionID: req.params.sectionID,
+                SemesterID: req.params.semesterID,
+                CourseID: req.params.courseID
+            },
+            order: [
+                ['UpdateDate', 'DESC']
             ],
-            type: sequelize.QueryTypes.SELECT
-        }).then(result => {
-            if (!result) {
-                result = [];
-            }
-            var rank = 1;
-            var currentStudent = {};
-            result.forEach(function(element) {
-                element.Rank = rank++;
-                if (element.UserID == req.params.userID) {
-                    currentStudent = element;
-                }
+            group: ['SectionID', 'SemesterID', 'CourseID']
+        }).then((students) => {
+
+            StudentRankSnapchot.findOne({
+                where: {
+                    SectionID: req.params.sectionID,
+                    SemesterID: req.params.semesterID,
+                    CourseID: req.params.courseID,
+                    UserID: req.params.userID
+                },
+                order: [
+                    ['UpdateDate', 'DESC']
+                ],
+                group: ['SectionID', 'SemesterID', 'CourseID', 'UserID']
+            }).then((currentStudent) => {
+
+                res.json({
+                    'Error': false,
+                    'students': students,
+                    'currentStudent': currentStudent
+                });
+
+            }).catch((err) => {
+                console.info(err);
+                res.status(401).end();
             });
 
-            res.json({
-                'Error': false,
-                'students': result,
-                'currentStudent': currentStudent
-            });
-
-        }).catch(() => {
+        }).catch((err) => {
+            console.info(err);
             res.status(401).end();
         });
     });
 
     //get section users with their ranking
     router.get('/getSectionsRanking/:semesterID', async function(req, res) {
-        let select = `SELECT semester.SemesterID, section.SectionID, course.CourseID,
-                      su.UserID,  ROUND(AVG(IFNULL(upi.PointInstances,0))) AS AveragePoints,
-                      course.Number CourseNumber, course.Name CourseName, semester.Name SemesterName
-                      FROM SectionUser AS su
-                      LEFT JOIN section ON section.SectionID = su.SectionID
-                      LEFT JOIN USER AS u ON u.UserID = su.UserID
-                      LEFT JOIN course ON course.CourseID = section.CourseID
-                      LEFT JOIN semester ON semester.SemesterID = section.SemesterID
-                      LEFT JOIN category AS c ON c.SectionID = su.SectionID
-                      LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
-                      WHERE c.SemesterID =?
-                      GROUP BY section.SectionID, semester.SemesterID, course.CourseID
-                      ORDER BY AveragePoints DESC
-                      Limit 10`;
-
-        sequelize.query(select, {
-            replacements: [
-                req.params.semesterID
-            ],
-            type: sequelize.QueryTypes.SELECT
-        }).then(result => {
-            if (!result) {
-                result = [];
+        SectionRankSnapchot.findAll({
+            where: {
+                SemesterID: req.params.semesterID,
+                UpdateDate: {
+                    $eq: new Date(new Date().setHours(0, 0, 0, 0))
+                }
             }
-            var rank = 1;
-            result.forEach(function(element) {
-                element.Rank = rank++;
-            });
+        }).then((sections) => {
 
             res.json({
                 'Error': false,
-                'sections': result
+                'sections': sections
             });
 
-        }).catch(() => {
+        }).catch((err) => {
+            console.info(err);
             res.status(401).end();
         });
     });
+
+
+    //get movement
+    router.get('/getMovement/:semesterID', async function(req, res) {
+        StudentRankSnapchot.findAll({
+            where: {
+                SemesterID: req.params.semesterID,
+                UpdateDate: {
+                    $eq: new Date(new Date().setHours(0, 0, 0, 0))
+                },
+                PointsMovement: {
+                    $gt: '0'
+                }
+            },
+            order: [
+                ['PointsMovement', 'DESC']
+            ]
+        }).then((students) => {
+
+            res.json({
+                'Error': false,
+                'students': students
+            });
+
+        }).catch((err) => {
+            console.info(err);
+            res.status(401).end();
+        });
+    });
+
 };
 
 module.exports = REST_ROUTER;

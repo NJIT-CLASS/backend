@@ -1,6 +1,6 @@
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('UserBadges', {
-       UserID: {
+        UserID: {
             //The User
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,

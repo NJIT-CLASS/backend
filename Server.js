@@ -76,7 +76,7 @@ var rule = new schedule.RecurrenceRule();
 rule.minute = 1;
 
 //'1 * * * * *' 1 minute.
-var job = schedule.scheduleJob('1 * * * * *', function(time) {
+var job = schedule.scheduleJob('*/10 * * * * *', function(time) {
     taskFactory.rankingSnapshot();
 });
 

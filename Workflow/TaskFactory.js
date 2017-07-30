@@ -23,6 +23,8 @@ var SectionUser = models.SectionUser;
 var Badge = models.Badge;
 var Category = models.Category;
 var UserPointIntances = models.UserPointIntances;
+var StudentRankSnapchot = models.StudentRankSnapchot;
+var SectionRankSnapchot = models.SectionRankSnapchot;
 var UserBadges = models.UserBadges;
 
 var Semester = models.Semester;
@@ -789,33 +791,179 @@ class TaskFactory {
     }
 
     rankingSnapshot() {
+        console.info('Runing cron here ...');
+
+        Semester.findOne({
+                where: {
+                    StartDate: {
+                        $or: {
+                            $lt: new Date(),
+                            $eq: new Date()
+                        }
+                    },
+                    EndDate: {
+                        $or: {
+                            $gt: new Date(),
+                            $eq: new Date()
+                        }
+                    }
+                },
+                include: [{
+                    model: Section,
+                    as: 'Sections',
+                    include: [{
+                        model: Course
+                    }]
+                }]
+            })
+            .then((semester) => {
+
+                let select = `SELECT semester.SemesterID, section.SectionID, course.CourseID,
+                              ROUND(AVG(IFNULL(upi.PointInstances,0))) AS AveragePoints,
+                              course.Number CourseNumber, course.Name CourseName, semester.Name SemesterName, section.Name SectionName
+                              FROM SectionUser AS su
+                              LEFT JOIN section ON section.SectionID = su.SectionID
+                              LEFT JOIN USER AS u ON u.UserID = su.UserID
+                              LEFT JOIN course ON course.CourseID = section.CourseID
+                              LEFT JOIN semester ON semester.SemesterID = section.SemesterID
+                              LEFT JOIN category AS c ON c.SectionID = su.SectionID
+                              LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
+                              WHERE c.SemesterID =?
+                              GROUP BY section.SectionID, semester.SemesterID, course.CourseID
+                              ORDER BY AveragePoints DESC`;
+
+                sequelize.query(select, {
+                    replacements: [
+                        semester.SemesterID
+                    ],
+                    type: sequelize.QueryTypes.SELECT
+                }).then(result => {
+                    if (!result) {
+                        result = [];
+                    }
+
+                    let rank = 1;
+                    result.forEach(function(element) {
+                        element.Rank = rank++;
+                        element.UpdateDate = new Date(new Date().setHours(0, 0, 0, 0));
+
+                        if (element.AveragePoints > 0) {
+                            //Checking if update was done today
+                            SectionRankSnapchot.findOne({
+                                where: {
+                                    UpdateDate: {
+                                        $eq: element.UpdateDate
+                                    }
+                                }
+                            }).then((exist) => {
+
+                                if (!exist) {
+                                    SectionRankSnapchot.create(element);
+                                }
+
+                            }).catch((err) => {
+                                console.info('Error: ', err);
+                            });
+                        }
+                    });
+
+                }).catch((err) => {
+                    console.info('Error: ', err);
+                });
 
 
-        let select = 'SELECT SemesterID,Name,StartDate,EndDate FROM Semester ORDER BY SemesterID DESC';
+                semester.Sections.forEach((curSection) => {
 
-        sequelize.query(select, {
-            type: sequelize.QueryTypes.SELECT
-        }).then(semesters => {
+                    select = `SELECT su.SectionID, su.UserID, SUM(IFNULL(upi.PointInstances,0)) AS TotalPoints, u.FirstName, u.LastName 
+                          FROM SectionUser AS su
+                          LEFT JOIN user AS u ON u.UserID = su.UserID
+                          LEFT JOIN category AS c ON c.SectionID = su.SectionID
+                          LEFT JOIN userpointinstances AS upi ON upi.CategoryID = c.CategoryID AND upi.UserID = su.UserID
+                          WHERE su.SectionID = ? AND c.SemesterID = ? AND c.CourseID = ?
+                          GROUP BY UserID
+                          ORDER BY TotalPoints DESC`;
 
-            semesters.forEach((semester) => {
-                let start = new Date(semester.StartDate);
-                let end = new Date(semester.EndDate);
-                let now = new Date();
+                    sequelize.query(select, {
+                        replacements: [
+                            curSection.SectionID,
+                            semester.SemesterID,
+                            curSection.Course.CourseID
+                        ],
+                        type: sequelize.QueryTypes.SELECT
+                    }).then(result => {
+                        if (!result) {
+                            result = [];
+                        }
 
-                if (start <= now && now <= end) {
-                    console.info('This is the semester ', semester);
+                        let rank = 1;
 
+                        result.forEach(function(element) {
+                            element.Rank = rank++;
+                            element.SemesterID = semester.SemesterID;
+                            element.SemesterName = semester.Name;
+                            element.SectionName = curSection.Name;
+                            element.CourseID = curSection.Course.CourseID;
+                            element.CourseName = curSection.Course.Name;
+                            element.CourseNumber = curSection.Course.Number;
+                            element.UpdateDate = new Date(new Date().setHours(0, 0, 0, 0));
 
+                            if (element.TotalPoints > 0) {
+                                //Checking if update was done today
+                                StudentRankSnapchot.findOne({
+                                    where: {
+                                        UpdateDate: {
+                                            $eq: element.UpdateDate
+                                        }
+                                    }
+                                }).then((exist) => {
+                                    if (exist) {
+                                        return;
+                                    }
+                                    //Determine movement
+                                    StudentRankSnapchot.findAll({
+                                        where: {
+                                            SemesterID: semester.SemesterID,
+                                            UpdateDate: {
+                                                $lt: element.UpdateDate
+                                            }
+                                        },
+                                        order: [
+                                            ['UpdateDate', 'DESC']
+                                        ],
+                                        group: ['SectionID', 'SemesterID', 'CourseID']
+                                    }).then((previous) => {
 
-                } else {
-                    console.info('not between...');
-                }
+                                        previous.forEach((current) => {
+                                            if (element.UserID == current.UserID && element.CourseID == current.CourseID && element.SectionID == current.SectionID) {
+                                                element.PointsMovement = String(element.TotalPoints - current.TotalPoints);
+                                            }
+                                        });
+
+                                        if (!element.PointsMovement) {
+                                            element.PointsMovement = '0';
+                                        }
+
+                                        StudentRankSnapchot.create(element);
+
+                                    }).catch((err) => {
+                                        console.info(err);
+                                    });
+
+                                }).catch((err) => {
+                                    console.info('Error: ', err);
+                                });
+                            }
+
+                        });
+
+                    }).catch((err) => {
+                        console.info('Error: ', err);
+                    });
+                });
+            })
+            .catch((err) => {
+                console.info('Error: ', err);
             });
-
-        }).catch((err) => {
-            console.info('something went wrong', err);
-        });
-
     }
 
 
