@@ -242,7 +242,7 @@ CREATE TABLE `category` (
   `Tier2Instances` int(10) NOT NULL,
   `Tier3Instances` int(10) NOT NULL,
   PRIMARY KEY (`CategoryID`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=latin1;
 
 /*Data for the table `category` */
 
@@ -253,24 +253,30 @@ insert  into `category`(`CategoryID`,`CategoryTemplateID`,`SemesterID`,`SectionI
 (4,4,1,1,1,2,5,8),
 (5,5,1,1,1,2,5,8),
 (6,6,1,1,1,2,5,8),
-(7,1,1,3,1,2,5,8),
-(8,2,1,3,1,2,5,8),
-(9,3,1,3,1,2,5,8),
-(10,4,1,3,1,2,5,8),
-(11,5,1,3,1,2,5,8),
-(12,6,1,3,1,2,5,8),
-(13,1,1,8,3,5,5,5),
-(14,2,1,8,3,5,5,5),
-(15,3,1,8,3,5,5,5),
-(16,4,1,8,3,5,5,5),
-(17,5,1,8,3,5,5,5),
-(18,6,1,8,3,5,5,5),
-(19,1,1,7,2,5,5,5),
-(20,2,1,7,2,5,5,5),
-(21,3,1,7,2,5,5,5),
-(22,4,1,7,2,5,5,5),
-(23,5,1,7,2,5,5,5),
-(24,6,1,7,2,5,5,5);
+(7,1,1,2,1,2,5,8),
+(8,2,1,2,1,2,5,8),
+(9,3,1,2,1,2,5,8),
+(10,4,1,2,1,2,5,8),
+(11,5,1,2,1,2,5,8),
+(12,6,1,2,1,2,5,8),
+(13,1,1,3,1,5,5,5),
+(14,2,1,3,1,5,5,5),
+(15,3,1,3,1,5,5,5),
+(16,4,1,3,1,5,5,5),
+(17,5,1,3,1,5,5,5),
+(18,6,1,3,1,5,5,5),
+(19,1,1,10,3,5,5,5),
+(20,2,1,10,3,5,5,5),
+(21,3,1,10,3,5,5,5),
+(22,4,1,10,3,5,5,5),
+(23,5,1,10,3,5,5,5),
+(24,6,1,10,3,5,5,5),
+(25,1,1,12,3,5,5,5),
+(26,2,1,12,3,5,5,5),
+(27,3,1,12,3,5,5,5),
+(28,4,1,12,3,5,5,5),
+(29,5,1,12,3,5,5,5),
+(30,6,1,12,3,5,5,5);
 
 /*Table structure for table `categoryinstancepoints` */
 
@@ -532,13 +538,21 @@ CREATE TABLE `sectionranksnapchot` (
   PRIMARY KEY (`SectionRankSnapchatID`),
   UNIQUE KEY `SectionRankSnapchatID` (`SectionRankSnapchatID`),
   UNIQUE KEY `sectionranksnapchot_StudentRankSnapchatID_unique` (`SectionRankSnapchatID`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=latin1;
 
 /*Data for the table `sectionranksnapchot` */
 
 insert  into `sectionranksnapchot`(`SectionRankSnapchatID`,`SemesterID`,`SemesterName`,`CourseID`,`CourseName`,`CourseNumber`,`SectionID`,`SectionName`,`AveragePoints`,`Rank`,`UpdateDate`) values 
-(1,1,'Summer2017',3,'Programming Language Concept','CS280',8,'001',6,1,'2017-07-29 04:00:00'),
-(2,1,'Summer2017',1,'Intro to Computer Science','CS100',3,'h01',1,2,'2017-07-29 04:00:00');
+(1,1,'Summer2017',3,'Programming Language Concept','CS280',10,'\'007\'',14,1,'2017-07-29 04:00:00'),
+(2,1,'Summer2017',1,'Intro to Computer Science','CS100',2,'013',13,2,'2017-07-29 04:00:00'),
+(3,1,'Summer2017',3,'Programming Language Concept','CS280',12,'\'009\'',8,3,'2017-07-29 04:00:00'),
+(4,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',3,5,'2017-07-29 04:00:00'),
+(5,1,'Summer2017',1,'Intro to Computer Science','CS100',3,'h01',3,4,'2017-07-29 04:00:00'),
+(6,1,'Summer2017',1,'Intro to Computer Science','CS100',2,'013',13,2,'2017-07-30 04:00:00'),
+(7,1,'Summer2017',3,'Programming Language Concept','CS280',10,'\'007\'',14,1,'2017-07-30 04:00:00'),
+(8,1,'Summer2017',3,'Programming Language Concept','CS280',12,'\'009\'',8,3,'2017-07-30 04:00:00'),
+(9,1,'Summer2017',1,'Intro to Computer Science','CS100',3,'h01',3,4,'2017-07-30 04:00:00'),
+(10,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',3,5,'2017-07-30 04:00:00');
 
 /*Table structure for table `sectionuser` */
 
@@ -593,10 +607,10 @@ insert  into `sectionuser`(`SectionUserID`,`SectionID`,`UserID`,`Role`,`Active`,
 (28,1,13,'Student',1,NULL),
 (29,1,14,'Student',1,NULL),
 (30,1,15,'Student',1,NULL),
-(31,1,16,'Student',1,NULL),
-(32,1,17,'Student',1,NULL),
-(33,1,18,'Student',1,NULL),
-(34,1,19,'Student',1,NULL),
+(31,12,16,'Student',1,NULL),
+(32,10,17,'Student',1,NULL),
+(33,3,18,'Student',1,NULL),
+(34,2,19,'Student',1,NULL),
 (35,19,1,'Student',1,0);
 
 /*Table structure for table `semester` */
@@ -636,22 +650,36 @@ CREATE TABLE `studentranksnapchot` (
   `SectionID` int(10) unsigned NOT NULL,
   `SectionName` varchar(50) NOT NULL,
   `UserID` int(10) unsigned NOT NULL,
-  `FirstName` varchar(100) NOT NULL,
-  `LastName` varchar(100) NOT NULL,
+  `FirstName` varchar(100) DEFAULT NULL,
+  `LastName` varchar(100) DEFAULT NULL,
   `TotalPoints` int(10) unsigned NOT NULL,
-  `PointsMovement` varchar(20) DEFAULT '0',
+  `PointsMovement` int(10) NOT NULL,
   `Rank` int(10) unsigned NOT NULL,
   `UpdateDate` datetime NOT NULL,
   PRIMARY KEY (`StudentRankSnapchotID`)
-) ENGINE=InnoDB AUTO_INCREMENT=25 DEFAULT CHARSET=latin1;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=latin1;
 
 /*Data for the table `studentranksnapchot` */
 
 insert  into `studentranksnapchot`(`StudentRankSnapchotID`,`SemesterID`,`SemesterName`,`CourseID`,`CourseName`,`CourseNumber`,`SectionID`,`SectionName`,`UserID`,`FirstName`,`LastName`,`TotalPoints`,`PointsMovement`,`Rank`,`UpdateDate`) values 
-(4,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',1,'Alan','Romano',20,'0',1,'2017-07-28 04:00:00'),
-(22,1,'Summer2017',1,'Intro to Computer Science','CS100',3,'h01',1,'Alan','Romano',28,'0',1,'2017-07-29 04:00:00'),
-(23,1,'Summer2017',3,'Programming Language Concept','CS280',8,'001',1,'Alan','Romano',35,'0',1,'2017-07-29 04:00:00'),
-(24,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',1,'Alan','Romano',38,'18',1,'2017-07-29 04:00:00');
+(1,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',69,'Krzysztof','Squarepant',90,0,1,'2017-07-29 04:00:00'),
+(2,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',8,'Ivan ','Merit',50,0,2,'2017-07-29 04:00:00'),
+(3,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',1,'Alan','Romano',20,0,3,'2017-07-29 04:00:00'),
+(4,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',3,'Emily','Smith',15,0,4,'2017-07-29 04:00:00'),
+(5,1,'Summer2017',1,'Intro to Computer Science','CS100',2,'013',19,'Spongebob',NULL,32,0,1,'2017-07-29 04:00:00'),
+(6,1,'Summer2017',3,'Programming Language Concept','CS280',10,'\'007\'',17,'Olivia','Kwan',55,0,1,'2017-07-29 04:00:00'),
+(7,1,'Summer2017',1,'Intro to Computer Science','CS100',3,'h01',18,'Peter','Pan',45,0,1,'2017-07-29 04:00:00'),
+(8,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',4,'Joe','Johnson',65,0,5,'2017-07-29 04:00:00'),
+(9,1,'Summer2017',3,'Programming Language Concept','CS280',12,'\'009\'',16,'Fred','Hudson',25,0,1,'2017-07-29 04:00:00'),
+(10,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',69,'Krzysztof','Squarepant',115,-25,1,'2017-07-30 04:00:00'),
+(11,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',8,'Ivan ','Merit',60,-10,2,'2017-07-30 04:00:00'),
+(12,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',4,'Joe','Johnson',36,29,5,'2017-07-30 04:00:00'),
+(13,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',1,'Alan','Romano',38,-18,3,'2017-07-30 04:00:00'),
+(14,1,'Summer2017',1,'Intro to Computer Science','CS100',1,'001',3,'Emily','Smith',37,-22,4,'2017-07-30 04:00:00'),
+(15,1,'Summer2017',3,'Programming Language Concept','CS280',10,'\'007\'',17,'Olivia','Kwan',84,-29,1,'2017-07-30 04:00:00'),
+(16,1,'Summer2017',1,'Intro to Computer Science','CS100',2,'013',19,'Spongebob',NULL,75,-43,1,'2017-07-30 04:00:00'),
+(17,1,'Summer2017',1,'Intro to Computer Science','CS100',3,'h01',18,'Peter','Pan',84,-39,1,'2017-07-30 04:00:00'),
+(18,1,'Summer2017',3,'Programming Language Concept','CS280',12,'\'009\'',16,'Fred','Hudson',50,-25,1,'2017-07-30 04:00:00');
 
 /*Table structure for table `taskactivity` */
 
@@ -1376,7 +1404,7 @@ CREATE TABLE `user` (
 
 insert  into `user`(`UserID`,`FirstName`,`LastName`,`OrganizationGroup`,`Admin`,`ProfilePicture`,`Instructor`) values 
 (1,'Alan','Romano',NULL,1,NULL,1),
-(2,'Jimmy','Lu',NULL,1,NULL,1),
+(2,'Jimmy','Lu',NULL,1,NULL,0),
 (3,'Emily','Smith',NULL,0,NULL,0),
 (4,'Joe','Johnson',NULL,0,NULL,0),
 (5,'Angelo','Perna',NULL,0,NULL,0),
@@ -1516,32 +1544,71 @@ insert  into `userlogin`(`UserID`,`Email`,`Password`,`Pending`,`Attempts`,`Timeo
 DROP TABLE IF EXISTS `userpointinstances`;
 
 CREATE TABLE `userpointinstances` (
+  `UserPointInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `UserID` int(10) NOT NULL,
   `CategoryID` int(10) NOT NULL,
   `PointInstances` int(10) DEFAULT NULL,
-  PRIMARY KEY (`UserID`,`CategoryID`)
-) ENGINE=InnoDB DEFAULT CHARSET=latin1;
+  PRIMARY KEY (`UserID`,`CategoryID`,`UserPointInstanceID`),
+  KEY `UserPointInstanceID` (`UserPointInstanceID`)
+) ENGINE=InnoDB AUTO_INCREMENT=55 DEFAULT CHARSET=latin1;
 
 /*Data for the table `userpointinstances` */
 
-insert  into `userpointinstances`(`UserID`,`CategoryID`,`PointInstances`) values 
-(1,1,5),
-(1,2,5),
-(1,3,5),
-(1,4,6),
-(1,5,9),
-(1,6,8),
-(1,7,4),
-(1,9,5),
-(1,10,6),
-(1,11,5),
-(1,12,8),
-(1,13,9),
-(1,14,6),
-(1,15,4),
-(1,16,5),
-(1,17,6),
-(1,18,5);
+insert  into `userpointinstances`(`UserPointInstanceID`,`UserID`,`CategoryID`,`PointInstances`) values 
+(1,1,1,5),
+(2,1,2,5),
+(3,1,3,5),
+(4,1,4,6),
+(5,1,5,9),
+(6,1,6,8),
+(7,3,1,4),
+(8,3,2,5),
+(9,3,3,6),
+(10,3,4,5),
+(11,3,5,8),
+(12,3,6,9),
+(13,4,1,6),
+(14,4,2,4),
+(15,4,3,5),
+(16,4,4,6),
+(17,4,5,5),
+(18,4,6,10),
+(19,8,1,10),
+(20,8,2,10),
+(21,8,3,10),
+(22,8,4,10),
+(23,8,5,10),
+(24,8,6,10),
+(49,16,25,10),
+(50,16,26,6),
+(51,16,27,8),
+(52,16,28,7),
+(53,16,29,9),
+(54,16,30,10),
+(43,17,19,13),
+(44,17,20,14),
+(45,17,21,15),
+(46,17,22,16),
+(47,17,23,17),
+(48,17,24,9),
+(37,18,13,16),
+(38,18,14,17),
+(39,18,15,18),
+(40,18,16,10),
+(41,18,17,11),
+(42,18,18,12),
+(31,19,7,10),
+(32,19,8,11),
+(33,19,9,12),
+(35,19,10,13),
+(34,19,11,14),
+(36,19,12,15),
+(25,69,1,20),
+(26,69,2,15),
+(27,69,3,10),
+(28,69,4,22),
+(29,69,5,17),
+(30,69,6,31);
 
 /*Table structure for table `volunteerpool` */
 

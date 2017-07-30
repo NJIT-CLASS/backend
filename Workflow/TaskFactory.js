@@ -919,12 +919,20 @@ class TaskFactory {
                                     if (exist) {
                                         return;
                                     }
+
+                                    let yesterday = new Date();
+                                    yesterday.setDate(yesterday.getDate() - 1);
+                                    yesterday.setHours(0, 0, 0, 0);
+
                                     //Determine movement
-                                    StudentRankSnapchot.findAll({
+                                    StudentRankSnapchot.findOne({
                                         where: {
-                                            SemesterID: semester.SemesterID,
+                                            SemesterID: element.SemesterID,
+                                            CourseID: element.CourseID,
+                                            SectionID: element.SectionID,
+                                            UserID: element.UserID,
                                             UpdateDate: {
-                                                $lt: element.UpdateDate
+                                                $eq: yesterday
                                             }
                                         },
                                         order: [
@@ -933,14 +941,10 @@ class TaskFactory {
                                         group: ['SectionID', 'SemesterID', 'CourseID']
                                     }).then((previous) => {
 
-                                        previous.forEach((current) => {
-                                            if (element.UserID == current.UserID && element.CourseID == current.CourseID && element.SectionID == current.SectionID) {
-                                                element.PointsMovement = String(element.TotalPoints - current.TotalPoints);
-                                            }
-                                        });
-
-                                        if (!element.PointsMovement) {
-                                            element.PointsMovement = '0';
+                                        if (previous) {
+                                            element.PointsMovement = previous.TotalPoints - element.TotalPoints;
+                                        } else {
+                                            element.PointsMovement = 0;
                                         }
 
                                         StudentRankSnapchot.create(element);

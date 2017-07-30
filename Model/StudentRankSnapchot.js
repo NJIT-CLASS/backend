@@ -70,7 +70,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         Rank: {
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.INTEGER,
             field: 'Rank',
             allowNull: true
         },

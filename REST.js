@@ -5620,7 +5620,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-
     //Endpoint to get the user's Progress
     router.get('/userProgress/:userID/:categoryID', async function(req, res) {
         let select = `SELECT c.CategoryID, c.CourseID, c.SectionID, c.SemesterID, 
@@ -5757,12 +5756,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             where: {
                 SectionID: req.params.sectionID,
                 SemesterID: req.params.semesterID,
-                CourseID: req.params.courseID
+                CourseID: req.params.courseID,
+                UpdateDate: {
+                    $eq: new Date(new Date().setHours(0, 0, 0, 0))
+                },
             },
             order: [
-                ['UpdateDate', 'DESC']
-            ],
-            group: ['SectionID', 'SemesterID', 'CourseID']
+                ['Rank', 'ASC']
+            ]
         }).then((students) => {
 
             StudentRankSnapchot.findOne({
@@ -5770,12 +5771,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     SectionID: req.params.sectionID,
                     SemesterID: req.params.semesterID,
                     CourseID: req.params.courseID,
-                    UserID: req.params.userID
-                },
-                order: [
-                    ['UpdateDate', 'DESC']
-                ],
-                group: ['SectionID', 'SemesterID', 'CourseID', 'UserID']
+                    UserID: req.params.userID,
+                    UpdateDate: {
+                        $eq: new Date(new Date().setHours(0, 0, 0, 0))
+                    },
+                }
             }).then((currentStudent) => {
 
                 res.json({
@@ -5803,7 +5803,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 UpdateDate: {
                     $eq: new Date(new Date().setHours(0, 0, 0, 0))
                 }
-            }
+            },
+            order: [
+                ['Rank', 'ASC']
+            ]
         }).then((sections) => {
 
             res.json({
@@ -5827,7 +5830,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     $eq: new Date(new Date().setHours(0, 0, 0, 0))
                 },
                 PointsMovement: {
-                    $gt: '0'
+                    $not: '0'
                 }
             },
             order: [
