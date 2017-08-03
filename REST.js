@@ -19,14 +19,19 @@ var UserContact = models.UserContact;
 var Course = models.Course;
 var Section = models.Section;
 var SectionUser = models.SectionUser;
+var BadgeInstance = models.BadgeInstance;
 var Badge = models.Badge;
-var BadgeTemplate = models.BadgeTemplate;
+var CategoryInstance = models.CategoryInstance;
 var Category = models.Category;
-var CategoryTemplate = models.CategoryTemplate;
 var UserPointIntances = models.UserPointIntances;
-var UserBadges = models.UserBadges;
+var UserBadgeInstances = models.UserBadgeInstances;
 var StudentRankSnapchot = models.StudentRankSnapchot;
 var SectionRankSnapchot = models.SectionRankSnapchot;
+
+var Goal = models.Goal;
+var GoalInstance = models.GoalInstance;
+var Level = models.Level;
+var LevelInstance = models.LevelInstance;
 
 var Semester = models.Semester;
 var TaskInstance = models.TaskInstance;
@@ -2253,6 +2258,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 SemesterID: req.body.semesterid
             }
         }).then(function(results) {
+
             var section = Section.build({
                 SemesterID: req.body.semesterid,
                 CourseID: req.body.courseid,
@@ -2261,9 +2267,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Name: req.body.name,
 
             }).save().then(function(response) {
+                //amadou added this
+                let taskFactory = new TaskFactory;
+                taskFactory.createCategoryInstances(response.SemesterID, response.CourseID, response.SectionID);
+
                 res.json({
                     'result': response
                 });
+
             }).catch(function(err) {
                 console.log('/course/createsection : ' + err.message);
 
@@ -3365,6 +3376,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     // Endpoint to submit the taskInstance input and sync into database
     router.post('/taskInstanceTemplate/create/submit', async function(req, res) {
 
+        console.info('hello wrold');
+
         var grade = new Grade();
         var trigger = new TaskTrigger();
 
@@ -3391,17 +3404,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             },
             include: [{
                 model: TaskActivity,
-                attributes: ['Type', 'AllowRevision', 'AllowReflection'],
+                attributes: ['Type', 'AllowRevision', 'AllowReflection', 'AssignmentID'],
             }, ],
         });
+
+        //Amadou added this
+        let taskFactory = new TaskFactory;
+        taskFactory.updatePointInstance(ti);
 
         if (JSON.parse(ti.Status)[0] === 'complete') {
             logger.log('error', 'The task has been complted already');
             return res.status(403).end();
         }
-        //Amadou here
-        console.info('this is the tast instance::::::::', ti);
-        console.info('this is the tast instance::::::::', ti.TaskActivity);
 
         logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
@@ -5592,12 +5606,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      ************************************************************************************************************/
     //Endpoints to get user's badges
     router.get('/userBadges/:userID', async function(req, res) {
-        let select = `SELECT u.UserID, b.BadgeID, bt.Name, bt.Description, bt.Logo, c.SemesterID, c.CourseID, c.SectionID, c.CategoryID
-                        FROM  badge AS b
-                        JOIN userbadges AS ub ON b.BadgeID = ub.BadgeID 
+        let select = `SELECT u.UserID, bi.BadgeInstanceID, b.Name, b.Description, b.Logo, ci.SemesterID, ci.CourseID, ci.SectionID, ci.CategoryID
+                        FROM  badgeinstance AS bi
+                        JOIN Userbadgeinstances AS ub ON bi.BadgeInstanceID = ub.BadgeInstanceID 
                         JOIN user AS u ON u.UserID = ub.UserID 
-                        JOIN category AS c ON c.CategoryID = b.CategoryID
-                        JOIN badgetemplate AS bt ON bt.BadgeTemplateID = b.BadgeTemplateID
+                        JOIN categoryinstance AS ci ON ci.CategoryID = bi.CategoryInstanceID
+                        JOIN badge AS b ON b.BadgeID = bi.BadgeID
                         WHERE u.UserID = ?`;
 
         sequelize.query(select, {
@@ -5622,15 +5636,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint to get the user's Progress
     router.get('/userProgress/:userID/:categoryID', async function(req, res) {
-        let select = `SELECT c.CategoryID, c.CourseID, c.SectionID, c.SemesterID, 
-                      c.Tier1Instances, c.Tier2Instances, c.Tier3Instances, upi.pointInstances,
-                      bt.Name, bt.Description, bt.Logo, upi.UserID, b.BadgeID
-                      FROM category AS c
-                      JOIN userpointinstances upi ON upi.CategoryID = c.CategoryID
-                      JOIN badge b ON b.CategoryID = c.CategoryID
-                      JOIN badgetemplate bt ON bt.BadgeTemplateID = b.BadgeTemplateID
-                      WHERE upi.UserID =? AND c.CategoryID =?
-                      ORDER BY c.CategoryID ASC`;
+
+        let select = `SELECT ci.CategoryID, ci.CourseID, ci.SectionID, ci.SemesterID, 
+                      ci.Tier1Instances, ci.Tier2Instances, c.Tier3Instances, upi.pointInstances,
+                      b.Name, b.Description, b.Logo, upi.UserID, bi.BadgeInstanceID
+                      FROM categoryinstance AS ci
+                      JOIN userpointinstances upi ON upi.CategoryInstanceID = ci.CategoryInstanceID
+                      JOIN badgeinstance bi ON bi.CategoryInstanceID = ci.CategoryInstanceID
+                      JOIN badge b ON b.BadgeID = bi.BadgeID
+                      WHERE upi.UserID =? AND ci.CategoryID =?
+                      ORDER BY ci.CategoryID ASC`;
 
         sequelize.query(select, {
             replacements: [
@@ -5653,7 +5668,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 progress.Tier2Instances = result[x].Tier2Instances;
                 progress.Tier3Instances = result[x].Tier3Instances;
                 progress.pointInstances = result[x].pointInstances;
-                progress.badges.push({ id: result[x].BadgeID, name: result[x].Name, description: result[x].Description, logo: result[x].Logo });
+                progress.badges.push({ id: result[x].BadgeInstanceID, name: result[x].Name, description: result[x].Description, logo: result[x].Logo });
             }
 
             res.json({
@@ -5697,13 +5712,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //Endpoint for badge categories
+    //Endpoint for BadgeInstance categories
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
         var select = `SELECT c.CategoryID,c.Tier1Instances,c.Tier2Instances,c.Tier3Instances,
                       ct.Name, ct.Description
-                      FROM category c 
-                      join categorytemplate ct on ct.CategoryTemplateID = c.CategoryTemplateID
+                      FROM categoryinstance c 
+                      join category ct on ct.CategoryID = c.CategoryID
                       WHERE c.CourseID=? 
                       AND c.sectionID=?
                       AND c.SemesterID=?`;
@@ -5722,11 +5737,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
                 categories.forEach((item) => {
 
-                    var select = `SELECT DISTINCT bt.Name, bt.Description, b.BadgeID, b.CategoryID
-                                    FROM badge b
-                                    JOIN badgetemplate bt ON bt.BadgeTemplateID = b.BadgeTemplateID 
-                                    JOIN category c ON c.CategoryID = b.CategoryID
-                                    WHERE c.CategoryID = ${item.CategoryID}`;
+                    var select = `SELECT DISTINCT b.Name, b.Description, bi.BadgeInstanceID BadgeID, bi.CategoryInstanceID CategoryID
+                                    FROM badgeinstance bi
+                                    JOIN badge b ON b.BadgeID = bi.BadgeID 
+                                    JOIN categoryinstance ci ON ci.CategoryInstanceID = bi.CategoryInstanceID
+                                    WHERE ci.CategoryInstanceID = ${item.CategoryID}`;
 
                     sequelize.query(select).then(function(badges) {
                         if (badges.length > 0) {
@@ -5820,7 +5835,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-
     //get movement
     router.get('/getMovement/:semesterID', async function(req, res) {
         StudentRankSnapchot.findAll({
@@ -5849,6 +5863,78 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+
+    //get movement
+    router.get('/getLevels/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
+        LevelInstance.findAll({
+            where: {
+                SemesterID: req.params.semesterID,
+                CourseID: req.params.semesterID,
+                sectionID: req.params.semesterID
+            }
+        }).then((levels) => {
+
+            StudentRankSnapchot.findOne({
+                where: {
+                    SemesterID: req.params.semesterID,
+                    CourseID: req.params.semesterID,
+                    sectionID: req.params.semesterID,
+                    UserID: req.params.userID
+                },
+                attributes: ['TotalPoints']
+            }).then((points) => {
+                if (!points) {
+                    points = { TotalPoints: 0 };
+                }
+
+                res.json({
+                    'Error': false,
+                    'levels': levels,
+                    'currentPoints': points.TotalPoints
+                });
+
+            }).catch((err) => {
+                console.info(err);
+                res.status(401).end();
+            });
+
+        }).catch((err) => {
+            console.info(err);
+            res.status(401).end();
+        });
+    });
+
+    //get movement
+    router.get('/getGoals/:semesterID/:courseID/:sectionID', async function(req, res) {
+
+        GoalInstance.findAll({
+            where: {
+                SemesterID: req.params.semesterID,
+                CourseID: req.params.semesterID,
+                sectionID: req.params.semesterID
+            }
+        }).then((goals) => {
+
+
+            res.json({
+                'Error': false,
+                'goals': goals
+            });
+
+
+        }).catch((err) => {
+            console.info(err);
+            res.status(401).end();
+        });
+    });
+
+
+    router.get('/testing', async function(req, res) {
+
+        let taskFactory = new TaskFactory;
+        taskFactory.createCategoryInstances(1, 1, 1);
+
+    });
 };
 
 module.exports = REST_ROUTER;

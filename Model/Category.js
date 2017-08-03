@@ -9,25 +9,23 @@ module.exports = function(sequelize, DataTypes) {
             autoIncrement: true,
             unique: true
         },
-        CategoryTemplateID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryTemplateID',
-            allowNull: false,
+        Type: {
+            //Name of the Categorty.
+            type: DataTypes.STRING,
+            field: 'Type',
+            allowNull: true
         },
-        SemesterID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SemesterID',
-            allowNull: false
+        Name: {
+            //Name of the Categorty.
+            type: DataTypes.STRING,
+            field: 'Name',
+            allowNull: true
         },
-        SectionID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SectionID',
-            allowNull: false
-        },
-        CourseID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CourseID',
-            allowNull: false
+        Description: {
+            //Description of the CategoryInstance
+            type: DataTypes.TEXT,
+            field: 'Description',
+            allowNull: true
         },
         Tier1Instances: {
             type: DataTypes.INTEGER.UNSIGNED,

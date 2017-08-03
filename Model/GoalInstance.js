@@ -1,41 +1,44 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('CategoryTemplate', {
-        CategoryTemplateID: {
-            //Unique identifier for CategoryTemplate 
+    return sequelize.define('GoalInstance', {
+        GoalInstanceID: {
+            //Unique identifier for CategoryInstance 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryTemplateID',
+            field: 'GoalInstanceID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-        Name: {
-            //Name of the Categorty.
-            type: DataTypes.STRING,
-            field: 'Name',
-            allowNull: true
-        },
-        Description: {
-            //Description of the Category
-            type: DataTypes.TEXT,
-            field: 'Description',
-            allowNull: true
-        },
-        Tier1Instances: {
+        GoalID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier1Instances',
+            field: 'GoalID',
+            allowNull: false,
+        },
+        CategoryInstanceID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CategoryInstanceID',
             allowNull: false
         },
-        Tier2Instances: {
+        SemesterID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier2Instances',
+            field: 'SemesterID',
             allowNull: false
         },
-        Tier3Instances: {
+        SectionID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Tier3Instances',
+            field: 'SectionID',
             allowNull: false
         },
+        CourseID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
+            allowNull: false
+        },
+        ThresholdInstances: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'ThresholdInstances',
+            allowNull: false
+        }
     }, {
         timestamps: false,
 
@@ -54,6 +57,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'categorytemplate'
+        tableName: 'goalinstance'
     });
 };

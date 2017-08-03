@@ -25,8 +25,9 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference', 'Badge', 'BadgeTemplate', 'Category', , 'CategoryTemplate', 'UserBadges', 'UserPointIntances',
-    'StudentRankSnapchot', 'SectionRankSnapchot'
+    'FileReference', 'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointIntances',
+    'StudentRankSnapchot', 'SectionRankSnapchot', 'CategoryInstancePoints', 'UserPointInstances', 'Level',
+    'Goal', 'GoalInstance', 'Level', 'LevelInstance'
 ];
 
 
@@ -41,18 +42,18 @@ models.forEach(function(model) {
     //Belongs To Relations
     //Sorted By Foreign Key
 
-    m.UserBadges.belongsTo(m.User, {
+    m.UserBadgeInstances.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
 
-    m.UserBadges.belongsTo(m.Badge, {
-        foreignKey: 'BadgeID'
+    m.UserBadgeInstances.belongsTo(m.BadgeInstance, {
+        foreignKey: 'BadgeInstanceID'
     });
 
-    m.User.belongsToMany(m.Badge, {
-        through: m.UserBadges,
+    m.User.belongsToMany(m.BadgeInstance, {
+        through: m.UserBadgeInstances,
         foreignKey: 'UserID',
-        otherKey: 'BadgeID'
+        otherKey: 'BadgeInstanceID'
     });
 
     m.UserPointIntances.belongsTo(m.User, {
@@ -63,9 +64,9 @@ models.forEach(function(model) {
         foreignKey: 'CreatorID'
     });
 
-    m.Badge.belongsTo(m.Category, {
-        foreignKey: 'CategoryID'
-    });
+    // m.BadgeInstance.belongsTo(m.CategoryInstance, {
+    //     foreignKey: 'CategoryInstanceID'
+    // });
 
     m.User.hasOne(m.UserLogin, {
         foreignKey: 'UserID'
@@ -89,12 +90,12 @@ models.forEach(function(model) {
         foreignKey: 'SemesterID'
     });
 
-    m.Category.belongsTo(m.CategoryTemplate, {
-        foreignKey: 'CategoryTemplateID'
-    });
+    // m.CategoryInstance.belongsTo(m.CategoryIntance, {
+    //     foreignKey: 'CategoryInstanceID'
+    // });
 
-    m.Badge.belongsTo(m.BadgeTemplate, {
-        foreignKey: 'BadgeTemplateID'
+    m.BadgeInstance.belongsTo(m.Badge, {
+        foreignKey: 'BadgeID'
     });
 
     m.Section.belongsTo(m.Course, {
@@ -219,27 +220,31 @@ models.forEach(function(model) {
     m.Assignment.belongsTo(m.Course, { foreignKey: 'CourseID' });
 
     //has Many Relations
-    m.Category.hasMany(m.Badge, {
-        foreignKey: 'CategoryID',
+    m.CategoryInstance.hasMany(m.BadgeInstance, {
+        foreignKey: 'CategoryInstanceID',
         constraints: false
     });
 
-
-    m.Badge.belongsTo(m.Category, {
-        foreignKey: 'CategoryID',
+    m.BadgeInstance.belongsTo(m.CategoryInstance, {
+        foreignKey: 'CategoryInstanceID',
         constraints: false
     });
 
     //has Many Relations
-    m.Category.hasMany(m.UserPointIntances, {
-        foreignKey: 'CategoryID',
+    m.CategoryInstance.hasMany(m.UserPointIntances, {
+        foreignKey: 'CategoryInstanceID',
         as: 'UserPoints',
         constraints: false
     });
 
-    m.UserPointIntances.belongsTo(m.Category, {
-        foreignKey: 'CategoryID',
+    m.UserPointIntances.belongsTo(m.CategoryInstance, {
+        foreignKey: 'CategoryInstanceID',
         constraints: false
+    });
+
+    m.Category.hasMany(m.CategoryInstance, {
+        as: 'Categories',
+        foreignKey: 'CategoryInstanceID'
     });
 
     m.Assignment.hasMany(m.AssignmentInstance, {
@@ -280,14 +285,10 @@ models.forEach(function(model) {
         foreignKey: 'SemesterID'
     });
 
-    m.CategoryTemplate.hasMany(m.Category, {
-        as: 'Categories',
-        foreignKey: 'CategoryTemplateID'
-    });
 
-    m.BadgeTemplate.hasMany(m.Badge, {
+    m.Badge.hasMany(m.BadgeInstance, {
         as: 'Badges',
-        foreignKey: 'BadgeTemplateID'
+        foreignKey: 'BadgeID'
     });
 
     m.Section.hasMany(m.SectionUser, {

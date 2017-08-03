@@ -111,10 +111,10 @@ insert  into `assignmentinstance`(`AssignmentInstanceID`,`AssignmentID`,`Section
 DROP TABLE IF EXISTS `badge`;
 
 CREATE TABLE `badge` (
-  `BadgeID` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `BadgeInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `BadgeTemplateID` int(10) unsigned NOT NULL,
   `CategoryID` int(10) unsigned NOT NULL,
-  PRIMARY KEY (`BadgeID`)
+  PRIMARY KEY (`BadgeInstanceID`)
 ) ENGINE=InnoDB AUTO_INCREMENT=73 DEFAULT CHARSET=latin1 COLLATE=latin1_spanish_ci;
 
 /*Data for the table `badge` */

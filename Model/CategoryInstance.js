@@ -1,9 +1,9 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Badge', {
-        BadgeID: {
-            //Unique identifier for Badge 
+    return sequelize.define('CategoryInstance', {
+        CategoryInstanceID: {
+            //Unique identifier for CategoryInstance 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeID',
+            field: 'CategoryInstanceID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
@@ -12,24 +12,38 @@ module.exports = function(sequelize, DataTypes) {
         CategoryID: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'CategoryID',
+            allowNull: false,
+        },
+        SemesterID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SemesterID',
             allowNull: false
         },
-        Name: {
-            type: DataTypes.STRING,
-            field: 'Name',
+        SectionID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SectionID',
             allowNull: false
         },
-        Description: {
-            //Description of the Badge
-            type: DataTypes.TEXT,
-            field: 'Description',
-            allowNull: true
-        },
-        Logo: {
-            type: DataTypes.STRING,
-            field: 'Logo',
+        CourseID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
             allowNull: false
-        }
+        },
+        Tier1Instances: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Tier1Instances',
+            allowNull: false
+        },
+        Tier2Instances: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Tier2Instances',
+            allowNull: false
+        },
+        Tier3Instances: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Tier3Instances',
+            allowNull: false
+        },
     }, {
         timestamps: false,
 
@@ -48,6 +62,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'badge'
+        tableName: 'categoryinstance'
     });
 };

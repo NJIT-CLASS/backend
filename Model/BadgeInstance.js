@@ -1,33 +1,22 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Badge', {
-        BadgeID: {
-            //Unique identifier for Badge 
+    return sequelize.define('BadgeInstance', {
+        BadgeInstanceID: {
+            //Unique identifier for BadgeInstance 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeID',
+            field: 'BadgeInstanceID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-        CategoryID: {
+        BadgeID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryID',
+            field: 'BadgeID',
             allowNull: false
         },
-        Name: {
-            type: DataTypes.STRING,
-            field: 'Name',
-            allowNull: false
-        },
-        Description: {
-            //Description of the Badge
-            type: DataTypes.TEXT,
-            field: 'Description',
-            allowNull: true
-        },
-        Logo: {
-            type: DataTypes.STRING,
-            field: 'Logo',
+        CategoryInstanceID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CategoryInstanceID',
             allowNull: false
         }
     }, {
@@ -48,6 +37,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'badge'
+        tableName: 'badgeinstance'
     });
 };
