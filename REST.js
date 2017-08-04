@@ -5767,56 +5767,61 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //get section users with their ranking wither ther current user
     router.get('/getSectionRanking/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
 
-        StudentRankSnapchot.findAll({
+        let lastUpdate = await StudentRankSnapchot.findOne({
+            attributes: ['UpdateDate'],
+            order: [
+                ['StudentRankSnapchotID', 'DESC']
+            ]
+        });
+
+        let students = await StudentRankSnapchot.findAll({
             where: {
                 SectionID: req.params.sectionID,
                 SemesterID: req.params.semesterID,
                 CourseID: req.params.courseID,
                 UpdateDate: {
-                    $eq: new Date(new Date().setHours(0, 0, 0, 0))
+                    $eq: lastUpdate.UpdateDate
                 },
             },
             order: [
                 ['Rank', 'ASC']
             ]
-        }).then((students) => {
+        });
 
-            StudentRankSnapchot.findOne({
-                where: {
-                    SectionID: req.params.sectionID,
-                    SemesterID: req.params.semesterID,
-                    CourseID: req.params.courseID,
-                    UserID: req.params.userID,
-                    UpdateDate: {
-                        $eq: new Date(new Date().setHours(0, 0, 0, 0))
-                    },
-                }
-            }).then((currentStudent) => {
+        let currentStudent = await StudentRankSnapchot.findOne({
+            where: {
+                SectionID: req.params.sectionID,
+                SemesterID: req.params.semesterID,
+                CourseID: req.params.courseID,
+                UserID: req.params.userID,
+                UpdateDate: {
+                    $eq: lastUpdate.UpdateDate
+                },
+            }
+        });
 
-                res.json({
-                    'Error': false,
-                    'students': students,
-                    'currentStudent': currentStudent
-                });
-
-            }).catch((err) => {
-                console.info(err);
-                res.status(401).end();
-            });
-
-        }).catch((err) => {
-            console.info(err);
-            res.status(401).end();
+        res.json({
+            'Error': false,
+            'students': students,
+            'currentStudent': currentStudent
         });
     });
 
     //get section users with their ranking
     router.get('/getSectionsRanking/:semesterID', async function(req, res) {
+
+        let lastUpdate = await SectionRankSnapchot.findOne({
+            attributes: ['UpdateDate'],
+            order: [
+                ['SectionRankSnapchotID', 'DESC']
+            ]
+        });
+
         SectionRankSnapchot.findAll({
             where: {
                 SemesterID: req.params.semesterID,
                 UpdateDate: {
-                    $eq: new Date(new Date().setHours(0, 0, 0, 0))
+                    $eq: lastUpdate.UpdateDate
                 }
             },
             order: [
@@ -5837,11 +5842,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //get movement
     router.get('/getMovement/:semesterID', async function(req, res) {
+
+        let lastUpdate = await StudentRankSnapchot.findOne({
+            attributes: ['UpdateDate'],
+            order: [
+                ['StudentRankSnapchotID', 'DESC']
+            ]
+        });
+
         StudentRankSnapchot.findAll({
             where: {
                 SemesterID: req.params.semesterID,
                 UpdateDate: {
-                    $eq: new Date(new Date().setHours(0, 0, 0, 0))
+                    $eq: lastUpdate.UpdateDate
                 },
                 PointsMovement: {
                     $not: '0'
@@ -5866,65 +5879,86 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //get movement
     router.get('/getLevels/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
-        LevelInstance.findAll({
+
+        let levelInstances = await LevelInstance.findAll({
             where: {
                 SemesterID: req.params.semesterID,
                 CourseID: req.params.semesterID,
                 sectionID: req.params.semesterID
             }
-        }).then((levels) => {
+        });
 
-            StudentRankSnapchot.findOne({
-                where: {
-                    SemesterID: req.params.semesterID,
-                    CourseID: req.params.semesterID,
-                    sectionID: req.params.semesterID,
-                    UserID: req.params.userID
-                },
-                attributes: ['TotalPoints']
-            }).then((points) => {
-                if (!points) {
-                    points = { TotalPoints: 0 };
+        let levels = await Level.findAll();
+        let result = [];
+
+        for (let x = 0; x < levelInstances.length; x++) {
+            let levelInstance = levelInstances[x].dataValues;
+
+            for (let x = 0; x < levels.length; x++) {
+                let level = levels[x];
+                if (levelInstance.LevelID == level.LevelID) {
+                    levelInstance.Name = level.Name;
+                    levelInstance.Description = level.Description;
                 }
 
-                res.json({
-                    'Error': false,
-                    'levels': levels,
-                    'currentPoints': points.TotalPoints
-                });
+            }
+            result.push(levelInstance);
+        }
 
-            }).catch((err) => {
-                console.info(err);
-                res.status(401).end();
-            });
+        let userPoints = await StudentRankSnapchot.findOne({
+            where: {
+                SemesterID: req.params.semesterID,
+                CourseID: req.params.semesterID,
+                sectionID: req.params.semesterID,
+                UserID: req.params.userID
+            },
+            attributes: ['TotalPoints']
+        });
 
-        }).catch((err) => {
-            console.info(err);
-            res.status(401).end();
+        if (!userPoints) {
+            userPoints = { TotalPoints: 0 };
+        }
+
+        res.json({
+            'Error': false,
+            'levels': result,
+            'currentPoints': userPoints.TotalPoints
         });
     });
 
     //get movement
     router.get('/getGoals/:semesterID/:courseID/:sectionID', async function(req, res) {
 
-        GoalInstance.findAll({
+        let goalInstances = await GoalInstance.findAll({
             where: {
                 SemesterID: req.params.semesterID,
                 CourseID: req.params.semesterID,
                 sectionID: req.params.semesterID
             }
-        }).then((goals) => {
+        });
 
+        let goals = await Goal.findAll();
+        let result = [];
 
-            res.json({
-                'Error': false,
-                'goals': goals
-            });
+        for (let x = 0; x < goalInstances.length; x++) {
+            let goalInstance = goalInstances[x].dataValues;
 
+            for (let x = 0; x < goals.length; x++) {
+                let goal = goals[x];
+                if (goalInstance.GoalID == goal.GoalID) {
+                    goalInstance.Name = goal.Name;
+                    goalInstance.Description = goal.Description;
+                    goalInstance.Logo = goal.Logo;
+                    goalInstance.LogoAchieved = goal.LogoAchieved;
+                }
 
-        }).catch((err) => {
-            console.info(err);
-            res.status(401).end();
+            }
+            result.push(goalInstance);
+        }
+
+        res.json({
+            'Error': false,
+            'Goals': result
         });
     });
 

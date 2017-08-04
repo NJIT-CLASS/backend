@@ -42,6 +42,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Tier3Instances',
             allowNull: false
         },
+        InstanceValue: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'InstanceValue',
+            allowNull: false
+        },
     }, {
         timestamps: false,
 

@@ -24,7 +24,6 @@ var Badge = models.Badge;
 var BadgeInstance = models.BadgeInstance;
 var CategoryInstance = models.CategoryInstance;
 var Category = models.Category;
-var CategoryInstancePoints = models.CategoryInstancePoints;
 var UserPointIntances = models.UserPointIntances;
 var StudentRankSnapchot = models.StudentRankSnapchot;
 var SectionRankSnapchot = models.SectionRankSnapchot;
@@ -800,17 +799,17 @@ class TaskFactory {
             data.Tier1Instances = category.Tier1Instances;
             data.Tier2Instances = category.Tier2Instances;
             data.Tier3Instances = category.Tier3Instances;
+            data.InstanceValue = category.InstanceValue;
 
             if (!categoryInstance) {
                 categoryInstance = CategoryInstance.create(data);
             }
 
             this.createBadgeInstances(category.CategoryID, categoryInstance);
-            this.createGoalInstances(categoryInstance.CategoryInstanceID, data.SemesterID, data.CourseID, data.SectionID);
-            this.createLevelInstances(data.SemesterID, data.CourseID, data.SectionID);
+            this.createGoalInstances(categoryInstance, data.SemesterID, data.CourseID, data.SectionID);
         }
 
-
+        this.createLevelInstances(semesterID, courseID, sectionID);
     }
 
     //Create levels
@@ -818,7 +817,7 @@ class TaskFactory {
         let levels = await Level.findAll();
 
         for (let x = 0; x < levels.length; x++) {
-            let level = levels[x];
+            let level = levels[x].dataValues;;
 
             let data = {};
             data.LevelID = level.LevelID;
@@ -826,34 +825,38 @@ class TaskFactory {
             data.CourseID = courseID;
             data.SectionID = sectionID;
 
-            let levelInstance = await LevelInstance.findOne({ where: data });
+            let exists = await LevelInstance.find({ where: data });
 
-            if (!levelInstance) {
+            console.info(exists);
+
+            if (!exists) {
                 data.ThresholdPoints = level.ThresholdPoints;
-                levelInstance = await LevelInstance.create(data);
+                let levelInstance = await LevelInstance.create(data);
             }
         }
     }
 
     //Create goals
-    async createGoalInstances(categoryInstanceID, semesterID, courseID, sectionID) {
+    async createGoalInstances(categoryInstance, semesterID, courseID, sectionID) {
         let goals = await Goal.findAll();
 
         for (let x = 0; x < goals.length; x++) {
             let goal = goals[x];
 
-            let data = {};
-            data.GoalID = goal.GoalID;
-            data.SemesterID = semesterID;
-            data.CourseID = courseID;
-            data.SectionID = sectionID;
-            data.CategoryInstanceID = categoryInstanceID;
+            if (goal.CategoryID == categoryInstance.CategoryID) {
+                let data = {};
+                data.GoalID = goal.GoalID;
+                data.SemesterID = semesterID;
+                data.CourseID = courseID;
+                data.SectionID = sectionID;
+                data.CategoryInstanceID = categoryInstance.CategoryInstanceID;
 
-            let goalInstance = await GoalInstance.findOne({ where: data });
+                let goalInstance = await GoalInstance.findOne({ where: data });
 
-            if (!goalInstance) {
-                data.ThresholdInstances = goal.ThresholdInstances;
-                goalInstance = await GoalInstance.create(data);
+                if (!goalInstance) {
+                    data.ThresholdInstances = goal.ThresholdInstances;
+                    goalInstance = await GoalInstance.create(data);
+                }
             }
         }
     }
@@ -985,6 +988,13 @@ class TaskFactory {
         return userBadgeInstances;
     }
 
+    getSunday(date) {
+        var day = date.getDay() || 7;
+        if (day !== 1)
+            date.setHours(-24 * (day));
+        return date;
+    }
+
     async rankingSnapshot() {
         console.info('Runing cron here ...');
 
@@ -1042,6 +1052,23 @@ class TaskFactory {
         //exit if no current semester
         if (!semester) {
             return;
+        }
+
+        let lastUpdate = await StudentRankSnapchot.findOne({
+            attributes: ['UpdateDate'],
+            order: [
+                ['StudentRankSnapchotID', 'DESC']
+            ]
+        });
+
+        //last update date
+        let lastUpdateDate;
+        if (lastUpdate) {
+            lastUpdateDate = lastUpdate.UpdateDate;
+        } else {
+            lastUpdateDate = new Date();
+            lastUpdateDate.setDate(lastUpdateDate.getDate() - 1);
+            lastUpdateDate.setHours(0, 0, 0, 0);
         }
 
         let sectionsRanks = {};
@@ -1120,21 +1147,10 @@ class TaskFactory {
                         attributes: ['Name', 'Description']
                     });
 
-                    let categoryInstancePoints = await CategoryInstancePoints.find({
-                        where: {
-                            CategoryID: categoryInstance.CategoryID
-                        },
-                        attributes: ['InstancePoints']
-                    });
-
-                    if (!categoryInstancePoints) {
-                        categoryInstancePoints = { InstancePoints: 1 };
-                    }
-
                     let currentPoints = 0;
 
                     if (pointInstance) {
-                        currentPoints = (parseInt(pointInstance.PointInstances) * categoryInstancePoints.InstancePoints);
+                        currentPoints = (parseInt(pointInstance.PointInstances) * categoryInstance.InstanceValue);
                         totalPoints += currentPoints;
                     } else {
                         pointInstance = { PointInstances: 0 };
@@ -1143,10 +1159,6 @@ class TaskFactory {
                     await this.awardBadgesToUser(user.UserID, categoryInstance, currentPoints);
                 };
 
-                let yesterday = new Date();
-                yesterday.setDate(yesterday.getDate() - 1);
-                yesterday.setHours(0, 0, 0, 0);
-
                 let previous = await StudentRankSnapchot.findOne({
                     where: {
                         SemesterID: semester.SemesterID,
@@ -1154,7 +1166,7 @@ class TaskFactory {
                         SectionID: section.SectionID,
                         UserID: user.UserID,
                         UpdateDate: {
-                            $eq: yesterday
+                            $eq: lastUpdateDate
                         }
                     }
                 });
@@ -1198,8 +1210,6 @@ class TaskFactory {
                 //Add student records to array
                 students.push(data);
                 totalPoints = 0;
-
-
             };
 
             //Check if snapshot

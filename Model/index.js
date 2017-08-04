@@ -26,7 +26,7 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
     'FileReference', 'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointIntances',
-    'StudentRankSnapchot', 'SectionRankSnapchot', 'CategoryInstancePoints', 'UserPointInstances', 'Level',
+    'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
     'Goal', 'GoalInstance', 'Level', 'LevelInstance'
 ];
 
