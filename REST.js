@@ -2267,7 +2267,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Name: req.body.name,
 
             }).save().then(function(response) {
-                //amadou added this
+
+                //Update Categories as new section is being created
                 let taskFactory = new TaskFactory;
                 taskFactory.createCategoryInstances(response.SemesterID, response.CourseID, response.SectionID);
 
@@ -3408,7 +3409,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }, ],
         });
 
-        //Amadou added this
+        //Update points for student as they submit taks
         let taskFactory = new TaskFactory;
         taskFactory.updatePointInstance(ti);
 
@@ -5634,7 +5635,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //Endpoint to get the user's Progress
+    //Endpoint to get the user's points
     router.get('/userProgress/:userID/:categoryID', async function(req, res) {
 
         let select = `SELECT ci.CategoryID, ci.CourseID, ci.SectionID, ci.SemesterID, 
@@ -5682,7 +5683,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //Endpoint for user courses
+    //Endpoint for user courses/sections
     router.get('/studentCourses/:userID/:semesterID', async function(req, res) {
 
         let select = `SELECT DISTINCT c.Name, c.Number, c.Description, c.CourseID, 
@@ -5712,7 +5713,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //Endpoint for BadgeInstance categories
+    //Endpoint to get badges for each category
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function(req, res) {
 
         var select = `SELECT c.CategoryID,c.Tier1Instances,c.Tier2Instances,c.Tier3Instances,
@@ -5764,7 +5765,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
     });
 
-    //get section users with their ranking wither ther current user
+    //Endpoint students' ranking by for a class
     router.get('/getSectionRanking/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
 
         let lastUpdate = await StudentRankSnapchot.findOne({
@@ -5807,7 +5808,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //get section users with their ranking
+    //Endpoint for ranking accross sections based on average points
     router.get('/getSectionsRanking/:semesterID', async function(req, res) {
 
         let lastUpdate = await SectionRankSnapchot.findOne({
@@ -5840,7 +5841,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //get movement
+    //Get movements, changes in point for each student and rank them
     router.get('/getMovement/:semesterID', async function(req, res) {
 
         let lastUpdate = await StudentRankSnapchot.findOne({
@@ -5876,8 +5877,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-
-    //get movement
+    //Get the different level for each class
     router.get('/getLevels/:semesterID/:courseID/:sectionID/:userID', async function(req, res) {
 
         let levelInstances = await LevelInstance.findAll({
@@ -5926,7 +5926,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    //get movement
+    //Get the goals for each class
     router.get('/getGoals/:semesterID/:courseID/:sectionID', async function(req, res) {
 
         let goalInstances = await GoalInstance.findAll({
@@ -5962,7 +5962,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-
+    //Just for testing
     router.get('/testing', async function(req, res) {
 
         let taskFactory = new TaskFactory;

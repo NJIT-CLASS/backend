@@ -711,7 +711,7 @@ class TaskFactory {
         });
     }
 
-    //Update points instances
+    //Update points instances when student submit task
     async updatePointInstance(taskInstance) {
         let taskActivity = taskInstance.TaskActivity;
         let userID = taskInstance.UserID;
@@ -780,7 +780,7 @@ class TaskFactory {
         });
     }
 
-    //Create category instances
+    //Create category for each class
     async createCategoryInstances(semesterID, courseID, sectionID) {
 
         let categories = await Category.findAll();
@@ -812,7 +812,7 @@ class TaskFactory {
         this.createLevelInstances(semesterID, courseID, sectionID);
     }
 
-    //Create levels
+    //Create levels for each class
     async createLevelInstances(semesterID, courseID, sectionID) {
         let levels = await Level.findAll();
 
@@ -836,7 +836,7 @@ class TaskFactory {
         }
     }
 
-    //Create goals
+    //Create goals for class
     async createGoalInstances(categoryInstance, semesterID, courseID, sectionID) {
         let goals = await Goal.findAll();
 
@@ -861,7 +861,7 @@ class TaskFactory {
         }
     }
 
-    //create badge instances
+    //Create badges for each class
     async createBadgeInstances(categoryID, categoryInstance) {
 
         let badges = await Badge.findAll({ where: { CategoryID: categoryID } });
@@ -988,6 +988,7 @@ class TaskFactory {
         return userBadgeInstances;
     }
 
+    //Get sunday of each week
     getSunday(date) {
         var day = date.getDay() || 7;
         if (day !== 1)
@@ -995,6 +996,7 @@ class TaskFactory {
         return date;
     }
 
+    //Create snapshot for student rank and section based on average points
     async rankingSnapshot() {
         console.info('Runing cron here ...');
 
@@ -1054,6 +1056,7 @@ class TaskFactory {
             return;
         }
 
+        //Get las updated snapshot for date
         let lastUpdate = await StudentRankSnapchot.findOne({
             attributes: ['UpdateDate'],
             order: [
@@ -1072,7 +1075,7 @@ class TaskFactory {
         }
 
         let sectionsRanks = {};
-
+        //Go through sections
         for (let xx = 0; xx < semester.Sections.length; xx++) {
 
             let curSection = semester.Sections[xx];
@@ -1242,6 +1245,7 @@ class TaskFactory {
                     SecRanks.push(current);
                 }
             }
+            //Sort section ranking to rank sections
             SecRanks.sort(function(a, b) {
                 return parseFloat(a.AveragePoints) - parseFloat(b.AveragePoints);
             });
@@ -1255,7 +1259,6 @@ class TaskFactory {
             };
         }
     }
-
 
     findPreviousTasks(ti_id, previousTasks) {
         var x = this;
