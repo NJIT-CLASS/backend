@@ -5603,7 +5603,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     /*********************************************************************************************************** 
-     ** 
+     ** Amadou workd starts here
      ************************************************************************************************************/
     //Endpoints to get user's badges
     router.get('/userBadges/:userID', async function(req, res) {

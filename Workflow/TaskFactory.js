@@ -712,7 +712,7 @@ class TaskFactory {
     }
 
     /*********************************************************************************************************** 
-     ** 
+     **  Amadou workd starts here
      ************************************************************************************************************/
     //Update points instances when student submit task
     async updatePointInstance(taskInstance) {
