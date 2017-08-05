@@ -711,6 +711,9 @@ class TaskFactory {
         });
     }
 
+    /*********************************************************************************************************** 
+     ** 
+     ************************************************************************************************************/
     //Update points instances when student submit task
     async updatePointInstance(taskInstance) {
         let taskActivity = taskInstance.TaskActivity;
