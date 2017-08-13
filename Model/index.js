@@ -24,7 +24,7 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference'
+    'FileReference','Comments','CommentsArchive', 'CommentsViewed', 'Contact'
 ];
 
 
@@ -44,7 +44,9 @@ models.forEach(function(model) {
     m.Course.belongsTo(m.User, {
         foreignKey: 'CreatorID'
     });
-
+    m.Contact.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
     m.User.hasOne(m.UserLogin, {
         foreignKey: 'UserID'
     });
@@ -127,9 +129,9 @@ models.forEach(function(model) {
         foreignKey: 'TaskInstanceID'
     });
 
-    m.TaskInstance.belongsTo(m.TaskSimpleGrade, {
-        foreignKey: 'TaskInstanceID'
-    });
+    // m.TaskInstance.belongsTo(m.TaskSimpleGrade, {
+    //     foreignKey: 'TaskInstanceID'
+    // });
 
     m.TaskSimpleGrade.belongsTo(m.WorkflowActivity, {
         foreignKey: 'WorkflowActivityID'
@@ -264,6 +266,15 @@ models.forEach(function(model) {
     });
     m.User.hasMany(m.VolunteerPool, {
         foreignKey: 'UserID'
+    });
+
+    m.User.hasMany(m.Comments, {
+        as: 'Comments',
+        foreignKey: 'UserID'
+    });
+    m.AssignmentInstance.hasMany(m.Comments, {
+        as: 'Comments',
+        foreignKey: 'AssignmentInstanceID'
     });
 
     //m.User.hasOne(m.UserLogin,{foreignKey: 'UserID'});

@@ -2,7 +2,43 @@
  * Created by cesarsalazar on 4/20/16.
  */
 
-var models = require('../Model');
+ import {
+    Assignment,
+    AssignmentGrade,
+    AssignmentInstance,
+    AssignmentInstance_Archive,
+    Assignment_Archive,
+    Comments,
+    CommentsArchive,
+    CommentsViewed,
+    Contact,
+    Course,
+    CourseBackUp,
+    EmailNotification,
+    FileReference,
+    Organization,
+    PartialAssignments,
+    ResetPasswordRequest,
+    Section,
+    SectionUser,
+    Semester,
+    TaskActivity,
+    TaskActivity_Archive,
+    TaskGrade,
+    TaskInstance,
+    TaskInstance_Archive,
+    TaskSimpleGrade,
+    User,
+    UserContact,
+    UserLogin,
+    VolunteerPool,
+    WorkflowActivity,
+    WorkflowActivity_Archive,
+    WorkflowGrade,
+    WorkflowInstance,
+    WorkflowInstance_Archive
+} from '../Util/models.js';
+
 var Allocator = require('./Allocator.js');
 var Promise = require('bluebird');
 var moment = require('moment');
@@ -12,25 +48,6 @@ var consts = require('../Util/constant.js');
 var Email = require('./Email.js');
 var Util = require('./Util.js');
 var _ = require('underscore');
-
-var User = models.User;
-var UserLogin = models.UserLogin;
-var UserContact = models.UserContact;
-var Course = models.Course;
-var Section = models.Section;
-var SectionUser = models.SectionUser;
-
-var Semester = models.Semester;
-var TaskInstance = models.TaskInstance;
-var TaskActivity = models.TaskActivity;
-var Assignment = models.Assignment;
-var AssignmentInstance = models.AssignmentInstance;
-
-var WorkflowInstance = models.WorkflowInstance;
-var WorkflowActivity = models.WorkflowActivity;
-var ResetPasswordRequest = models.ResetPasswordRequest;
-var EmailNotification = models.EmailNotification;
-var TaskSimpleGrade = models.TaskSimpleGrade;
 
 var tree = new TreeModel();
 var flatToNested = new FlatToNested();

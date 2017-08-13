@@ -4,6 +4,10 @@ import {
     AssignmentInstance,
     AssignmentInstance_Archive,
     Assignment_Archive,
+    Comments,
+    CommentsArchive,
+    CommentsViewed,
+    Contact,
     Course,
     CourseBackUp,
     EmailNotification,
@@ -30,7 +34,6 @@ import {
     WorkflowInstance,
     WorkflowInstance_Archive
 } from '../Util/models.js';
-
 //var models = require('../Model');
 var Promise = require('bluebird');
 var Util = require('./Util.js');
@@ -67,6 +70,7 @@ class Grade {
                 }
             ]
         });
+        
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
         var user_history = JSON.parse(ti.UserHistory);
