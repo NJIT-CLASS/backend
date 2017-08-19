@@ -5789,13 +5789,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 res.status(400).end();
             }
 
-
            console.log("got to create part");
 
            Comments.create({
                CommentsID: req.body.CommentsID,
                UserID: req.body.UserID,
-               TaskInstanceID: req.body.TaskInstanceID,
+               TargetID: req.body.TargetID,
                AssignmentInstanceID:req.body.AssignmentInstanceID,
                Type: req.body.Type,
                CommentsText: req.body.CommentsText,
@@ -5807,7 +5806,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                Hide: 0,
                Viewed: 0,
                Time:req.body.Time,
-               Complete: req.body.Complete
+               Complete: req.body.Complete,
+               CommentTarget: req.body.CommentTarget,
 
            }).then(function(result){
              res.status(200).end();
@@ -5837,17 +5837,22 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
            CommentsArchive.create({
                CommentsID: rows[0].CommentsID,
                UserID: rows[0].UserID,
-               TaskInstanceID: rows[0].TaskInstanceID,
-               AssignmentInstanceID:rows[0].AssignmentInstanceID,
+               CommentTarget: rows[0].CommentTarget,
+               TargetID: rows[0].TargetID,
+               AssignmentInstanceID: rows[0].AssignmentInstanceID,
                Type: rows[0].Type,
                CommentsText: rows[0].CommentsText,
                Rating: rows[0].Rating,
                Flag: rows[0].Flag,
                Status: rows[0].Status,
+               Label: rows[0].Status,
                ReplyLevel: rows[0].ReplyLevel,
                Parents: rows[0].Parents,
+               Delete: rows[0].Delete,
                Hide: rows[0].Hide,
-               Viewed: rows[0].Viewed,
+               HideReason: rows[0].HideReason,
+               HideType: rows[0].HideType,
+               Edited: rows[0].Edited,
                Time:rows[0].Time,
                Complete: rows[0].Complete
              });
@@ -5867,7 +5872,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
           ReplyLevel: req.body.ReplyLevel,
           Parents: req.body.Parents,
           Time: req.body.Time,
-          Complete: req.body.Complete
+          Complete: req.body.Complete,
+          Edited: 1
 
      }, {
          where: {
@@ -6042,7 +6048,27 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
     });
-
+    //-------------------------------------------------------------------------
+    router.get('/comments/countOfComments/:Target/id/:TargetID', function(req, res) {
+        console.log('/comments/countOfComments/:Target/id/:TargetID was called');
+        Comments.findAll({
+          where: {
+              CommentTarget: req.params.Target,
+              TargetID: req.params.TargetID,
+              Status: 'submitted',
+              Delete: null
+          }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'NumberComments': rows.length
+            });
+        }).catch(function(err) {
+            console.log('/comments/countOfComments/' + err.message);
+            res.status(401).end();
+        });
+    });
     //-------------------------------------------------------------------------
     router.get('/comments/countOfUsers/:assignmentInstanceID', function(req, res) {
         console.log('comments/countOfUsers was called');
@@ -6082,6 +6108,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
     });
+
     //-------------------------------------------------------------------------
     router.get('/comments/aveRating/comment/:CommentsID', function(req, res) {
         console.log('/comments/aveRating/comment/ was called');
@@ -6155,11 +6182,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     //-------------------------------------------------------------------------
-    router.get('/comments/ti/:TaskInstanceID',async function(req, res) {
-          console.log('comments/ti/:TaskInstanceID was called');
+    router.get('/comments/ti/:Target/id/:TargetID',async function(req, res) {
+          console.log('comments/ti/:Target/id/:TargetID was called');
+          console.log(req.params.Target, req.params.TargetID)
           var parents = await Comments.findAll({
               where: {
-                  TaskInstanceID: req.params.TaskInstanceID,
+                  TargetID: req.params.TargetID,
+                  CommentTarget: req.params.Target,
                   Delete: null,
                   Parents: null
               }
@@ -6169,7 +6198,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
             var children = await Comments.findAll({
                 where: {
-                    TaskInstanceID: req.params.TaskInstanceID,
+                    TargetID: req.params.TargetID,
+                    CommentTarget: req.params.Target,
                     Delete: null,
                     Parents: {$ne: null}
                 }
@@ -6224,24 +6254,97 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
     //-------------------------------------------------------------------------
-    router.get('/comments/userID/:UserID',function(req, res) {
-      console.log('/comments/userID/:UserID');
-      Comments.findAll({
+    router.get('/comments/IDData/:TaskInstanceID',function(req, res) {
+      console.log('/comments/IDData/:TaskInstanceID was called');
+      TaskInstance.findAll({
           where: {
-              UserID: req.params.UserID,
-              Delete: null
+              TaskInstanceID: req.params.TaskInstanceID,
           },
-          attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+          attributes: ['AssignmentInstanceID', 'WorkflowInstanceID']
         }).then(function(rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success',
-                'Comments': rows
+                'AssignmentInstanceID': rows[0].AssignmentInstanceID,
+                'WorkflowInstanceID': rows[0].WorkflowInstanceID
             });
         }).catch(function(err) {
-            console.log('comments/ai ' + err.message);
+            console.log('/comments/IDData/:TaskInstanceID ' + err.message);
             res.status(401).end();
         });
+    });
+    //-------------------------------------------------------------------------
+    router.get('/comments/userID/:UserID', function(req, res) {
+      console.log('/comments/userID/:UserID');
+      return Comments.findAll({
+          where: {
+              UserID: req.params.UserID,
+              Delete: null,
+              Hide: 0
+          },
+          //attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
+        }).then(function(rows) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Comments': rows
+              });
+        }).catch(function(err) {
+            console.log('comments/userID/:UserID ' + err.message);
+            res.status(401).end();
+        });
+    });
+    //-------------------------------------------------------------------------
+    router.get('/comments/courseData/:assignmentInstanceID', async function(req, res) {
+      console.log('/comments/courseData/:assignmentInstanceID');
+
+           var AI_Result = await AssignmentInstance.findOne({
+               where: {
+                   AssignmentInstanceID: req.params.assignmentInstanceID
+               },
+               attributes: ['SectionID']
+           }).catch(function(err) {
+               console.log('comments/courseData/:assignmentInstanceID AI' + err.message);
+               res.status(401).end();
+           });
+
+             var Section_Result = await Section.findOne({
+                 where: {
+                     SectionID: AI_Result.SectionID
+                 },
+                 attributes: ['Name', 'CourseID', 'SemesterID']
+               }).catch(function(err) {
+                   console.log('comments/courseData/:assignmentInstanceID Section' + err.message);
+                   res.status(401).end();
+               });
+
+               var Course_Result = await Course.findOne({
+                   where: {
+                       CourseID: Section_Result.CourseID
+                   },
+                   attributes: ['Name']
+                 }).catch(function(err) {
+                     console.log('comments/courseData/:assignmentInstanceID Course' + err.message);
+                     res.status(401).end();
+                 });
+
+                 var Semester_Result = await Semester.findOne({
+                     where: {
+                         SemesterID: Section_Result.SemesterID
+                     },
+                     attributes: ['Name']
+                   }).catch(function(err) {
+                       console.log('comments/courseData/:assignmentInstanceID Semester' + err.message);
+                       res.status(401).end();
+                   });
+
+                 res.json({
+                     "Error": false,
+                     "Message": "Success",
+                     "CourseName": Course_Result.Name,
+                     "SectionName": Section_Result.Name,
+                     "SemesterName": Semester_Result.Name
+                 });
     });
     //-------------------------------------------------------------------------
     router.post('/comments/hide', function(req, res) {
@@ -6251,7 +6354,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             return;
         }
         Comments.update({
-                Hide: 1
+                Hide: 1,
+                HideReason: req.body.HideReason,
+                HideType: req.body.HideType
         }, {
             where: {
                 CommentsID: req.body.CommentsID,
@@ -6282,7 +6387,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             return;
         }
         Comments.update({
-                Hide: 0
+                Hide: 0,
+                HideReason: 'NULL',
+                HideType: 'NULL'
         }, {
             where: {
                 CommentsID: req.body.CommentsID,
