@@ -9,22 +9,12 @@ module.exports = function(sequelize, DataTypes) {
             autoIncrement: true,
             unique: true
         },
-<<<<<<< HEAD
-        CategryID: {
-            //The Badge Category
-            //Foreign Key
-=======
         CategoryID: {
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'CategoryID',
             allowNull: false
         },
         Name: {
-<<<<<<< HEAD
-            //Name of the Badge.
-=======
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
             type: DataTypes.STRING,
             field: 'Name',
             allowNull: false
@@ -34,14 +24,11 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.TEXT,
             field: 'Description',
             allowNull: true
-<<<<<<< HEAD
-=======
         },
         Logo: {
             type: DataTypes.STRING,
             field: 'Logo',
             allowNull: false
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
         }
     }, {
         timestamps: false,
@@ -61,12 +48,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-<<<<<<< HEAD
-        tableName: 'Badges'
-    });
-};
-=======
         tableName: 'badge'
     });
 };
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f

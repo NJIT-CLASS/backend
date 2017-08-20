@@ -222,17 +222,6 @@ models.forEach(function(model) {
     m.Assignment.belongsTo(m.Course, { foreignKey: 'CourseID' });
 
     //has Many Relations
-    m.BadgeCategory.hasMany(m.Badge, {
-        foreignKey: 'BadgeCategoryID',
-        constraints: false
-    });
-
-    m.Badge.belongsTo(m.BadgeCategory, {
-        foreignKey: 'BadgeCategoryID',
-        constraints: false
-    });
-
-    //has Many Relations
     m.CategoryInstance.hasMany(m.BadgeInstance, {
         foreignKey: 'CategoryInstanceID',
         constraints: false

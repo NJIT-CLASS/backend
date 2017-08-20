@@ -2293,6 +2293,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Name: req.body.name,
 
             }).save().then(function(response) {
+
+                //Update Categories as new section is being created
+                let taskFactory = new TaskFactory;
+                taskFactory.createCategoryInstances(response.SemesterID, response.CourseID, response.SectionID);
+
                 res.json({
                     'result': response
                 });
@@ -3499,6 +3504,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
             logger.log('info', 'task instance updated');
             logger.log('info', 'triggering next task');
+
+            //Update points for student as they submit taks
+            let taskFactory = new TaskFactory;
+            taskFactory.updatePointInstance(ti);
 
             await trigger.next(req.body.taskInstanceid);
         }
