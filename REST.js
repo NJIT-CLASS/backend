@@ -1,102 +1,71 @@
+import {
+    Assignment,
+    AssignmentGrade,
+    AssignmentInstance,
+    AssignmentInstance_Archive,
+    Assignment_Archive,
+    Course,
+    CourseBackUp,
+    EmailNotification,
+    FileReference,
+    Organization,
+    PartialAssignments,
+    ResetPasswordRequest,
+    Section,
+    SectionUser,
+    Semester,
+    TaskActivity,
+    TaskActivity_Archive,
+    TaskGrade,
+    TaskInstance,
+    TaskInstance_Archive,
+    TaskSimpleGrade,
+    User,
+    UserContact,
+    UserLogin,
+    VolunteerPool,
+    WorkflowActivity,
+    WorkflowActivity_Archive,
+    WorkflowGrade,
+    WorkflowInstance,
+    WorkflowInstance_Archive
+} from './Util/models.js';
+
+import {
+    FILE_SIZE as file_size,
+    MAX_NUM_FILES as max_files
+} from './Util/constant';
+
+
 var dateFormat = require('dateformat');
 var Guid = require('guid');
-var models = require('./Model');
 var Promise = require('bluebird');
 var password = require('./password');
 var moment = require('moment');
-
-// const cls = require('continuation-local-storage');
-// const Sequelize = require("sequelize");
-// //const NAMESPACE = 'my-very-own-namespace';
-// //Sequelize.useCLS(namespace);
-// Sequelize.cls = cls.createNamespace('transactions');
 const sequelize = require('./Model/index.js').sequelize;
-
-
-var User = models.User;
-var UserLogin = models.UserLogin;
-var UserContact = models.UserContact;
-var Course = models.Course;
-var Section = models.Section;
-var SectionUser = models.SectionUser;
-var Badge = models.Badge;
-var BadgeCategory = models.BadgeCategory;
-var UserPointIntances = models.UserPointIntances;
-var UserBadges = models.UserBadges;
-
-var Semester = models.Semester;
-var TaskInstance = models.TaskInstance;
-var TaskActivity = models.TaskActivity;
-var Assignment = models.Assignment;
-var AssignmentGrade = models.AssignmentGrade;
-var AssignmentInstance = models.AssignmentInstance;
-var Organization = models.Organization;
-
-var WorkflowInstance = models.WorkflowInstance;
-var WorkflowGrade = models.WOrkflowGrade;
-var WorkflowActivity = models.WorkflowActivity;
-var ResetPasswordRequest = models.ResetPasswordRequest;
-var EmailNotification = models.EmailNotification;
-
-var AssignmentGrade = models.AssignmentGrade;
-var WorkflowGrade = models.WorkflowGrade;
-var TaskGrade = models.TaskGrade;
-var TaskSimpleGrade = models.TaskSimpleGrade;
-var PartialAssignments = models.PartialAssignments;
 var contentDisposition = require('content-disposition');
-var FileReference = models.FileReference;
-
-var VolunteerPool = models.VolunteerPool;
-var Assignment_Archive = models.Assignment_Archive;
-var AssignmentInstance_Archive = models.AssignmentInstance_Archive;
-var CourseBackUp = models.Course;
-var TaskActivity_Archive = models.TaskActivity_Archive;
-var TaskInstance_Archive = models.TaskInstance_Archive;
-var WorkflowInstance_Archive = models.WorkflowInstance_Archive;
-var WorkflowActivity_Archive = models.WorkflowActivity_Archive;
-
 var Manager = require('./Workflow/Manager.js');
 var Allocator = require('./Workflow/Allocator.js');
 var TaskFactory = require('./Workflow/TaskFactory.js');
 var TaskTrigger = require('./Workflow/TaskTrigger.js');
-
 var Email = require('./Workflow/Email.js');
 var Make = require('./Workflow/Make.js');
 var Util = require('./Workflow/Util.js');
 var Grade = require('./Workflow/Grade.js');
 var FlatToNested = require('flat-to-nested');
 var fs = require('fs');
+var logger = require('./Workflow/Logger.js');
 
 
 const multer = require('multer'); //TODO: we may need to limit the file upload size
+
 var storage = multer({
-    dest: './files/'
+    dest: './files/',
+    limits: { //Max 3 files and total of 50MB
+        fileSize: file_size,
+        files: max_files
+    }
 });
-const logger = require('winston');
-
-logger.configure({
-    transports: [
-        new(logger.transports.Console)({
-            level: 'debug',
-            colorize: true,
-            // json: true,
-        }),
-        new(logger.transports.File)({
-            name: 'info-file',
-            filename: 'logs/filelog-info.log',
-            level: 'info',
-        }),
-        new(logger.transports.File)({
-            name: 'error-file',
-            filename: 'logs/filelog-error.log',
-            level: 'error',
-        })
-    ]
-});
-
-// function transaction(task) {
-//   return cls.getNamespace(NAMESPACE).get('transaction') ? task() : sequelize.transaction(task);
-// };
 
 
 //-----------------------------------------------------------------------------------------------------
@@ -990,29 +959,70 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         //     }
         // });
 
-        if (req.body.partialAssignmentId !== null) {
-            PartialAssignments.find({
-                where: {
-                    PartialAssignmentID: req.body.partialAssignmentId,
-                    UserID: req.body.userId,
-                    CourseID: req.body.courseId
-                }
+        // if (req.body.partialAssignmentId !== null) {
+        //     PartialAssignments.find({
+        //         where: {
+        //             PartialAssignmentID: req.body.partialAssignmentId,
+        //             UserID: req.body.userId,
+        //             CourseID: req.body.courseId
+        //         }
+        //     }).then((result) => {
+        //         result.destroy();
+        //     }).catch((err) => {
+        //         console.error(err);
+        //     });
+        // }
+
+        if (req.body.partialAssignmentId == null) {
+            PartialAssignments.create({
+                PartialAssignmentName: req.body.assignment.AA_name,
+                UserID: req.body.userId,
+                CourseID: req.body.courseId,
+                Data: req.body.assignment
             }).then((result) => {
-                result.destroy();
+                var taskFactory = new TaskFactory();
+                console.log('assignment: ', req.body.assignment);
+                taskFactory.createAssignment(req.body.assignment).then(function(done) {
+                    if (done) {
+                        res.json({
+                            'Error': false,
+                            'PartialAssignmentID': result.PartialAssignmentID
+                        });
+                    } else {
+                        res.status(400).end();
+                    }
+                });
             }).catch((err) => {
                 console.error(err);
+                res.status(400).end();
+            });
+        } else {
+            PartialAssignments.update({
+                PartialAssignmentName: req.body.assignment.AA_name,
+                Data: req.body.assignment
+            }, {
+                where: {
+                    PartialAssignmentID: req.body.partialAssignmentId
+                }
+            }).then((result) => {
+                console.log('assignment: ', req.body.assignment);
+                taskFactory.createAssignment(req.body.assignment).then(function(done) {
+                    if (done) {
+                        res.json({
+                            'Error': false,
+                            'PartialAssignmentID': req.body.partialAssignmentId
+                        });
+                    } else {
+                        res.status(400).end();
+                    }
+                });
+            }).catch((result) => {
+                console.error(result);
+                res.status(400).end();
             });
         }
+        //save all assignments submitted
 
-        var taskFactory = new TaskFactory();
-        console.log('assignment: ', req.body.assignment);
-        taskFactory.createAssignment(req.body.assignment).then(function(done) {
-            if (done) {
-                res.status(200).end();
-            } else {
-                res.status(400).end();
-            }
-        });
 
     });
 
@@ -1138,7 +1148,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //Endpoint to get a user's active assignment instances by the section
     router.get('/getActiveAssignmentsForSection/:sectionId', function(req, res) {
-        console.log(`Finding Assignments for Section ${req.params.sectionId}`);
+        console.log(`/getActiveAssignmentsForSection/:sectionId: Finding Assignments for Section ${req.params.sectionId}`);
         AssignmentInstance.findAll({
             where: {
                 SectionID: req.params.sectionId
@@ -1149,7 +1159,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 attributes: ['DisplayName']
             }]
         }).then(function(result) {
-            console.log('Assignments have been found!');
+            console.log('/getActiveAssignmentsForSection/:sectionId: Assignments have been found!');
             res.json({
                 'Error': false,
                 'Assignments': result
@@ -3912,38 +3922,38 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             req_query: req.query,
             req_params: req.params
         });
+        var view_constraint;
         var allocator = new TaskFactory();
 
         let taskActivityAttributes = ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName', 'AllowRevision'];
 
-        await allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(async function(done) {
+        await allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(async function(pre_tis) {
 
-            //console.log('done!', done);
+            //console.log('pre_tis!', pre_tis);
             var ar = new Array();
-            if (done == null) {
+            if (pre_tis == null) {
 
-                await TaskInstance.find({
-                        where: {
-                            TaskInstanceID: req.params.taskInstanceId
-                        },
-                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
-                        include: [{
-                            model: TaskActivity,
-                            attributes: taskActivityAttributes
-                        }]
-                    })
-                    .then((result) => {
-                        //console.log(result);
-                        ar.push(result);
-                        res.json({
-                            'previousTasksList': done,
-                            'superTask': ar
-                        });
-                    });
+                var ti = await TaskInstance.find({
+                    where: {
+                        TaskInstanceID: req.params.taskInstanceId
+                    },
+                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: taskActivityAttributes
+                    }]
+                });
+
+                //console.log(result);
+                ar.push(ti);
+                res.json({
+                    'previousTasksList': pre_tis,
+                    'superTask': ar
+                });
             } else {
 
 
-                await Promise.mapSeries(done, async function(task) {
+                await Promise.mapSeries(pre_tis, async function(task) {
                     await TaskInstance.find({
                         where: {
                             TaskInstanceID: task
@@ -3951,54 +3961,57 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                         attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
                         include: [{
                             model: TaskActivity,
-                            attributes: taskActivityAttributes
-
                         }]
-                    }).then((result) => {
+                    }).then(async(result) => {
                         //console.log(result);
                         // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
                         ar.push(result);
 
-                        //return allocator.applyViewContstraints(res, req.query.userID, result)
+                        view_constraint = await allocator.applyViewContstraints(res, req.query.userID, result);
                     });
-                }).then(async function() {
-                    await TaskInstance.find({
-                            where: {
-                                TaskInstanceID: req.params.taskInstanceId
-                            },
-                            attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
-                            include: [{
-                                model: TaskActivity,
-                                attributes: taskActivityAttributes
-
-                            }]
-                        })
-                        .then((result) => {
-                            //console.log(result);
-
-                            ar.push(result);
-                            res.json({
-                                error: false,
-                                previousTasksList: done,
-                                superTask: ar,
-                            });
-                            logger.log('debug', 'done collecting previous tasks');
-                            // check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
-                            // return Promise.all([allocator.applyViewContstraints(res, req.query.userID, result)]).then(function(done1) {
-                            //     if (res._headerSent) { // if already responded (response sent)
-                            //         return
-                            //     }
-                            //     // update data field of all tasks with the appropriate allowed version
-                            //     allocator.applyVersionContstraints(ar, result, req.query.userID)
-                            //     ar.push(result);
-                            //     res.json({
-                            //         error: false,
-                            //         previousTasksList: done,
-                            //         superTask: ar,
-                            //     });
-                            // })
-                        });
                 });
+
+                if (view_constraint === false || view_constraint === undefined) {
+                    var ti = await TaskInstance.find({
+                        where: {
+                            TaskInstanceID: req.params.taskInstanceId
+                        },
+                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                        include: [{
+                            model: TaskActivity,
+                        }]
+                    });
+                    //console.log(ti);
+                    //ar.push(ti);
+                    // res.json({
+                    //     error: false,
+                    //     previousTasksList: pre_tis,
+                    //     superTask: ar,
+                    // });
+                    //logger.log('debug', 'done collecting previous tasks');
+                    //check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
+                    view_constraint = await allocator.applyViewContstraints(res, req.query.userID, ti);
+                    if (view_constraint === false || view_constraint === undefined) {
+                        if (res._headerSent) { // if already responded (response sent)
+                            return
+                        }
+                        // update data field of all tasks with the appropriate allowed version
+                        ar = await allocator.applyVersionContstraints(ar, ti, req.query.userID);
+                        ar.push(ti);
+                        res.json({
+                            error: false,
+                            previousTasksList: pre_tis,
+                            superTask: ar,
+                        });
+
+                    } else {
+                        res.json(view_constraint);
+                    }
+
+
+                } else {
+                    res.json(view_constraint);
+                }
             }
 
         }).catch(function(err) {

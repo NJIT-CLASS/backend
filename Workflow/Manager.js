@@ -1,3 +1,37 @@
+import {
+    Assignment,
+    AssignmentGrade,
+    AssignmentInstance,
+    AssignmentInstance_Archive,
+    Assignment_Archive,
+    Course,
+    CourseBackUp,
+    EmailNotification,
+    FileReference,
+    Organization,
+    PartialAssignments,
+    ResetPasswordRequest,
+    Section,
+    SectionUser,
+    Semester,
+    TaskActivity,
+    TaskActivity_Archive,
+    TaskGrade,
+    TaskInstance,
+    TaskInstance_Archive,
+    TaskSimpleGrade,
+    User,
+    UserContact,
+    UserLogin,
+    VolunteerPool,
+    WorkflowActivity,
+    WorkflowActivity_Archive,
+    WorkflowGrade,
+    WorkflowInstance,
+    WorkflowInstance_Archive
+} from '../Util/models.js';
+
+
 var models = require('../Model');
 var TaskFactory = require('./TaskFactory.js');
 var Promise = require('bluebird');
@@ -6,36 +40,12 @@ var Email = require('./Email.js');
 var Make = require('./Make.js');
 var TaskTrigger = require('./TaskTrigger.js');
 
-var FileReference = models.FileReference;
-var User = models.User;
-var UserLogin = models.UserLogin;
-var UserContact = models.UserContact;
-var Course = models.Course;
-var Section = models.Section;
-var SectionUser = models.SectionUser;
-
-var Semester = models.Semester;
-var TaskInstance = models.TaskInstance;
-var TaskGrade = models.TaskGrade;
-var TaskSimpleGrade = models.TaskSimpleGrade;
-var TaskActivity = models.TaskActivity;
-var Assignment = models.Assignment;
-var AssignmentGrade = models.AssignmentGrade;
-var AssignmentInstance = models.AssignmentInstance;
-
-var WorkflowInstance = models.WorkflowInstance;
-var WorkflowGrade = models.WorkflowGrade;
-var WorkflowActivity = models.WorkflowActivity;
-var ResetPasswordRequest = models.ResetPasswordRequest;
-var EmailNotification = models.EmailNotification;
-
-
 var taskFactory = new TaskFactory();
 var trigger = new TaskTrigger();
 var alloc = new Allocator();
 var email = new Email();
 var make = new Make();
-const logger = require('winston');
+const logger = require('./Logger.js');
 
 /**
  *
@@ -80,9 +90,10 @@ class Manager {
             // raw: true
         });
 
+        
         var res = {};
         //TODO: for users list, replace it with: get volunteers that are active in section user [see commented lines, TODOs]
-        await Promise.mapSeries(lst, function (it) {
+        await Promise.mapSeries(lst, async function (it) {
             // console.log(it.TaskInstanceID, it.AssignmentInstance.Section.SectionID, it.UserID)
             var secId = it.AssignmentInstance.Section.SectionID;
             if (!res[secId]) {
@@ -90,14 +101,20 @@ class Manager {
                     tasks: [],
                     users: []
                 }; //TODO: comment this line once volunteers are used instead
-                // res[secId] = {tasks: [], users: getActiveVolunteers(secId)} //TODO: uncomment this line once volunteers are used instead
+
+                //var volunteers = await x.getActiveVolunteers(secId)
+                //res[secId] = {tasks: [], users: volunteers} //TODO: uncomment this line once volunteers are used instead
             }
             res[secId].tasks.push(it);
             //res[secId].users.push(it.UserID); //TODO: call get Volunteers and make sure they are active
         });
 
         await Object.keys(res).forEach(async function (secId) {
-            var users = await make.getUsersFromSection(secId); //TODO: call get Volunteers instead everyone from that section
+            var users = await x.getActiveVolunteers(secId);
+            if(users.length === 0){//no volunteer found from the section, get everyone from the section
+                var users = await make.getUsersFromSection(secId);  
+                logger.log('info', 'no volunteer found from the section, use everyone instead');
+            }
             console.log(users);
             Promise.each(res[secId].tasks, async function (task) {
                 await x.checkTask(task, users);
@@ -258,6 +275,26 @@ class Manager {
         await task.save();
     }
 
+    async getActiveVolunteers(secId){
+        var users = [];
+        var volunteers = await VolunteerPool.findAll({
+            where:{
+                SectionID: secId
+            },
+            attributes:['UserID']
+        });
+
+
+        await Promise.mapSeries(volunteers, function(volunteer){
+            users.push(volunteer.UserID);
+        });
+
+
+        logger.log('debug', 'Volunteers found', {users: users})
+        return users;
+
+    }
+
     async whatIfLate(task, users) {
         var x = this;
         var status = JSON.parse(task.Status);;
@@ -265,16 +302,14 @@ class Manager {
             case '"keep_same_participant"':
                 status[3] = 'late';
                 await x.updateStatus(task, status);
-
                 email.sendNow(task.UserID, 'late');
                 break;
             case '"allocate_new_participant_from_contigency_pool"':
-
                 status[5] = 'reallocated_no_extra_credit';
                 await x.updateStatus(task, status);
                 //Run allocation algorithm, extend due date.
                 await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
-                await alloc.reallocate(task, users, false).then(async function (done) {
+                await alloc.reallocate(task, users, false, {'5': 'reallocated_no_extra_credit'}).then(async function (done) {
                     console.log(done);
                     if (!done || !done[0]) {
                         return;
@@ -291,7 +326,7 @@ class Manager {
                 await x.updateStatus(task, status);
                 //Run allocation algorithm, extend due date.
                 await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
-                await alloc.reallocate(task, users).then(async function (done) {
+                await alloc.reallocate(task, users, true, {'5': 'reallocated_extra_credit'}).then(async function (done) {
                     console.log(done);
                     if (!done || !done[0]) {
                         return;
@@ -313,8 +348,6 @@ class Manager {
                 break;
             case '"allocate_to_instructor"':
                 console.log('TaskInstance ', task.TaskInstanceID, ': Allocating instructor to the task...');
-                status[0] = 'started';
-                await x.updateStatus(task, status);
                 //Run allocation algorithm specifiy with team, extend due date
                 await alloc.findInstructor(task.AssignmentInstanceID, async function (instructor) {
                     await alloc.reallocate_user_to_task(task, instructor, false);
@@ -322,12 +355,6 @@ class Manager {
                 });
                 //send email to notify user about allocation
                 break;
-                // case "abandon_task":
-                //     this.Status = "complete";
-                //     break;
-                // case "resolved_task":
-                //     this.Status = "complete";
-                //     break;
             default:
                 logger.log('error', '/Workflow/Manager/whatIfLate: Fatal! Unknown case!');
         }

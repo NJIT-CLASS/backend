@@ -39,7 +39,7 @@ var TaskSimpleGrade = models.TaskSimpleGrade;
 var tree = new TreeModel();
 var flatToNested = new FlatToNested();
 
-const logger = require('winston');
+const logger = require('./Logger.js');
 
 var execution = consts.EXECUTION_STATUS;
 var cancellation = consts.CANCELLATION_STATUS;
@@ -126,35 +126,45 @@ class TaskFactory {
 
 
     // check to see if the user has view access to the task and if not: immediately respond with error
-    applyViewContstraints(res, user_id, ti) {
+    async applyViewContstraints(res, user_id, ti) {
         logger.log('info', 'apply view constraints to task instance', {
             user_id: user_id,
             task_instance: ti.toJSON()
         });
-        if (JSON.parse(ti.Status)[0] == 'not_yet_started') {
+
+        if (JSON.parse(ti.Status)[0] === 'not_yet_started') {
             logger.log('debug', ' not_yet_started, return res');
-            return res._headerSent || res.json({
+            return res._headerSent || {
                 'error': true,
                 'message': 'Task not even started yet',
-            });
+            }
+            // || res.json({
+            //     'error': true,
+            //     'message': 'Task not even started yet',
+            // });
         }
         if (ti.UserID == user_id) {
+            logger.log('debug', 'UserID don\'t match, return res')
             return;
         }
         if (JSON.parse(ti.Status)[0] != 'complete') {
+            logger.log('debug', 'current task not completed, return res')
             return;
         }
         if (ti.TaskActivity.SeeSibblings && ti.TaskActivity.SeeSameActivity) {
+            logger.log('debug', 'SeeSiblings & SeeSameActivity')
             return;
         }
+
         // find all non-completed task instances allocated to the user
-        return TaskInstance.findAll({
+        var sibling_tis = await TaskInstance.findAll({
             where: {
                 UserID: user_id,
                 Status: {
                     $notLike: '%"complete"%',
                 },
             }
+<<<<<<< HEAD
         }).then(function(sibling_tis) {
             logger.log('debug', 'check sibling tasks');
 
@@ -166,8 +176,26 @@ class TaskFactory {
                             'error': true,
                             'message': 'Sibling task not completed yet',
                         });
+=======
+        });
+
+        logger.log('debug', 'check sibling tasks');
+
+        await Promise.map(sibling_tis, function (sibling_ti) {
+            if (!ti.TaskActivity.SeeSibblings) {
+                if (sibling_ti.PreviousTask == ti.PreviousTask) {
+                    logger.log('debug', 'sibling task not completed, return res');
+                    return res._headerSent || {
+                        'error': true,
+                        'message': 'Sibling task not completed yet',
+>>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
                     }
+                    // || res.json({
+                    //     'error': true,
+                    //     'message': 'Sibling task not completed yet',
+                    // });
                 }
+<<<<<<< HEAD
             }).then(function(done) {
                 return TaskInstance.findAll({
                     where: {
@@ -192,34 +220,124 @@ class TaskFactory {
                     logger.log('debug', 'done applying view constraints');
                 });
             });
+=======
+            }
         });
+
+        var same_ta_tis = await TaskInstance.findAll({
+            where: {
+                TaskActivityID: ti.TaskActivityID,
+                UserID: user_id,
+                Status: {
+                    $notLike: '%"complete"%',
+                },
+            }
+>>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
+        });
+        
+        logger.log('debug', 'same act check apply view constraints to task instance');
+        console.log('!ti.TaskActivity.SeeSameActivity',!ti.TaskActivity.SeeSameActivity);
+        console.log('ti.TaskActivity.SeeSameActivity', ti.TaskActivity.SeeSameActivity)
+        if (!ti.TaskActivity.SeeSameActivity) {
+            console.log('!!same_ta_tis',!!same_ta_tis)
+            if (!!same_ta_tis) {
+                logger.log('debug', 'same task activity task instance not completed, return res');
+                logger.log('debug', res._headerSent);
+                return res._headerSent || {
+                    'error': true,
+                    'message': 'Same type of task not completed yet',
+                }
+                // || res.json({
+                //     'error': true,
+                //     'message': 'Same type of task not completed yet',
+                // });
+            }
+        }
+        logger.log('debug', 'done applying view constraints');
+        // // find all non-completed task instances allocated to the user
+        // return TaskInstance.findAll({
+        //     where: {
+        //         UserID: user_id,
+        //         Status: {
+        //             $notLike: '%"complete"%',
+        //         },
+        //     }
+        // }).then(function (sibling_tis) {
+        //     logger.log('debug', 'check sibling tasks');
+
+        //     return Promise.map(sibling_tis, function (sibling_ti) {
+        //         if (!ti.TaskActivity.SeeSibblings) {
+        //             if (sibling_ti.PreviousTask == ti.PreviousTask) {
+        //                 logger.log('debug', 'sibling task not completed, return res');
+        //                 return res._headerSent || res.json({
+        //                     'error': true,
+        //                     'message': 'Sibling task not completed yet',
+        //                 });
+        //             }
+        //         }
+        //     }).then(function (done) {
+        //         return TaskInstance.findAll({
+        //             where: {
+        //                 TaskActivityID: ti.TaskActivityID,
+        //                 UserID: user_id,
+        //                 Status: {
+        //                     $notLike: '%"complete"%',
+        //                 },
+        //             }
+        //         }).then(function (same_ta_tis) {
+        //             logger.log('debug', 'same act check apply view constraints to task instance');
+
+        //             if (!ti.TaskActivity.SeeSameActivity) {
+        //                 if (!!same_ta_tis) {
+        //                     logger.log('debug', 'same task activity task instance not completed, return res');
+        //                     logger.log('debug', res._headerSent);
+        //                     return res._headerSent || res.json({
+        //                         'error': true,
+        //                         'message': 'Same type of task not completed yet',
+        //                     });
+        //                 }
+        //             }
+        //             logger.log('debug', 'done applying view constraints');
+        //         });
+        //     });
+        // });
     }
 
     // update data field of all tasks with the appropriate allowed version according to the current task
-    applyVersionContstraints(pre_tis, cur_ti, user_id) {
+    async applyVersionContstraints(pre_tis, cur_ti, user_id) {
         logger.log('info', 'apply version constraints to previous task instances based on a current task instance', {
             task_instance: cur_ti.toJSON(),
             user_id: user_id
         });
         var x = this;
+<<<<<<< HEAD
         pre_tis.forEach(function(ti, i) {
+=======
+        var ar = [];
+        await Promise.mapSeries(pre_tis, async function (ti, i) {
+>>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
             if (user_id == cur_ti.UserID) {
                 if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
-                    x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation);
-                } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) && (i != pre_tis.length - 1)) {
-                    x.setDataVersion(ti, 'last');
+                    ar.push(await x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation));
+                } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) /*&& (i != pre_tis.length - 1)*/) {
+                    ar.push(await x.setDataVersion(ti, 'last'));
                 } else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
-                    x.setDataVersion(ti, 'last');
+                    ar.push(await x.setDataVersion(ti, 'last'));
                 } else if (!'todo: logic: if cur_ti has good Data and status is revision') { //TODO
-                    x.setDataVersion(ti, 'last');
+
+                    ar.push(await x.setDataVersion(ti, 'last'));
                 }
             } else {
                 // x.setDataVersion(ti, 'none') //TODO
             }
         });
-        if (user_id != cur_ti.UserID) {
-            // x.setDataVersion(cur_ti, 'none') //TODO
-        }
+
+        //console.log('ar', ar);
+
+        return ar;
+        // if (user_id != cur_ti.UserID) {
+        //     // x.setDataVersion(cur_ti, 'none') //TODO
+        // }
     }
 
     // set the data field of the task
@@ -230,20 +348,21 @@ class TaskFactory {
         });
 
         ti.Data = JSON.parse(ti.Data);
+
         if (version_eval == 'none' || !ti.Data) {
-            ti.Data = [];
-            return;
+            ti.Data = JSON.stringify([]);
+            return ti;
         }
         if (version_eval == 'whole') {
-            return;
+            return ti;
         }
         if (version_eval == 'first') {
-            ti.Data = [ti.Data[0]];
-            return;
+            ti.Data = JSON.stringify([ti.Data[0]]);
+            return ti;
         }
         if (version_eval == 'last') {
-            ti.Data = [ti.Data.slice(-1)[0]];
-            return;
+            ti.Data = JSON.stringify([ti.Data[ti.Data.length-1]]);
+            return ti;
         }
         logger.log('error', 'invalid version evaluation');
     }
@@ -292,7 +411,7 @@ class TaskFactory {
                             temp.push(ta_array[index]);
                         });
                         assigneeConstraints[2][item] = temp;
-                        console.log('AssigneeConstraints', temp);
+                        //console.log('AssigneeConstraints', temp);
                     }
                     return TaskActivity.update({
                         AssigneeConstraints: assigneeConstraints
@@ -314,7 +433,7 @@ class TaskFactory {
     createAssignment(assignment) {
         var x = this;
         var TA_array = [];
-        console.log('Creating assignment activity...');
+        //console.log('Creating assignment activity...');
         //Create assignment activity
         return Assignment.create({
             OwnerID: assignment.AA_userID,
@@ -330,11 +449,16 @@ class TaskFactory {
         }).then(function(assignmentResult) {
             //Keep track all the workflow activities created under assignment
             var WA_array = [];
-            console.log('Assignment creation successful!');
-            console.log('AssignmentID: ', assignmentResult.AssignmentID);
+            //console.log('Assignment creation successful!');
+            //console.log('AssignmentID: ', assignmentResult.AssignmentID);
             //Iterate through array of workflow activities (Created WorkflowActivity in order)
+<<<<<<< HEAD
             return Promise.mapSeries(assignment.WorkflowActivity, function(workflow, index) {
                 console.log('Creating workflow activity...');
+=======
+            return Promise.mapSeries(assignment.WorkflowActivity, function (workflow, index) {
+               // console.log('Creating workflow activity...');
+>>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
                 return WorkflowActivity.create({
                     AssignmentID: assignmentResult.AssignmentID,
                     Type: workflow.WA_type,
@@ -344,15 +468,26 @@ class TaskFactory {
                     Documentation: workflow.WA_documentation,
                     GroupSize: workflow.WA_default_group_size,
                     WorkflowStructure: workflow.WorkflowStructure,
+<<<<<<< HEAD
                 }).then(function(workflowResult) {
                     console.log('Workflow creation successful!');
                     console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
+=======
+                }).then(function (workflowResult) {
+                    //console.log('Workflow creation successful!');
+                   // console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
+>>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
                     WA_array.push(workflowResult.WorkflowActivityID);
                     //Keep track all the task activities within each workflow
                     TA_array = [];
                     //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
+<<<<<<< HEAD
                     return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function(task) {
                         console.log('Creating task activity...');
+=======
+                    return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function (task) {
+                      //  console.log('Creating task activity...');
+>>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
                         return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
                             AssignmentID: workflowResult.AssignmentID,
@@ -386,9 +521,15 @@ class TaskFactory {
                             VersionEvaluation: task.VersionEvaluation,
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
+<<<<<<< HEAD
                         }).then(function(taskResult) {
                             console.log('Task creation successful!');
                             console.log('TaskActivityID: ', taskResult.TaskActivityID);
+=======
+                        }).then(function (taskResult) {
+                            //console.log('Task creation successful!');
+                            //console.log('TaskActivityID: ', taskResult.TaskActivityID);
+>>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
                             TA_array.push(taskResult.TaskActivityID);
                         }).catch(function(err) {
                             console.log('Workflow creation failed');

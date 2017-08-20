@@ -1,3 +1,36 @@
+import {
+    Assignment,
+    AssignmentGrade,
+    AssignmentInstance,
+    AssignmentInstance_Archive,
+    Assignment_Archive,
+    Course,
+    CourseBackUp,
+    EmailNotification,
+    FileReference,
+    Organization,
+    PartialAssignments,
+    ResetPasswordRequest,
+    Section,
+    SectionUser,
+    Semester,
+    TaskActivity,
+    TaskActivity_Archive,
+    TaskGrade,
+    TaskInstance,
+    TaskInstance_Archive,
+    TaskSimpleGrade,
+    User,
+    UserContact,
+    UserLogin,
+    VolunteerPool,
+    WorkflowActivity,
+    WorkflowActivity_Archive,
+    WorkflowGrade,
+    WorkflowInstance,
+    WorkflowInstance_Archive
+} from '../Util/models.js';
+
 var models = require('../Model');
 var Promise = require('bluebird');
 var moment = require('moment');
@@ -5,24 +38,7 @@ var TaskFactory = require('./TaskFactory.js');
 var _ = require('underscore');
 var Email = require('./Email.js');
 
-
-var User = models.User;
-var UserLogin = models.UserLogin;
-var UserContact = models.UserContact;
-var Course = models.Course;
-var Section = models.Section;
-var SectionUser = models.SectionUser;
-var Semester = models.Semester;
-var TaskInstance = models.TaskInstance;
-var TaskActivity = models.TaskActivity;
-var Assignment = models.Assignment;
-var AssignmentInstance = models.AssignmentInstance;
-var WorkflowInstance = models.WorkflowInstance;
-var WorkflowActivity = models.WorkflowActivity;
-var ResetPasswordRequest = models.ResetPasswordRequest;
-var EmailNotification = models.EmailNotification;
-
-const logger = require('winston');
+const logger = require('./Logger.js');
 var email = new Email();
 
 class Allocator {
@@ -39,23 +55,23 @@ class Allocator {
         let x = this;
         let taskUser = [];
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
             return TaskActivity.find({
                 where: {
                     TaskActivityID: ta_id
                 }
-            }).then(function(ta) {
+            }).then(function (ta) {
 
                 let constraints = JSON.parse(ta.AssigneeConstraints)[2];
 
                 if (JSON.parse(ta.AssigneeConstraints)[0] === 'instructor') {
-                    return x.getInstructor(ta_id).then(function(instructor) {
+                    return x.getInstructor(ta_id).then(function (instructor) {
                         taskUser.push(instructor);
                         resolve(taskUser);
                     });
                 } else {
 
-                    if (ta.Type === 'needs_consolidation' ){//|| ta.Type === 'completed') {
+                    if (ta.Type === 'needs_consolidation') { //|| ta.Type === 'completed') {
                         if (Object.keys(x.workflow).length < 1) {
                             var same = constraints.same_as[0];
                             console.log('same', same);
@@ -97,10 +113,10 @@ class Allocator {
                         x.count++;
                     }
                 }
-            }).then(function(done) {
+            }).then(function (done) {
                 x.workflow[ta_id] = taskUser;
                 resolve(taskUser);
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('Error allocating the users');
                 reject(err);
             });
@@ -120,21 +136,21 @@ class Allocator {
     }
 
     getInstructor(ta_id) {
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
 
             return TaskActivity.find({
                 where: {
                     TaskActivityID: ta_id
                 }
-            }).then(function(ta_result) {
+            }).then(function (ta_result) {
                 return Assignment.find({
                     where: {
                         AssignmentID: ta_result.AssignmentID
                     }
-                }).then(function(assignment) {
+                }).then(function (assignment) {
                     resolve(assignment.OwnerID);
                 });
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('Error retrieving instructor ID');
                 console.log(err);
             });
@@ -148,7 +164,7 @@ class Allocator {
 
 
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
 
             //console.log('Finding the taskActivityID...');
 
@@ -159,10 +175,10 @@ class Allocator {
                 where: {
                     TaskInstanceID: task
                 }
-            }).then(function(results) {
+            }).then(function (results) {
 
                 //taskActivityID.push(results.TaskActivityID);
-                results.forEach(function(task) {
+                results.forEach(function (task) {
                     //tasks.push(task.TaskActivityID);
                     taskActivityID.push(task.TaskActivityID);
                 }, this);
@@ -171,7 +187,7 @@ class Allocator {
 
                 resolve(taskActivityID);
 
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('Find taskActivityID failed!');
                 console.log(err);
             });
@@ -183,19 +199,19 @@ class Allocator {
     // get AssigneeConstraints linked to this taskActivityID
     getConstraints(ta_id) {
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
             var constraints;
             return TaskActivity.find({
                 where: {
                     TaskActivityID: ta_id
                 }
-            }).then(function(result) {
+            }).then(function (result) {
                 constraints = JSON.parse(result.AssigneeConstraints);
                 //console.log(constraints);
                 //console.log('All constraints were saved!');
 
                 resolve(constraints);
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('Find constraints failed!');
                 reject(err);
             });
@@ -205,21 +221,21 @@ class Allocator {
     //get user that will be removed from workflow instance
     getLateUser(task) {
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
             //console.log('Finding the late user...');
             var lateUser;
             TaskInstance.findAll({
                 where: {
                     TaskInstanceID: task
                 }
-            }).then(function(results) {
+            }).then(function (results) {
 
-                results.forEach(function(task) {
+                results.forEach(function (task) {
                     lateUser = task.UserID;
                 }, this);
                 //console.log('lateUser was found!');
                 resolve(lateUser);
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('Find workflowInstanceID failed!');
                 console.log(err);
             });
@@ -228,13 +244,11 @@ class Allocator {
 
 
 
-
-
     // get workflowInstanceID linked to this task
     getWorkflowInstanceID(task) {
 
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
 
             //console.log('Finding the workflowInstanceID...');
 
@@ -245,10 +259,10 @@ class Allocator {
                 where: {
                     TaskInstanceID: task
                 }
-            }).then(function(results) {
+            }).then(function (results) {
 
                 //workflowInstanceID.push(results.WorkflowInstanceID);
-                results.forEach(function(workflow) {
+                results.forEach(function (workflow) {
                     workflowInstanceID.push(workflow.WorkflowInstanceID);
                 }, this);
 
@@ -256,11 +270,63 @@ class Allocator {
 
                 resolve(workflowInstanceID);
 
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('Find workflowInstanceID failed!');
                 console.log(err);
             });
         });
+    }
+
+    // get workflowInstanceID linked to this task
+    async getWorkflowInstanceIDs(ai_id, user_id) {
+
+        var wis = [];
+
+        var tis = await TaskInstance.findAll({
+            where: {
+                AssignmentInstanceID: ai_id,
+                UserID: user_id
+            },
+            attributes: ['WorkflowInstanceID']
+        });
+
+        await Promise.map(tis, function (ti) {
+            if (!(_.contains(wis, ti.WorkflowInstanceID))) {
+                wis.push(ti.WorkflowInstanceID)
+            }
+        });
+
+        return wis;
+
+
+
+        // return new Promise(function (resolve, reject) {
+
+        //     //console.log('Finding the workflowInstanceID...');
+
+        //     var workflowInstanceID = [];
+
+
+        //     TaskInstance.findAll({
+        //         where: {
+        //             TaskInstanceID: task
+        //         }
+        //     }).then(function (results) {
+
+        //         //workflowInstanceID.push(results.WorkflowInstanceID);
+        //         results.forEach(function (workflow) {
+        //             workflowInstanceID.push(workflow.WorkflowInstanceID);
+        //         }, this);
+
+        //         //console.log('workflowInstanceID was found!');
+
+        //         resolve(workflowInstanceID);
+
+        //     }).catch(function (err) {
+        //         console.log('Find workflowInstanceID failed!');
+        //         console.log(err);
+        //     });
+        // });
     }
 
     //get students in the workflowInstanceID - this students will be avoided
@@ -268,7 +334,7 @@ class Allocator {
 
 
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
 
             //console.log('Finding the users in the workflowInstanceID...');
 
@@ -278,9 +344,9 @@ class Allocator {
                 where: {
                     WorkflowInstanceID: wi_id
                 }
-            }).then(function(results) {
+            }).then(function (results) {
 
-                results.forEach(function(user) {
+                results.forEach(function (user) {
                     avoid_users.push(user.UserID);
                 }, this);
 
@@ -289,7 +355,7 @@ class Allocator {
 
                 resolve(avoid_users);
 
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('Find users in workflowInstanceID failed!');
                 console.log(err);
             });
@@ -301,7 +367,7 @@ class Allocator {
         //console.log('Finding the TaskInstances...');
 
 
-        return new Promise(function(resolve, reject) {
+        return new Promise(function (resolve, reject) {
 
             var tempAllocRecord = [];
             tempAllocRecord.push(ti_id);
@@ -311,9 +377,9 @@ class Allocator {
                     WorkflowInstanceID: wi_id,
                     UserID: user
                 }
-            }).then(function(results) {
+            }).then(function (results) {
 
-                results.forEach(function(result) {
+                results.forEach(function (result) {
                     if (result.TaskInstanceID > ti_id) {
                         tempAllocRecord.push(result.TaskInstanceID);
                     }
@@ -324,7 +390,7 @@ class Allocator {
                 //tempAllocRecord.push(ti_id);
 
 
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log('Find TaskInstances failed!');
                 console.log(err);
             });
@@ -411,7 +477,7 @@ class Allocator {
                 },
                 AssignmentInstanceID: ai_id,
                 Status: {
-                    $notIn: ['complete'],
+                    $notLike: '%"viewed"%',
                     //TODO: For future: get only non-opened task instances
                 }
             }
@@ -425,13 +491,16 @@ class Allocator {
     //TODO: need an api call for this
     // reallocate given users to given tasks respectively
     reallocate_users_to_tasks(tis, u_ids, is_extra_credit) {
-        logger.log('debug', {call: 'reallocate_users_to_tasks'});
+        logger.log('debug', {
+            call: 'reallocate_users_to_tasks'
+        });
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
             is_extra_credit = true;
         }
         logger.log('info', 'reallocate given users to given tasks respectively', {
             is_extra_credit: is_extra_credit,
-            user_ids: u_ids, task_instances: tis.map(function (it) {
+            user_ids: u_ids,
+            task_instances: tis.map(function (it) {
                 return it.toJSON();
             }),
         });
@@ -443,45 +512,96 @@ class Allocator {
     }
 
     // reallocate given user to a given task instance
-    reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
-        if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
-            is_extra_credit = true;
-        }
-        logger.log('debug', {call: 'reallocate_user_to_task'});
-        var task_id = ti.TaskInstanceID;
-        // append a new user history
-        var ti_u_hist = JSON.parse(ti.UserHistory) || [];
+    // async reallocate_user_to_task(ti, new_u_id, is_extra_credit, new_status) {
+    //     if (is_extra_credit === null) { // if extra credit is not specified: assume it is extra credit by default
+    //         is_extra_credit = true;
+    //     }
 
-        ti_u_hist.push({
-            time: new Date(),
-            user_id: new_u_id,
-            is_extra_credit: is_extra_credit,
-        });
-        logger.log('info', 'update a task instance with a new user and user history', {
-            task_instance: ti.toJSON(),
-            new_user_id: new_u_id,
-            user_history: ti_u_hist
-        });
+    //     logger.log('debug', {
+    //         call: 'reallocate_user_to_task'
+    //     });
+    //     var task_id = ti.TaskInstanceID;
+    //     // append a new user history
+    //     var ti_u_hist = JSON.parse(ti.UserHistory) || [];
 
-        return TaskInstance.update({
-            UserID: new_u_id,
-            UserHistory: ti_u_hist,
-        }, {
-            where: {TaskInstanceID: task_id}
-        }
-        ).then(function (res) {
-            logger.log('info', 'task instance updated', {res: res});
-            return res;
-        }).catch(function (err) {
-            logger.log('error', 'task instance update failed', err);
-            return err;
-        });
-    }
+    //     ti_u_hist.push({
+    //         time: new Date(),
+    //         user_id: new_u_id,
+    //         is_extra_credit: is_extra_credit,
+    //     });
+
+    //     logger.log('info', 'update a task instance with a new user and user history', {
+    //         task_instance: ti.toJSON(),
+    //         new_user_id: new_u_id,
+    //         user_history: ti_u_hist
+    //     });
+
+
+    //     if (new_status === null) {
+    //         logger.log('debug', '/Workflow/Allocator/reallocate_user_to_task: no status specified');
+
+    //         return TaskInstance.update({
+    //             UserID: new_u_id,
+    //             UserHistory: ti_u_hist,
+    //         }, {
+    //             where: {
+    //                 TaskInstanceID: task_id
+    //             }
+    //         }).then(async function (res) {
+    //             if (JSON.parse(res.Status)[0] !== 'bypassed' || JSON.parse(res.Status)[0] !== 'not_yet_started' || JSON.parse(res.Status)[0] !== 'automatic') {
+    //                 await res.extendDate(JSON.parse(ti.TaskActivity.DueType)[1], JSON.parse(ti.TaskActivity.DueType)[0]);
+    //             }
+    //             await res.extendDate(JSON.parse(ti.TaskActivity.DueType)[1], JSON.parse(ti.TaskActivity.DueType)[0]);
+    //             await email.sendNow(ti.UserID, 'remove_reallocated');
+    //             await email.sendNow(new_u_id, 'new_reallocated');
+    //             logger.log('info', 'task instance updated', {
+    //                 res: res
+    //             });
+    //             return res;
+    //         }).catch(function (err) {
+    //             logger.log('error', 'task instance update failed', err);
+    //             return err;
+    //         });
+
+    //     } else {
+    //         var status = JSON.parse(ti.Status);
+    //         await Promise.mapSeries(Object.keys(new_status), function (key) {
+    //             status[parseInt(key)] = new_status[key];
+    //         });
+
+    //         logger.log('debug', '/Workflow/Allocator/reallocate_user_to_task: new status specified');
+
+    //         return TaskInstance.update({
+    //             UserID: new_u_id,
+    //             UserHistory: ti_u_hist,
+    //             Status: JSON.stringify(status)
+    //         }, {
+    //             where: {
+    //                 TaskInstanceID: task_id
+    //             }
+    //         }).then(async function (res) {
+
+    //             await res.extendDate(JSON.parse(ti.TaskActivity.DueType)[1], JSON.parse(ti.TaskActivity.DueType)[0]);
+    //             await email.sendNow(ti.UserID, 'remove_reallocated');
+    //             await email.sendNow(new_u_id, 'new_reallocated');
+    //             logger.log('info', 'task instance updated', {
+    //                 res: res
+    //             });
+    //             return res;
+    //         }).catch(function (err) {
+    //             logger.log('error', 'task instance update failed', err);
+    //             return err;
+    //         });
+    //     }
+
+    // }
 
     // find a new appropriate user to reallocate
     //get newUser
     find_new_user(u_ids, vol_u_ids, avoid_u_ids) {
-        logger.log('debug', {call: 'find_new_user'});
+        logger.log('debug', {
+            call: 'find_new_user'
+        });
         logger.log('info', 'find a new appropriate user to reallocate', {
             user_ids: u_ids,
             volunteer_user_ids_so_far: vol_u_ids,
@@ -497,13 +617,15 @@ class Allocator {
                 idx = 0;
             }
         }).then(function (done) {
-            logger.log('info', 'found a new user that is not part of volunteers yet ?', {found: idx != null});
+            logger.log('info', 'found a new user that is not part of volunteers yet ?', {
+                found: idx != null
+            });
 
             // if not found a user yet: pick the first one from volunteers so far and that is not part of avoid users
             return Promise.map(vol_u_ids, function (u_id, i) {
                 if (idx == null && _.contains(u_ids, u_id) && !_.contains(avoid_u_ids, u_id)) {
-            // return Promise.map(vol_u_ids, function (u_id, i) {
-            //     if (idx == null && !_.contains(avoid_u_ids, u_id)) {
+                    // return Promise.map(vol_u_ids, function (u_id, i) {
+                    //     if (idx == null && !_.contains(avoid_u_ids, u_id)) {
 
                     idx = i;
                 }
@@ -581,9 +703,12 @@ class Allocator {
 
     // reallocate given users to given tasks respectively
     reallocate_users_to_tasks(tis, u_ids) {
-        logger.log('debug', {call: 'reallocate_users_to_tasks'});
+        logger.log('debug', {
+            call: 'reallocate_users_to_tasks'
+        });
         logger.log('info', 'reallocate given users to given tasks respectively', {
-            user_ids: u_ids, task_instances: tis.map(function (it) {
+            user_ids: u_ids,
+            task_instances: tis.map(function (it) {
                 return it.toJSON();
             })
         });
@@ -594,14 +719,38 @@ class Allocator {
         });
     }
 
-    //updateDB
     //TODO: IMMEDIATE! Add a checker for for assignee constraints
+    // async reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
+
+    //     if (is_extra_credit == null) {
+    //         is_extra_credit = true;
+    //     }
+
+    //     logger.log('debug', {
+    //         call: 'reallocate_user_to_task'
+    //     });
+    //     var task_id = ti.TaskInstanceID;
+    //     var ti_u_hist = JSON.parse(ti.UserHistory) || [];
+
+    //     ti_u_hist.push({
+    //         time: new Date(),
+    //         user_id: new_u_id,
+    //         is_extra_credit: is_extra_credit,
+    //     });
+
+    //     logger.log('info', 'update a task instance with a new user and user history', {
+    //         task_instance: ti.toJSON(),
+    //         new_user_id: new_u_id,
+    //         user_history: ti_u_hist
+    //     });
+
     reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
-        let email = new Email();
         if (is_extra_credit == null) {
             is_extra_credit = true;
         }
-        logger.log('debug', {call: 'reallocate_user_to_task'});
+        logger.log('debug', {
+            call: 'reallocate_user_to_task'
+        });
         var task_id = ti.TaskInstanceID;
         var ti_u_hist = JSON.parse(ti.UserHistory) || [];
 
@@ -616,16 +765,17 @@ class Allocator {
             user_history: ti_u_hist
         });
 
-        email.sendNow(ti.UserID, 'remove_reallocated');
-        email.sendNow(new_u_id, 'new_reallocated');
-
         return TaskInstance.update({
             UserID: new_u_id,
             UserHistory: ti_u_hist,
         }, {
-            where: {TaskInstanceID: task_id}}
-        ).then(function (res) {
-            //logger.log('info', 'task instance updated', {res: res});
+            where: {
+                TaskInstanceID: task_id
+            }
+        }).then(function (res) {
+            logger.log('info', 'task instance updated', {
+                res: res
+            });
             return res;
         }).catch(function (err) {
             logger.log('error', 'task instance update failed', err);
@@ -633,17 +783,93 @@ class Allocator {
         });
     }
 
-    check_assign_constraint(){
+
+
+    //     await TaskInstance.update({
+    //         UserID: new_u_id,
+    //         UserHistory: ti_u_hist,
+    //     }, {
+    //         where: {
+    //             TaskInstanceID: task_id
+    //         }
+    //     }).then(async function (res) {
+    //         //logger.log('info', 'task instance updated', {res: res});
+    //         await res.extendDate(JSON.parse(ti.TaskActivity.DueType)[1], JSON.parse(ti.TaskActivity.DueType)[0]);
+    //         await email.sendNow(ti.UserID, 'remove_reallocated');
+    //         await email.sendNow(new_u_id, 'new_reallocated');
+    //         return res;
+    //     }).catch(function (err) {
+    //         logger.log('error', 'task instance update failed', err);
+    //         return err;
+    //     });
+    // }
+
+    check_assign_constraint(ti) {
 
     }
 
     get_ai_volunteers(ai_id) {
-        logger.log('debug', {call: 'get_ai_volunteers', ai_id: ai_id});
+        logger.log('debug', {
+            call: 'get_ai_volunteers',
+            ai_id: ai_id
+        });
 
-        return AssignmentInstance.find({where: {AssignmentInstanceID: ai_id}}).then(function (ai) {
-            logger.log('debug', 'return', {assignment_instance: ai.toJSON()});
+        return AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: ai_id
+            }
+        }).then(function (ai) {
+            logger.log('debug', 'return', {
+                assignment_instance: ai.toJSON()
+            });
             return JSON.parse(ai.Volunteers);
         });
+    }
+
+    async inactivate_section_user(section_id, user_id) {
+        await SectionUser.update({
+            Active: 0
+        }, {
+            where: {
+                SectionID: section_id,
+                UserID: user_id
+            }
+        });
+    }
+
+    async delete_volunteer(section_id, user_id) {
+        await VolunteerPool.destroy({
+            where: {
+                SectionID: section_id,
+                UserID: user_id
+            }
+        });
+    }
+
+
+    async reallocate_user_to_workflow(ti, new_u_id, wi_id, is_extra_credit, new_status) {
+        var x = this;
+        var wi = await WorkflowInstance.find({
+            where: {
+                WorkflowInstanceID: wi_id
+            }
+        });
+
+        await email.sendNow(ti.UserID, 'remove_reallocated');
+        await email.sendNow(new_u_id, 'new_reallocated');
+
+        await Promise.mapSeries(JSON.parse(wi.TaskCollection), async function (ti_id) {
+            var new_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: ti_id
+                }
+            });
+
+            if (new_ti.UserID === ti.UserID) {
+                await x.reallocate_user_to_task(new_ti, new_u_id, is_extra_credit, new_status);
+            }
+        });
+
     }
 
     // reallocate all tasks of a given users & ai_id with volutneers
@@ -671,8 +897,67 @@ class Allocator {
     //Done: The algorithm would always reallocate the first user from the list obtained. Needs to update the list of the users so
     //the same user won't be reallocated second time.
 
+    // async reallocate(ti, u_ids, is_extra_credit, new_status) { //reallocates the user with a new user. Knock the old user out of all Workflows
+    //     logger.log('debug', {
+    //         call: 'reallocate'
+    //     });
+    //     if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
+    //         is_extra_credit = true;
+    //     }
+    //     logger.log('info', 'reallocate new user to a given task instance', {
+    //         task_instance: ti.toJSON(),
+    //         user_ids: u_ids,
+    //         is_extra_credit: is_extra_credit,
+    //     });
+
+    //     var ti_id = ti.TaskInstanceID;
+    //     var x = this;
+
+    //     var lateUsers = await x.getLateUser(ti_id);
+    //     var vol_u_ids = await x.get_ai_volunteers(ti.AssignmentInstanceID) || [];
+    //     var wi_ids = await x.getWorkflowInstanceIDs(ti.AssignmentInstanceID, ti.UserID);
+
+    //     await x.inactivate_section_user(ti.AssignmentInstance.Section.SectionID, ti.UserID);
+    //     await x.delete_volunteer(ti.AssignmentInstance.Section.SectionID, ti.UserID);
+
+    //     // console.log('vol:' + volunteers)
+    //     vol_u_ids = vol_u_ids || [];
+    //     await Promise.map(wi_ids, async function (wi_id) {
+
+    //         var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
+    //         var new_u_id = await x.find_new_user(u_ids, vol_u_ids, avoid_u_ids);
+
+    //         console.log('new_u_id', new_u_id);
+    //         logger.log('debug', 'update assignment instance volunteers', {
+    //             assignment_instance_id: ti.AssignmentInstanceID,
+    //             volunteer_user_ids: vol_u_ids,
+    //         });
+
+    //         await AssignmentInstance.update({
+    //             Volunteers: vol_u_ids
+    //         }, {
+    //             where: {
+    //                 AssignmentInstanceID: ti.AssignmentInstanceID
+    //             }
+    //         }).then(function (res) {
+    //             logger.log('info', 'assignment instance volunteers updated', {
+    //                 res: res
+    //             });
+    //             //return x.reallocate_user_to_task(ti, new_u_id, is_extra_credit, new_status);
+    //             return x.reallocate_user_to_workflow(ti, new_u_id, wi_id, is_extra_credit, new_status);
+    //         }).catch(function (err) {
+    //             logger.log('error', 'assignment instance volunteers update failed', err);
+    //             return err;
+    //         });
+
+    //     });
+    // }
+
+
     reallocate(ti, u_ids, is_extra_credit) {
-        logger.log('debug', {call: 'reallocate'});
+        logger.log('debug', {
+            call: 'reallocate'
+        });
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
             is_extra_credit = true;
         }
@@ -729,7 +1014,9 @@ class Allocator {
                                 AssignmentInstanceID: ti.AssignmentInstanceID
                             }
                         }).then(function (res) {
-                            logger.log('info', 'assignment instance volunteers updated', {res: res});
+                            logger.log('info', 'assignment instance volunteers updated', {
+                                res: res
+                            });
                             return x.reallocate_user_to_task(ti, new_u_id, is_extra_credit);
                         }).catch(function (err) {
                             logger.log('error', 'assignment instance volunteers update failed', err);
@@ -750,20 +1037,20 @@ class Allocator {
             where: {
                 AssignmentInstanceID: ai_id
             }
-        }).then(function(result) {
+        }).then(function (result) {
             SectionUser.findAll({
                 where: {
                     SectionID: result.SectionID
                 }
-            }).then(function(users) {
+            }).then(function (users) {
                 var userArray = [];
-                Promise.map(users, function(user) {
+                Promise.map(users, function (user) {
                     userArray.push(user.UserID);
-                }).then(function(done) {
+                }).then(function (done) {
                     console.log('Users:', userArray);
                     callback(userArray);
                 });
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log(err);
                 throw Error('Cannot find TaskActivity!');
             });
@@ -781,16 +1068,16 @@ class Allocator {
             where: {
                 AssignmentInstanceID: ai_id
             }
-        }).then(function(result) {
+        }).then(function (result) {
             Assignment.find({
                 where: {
                     AssignmentID: result.AssignmentID
                 },
                 attributes: ['OwnerID']
-            }).then(function(instructor) {
+            }).then(function (instructor) {
                 console.log('Inustructor:', instructor.OwnerID);
                 callback(instructor.OwnerID);
-            }).catch(function(err) {
+            }).catch(function (err) {
                 console.log(err);
                 throw Error('Cannot find TaskActivity!');
             });

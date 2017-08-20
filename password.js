@@ -1,4 +1,5 @@
 'use strict';
+const logger = require('./Workflow/Logger.js');
 const argon2 = require('argon2');
 const randomNumber = require('random-number-csprng');
 // increase defaults for more security
@@ -19,7 +20,7 @@ const verify = async (hash, plain) => {
     try {
         return await argon2.verify(hash, plain);
     } catch (err) {
-        console.log(err);
+        logger.log('error', err);
     }
 };
 

@@ -29,7 +29,7 @@ var WorkflowActivity = models.WorkflowActivity;
 var ResetPasswordRequest = models.ResetPasswordRequest;
 var EmailNotification = models.EmailNotification;
 
-const logger = require('winston');
+const logger = require('./Logger.js');
 
 var email = MASTER_EMAIL;
 var password = MASTER_PASSWORD;
