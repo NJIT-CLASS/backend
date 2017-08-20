@@ -24,7 +24,9 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference','Comments','CommentsArchive', 'CommentsViewed', 'Contact'
+    'FileReference','Comments','CommentsArchive', 'CommentsViewed', 'Contact','BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
+    'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
+    'Goal', 'GoalInstance', 'Level', 'LevelInstance'
 ];
 
 
@@ -40,6 +42,32 @@ models.forEach(function(model) {
 (function(m) {
     //Belongs To Relations
     //Sorted By Foreign Key
+
+    m.UserBadgeInstances.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
+
+    m.UserBadgeInstances.belongsTo(m.BadgeInstance, {
+        foreignKey: 'BadgeInstanceID'
+    });
+
+    m.User.belongsToMany(m.BadgeInstance, {
+        through: m.UserBadgeInstances,
+        foreignKey: 'UserID',
+        otherKey: 'BadgeInstanceID'
+    });
+
+    m.UserPointInstances.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
+
+    // m.CategoryInstance.belongsTo(m.CategoryIntance, {
+    //     foreignKey: 'CategoryInstanceID'
+    // });
+
+    m.BadgeInstance.belongsTo(m.Badge, {
+        foreignKey: 'BadgeID'
+    });
 
     m.Course.belongsTo(m.User, {
         foreignKey: 'CreatorID'
@@ -195,6 +223,37 @@ models.forEach(function(model) {
 
 
     //has Many Relations
+    m.CategoryInstance.hasMany(m.BadgeInstance, {
+        foreignKey: 'CategoryInstanceID',
+        constraints: false
+    });
+
+    m.BadgeInstance.belongsTo(m.CategoryInstance, {
+        foreignKey: 'CategoryInstanceID',
+        constraints: false
+    });
+
+    //has Many Relations
+    m.CategoryInstance.hasMany(m.UserPointInstances, {
+        foreignKey: 'CategoryInstanceID',
+        as: 'UserPoints',
+        constraints: false
+    });
+
+    m.UserPointInstances.belongsTo(m.CategoryInstance, {
+        foreignKey: 'CategoryInstanceID',
+        constraints: false
+    });
+
+    m.Category.hasMany(m.CategoryInstance, {
+        as: 'Categories',
+        foreignKey: 'CategoryInstanceID'
+    });
+
+    m.Badge.hasMany(m.BadgeInstance, {
+        as: 'Badges',
+        foreignKey: 'BadgeID'
+    });
 
     m.Assignment.hasMany(m.AssignmentInstance, {
         as: 'AssignmentInstances',

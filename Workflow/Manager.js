@@ -91,7 +91,6 @@ class Manager {
                 model: TaskActivity,
                 attributes: ['Type', 'WhatIfLate', 'AtDurationEnd', 'DueType']
             }]
-            // raw: true
         });
 
 

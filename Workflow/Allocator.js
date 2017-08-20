@@ -921,7 +921,7 @@ class Allocator {
                     ti: ti.TaskInstanceID,
                     ti_user: ti.UserID,
                     new_u_id: new_u_id
-                })
+                });
                 await x.reallocate_user_to_task(ti, new_u_id, is_extra_credit /*, new_status*/ );
             }
         });

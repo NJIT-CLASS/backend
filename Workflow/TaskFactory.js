@@ -2,7 +2,7 @@
  * Created by cesarsalazar on 4/20/16.
  */
 
- import {
+import {
     Assignment,
     AssignmentGrade,
     AssignmentInstance,
@@ -206,12 +206,12 @@ class TaskFactory {
                 },
             }
         });
-        
+
         logger.log('debug', 'same act check apply view constraints to task instance');
-        console.log('!ti.TaskActivity.SeeSameActivity',!ti.TaskActivity.SeeSameActivity);
+        console.log('!ti.TaskActivity.SeeSameActivity', !ti.TaskActivity.SeeSameActivity);
         console.log('ti.TaskActivity.SeeSameActivity', ti.TaskActivity.SeeSameActivity)
         if (!ti.TaskActivity.SeeSameActivity) {
-            console.log('!!same_ta_tis',!!same_ta_tis)
+            console.log('!!same_ta_tis', !!same_ta_tis)
             if (!!same_ta_tis) {
                 logger.log('debug', 'same task activity task instance not completed, return res');
                 logger.log('debug', res._headerSent);
@@ -287,7 +287,7 @@ class TaskFactory {
             if (user_id == cur_ti.UserID) {
                 if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
                     ar.push(await x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation));
-                } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) /*&& (i != pre_tis.length - 1)*/) {
+                } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) /*&& (i != pre_tis.length - 1)*/ ) {
                     ar.push(await x.setDataVersion(ti, 'last'));
                 } else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
                     ar.push(await x.setDataVersion(ti, 'last'));
@@ -329,7 +329,7 @@ class TaskFactory {
             return ti;
         }
         if (version_eval == 'last') {
-            ti.Data = JSON.stringify([ti.Data[ti.Data.length-1]]);
+            ti.Data = JSON.stringify([ti.Data[ti.Data.length - 1]]);
             return ti;
         }
         logger.log('error', 'invalid version evaluation');
@@ -421,7 +421,7 @@ class TaskFactory {
             //console.log('AssignmentID: ', assignmentResult.AssignmentID);
             //Iterate through array of workflow activities (Created WorkflowActivity in order)
             return Promise.mapSeries(assignment.WorkflowActivity, function (workflow, index) {
-               // console.log('Creating workflow activity...');
+                // console.log('Creating workflow activity...');
                 return WorkflowActivity.create({
                     AssignmentID: assignmentResult.AssignmentID,
                     Type: workflow.WA_type,
@@ -433,13 +433,13 @@ class TaskFactory {
                     WorkflowStructure: workflow.WorkflowStructure,
                 }).then(function (workflowResult) {
                     //console.log('Workflow creation successful!');
-                   // console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
+                    // console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
                     WA_array.push(workflowResult.WorkflowActivityID);
                     //Keep track all the task activities within each workflow
                     TA_array = [];
                     //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
                     return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function (task) {
-                      //  console.log('Creating task activity...');
+                        //  console.log('Creating task activity...');
                         return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
                             AssignmentID: workflowResult.AssignmentID,
@@ -816,6 +816,599 @@ class TaskFactory {
             });
         });
     }
+
+    /*********************************************************************************************************** 
+     **  Amadou workd starts here
+     ************************************************************************************************************/
+    //Update points instances when student submit task
+    async updatePointInstance(taskInstance) {
+        let taskActivity = taskInstance.TaskActivity;
+        let userID = taskInstance.UserID;
+
+        let assignmentInstance = await AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: taskInstance.AssignmentInstanceID
+            },
+            attributes: ['SectionID'],
+        });
+
+        let section = await Section.find({
+            where: {
+                SectionID: assignmentInstance.SectionID
+            },
+            attributes: ['SectionID', 'SemesterID', 'CourseID']
+        });
+
+        let category = await Category.find({
+            where: {
+                Type: {
+                    $like: taskActivity.Type
+                }
+            },
+            attributes: ['Type', 'CategoryID']
+        });
+
+        let categoryInstance = await CategoryInstance.find({
+            where: {
+                SemesterID: section.SemesterID,
+                CourseID: section.CourseID,
+                SectionID: section.SectionID,
+                CategoryID: category.CategoryID
+            },
+            attributes: ['CategoryInstanceID', 'CategoryID']
+        });
+
+        var $this = this;
+
+        UserPointInstances.find({
+            where: {
+                UserID: userID,
+                CategoryInstanceID: categoryInstance.CategoryInstanceID
+            },
+            attributes: ['UserID', 'CategoryInstanceID', 'PointInstances']
+
+        }).then((result) => {
+            //Create record if it does not exit
+            if (!result) {
+                let data = {
+                    UserID: userID,
+                    CategoryInstanceID: categoryInstance.CategoryInstanceID
+                };
+                data.PointInstances = 1;
+                UserPointInstances.create(data);
+            } else { //update when exist
+                let update = {
+                    PointInstances: parseInt(result.PointInstances) + 1
+                };
+                UserPointInstances.update(
+                    update, {
+                        where: {
+                            UserID: userID,
+                            CategoryInstanceID: result.CategoryInstanceID
+                        }
+                    });
+            }
+
+        }).catch(function (err) {
+            console.error(err);
+        });
+    }
+
+    //Create category for each class
+    async createCategoryInstances(semesterID, courseID, sectionID) {
+
+        let categories = await Category.findAll();
+        console.log('here 3')
+
+        for (let x = 0; x < categories.length; x++) {
+            console.log('here 4')
+            let category = categories[x];
+
+            let data = {};
+            data.CategoryID = category.CategoryID;
+            data.SemesterID = semesterID;
+            data.CourseID = courseID;
+            data.SectionID = sectionID;
+
+            let categoryInstance = await CategoryInstance.findOne({
+                where: data
+            });
+
+            data.Tier1Instances = category.Tier1Instances;
+            data.Tier2Instances = category.Tier2Instances;
+            data.Tier3Instances = category.Tier3Instances;
+            data.InstanceValue = category.InstanceValue;
+
+            if (!categoryInstance) {
+                console.log('here 2')
+                categoryInstance = CategoryInstance.create(data);
+            }
+
+            this.createBadgeInstances(category.CategoryID, categoryInstance);
+            this.createGoalInstances(categoryInstance, data.SemesterID, data.CourseID, data.SectionID);
+        }
+
+        this.createLevelInstances(semesterID, courseID, sectionID);
+    }
+
+    //Create levels for each class
+    async createLevelInstances(semesterID, courseID, sectionID) {
+        let levels = await Level.findAll();
+
+        for (let x = 0; x < levels.length; x++) {
+            let level = levels[x].dataValues;;
+
+            let data = {};
+            data.LevelID = level.LevelID;
+            data.SemesterID = semesterID;
+            data.CourseID = courseID;
+            data.SectionID = sectionID;
+
+            let exists = await LevelInstance.find({
+                where: data
+            });
+
+            console.info(exists);
+
+            if (!exists) {
+                data.ThresholdPoints = level.ThresholdPoints;
+                let levelInstance = await LevelInstance.create(data);
+            }
+        }
+    }
+
+    //Create goals for class
+    async createGoalInstances(categoryInstance, semesterID, courseID, sectionID) {
+        let goals = await Goal.findAll();
+
+        for (let x = 0; x < goals.length; x++) {
+            let goal = goals[x];
+
+            if (goal.CategoryID == categoryInstance.CategoryID) {
+                let data = {};
+                data.GoalID = goal.GoalID;
+                data.SemesterID = semesterID;
+                data.CourseID = courseID;
+                data.SectionID = sectionID;
+                data.CategoryInstanceID = categoryInstance.CategoryInstanceID;
+
+                let goalInstance = await GoalInstance.findOne({
+                    where: data
+                });
+
+                if (!goalInstance) {
+                    data.ThresholdInstances = goal.ThresholdInstances;
+                    goalInstance = await GoalInstance.create(data);
+                }
+            }
+        }
+    }
+
+    //Create badges for each class
+    async createBadgeInstances(categoryID, categoryInstance) {
+
+        let badges = await Badge.findAll({
+            where: {
+                CategoryID: categoryID
+            }
+        });
+
+        for (let x = 0; x < badges.length; x++) {
+            let badge = badges[x];
+
+            let data = {};
+            data.BadgeID = badge.BadgeID;
+            data.CategoryInstanceID = categoryInstance.CategoryInstanceID;
+
+            let badgeInstance = await BadgeInstance.findOne({
+                where: data
+            });
+
+            if (!badgeInstance) {
+                badgeInstance = await BadgeInstance.create(data);
+            }
+        }
+    }
+
+    //Award badges to users
+    async awardBadgesToUser(userID, categoryInstance, userPoints) {
+
+        this.createBadgeInstances(categoryInstance.CategoryID, categoryInstance);
+
+        let badgeInstances = BadgeInstance.findOne({
+            where: {
+                CategoryInstanceID: categoryInstance.CategoryInstanceID
+            },
+            attributes: ['BadgeInstanceID'],
+            order: [
+                ['BadgeInstanceID', 'ASC']
+            ]
+        });
+
+        let data = {
+            UserID: userID,
+            SemesterID: categoryInstance.SemesterID,
+            CourseID: categoryInstance.CourseID,
+            SectionID: categoryInstance.SectionID
+        };
+
+        let userBadgeInstances = await this.getUserBadgeInstances(categoryInstance, userID);
+
+        data.BadgeInstanceID = userBadgeInstances[0].BadgeInstanceID;
+
+        if (+userPoints >= +categoryInstance.Tier1Instances) {
+            UserBadgeInstances.update({
+                BadgeAwarded: 'yes'
+            }, {
+                where: data
+            });
+        } else {
+            UserBadgeInstances.update({
+                BadgeAwarded: 'no'
+            }, {
+                where: data
+            });
+        }
+
+        data.BadgeInstanceID = userBadgeInstances[1].BadgeInstanceID;
+
+        if (+userPoints >= +categoryInstance.Tier1Instances) {
+            UserBadgeInstances.update({
+                BadgeAwarded: 'yes'
+            }, {
+                where: data
+            });
+        } else {
+            UserBadgeInstances.update({
+                BadgeAwarded: 'no'
+            }, {
+                where: data
+            });
+        }
+
+        data.BadgeInstanceID = userBadgeInstances[2].BadgeInstanceID;
+
+        if (+userPoints >= +categoryInstance.Tier1Instances) {
+            UserBadgeInstances.update({
+                BadgeAwarded: 'yes'
+            }, {
+                where: data
+            });
+        } else {
+            UserBadgeInstances.update({
+                BadgeAwarded: 'no'
+            }, {
+                where: data
+            });
+        }
+
+    }
+
+    //Get UserBadge
+    //Create if does not exist
+    async getUserBadgeInstances(categoryInstance, userID) {
+
+        let data = {
+            UserID: userID,
+            SemesterID: categoryInstance.SemesterID,
+            CourseID: categoryInstance.CourseID,
+            SectionID: categoryInstance.SectionID
+        };
+
+        let badges = await Badge.findAll({
+            where: {
+                CategoryID: categoryInstance.CategoryID
+            },
+            attributes: ['BadgeID']
+        });
+
+        //get existing ones.
+        let badgeInstances = await BadgeInstance.findAll({
+            where: {
+                CategoryInstanceID: categoryInstance.CategoryInstanceID
+            },
+            attributes: ['BadgeInstanceID']
+        });
+
+        let userBadgeInstances = [];
+
+        for (let x = 0; x < badgeInstances.length; x++) {
+            let badgeInstance = badgeInstances[x];
+            data.BadgeInstanceID = badgeInstance.BadgeInstanceID;
+
+            let exist = await UserBadgeInstances.findOne({
+                where: data
+            });
+
+            if (!exist) {
+                data.BadgeAwarded = 'no';
+                exist = await UserBadgeInstances.create(data);
+            }
+
+            userBadgeInstances.push(exist);
+        }
+
+        return userBadgeInstances;
+    }
+
+    //Get sunday of each week
+    getSunday(date) {
+        var day = date.getDay() || 7;
+        if (day !== 1)
+            date.setHours(-24 * (day));
+        return date;
+    }
+
+    //Create snapshot for student rank and section based on average points
+    async rankingSnapshot() {
+        console.info('Runing cron here ...');
+
+        let updateDate = new Date(new Date().setHours(0, 0, 0, 0));
+
+        //Get current snapshot for today
+        let secSnapExist = await SectionRankSnapchot.findOne({
+            where: {
+                UpdateDate: {
+                    $eq: updateDate
+                }
+            },
+            attributes: ['SectionRankSnapchatID']
+        });
+
+        //Get current snapshot for today
+        let stuSnapExist = await StudentRankSnapchot.findOne({
+            where: {
+                UpdateDate: {
+                    $eq: updateDate
+                }
+            },
+            attributes: ['StudentRanksnapchotID']
+        });
+
+        //exit if snapchat already exist for today
+        if (secSnapExist && stuSnapExist) {
+            return;
+        }
+
+        //Get current semester
+        let semester = await Semester.findOne({
+            where: {
+                StartDate: {
+                    $or: {
+                        $lt: new Date(),
+                        $eq: new Date()
+                    }
+                },
+                EndDate: {
+                    $or: {
+                        $gt: new Date(),
+                        $eq: new Date()
+                    }
+                }
+            },
+            include: [{
+                model: Section,
+                as: 'Sections',
+                include: [{
+                    model: Course
+                }]
+            }]
+        });
+        //exit if no current semester
+        if (!semester) {
+            return;
+        }
+
+        //Get las updated snapshot for date
+        let lastUpdate = await StudentRankSnapchot.findOne({
+            attributes: ['UpdateDate'],
+            order: [
+                ['StudentRankSnapchotID', 'DESC']
+            ]
+        });
+
+        //last update date
+        let lastUpdateDate;
+        if (lastUpdate) {
+            lastUpdateDate = lastUpdate.UpdateDate;
+        } else {
+            lastUpdateDate = new Date();
+            lastUpdateDate.setDate(lastUpdateDate.getDate() - 1);
+            lastUpdateDate.setHours(0, 0, 0, 0);
+        }
+
+        let sectionsRanks = {};
+        //Go through sections
+        for (let xx = 0; xx < semester.Sections.length; xx++) {
+
+            let curSection = semester.Sections[xx];
+
+            let sectionUsers = await SectionUser.findAll({
+                where: {
+                    SectionID: curSection.SectionID
+                },
+                attributes: ['UserID', 'SectionID'],
+                order: [
+                    ['SectionID', 'ASC']
+                ]
+            });
+
+            let students = [];
+
+            for (let x = 0; x < sectionUsers.length; x++) {
+
+                let sectionUser = sectionUsers[x];
+
+                let user = await User.findOne({
+                    where: {
+                        UserID: sectionUser.UserID
+                    },
+                    attributes: ['UserID', 'FirstName', 'LastName']
+                });
+
+                let section = await Section.findOne({
+                    where: {
+                        SectionID: curSection.SectionID
+                    },
+                    attributes: ['SectionID', 'CourseID', 'Name']
+                });
+
+                let course = await Course.findOne({
+                    where: {
+                        CourseID: section.CourseID
+                    },
+                    attributes: ['CourseID', 'Name', 'Number']
+                });
+
+                let categoryInstances = await CategoryInstance.findAll({
+                    where: {
+                        CourseID: section.CourseID,
+                        SemesterID: semester.SemesterID,
+                        SectionID: sectionUser.SectionID
+                    },
+                    order: [
+                        ['SectionID', 'ASC']
+                    ]
+                });
+
+                let totalPoints = 0;
+
+                for (let y = 0; y < categoryInstances.length; y++) {
+
+                    let categoryInstance = categoryInstances[y];
+
+                    let pointInstance = await UserPointInstances.find({
+                        where: {
+                            UserID: sectionUser.UserID,
+                            CategoryInstanceID: categoryInstance.CategoryInstanceID,
+                        },
+                        attributes: ['PointInstances', 'UserPointInstanceID']
+                    });
+
+
+                    let category = await Category.find({
+                        where: {
+                            CategoryID: categoryInstance.CategoryID
+                        },
+                        attributes: ['Name', 'Description']
+                    });
+
+                    let currentPoints = 0;
+
+                    if (pointInstance) {
+                        currentPoints = (parseInt(pointInstance.PointInstances) * categoryInstance.InstanceValue);
+                        totalPoints += currentPoints;
+                    } else {
+                        pointInstance = {
+                            PointInstances: 0
+                        };
+                    }
+
+                    await this.awardBadgesToUser(user.UserID, categoryInstance, currentPoints);
+                };
+
+                let previous = await StudentRankSnapchot.findOne({
+                    where: {
+                        SemesterID: semester.SemesterID,
+                        CourseID: course.CourseID,
+                        SectionID: section.SectionID,
+                        UserID: user.UserID,
+                        UpdateDate: {
+                            $eq: lastUpdateDate
+                        }
+                    }
+                });
+
+                let data = {};
+                data.SemesterID = semester.SemesterID;
+                data.SemesterName = semester.Name;
+                data.CourseID = course.CourseID;
+                data.CourseName = course.Name;
+                data.CourseNumber = course.Number;
+                data.SectionID = section.SectionID;
+                data.SectionName = section.Name;
+
+                if (!sectionsRanks[course.CourseID]) {
+                    sectionsRanks[course.CourseID] = {};
+                }
+                if (!sectionsRanks[course.CourseID][section.SectionID]) {
+                    sectionsRanks[course.CourseID][section.SectionID] = Object.assign({}, data);
+                }
+                if (!sectionsRanks[course.CourseID][section.SectionID]['count']) {
+                    sectionsRanks[course.CourseID][section.SectionID]['count'] = 1;
+                } else {
+                    sectionsRanks[course.CourseID][section.SectionID]['count'] += 1;
+                }
+                if (!sectionsRanks[course.CourseID][section.SectionID]['TotalPoints']) {
+                    sectionsRanks[course.CourseID][section.SectionID]['TotalPoints'] = totalPoints;
+                } else {
+                    sectionsRanks[course.CourseID][section.SectionID]['TotalPoints'] += totalPoints;
+                }
+
+                data.TotalPoints = totalPoints;
+                data.UserID = user.UserID;
+                data.FirstName = user.FirstName;
+                data.LastName = user.LastName;
+
+                if (previous) {
+                    data.PointsMovement = previous.TotalPoints - data.TotalPoints;
+                } else {
+                    data.PointsMovement = 0;
+                }
+                //Add student records to array
+                students.push(data);
+                totalPoints = 0;
+            };
+
+            //Check if snapshot
+            if (!stuSnapExist) {
+                //Sort record by total points
+                students.sort(function (a, b) {
+                    return parseFloat(a.TotalPoints) - parseFloat(b.TotalPoints);
+                });
+                //Store student snapchot
+                for (let xxx = 0; xxx < students.length; xxx++) {
+                    let student = Object.assign({}, students[xxx]);
+                    student.Rank = students.length - xxx;
+                    student.UpdateDate = updateDate;
+                    let snapchot = StudentRankSnapchot.create(student);
+                };
+            }
+
+        };
+        //Check if sanpchot has been saved for today
+        if (!secSnapExist) {
+            //Evaluate average points and remove unwanted values
+            let SecRanks = [];
+            for (let c in sectionsRanks) {
+                let cur = sectionsRanks[c];
+                for (let s in cur) {
+                    let current = sectionsRanks[c][s];
+                    current.AveragePoints = Math.round(parseInt(current.TotalPoints) / parseInt(current.count));
+                    delete current.TotalPoints;
+                    delete current.count;
+                    SecRanks.push(current);
+                }
+            }
+            //Sort section ranking to rank sections
+            SecRanks.sort(function (a, b) {
+                return parseFloat(a.AveragePoints) - parseFloat(b.AveragePoints);
+            });
+
+            //Evaluate ranking and store snapchot for section ranking if only the average is greater than 0
+            for (let yyy = 0; yyy < SecRanks.length; yyy++) {
+                let sectionRank = Object.assign({}, SecRanks[yyy]);
+                sectionRank.Rank = SecRanks.length - yyy;
+                sectionRank.UpdateDate = updateDate;
+                SectionRankSnapchot.create(sectionRank);
+            };
+        }
+    }
+
+
+    /*********************************************************************************************************** 
+     **  Amadou work ends here
+     ************************************************************************************************************/
 }
 
 
