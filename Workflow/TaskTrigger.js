@@ -4,6 +4,10 @@ import {
     AssignmentInstance,
     AssignmentInstance_Archive,
     Assignment_Archive,
+    Comments,
+    CommentsArchive,
+    CommentsViewed,
+    Contact,
     Course,
     CourseBackUp,
     EmailNotification,
@@ -328,14 +332,14 @@ class TaskTrigger {
                     TaskInstanceID: ti.id
                 },
                 include: [{
-                    model: models.TaskActivity
+                    model: TaskActivity
                 }]
             });
 
             if (pre.FinalGrade !== null) { //if no FinalGrade found, dont push
                 grades.push(pre.FinalGrade);
 
-                await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)), function (val) {
+                await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function (val) {
                     if (JSON.parse(pre.TaskActivity.Fields)[val].field_type !== undefined && (val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(pre.TaskActivity.Fields)[val].field_type == 'assessment') {
                         if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'grade') {
                             maxGrade += JSON.parse(pre.TaskActivity.Fields)[val].numeric_max;
@@ -801,6 +805,8 @@ class TaskTrigger {
                 TaskInstanceID: ti.TaskInstanceID
             }
         });
+
+        await x.next(ti_id);
     }
 
     /**

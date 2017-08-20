@@ -4,6 +4,10 @@ import {
     AssignmentInstance,
     AssignmentInstance_Archive,
     Assignment_Archive,
+    Comments,
+    CommentsArchive,
+    CommentsViewed,
+    Contact,
     Course,
     CourseBackUp,
     EmailNotification,
@@ -87,10 +91,9 @@ class Manager {
                 model: TaskActivity,
                 attributes: ['Type', 'WhatIfLate', 'AtDurationEnd', 'DueType']
             }]
-            // raw: true
         });
 
-        
+
         var res = {};
         //TODO: for users list, replace it with: get volunteers that are active in section user [see commented lines, TODOs]
         await Promise.mapSeries(lst, async function (it) {
@@ -111,8 +114,8 @@ class Manager {
 
         await Object.keys(res).forEach(async function (secId) {
             var users = await x.getActiveVolunteers(secId);
-            if(users.length === 0){//no volunteer found from the section, get everyone from the section
-                var users = await make.getUsersFromSection(secId);  
+            if (users.length === 0) { //no volunteer found from the section, get everyone from the section
+                var users = await make.getUsersFromSection(secId);
                 logger.log('info', 'no volunteer found from the section, use everyone instead');
             }
             console.log(users);
@@ -229,8 +232,7 @@ class Manager {
         //Change parameter WhatIfLate to Array of [action, number(days)];
 
         //decision point to decide change the status whether late, abandon, or complete
-
-        console.log('timeOut');
+        
         var x = this;
         var status = JSON.parse(task.Status);
         if (task.TaskActivity.Type === 'dispute') {
@@ -275,22 +277,24 @@ class Manager {
         await task.save();
     }
 
-    async getActiveVolunteers(secId){
+    async getActiveVolunteers(secId) {
         var users = [];
         var volunteers = await VolunteerPool.findAll({
-            where:{
+            where: {
                 SectionID: secId
             },
-            attributes:['UserID']
+            attributes: ['UserID']
         });
 
 
-        await Promise.mapSeries(volunteers, function(volunteer){
+        await Promise.mapSeries(volunteers, function (volunteer) {
             users.push(volunteer.UserID);
         });
 
 
-        logger.log('debug', 'Volunteers found', {users: users})
+        logger.log('debug', 'Volunteers found', {
+            users: users
+        })
         return users;
 
     }
@@ -309,7 +313,9 @@ class Manager {
                 await x.updateStatus(task, status);
                 //Run allocation algorithm, extend due date.
                 await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
-                await alloc.reallocate(task, users, false, {'5': 'reallocated_no_extra_credit'}).then(async function (done) {
+                await alloc.reallocate(task, users, false, {
+                    '5': 'reallocated_no_extra_credit'
+                }).then(async function (done) {
                     console.log(done);
                     if (!done || !done[0]) {
                         return;
@@ -326,7 +332,9 @@ class Manager {
                 await x.updateStatus(task, status);
                 //Run allocation algorithm, extend due date.
                 await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
-                await alloc.reallocate(task, users, true, {'5': 'reallocated_extra_credit'}).then(async function (done) {
+                await alloc.reallocate(task, users, true, {
+                    '5': 'reallocated_extra_credit'
+                }).then(async function (done) {
                     console.log(done);
                     if (!done || !done[0]) {
                         return;
@@ -349,10 +357,9 @@ class Manager {
             case '"allocate_to_instructor"':
                 console.log('TaskInstance ', task.TaskInstanceID, ': Allocating instructor to the task...');
                 //Run allocation algorithm specifiy with team, extend due date
-                await alloc.findInstructor(task.AssignmentInstanceID, async function (instructor) {
-                    await alloc.reallocate_user_to_task(task, instructor, false);
-                    await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
-                });
+                var instructor = await alloc.findInstructor(task.AssignmentInstanceID);
+                await alloc.reallocate_user_to_task(task, instructor, false);
+                await task.extendDate(JSON.parse(task.TaskActivity.DueType)[1], JSON.parse(task.TaskActivity.DueType)[0]);
                 //send email to notify user about allocation
                 break;
             default:

@@ -1,47 +1,23 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Badge', {
-        BadgeID: {
-            //Unique identifier for Badge 
+    return sequelize.define('BadgeInstance', {
+        BadgeInstanceID: {
+            //Unique identifier for BadgeInstance 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeID',
+            field: 'BadgeInstanceID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-<<<<<<< HEAD
-        CategryID: {
-            //The Badge Category
-            //Foreign Key
-=======
-        CategoryID: {
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
+        BadgeID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryID',
+            field: 'BadgeID',
             allowNull: false
         },
-        Name: {
-<<<<<<< HEAD
-            //Name of the Badge.
-=======
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
-            type: DataTypes.STRING,
-            field: 'Name',
+        CategoryInstanceID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CategoryInstanceID',
             allowNull: false
-        },
-        Description: {
-            //Description of the Badge
-            type: DataTypes.TEXT,
-            field: 'Description',
-            allowNull: true
-<<<<<<< HEAD
-=======
-        },
-        Logo: {
-            type: DataTypes.STRING,
-            field: 'Logo',
-            allowNull: false
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
         }
     }, {
         timestamps: false,
@@ -61,12 +37,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-<<<<<<< HEAD
-        tableName: 'Badges'
+        tableName: 'badgeinstance'
     });
 };
-=======
-        tableName: 'badge'
-    });
-};
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f

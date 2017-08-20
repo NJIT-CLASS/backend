@@ -1,47 +1,27 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Badge', {
-        BadgeID: {
-            //Unique identifier for Badge 
+    return sequelize.define('Level', {
+        LevelID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeID',
+            field: 'LevelID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-<<<<<<< HEAD
-        CategryID: {
-            //The Badge Category
-            //Foreign Key
-=======
-        CategoryID: {
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryID',
-            allowNull: false
-        },
         Name: {
-<<<<<<< HEAD
-            //Name of the Badge.
-=======
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
             type: DataTypes.STRING,
             field: 'Name',
             allowNull: false
         },
         Description: {
-            //Description of the Badge
-            type: DataTypes.TEXT,
+            type: DataTypes.STRING,
             field: 'Description',
             allowNull: true
-<<<<<<< HEAD
-=======
         },
-        Logo: {
-            type: DataTypes.STRING,
-            field: 'Logo',
+        ThresholdPoints: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'ThresholdPoints',
             allowNull: false
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
         }
     }, {
         timestamps: false,
@@ -61,12 +41,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-<<<<<<< HEAD
-        tableName: 'Badges'
+        tableName: 'level'
     });
 };
-=======
-        tableName: 'badge'
-    });
-};
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f

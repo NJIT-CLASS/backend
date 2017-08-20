@@ -35,6 +35,14 @@ var email = MASTER_EMAIL;
 var password = MASTER_PASSWORD;
 var active = EMAIL_SERVER_STATUS;
 
+if(active){
+    logger.log('info', '/Email: email server online');
+} else {
+    logger.log('info', '/Email: email server currently not activated');
+}
+
+
+
 /*
   Constructor
 */
@@ -214,9 +222,7 @@ class Email {
                 }
             });
 
-        } else {
-            logger.log('info', '/Email: email servier currently not activated');
-        }
+        } 
     }
 
     //Update Email Last Sent in Task Instance to Now.

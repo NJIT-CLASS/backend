@@ -1,47 +1,43 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Badge', {
-        BadgeID: {
-            //Unique identifier for Badge 
+    return sequelize.define('GoalInstance', {
+        GoalInstanceID: {
+            //Unique identifier for CategoryInstance 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeID',
+            field: 'GoalInstanceID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-<<<<<<< HEAD
-        CategryID: {
-            //The Badge Category
-            //Foreign Key
-=======
-        CategoryID: {
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
+        GoalID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryID',
+            field: 'GoalID',
+            allowNull: false,
+        },
+        CategoryInstanceID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CategoryInstanceID',
             allowNull: false
         },
-        Name: {
-<<<<<<< HEAD
-            //Name of the Badge.
-=======
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
-            type: DataTypes.STRING,
-            field: 'Name',
+        SemesterID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SemesterID',
             allowNull: false
         },
-        Description: {
-            //Description of the Badge
-            type: DataTypes.TEXT,
-            field: 'Description',
-            allowNull: true
-<<<<<<< HEAD
-=======
-        },
-        Logo: {
-            type: DataTypes.STRING,
-            field: 'Logo',
+        SectionID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SectionID',
             allowNull: false
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
+        },
+        CourseID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
+            allowNull: false
+        },
+        ThresholdInstances: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'ThresholdInstances',
+            allowNull: false
         }
     }, {
         timestamps: false,
@@ -61,12 +57,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-<<<<<<< HEAD
-        tableName: 'Badges'
+        tableName: 'goalinstance'
     });
 };
-=======
-        tableName: 'badge'
-    });
-};
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f

@@ -1,48 +1,52 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Badge', {
-        BadgeID: {
-            //Unique identifier for Badge 
+    return sequelize.define('Category', {
+        CategoryID: {
+            //Unique identifier for Category 
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeID',
+            field: 'CategoryID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-<<<<<<< HEAD
-        CategryID: {
-            //The Badge Category
-            //Foreign Key
-=======
-        CategoryID: {
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CategoryID',
-            allowNull: false
+        Type: {
+            //Name of the Categorty.
+            type: DataTypes.STRING,
+            field: 'Type',
+            allowNull: true
         },
         Name: {
-<<<<<<< HEAD
-            //Name of the Badge.
-=======
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
+            //Name of the Categorty.
             type: DataTypes.STRING,
             field: 'Name',
-            allowNull: false
+            allowNull: true
         },
         Description: {
-            //Description of the Badge
+            //Description of the CategoryInstance
             type: DataTypes.TEXT,
             field: 'Description',
             allowNull: true
-<<<<<<< HEAD
-=======
         },
-        Logo: {
-            type: DataTypes.STRING,
-            field: 'Logo',
+        Tier1Instances: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Tier1Instances',
             allowNull: false
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
-        }
+        },
+        Tier2Instances: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Tier2Instances',
+            allowNull: false
+        },
+        Tier3Instances: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Tier3Instances',
+            allowNull: false
+        },
+        InstanceValue: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'InstanceValue',
+            allowNull: false
+        },
     }, {
         timestamps: false,
 
@@ -61,12 +65,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-<<<<<<< HEAD
-        tableName: 'Badges'
+        tableName: 'category'
     });
 };
-=======
-        tableName: 'badge'
-    });
-};
->>>>>>> 51e3442b16e737df9b994c0516d0c1a2043fc08f
