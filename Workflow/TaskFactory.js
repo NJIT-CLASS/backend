@@ -135,13 +135,13 @@ class TaskFactory {
         if (JSON.parse(ti.Status)[0] === 'not_yet_started') {
             logger.log('debug', ' not_yet_started, return res');
             return res._headerSent || {
-                'error': true,
-                'message': 'Task not even started yet',
-            }
-            // || res.json({
-            //     'error': true,
-            //     'message': 'Task not even started yet',
-            // });
+                    'error': true,
+                    'message': 'Task not even started yet',
+                }
+                // || res.json({
+                //     'error': true,
+                //     'message': 'Task not even started yet',
+                // });
         }
         if (ti.UserID == user_id) {
             logger.log('debug', 'UserID don\'t match, return res')
@@ -164,63 +164,23 @@ class TaskFactory {
                     $notLike: '%"complete"%',
                 },
             }
-<<<<<<< HEAD
-        }).then(function(sibling_tis) {
-            logger.log('debug', 'check sibling tasks');
-
-            return Promise.map(sibling_tis, function(sibling_ti) {
-                if (!ti.TaskActivity.SeeSibblings) {
-                    if (sibling_ti.PreviousTask == ti.PreviousTask) {
-                        logger.log('debug', 'sibling task not completed, return res');
-                        return res._headerSent || res.json({
-                            'error': true,
-                            'message': 'Sibling task not completed yet',
-                        });
-=======
         });
 
         logger.log('debug', 'check sibling tasks');
 
-        await Promise.map(sibling_tis, function (sibling_ti) {
+        await Promise.map(sibling_tis, function(sibling_ti) {
             if (!ti.TaskActivity.SeeSibblings) {
                 if (sibling_ti.PreviousTask == ti.PreviousTask) {
                     logger.log('debug', 'sibling task not completed, return res');
                     return res._headerSent || {
-                        'error': true,
-                        'message': 'Sibling task not completed yet',
->>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
-                    }
-                    // || res.json({
-                    //     'error': true,
-                    //     'message': 'Sibling task not completed yet',
-                    // });
-                }
-<<<<<<< HEAD
-            }).then(function(done) {
-                return TaskInstance.findAll({
-                    where: {
-                        TaskActivityID: ti.TaskActivityID,
-                        UserID: user_id,
-                        Status: {
-                            $notLike: '%"complete"%',
-                        },
-                    }
-                }).then(function(same_ta_tis) {
-                    logger.log('debug', 'same act check apply view constraints to task instance');
-
-                    if (!ti.TaskActivity.SeeSameActivity) {
-                        if (!!same_ta_tis) {
-                            logger.log('debug', 'same task activity task instance not completed, return res');
-                            return res._headerSent || res.json({
-                                'error': true,
-                                'message': 'Same type of task not completed yet',
-                            });
+                            'error': true,
+                            'message': 'Sibling task not completed yet',
                         }
-                    }
-                    logger.log('debug', 'done applying view constraints');
-                });
-            });
-=======
+                        // || res.json({
+                        //     'error': true,
+                        //     'message': 'Sibling task not completed yet',
+                        // });
+                }
             }
         });
 
@@ -232,25 +192,24 @@ class TaskFactory {
                     $notLike: '%"complete"%',
                 },
             }
->>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
         });
-        
+
         logger.log('debug', 'same act check apply view constraints to task instance');
-        console.log('!ti.TaskActivity.SeeSameActivity',!ti.TaskActivity.SeeSameActivity);
+        console.log('!ti.TaskActivity.SeeSameActivity', !ti.TaskActivity.SeeSameActivity);
         console.log('ti.TaskActivity.SeeSameActivity', ti.TaskActivity.SeeSameActivity)
         if (!ti.TaskActivity.SeeSameActivity) {
-            console.log('!!same_ta_tis',!!same_ta_tis)
+            console.log('!!same_ta_tis', !!same_ta_tis)
             if (!!same_ta_tis) {
                 logger.log('debug', 'same task activity task instance not completed, return res');
                 logger.log('debug', res._headerSent);
                 return res._headerSent || {
-                    'error': true,
-                    'message': 'Same type of task not completed yet',
-                }
-                // || res.json({
-                //     'error': true,
-                //     'message': 'Same type of task not completed yet',
-                // });
+                        'error': true,
+                        'message': 'Same type of task not completed yet',
+                    }
+                    // || res.json({
+                    //     'error': true,
+                    //     'message': 'Same type of task not completed yet',
+                    // });
             }
         }
         logger.log('debug', 'done applying view constraints');
@@ -310,16 +269,12 @@ class TaskFactory {
             user_id: user_id
         });
         var x = this;
-<<<<<<< HEAD
-        pre_tis.forEach(function(ti, i) {
-=======
         var ar = [];
-        await Promise.mapSeries(pre_tis, async function (ti, i) {
->>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
+        await Promise.mapSeries(pre_tis, async function(ti, i) {
             if (user_id == cur_ti.UserID) {
                 if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
                     ar.push(await x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation));
-                } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) /*&& (i != pre_tis.length - 1)*/) {
+                } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) /*&& (i != pre_tis.length - 1)*/ ) {
                     ar.push(await x.setDataVersion(ti, 'last'));
                 } else if (-1 != ['create_problem', 'solve_problem'].indexOf(cur_ti.TaskActivity.Type)) {
                     ar.push(await x.setDataVersion(ti, 'last'));
@@ -361,7 +316,7 @@ class TaskFactory {
             return ti;
         }
         if (version_eval == 'last') {
-            ti.Data = JSON.stringify([ti.Data[ti.Data.length-1]]);
+            ti.Data = JSON.stringify([ti.Data[ti.Data.length - 1]]);
             return ti;
         }
         logger.log('error', 'invalid version evaluation');
@@ -452,13 +407,8 @@ class TaskFactory {
             //console.log('Assignment creation successful!');
             //console.log('AssignmentID: ', assignmentResult.AssignmentID);
             //Iterate through array of workflow activities (Created WorkflowActivity in order)
-<<<<<<< HEAD
             return Promise.mapSeries(assignment.WorkflowActivity, function(workflow, index) {
-                console.log('Creating workflow activity...');
-=======
-            return Promise.mapSeries(assignment.WorkflowActivity, function (workflow, index) {
-               // console.log('Creating workflow activity...');
->>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
+                // console.log('Creating workflow activity...');
                 return WorkflowActivity.create({
                     AssignmentID: assignmentResult.AssignmentID,
                     Type: workflow.WA_type,
@@ -468,26 +418,15 @@ class TaskFactory {
                     Documentation: workflow.WA_documentation,
                     GroupSize: workflow.WA_default_group_size,
                     WorkflowStructure: workflow.WorkflowStructure,
-<<<<<<< HEAD
                 }).then(function(workflowResult) {
-                    console.log('Workflow creation successful!');
-                    console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
-=======
-                }).then(function (workflowResult) {
                     //console.log('Workflow creation successful!');
-                   // console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
->>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
+                    // console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
                     WA_array.push(workflowResult.WorkflowActivityID);
                     //Keep track all the task activities within each workflow
                     TA_array = [];
                     //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
-<<<<<<< HEAD
                     return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function(task) {
-                        console.log('Creating task activity...');
-=======
-                    return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function (task) {
-                      //  console.log('Creating task activity...');
->>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
+                        //  console.log('Creating task activity...');
                         return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
                             AssignmentID: workflowResult.AssignmentID,
@@ -521,15 +460,9 @@ class TaskFactory {
                             VersionEvaluation: task.VersionEvaluation,
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
-<<<<<<< HEAD
                         }).then(function(taskResult) {
-                            console.log('Task creation successful!');
-                            console.log('TaskActivityID: ', taskResult.TaskActivityID);
-=======
-                        }).then(function (taskResult) {
                             //console.log('Task creation successful!');
                             //console.log('TaskActivityID: ', taskResult.TaskActivityID);
->>>>>>> 01c6829584e954df0711d4d157f543711ba4ac62
                             TA_array.push(taskResult.TaskActivityID);
                         }).catch(function(err) {
                             console.log('Workflow creation failed');
