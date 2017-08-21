@@ -6634,6 +6634,44 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
     //---------------------------------------------------------------------------
+    router.get('/notifications/:UserID',async function(req, res) {
+        console.log("/notifications/:UserID : was called");
+
+        var v = await VolunteerPool.findAll({
+                where: {
+                    UserID: req.params.UserID
+                },
+                  attributes: ['volunteerpoolID']
+            }).catch(function(err) {
+                console.log('/notifications/:UserID + volunteerpool ' + err);
+                res.status(401).end();
+            });
+
+        var f = await Comments.findAll({
+                    where: {
+                        UserID: req.params.UserID,
+                        Flag: 1
+                    },
+                      attributes: ['commentsID']
+                }).catch(function(err) {
+                    console.log('/notifications/:UserID + volunteerpool ' + err);
+                    res.status(401).end();
+                });
+
+
+                res.json({
+                    "Error": false,
+                    "Message": "Success",
+                    "volunteer": v,
+                    "comments-flag": f,
+
+                });
+
+    });
+    //---------------------------------------------------------------------------
+
+
+
 
 };
 
