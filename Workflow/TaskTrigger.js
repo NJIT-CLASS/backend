@@ -35,6 +35,8 @@ import {
     WorkflowInstance_Archive
 } from '../Util/models.js';
 
+var TaskFactory = require('./TaskFactory.js');
+
 //var models = require('../Model');
 var Promise = require('bluebird');
 var moment = require('moment');
@@ -88,7 +90,7 @@ class TaskTrigger {
      */
     async trigger(ti) {
         var x = this;
-        await Promise.mapSeries(JSON.parse(ti.NextTask), async function (task) { //loop through the list of next tasks
+        await Promise.mapSeries(JSON.parse(ti.NextTask), async function(task) { //loop through the list of next tasks
             var next_task = await TaskInstance.find({
                 where: {
                     TaskInstanceID: task.id
@@ -133,7 +135,12 @@ class TaskTrigger {
                 }
             });
 
-            await Promise.mapSeries(grades, async function (t_grade) {
+            //Amadou
+            let taskFactory = new TaskFactory;
+            taskFactory.updatePointInstance('high_grade', ti.AssignmentInstanceID, ti.UserID);
+
+
+            await Promise.mapSeries(grades, async function(t_grade) {
                 await grade.addWorkflowGrade(t_grade.WorkflowInstanceID, t_grade.SectionUserID, t_grade.Grade);
             });
         }
@@ -145,7 +152,7 @@ class TaskTrigger {
                 }
             });
 
-            await Promise.mapSeries(grades, async function (w_grade) {
+            await Promise.mapSeries(grades, async function(w_grade) {
                 await grade.addAssignmentGrade(w_grade.AssignmentInstanceID, w_grade.SectionUserID, w_grade.Grade);
             });
         }
@@ -163,7 +170,7 @@ class TaskTrigger {
         //try{
         var bool = false;
 
-        await Promise.mapSeries(JSON.parse(ti.NextTask), async function (task) { //loop through the list of next tasks
+        await Promise.mapSeries(JSON.parse(ti.NextTask), async function(task) { //loop through the list of next tasks
             var next_task = await TaskInstance.find({
                 where: {
                     TaskInstanceID: task.id
@@ -195,7 +202,7 @@ class TaskTrigger {
     async triggerEditOrComment(ti) {
         //try{
         var x = this;
-        await Promise.mapSeries(JSON.parse(ti.NextTask), async function (task) { //loop through the list of next tasks
+        await Promise.mapSeries(JSON.parse(ti.NextTask), async function(task) { //loop through the list of next tasks
             var next_task = await TaskInstance.find({
                 where: {
                     TaskInstanceID: task.id
@@ -287,7 +294,7 @@ class TaskTrigger {
         //try{
         var is_all_completed = true;
 
-        await Promise.map(JSON.parse(ti.PreviousTask), async function (task) {
+        await Promise.map(JSON.parse(ti.PreviousTask), async function(task) {
             var pre = await TaskInstance.find({
                 where: {
                     TaskInstanceID: task.id
@@ -326,7 +333,7 @@ class TaskTrigger {
         var maxGrade = 0;
         var triggerConsolidate = false;
 
-        await Promise.map(JSON.parse(task.PreviousTask), async function (ti) { //find FinalGrade of PreviousTask
+        await Promise.map(JSON.parse(task.PreviousTask), async function(ti) { //find FinalGrade of PreviousTask
             var pre = await TaskInstance.find({
                 where: {
                     TaskInstanceID: ti.id
@@ -339,7 +346,7 @@ class TaskTrigger {
             if (pre.FinalGrade !== null) { //if no FinalGrade found, dont push
                 grades.push(pre.FinalGrade);
 
-                await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function (val) {
+                await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function(val) {
                     if (JSON.parse(pre.TaskActivity.Fields)[val].field_type !== undefined && (val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(pre.TaskActivity.Fields)[val].field_type == 'assessment') {
                         if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'grade') {
                             maxGrade += JSON.parse(pre.TaskActivity.Fields)[val].numeric_max;
@@ -420,7 +427,7 @@ class TaskTrigger {
         var x = this;
         var date = new Date();
 
-        await Promise.map(JSON.parse(needs_consolidation.NextTask), async function (task) {
+        await Promise.map(JSON.parse(needs_consolidation.NextTask), async function(task) {
             var consolidation = await TaskInstance.find({ //assumed needs_consolidation's next task is always consolidation
                 where: {
                     TaskInstanceID: task.id
@@ -470,7 +477,7 @@ class TaskTrigger {
 
 
 
-        await Promise.map(JSON.parse(dispute.NextTask), async function (task) {
+        await Promise.map(JSON.parse(dispute.NextTask), async function(task) {
             var next = await TaskInstance.find({ //assumed needs_consolidation's next task is always consolidation
                 where: {
                     TaskInstanceID: task.id
@@ -535,7 +542,7 @@ class TaskTrigger {
         await x.bypass(ti);
 
         if (JSON.parse(ti.NextTask) !== '[]') {
-            await Promise.map(JSON.parse(ti.NextTask), async function (task) {
+            await Promise.map(JSON.parse(ti.NextTask), async function(task) {
                 var next = await TaskInstance.find({ //assumed needs_consolidation's next task is always consolidation
                     where: {
                         TaskInstanceID: task.id
@@ -574,7 +581,7 @@ class TaskTrigger {
                 where: {
                     TaskInstanceID: ti.TaskInstanceID
                 }
-            }).then(function () {
+            }).then(function() {
                 email.sendNow(ti.UserID, 'new task', null);
             });
 
@@ -643,9 +650,9 @@ class TaskTrigger {
             var keys = Object.keys(data); //find the latest version of the data
         }
 
-        await Promise.mapSeries(keys, function (val) {
+        await Promise.mapSeries(keys, function(val) {
             //if (typeof JSON.parse(ta.Fields)[val].field_type !== undefined) {
-            if ((val !== 'number_of_fields' && val !== 'revise_and_resubmit')  && JSON.parse(ta.Fields)[val].field_type === 'assessment') {
+            if ((val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(ta.Fields)[val].field_type === 'assessment') {
                 if (JSON.parse(ta.Fields)[val].assessment_type === 'grade') {
                     grade += parseInt(data[val][0]);
                 } else if (JSON.parse(ta.Fields)[val].assessment_type === 'rating') {
@@ -727,7 +734,7 @@ class TaskTrigger {
         if (!original_data) {
             original_data = [];
         }
-        original_data[original_data.length-1].revise_and_resubmit = {'data': data, 'fields': JSON.parse(ti.TaskActivity.Fields)};
+        original_data[original_data.length - 1].revise_and_resubmit = { 'data': data, 'fields': JSON.parse(ti.TaskActivity.Fields) };
 
         var status = JSON.parse(original_task.Status);
         status[0] = 'started';
@@ -863,7 +870,7 @@ class TaskTrigger {
         var x = this;
 
         if (JSON.parse(ti.NextTask) !== '[]') {
-            await Promise.map(JSON.parse(ti.NextTask), async function (task) {
+            await Promise.map(JSON.parse(ti.NextTask), async function(task) {
                 var next = await TaskInstance.find({
                     where: {
                         TaskInstanceID: task.id

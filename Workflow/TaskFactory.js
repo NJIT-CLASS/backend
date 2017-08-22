@@ -36,7 +36,8 @@ import {
     WorkflowActivity_Archive,
     WorkflowGrade,
     WorkflowInstance,
-    WorkflowInstance_Archive
+    WorkflowInstance_Archive,
+    Category
 } from '../Util/models.js';
 
 var Allocator = require('./Allocator.js');
@@ -909,13 +910,11 @@ class TaskFactory {
      **  Amadou workd starts here
      ************************************************************************************************************/
     //Update points instances when student submit task
-    async updatePointInstance(taskInstance) {
-        let taskActivity = taskInstance.TaskActivity;
-        let userID = taskInstance.UserID;
+    async updatePointInstance(taskActivityType, assignmentInstanceID, userID) {
 
         let assignmentInstance = await AssignmentInstance.find({
             where: {
-                AssignmentInstanceID: taskInstance.AssignmentInstanceID
+                AssignmentInstanceID: assignmentInstanceID
             },
             attributes: ['SectionID'],
         });
@@ -930,7 +929,7 @@ class TaskFactory {
         let category = await Category.find({
             where: {
                 Type: {
-                    $like: taskActivity.Type
+                    $like: taskActivityType
                 }
             },
             attributes: ['Type', 'CategoryID']
@@ -986,7 +985,26 @@ class TaskFactory {
     async createCategoryInstances(semesterID, courseID, sectionID) {
 
         let categories = await Category.findAll();
-        console.log('here 3')
+
+        if (!categories) {
+            categories = [];
+
+            let type = ['create_problem', 'create_solution', 'create_comment', 'high_grade'];
+
+            for (let x = 0; x < type.length; x++) {
+
+                categories.push(Category.create({
+                    'Type': type[x],
+                    'Name': type[x],
+                    'Description': type[x],
+                    'Tier1Instances': '10',
+                    'Tier2Instances': '20',
+                    'Tier3Instances': '30',
+                    'InstanceValue': '10'
+                }));
+            }
+
+        }
 
         for (let x = 0; x < categories.length; x++) {
             console.log('here 4')

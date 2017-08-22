@@ -3505,9 +3505,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             logger.log('info', 'task instance updated');
             logger.log('info', 'triggering next task');
 
+            //Amadou
             //Update points for student as they submit taks
             let taskFactory = new TaskFactory;
-            taskFactory.updatePointInstance(ti);
+            taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, ti.UserID);
 
             await trigger.next(req.body.taskInstanceid);
         }
@@ -5761,7 +5762,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 CommentTarget: req.body.CommentTarget,
 
             }).then(function(result) {
+
+                //Amadou
+                let taskFactory = new TaskFactory;
+                taskFactory.updatePointInstance('create_comment', req.body.AssignmentInstanceID, req.body.UserID);
+
                 res.status(200).end();
+
             }).catch(function(err) {
                 console.log(err);
                 res.status(400).end();

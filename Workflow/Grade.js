@@ -70,7 +70,7 @@ class Grade {
                 }
             ]
         });
-        
+
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
         var user_history = JSON.parse(ti.UserHistory);
@@ -100,6 +100,8 @@ class Grade {
                 });
 
                 logger.log('info', '/Workflow/Grade/addSimpleGrade: Done! TaskSimpleGradeID: ', grade.TaskSimpleGradeID);
+
+                return grade;
 
             } catch (err) {
                 logger.log('error', '/Workflow/Grade/addSimpleGrade: cannot create task simple grade', {
@@ -292,7 +294,7 @@ class Grade {
         var wf_collection = await x.getWorkflowCollection(ai_id);
         var workflows_not_done = [];
 
-        await Promise.map(JSON.parse(wf_collection), async function (wi_id) {
+        await Promise.map(JSON.parse(wf_collection), async function(wi_id) {
             if (!(await x.checkWorkflowDone(wi_id))) {
                 workflows_not_done.push(wi_id);
             }
@@ -322,7 +324,7 @@ class Grade {
         var task_collection = await x.getTaskCollection(wi_id);
         var tasks_not_done = [];
 
-        await Promise.map(task_collection, async function (ti_id) {
+        await Promise.map(task_collection, async function(ti_id) {
             if (!(await x.checkTaskDone(ti_id))) {
                 tasks_not_done.push(ti_id);
             }
@@ -432,7 +434,7 @@ class Grade {
             });
 
             var maxGrade = 0;
-            await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function (val) {
+            await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function(val) {
                 if ((val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(ta.Fields)[val].field_type == 'assessment') {
                     if (JSON.parse(ta.Fields)[val].assessment_type == 'grade') {
                         maxGrade += JSON.parse(ta.Fields)[val].numeric_max;
@@ -494,7 +496,7 @@ class Grade {
             },
             include: [{
                 model: TaskActivity
-            },{
+            }, {
                 model: TaskSimpleGrade
             }]
         });
