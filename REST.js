@@ -150,7 +150,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         var grade = new Grade();
         var instructor = await alloc.findInstructor(3);
-        console.log(instructor)
+        console.log(instructor);
 
         // var grades = await grade.getStudentSimpleGrade(1, 1);
 
@@ -1327,8 +1327,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
         logger.log('warn', 'only info');
         logger.log('warn', 'only info', ([1, 2, {
-                k: 'v'
-            },
+            k: 'v'
+        },
             ['hi'],
             function (test) {
                 console.log(test);
@@ -1540,15 +1540,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             // attributes: ['CourseID']
             include: [{
-                    model: Assignment,
+                model: Assignment,
                     // attributes: ["AssignmentInstanceID", "AssignmentID"],
                     /*include: [{
                      model: Section,
                      }],*/
-                },
-                {
-                    model: Section,
-                    include: [{
+            },
+            {
+                model: Section,
+                include: [{
                         model: Course,
                         // attributes: ["AssignmentInstanceID", "AssignmentID"],
                         /*include: [{
@@ -1556,7 +1556,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                          attributes: ["SectionID"],
                          }],*/
                     }, ],
-                },
+            },
                 /*{
                  model: AssignmentGrade,
                  }*/
@@ -1955,26 +1955,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     if (attempts >= 5) {
                         console.log('/login: setting new timeout for ' + user.Email);
                         switch (attempts) {
-                            case 5:
-                                minutes = 1;
-                                break;
-                            case 6:
-                                minutes = 2;
-                                break;
-                            case 7:
-                                minutes = 5;
-                                break;
-                            case 8:
-                                minutes = 10;
-                                break;
-                            case 9:
-                                minutes = 15;
-                                break;
-                            case 10:
-                                minutes = 30;
-                                break;
-                            default:
-                                minutes = 60;
+                        case 5:
+                            minutes = 1;
+                            break;
+                        case 6:
+                            minutes = 2;
+                            break;
+                        case 7:
+                            minutes = 5;
+                            break;
+                        case 8:
+                            minutes = 10;
+                            break;
+                        case 9:
+                            minutes = 15;
+                            break;
+                        case 10:
+                            minutes = 30;
+                            break;
+                        default:
+                            minutes = 60;
                         }
                         let timeout = current_timestamp;
                         timeout.setMinutes(timeout.getMinutes() + minutes);
@@ -2079,13 +2079,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
             include: [{
-                    model: UserLogin,
-                    attributes: ['Email']
-                },
-                {
-                    model: UserContact,
-                    attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
-                }
+                model: UserLogin,
+                attributes: ['Email']
+            },
+            {
+                model: UserContact,
+                attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
+            }
             ]
         }).then(function (user) {
             res.json({
@@ -2921,10 +2921,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
 
         return UserLogin.findOne({
-                where: {
+            where: {
                     Email: req.body.email
                 }
-            })
+        })
             .then(async(user) => {
                 console.log('found user', user);
                 if (user == null) {
@@ -3288,9 +3288,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (e) {
             console.log('getUserID ' + e);
             UserContact.find({
-                    Email: req.params.email
+                Email: req.params.email
 
-                }).then(function (user) {
+            }).then(function (user) {
                     res.json({
                         'UserID': user.UserID
                     });
@@ -3354,10 +3354,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             req_query: req.query
         });
         TaskInstance.find({
-                where: {
+            where: {
                     TaskInstanceID: req.params.taskInstanceID
                 },
-                include: [{
+            include: [{
                     model: TaskActivity,
                     include: [{
                         model: Assignment,
@@ -3370,18 +3370,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         model: Section,
                         attributes: ['Name', 'SectionID'],
                         include: [{
-                                model: Course,
-                                attributes: ['Name', 'Number']
-                            },
-                            {
-                                model: Semester,
-                                attributes: ['SemesterID', 'Name']
-                            }
+                            model: Course,
+                            attributes: ['Name', 'Number']
+                        },
+                        {
+                            model: Semester,
+                            attributes: ['SemesterID', 'Name']
+                        }
                         ]
                     }]
 
                 }]
-            })
+        })
             .catch(function (err) {
                 //Catch error and print into console.
                 console.log(err);
@@ -3979,7 +3979,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     where: {
                         TaskInstanceID: req.params.taskInstanceId
                     },
-                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files'],
+                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID'],
                     include: [{
                         model: TaskActivity,
                         attributes: taskActivityAttributes
@@ -4608,13 +4608,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }]
             }]
         }).then(function (assignments) {
-                res.json({
+            res.json({
                     'Error': false,
                     'Message': 'Success',
                     'Assignments': assignments
 
                 });
-            }
+        }
 
         );
     });
@@ -4813,16 +4813,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Role: req.params.role
             },
             include: [{
-                    model: User,
-                    attributes: ['FirstName', 'LastName'],
-                    include: [{
+                model: User,
+                attributes: ['FirstName', 'LastName'],
+                include: [{
                         model: VolunteerPool
                     }]
-                },
-                {
-                    model: UserLogin,
-                    attributes: ['Email']
-                }
+            },
+            {
+                model: UserLogin,
+                attributes: ['Email']
+            }
             ],
             order: [
                 [User, 'LastName'],
@@ -4850,7 +4850,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         return sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
             .then(function () {
                 Promise.mapSeries(req.body.users, (userDetails) => {
-                        return UserLogin.find({
+                    return UserLogin.find({
                             where: {
                                 Email: userDetails.email
                             },
@@ -4858,7 +4858,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         }).then(function (response) {
                             if (response == null || response.UserID == null) {
                                 return sequelize.transaction(function (t) {
-                                        return User.create({
+                                    return User.create({
                                             FirstName: userDetails.firstName,
                                             LastName: userDetails.lastName,
                                             Instructor: userDetails.role === 'Instructor'
@@ -4906,7 +4906,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                 });
                                             });
                                         });
-                                    })
+                                })
                                     .catch((err) => {
                                         console.log(err);
                                         logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
@@ -4949,7 +4949,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                 });
                             }
                         });
-                    })
+                })
                     .then((results) => {
                         console.log(results);
                         return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -4994,10 +4994,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     .then(function () {
                         return sequelize.transaction(function (t) {
                             return User.create({
-                                    FirstName: req.body.firstName,
-                                    LastName: req.body.lastName,
-                                    Instructor: req.body.role === 'Instructor'
-                                }, {
+                                FirstName: req.body.firstName,
+                                LastName: req.body.lastName,
+                                Instructor: req.body.role === 'Instructor'
+                            }, {
                                     transaction: t
                                 })
                                 .catch(function (err) {
@@ -5015,12 +5015,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     console.log(user.UserID);
                                     let temp_pass = await password.generate();
                                     return UserContact.create({
-                                            UserID: user.UserID,
-                                            FirstName: req.body.firstName,
-                                            LastName: req.body.lastName,
-                                            Email: req.body.email,
-                                            Phone: '(XXX) XXX-XXXX'
-                                        }, {
+                                        UserID: user.UserID,
+                                        FirstName: req.body.firstName,
+                                        LastName: req.body.lastName,
+                                        Email: req.body.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
                                             transaction: t
                                         }).catch(function (err) {
                                             console.error(err);
@@ -5077,8 +5077,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                         req_body: req.body
                                                     });
                                                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
-                                                            transaction: t
-                                                        })
+                                                        transaction: t
+                                                    })
                                                         .then(function () {
                                                             res.json({
                                                                 success: true,
@@ -5135,27 +5135,27 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         console.log('deleting user', req.params.userID);
 
         return sequelize.transaction(function (t) {
-                return UserLogin.destroy({
-                        where: {
+            return UserLogin.destroy({
+                    where: {
                             UserID: req.params.userID
                         }
-                    }, {
+                }, {
                         transaction: t
                     })
                     .then((loginRowsDeleted) => {
                         return UserContact.destroy({
-                                where: {
+                            where: {
                                     UserID: req.params.userID
                                 }
-                            }, {
+                        }, {
                                 transaction: t
                             })
                             .then((contactRowsDeleted) => {
                                 return SectionUser.destroy({
-                                        where: {
+                                    where: {
                                             UserID: req.params.userID
                                         }
-                                    }, {
+                                }, {
                                         transaction: t
                                     })
                                     .then((sectionUsersDeleted) => {
@@ -5170,7 +5170,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             });
 
                     });
-            })
+        })
             .then((result) => {
                 logger.log('info', 'post: /delete/user, user deleted from system', {
                     req_params: req.params,
@@ -5328,32 +5328,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchTask = (taskInstanceID) => {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
-                        where: {
+                    where: {
                             TaskInstanceID: taskInstanceID
                         },
-                        attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                        include: [{
-                                model: TaskActivity,
-                                attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                            },
-                            {
-                                model: WorkflowInstance,
-                                attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                                include: {
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
                                     model: WorkflowActivity,
                                     attributes: ['WorkflowStructure']
                                 }
-                            },
-                            {
-                                model: User,
-                                attributes: ['UserID', 'FirstName', 'LastName'],
-                                include: [{
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
                                     model: UserContact,
                                     attributes: ['Email', 'Alias']
                                 }]
-                            }
+                        }
                         ]
-                    })
+                })
                     .catch(err => reject(err))
                     .then(task => resolve(task));
             });
@@ -5366,10 +5366,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         };
 
         WorkflowInstance.find({
-                where: {
+            where: {
                     WorkflowInstanceID: req.params.workflowInstanceID
                 }
-            })
+        })
             .then(async(result) => {
                 let mappedTasks = JSON.parse(result.TaskCollection);
 
@@ -5392,32 +5392,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchTask = (taskInstanceID) => {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
-                        where: {
+                    where: {
                             TaskInstanceID: taskInstanceID
                         },
-                        attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                        include: [{
-                                model: TaskActivity,
-                                attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                            },
-                            {
-                                model: WorkflowInstance,
-                                attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                                include: {
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
                                     model: WorkflowActivity,
                                     attributes: ['WorkflowStructure']
                                 }
-                            },
-                            {
-                                model: User,
-                                attributes: ['UserID', 'FirstName', 'LastName'],
-                                include: [{
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
                                     model: UserContact,
                                     attributes: ['Email', 'Alias']
                                 }]
-                            }
+                        }
                         ]
-                    })
+                })
                     .catch(err => reject(err))
                     .then(tiData => {
                         if (workflowInstanceObject[tiData.TaskActivity.TaskActivityID]) {
@@ -5440,10 +5440,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //key: taskActivityID
         //value: array of resolved tasks
         WorkflowInstance.find({
-                where: {
+            where: {
                     WorkflowInstanceID: req.params.workflowInstanceID
                 }
-            })
+        })
             .then(async(result) => {
                 let mappedTasks = JSON.parse(result.TaskCollection);
 
@@ -5467,32 +5467,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchTask = (taskInstanceID) => {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
-                        where: {
+                    where: {
                             TaskInstanceID: taskInstanceID
                         },
-                        attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                        include: [{
-                                model: TaskActivity,
-                                attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                            },
-                            {
-                                model: WorkflowInstance,
-                                attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                                include: {
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                            model: TaskActivity,
+                            attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                            include: {
                                     model: WorkflowActivity,
                                     attributes: ['WorkflowStructure']
                                 }
-                            },
-                            {
-                                model: User,
-                                attributes: ['UserID', 'FirstName', 'LastName'],
-                                include: [{
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
                                     model: UserContact,
                                     attributes: ['Email', 'Alias']
                                 }]
-                            }
+                        }
                         ]
-                    })
+                })
                     .catch(err => reject(err))
                     .then(task => resolve(task));
             });
@@ -5507,10 +5507,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchWorkflow = (workflowArray) => {
             return workflowArray.map((workflow) => {
                 return WorkflowInstance.find({
-                        where: {
+                    where: {
                             WorkflowInstanceID: workflow
                         }
-                    })
+                })
                     .then((result) => {
                         let mappedTasks = JSON.parse(result.TaskCollection);
                         return mappedTasks.map(fetchTask);
@@ -5545,28 +5545,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchTask = (taskInstanceID) => {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
-                        where: {
+                    where: {
                             TaskInstanceID: taskInstanceID
                         },
-                        attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                        include: [{
-                                model: TaskActivity,
-                                attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
-                            },
-                            {
-                                model: WorkflowInstance,
-                                attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
-                            },
-                            {
-                                model: User,
-                                attributes: ['UserID', 'FirstName', 'LastName'],
-                                include: [{
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                            model: TaskActivity,
+                            attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        },
+                        {
+                            model: WorkflowInstance,
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
+                        },
+                        {
+                            model: User,
+                            attributes: ['UserID', 'FirstName', 'LastName'],
+                            include: [{
                                     model: UserContact,
                                     attributes: ['Email', 'Alias']
                                 }]
-                            }
+                        }
                         ]
-                    })
+                })
                     .catch(err => reject(err))
                     .then(tiData => {
                         const waID = tiData.WorkflowInstance.WorkflowActivityID;
@@ -5596,11 +5596,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchWorkflow = (workflowArray) => {
             return workflowArray.map((workflow) => {
                 return WorkflowInstance.find({
-                        where: {
+                    where: {
                             WorkflowInstanceID: workflow
                         },
-                        include: [WorkflowActivity]
-                    })
+                    include: [WorkflowActivity]
+                })
                     .then((result) => {
                         assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
                             WorkflowInstances: {},
@@ -5636,7 +5636,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    router.get("/reallocatepools/:ai_id", function (req, res) {
+    router.get('/reallocatepools/:ai_id', function (req, res) {
         var reallocate = new Allocator();
         var ai_id = req.params.ai_id;
         //var manually_chosen = {};
@@ -5650,7 +5650,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 section_students = false;
 
                 return Promise.each(pools[section_instructors], function (si) {
-                    return reallocate.reallocate(si, pools[section_instructors])
+                    return reallocate.reallocate(si, pools[section_instructors]);
                 });
 
                 section_instructors = true;
@@ -5658,49 +5658,49 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             } else {
 
                 return Promise.each(pools[section_students], function (ss) {
-                    return reallocate.reallocate(ss, pools[section_students])
+                    return reallocate.reallocate(ss, pools[section_students]);
                 });
 
                 section_students = true;
             }
         } else {
             return Promise.each(pools[volunteer_pool], function (vo) {
-                return reallocate.reallocate(vo, pools[volunteer_pool])
-            })
+                return reallocate.reallocate(vo, pools[volunteer_pool]);
+            });
             volunteer_pool = true;
         }
 
         res.json({
-            "volunteer_pool": volunteer_pool,
-            "section_students": section_students,
-            "section_instructors": section_instructors,
-            "reallocate": pools
+            'volunteer_pool': volunteer_pool,
+            'section_students': section_students,
+            'section_instructors': section_instructors,
+            'reallocate': pools
         });
 
     });
 
 
 
-    router.post("/reallocate_ai/", async function (req, res) {
+    router.post('/reallocate_ai/', async function (req, res) {
         var reallocate = new Allocator();
 
-        await reallocate.reallocate_ai()
+        await reallocate.reallocate_ai();
     });
 
 
 
      //---------------------comments APIs----------------------------------------------
-     router.post('/comments/add', function(req, res) {
-        console.log("/comments/add : was called");
+    router.post('/comments/add', function(req, res) {
+         console.log('/comments/add : was called');
 
-        if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
-             console.log("/comments/add : Missing attributes");
-             res.status(400).end();
-         }
+         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
+            console.log('/comments/add : Missing attributes');
+            res.status(400).end();
+        }
 
-        console.log("got to create part");
+         console.log('got to create part');
 
-        Comments.create({
+         Comments.create({
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
             TargetID: req.body.TargetID,
@@ -5719,30 +5719,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             CommentTarget: req.body.CommentTarget,
 
         }).then(function(result){
-          res.status(200).end();
+            res.status(200).end();
         }).catch(function(err) {
-                    console.log(err);
-                    res.status(400).end();
-                });
-    })
+            console.log(err);
+            res.status(400).end();
+        });
+     });
 //------------------------------------------------------------------------------------------
-router.post('/comments/edit', function(req, res) {
+    router.post('/comments/edit', function(req, res) {
 
-  if (req.body.CommentsID  == null) {
-      console.log("/comments/edit : CommentsID cannot be null");
+    if (req.body.CommentsID  == null) {
+      console.log('/comments/edit : CommentsID cannot be null');
       res.status(400).end();
       return;
   };
-  if (req.body.CommentsText == null) {
-      console.log("/comments/edit : CommentsText cannot be null");
+    if (req.body.CommentsText == null) {
+      console.log('/comments/edit : CommentsText cannot be null');
       res.status(400).end();
       return;
   };
-  Comments.findAll({
+    Comments.findAll({
       where: {
           CommentsID: req.body.CommentsID
       }
-    }).then(function(rows){
+  }).then(function(rows){
         CommentsArchive.create({
             CommentsID: rows[0].CommentsID,
             UserID: rows[0].UserID,
@@ -5764,35 +5764,35 @@ router.post('/comments/edit', function(req, res) {
             Edited: rows[0].Edited,
             Time:rows[0].Time,
             Complete: rows[0].Complete
-          });
-          console.log("/comments/edit : Comments archived");
-        }).catch(function(err) {
-          console.log('/comments/edit (CommentsArchive): ' + err);
-          res.status(401).end();
+        });
+        console.log('/comments/edit : Comments archived');
+    }).catch(function(err) {
+            console.log('/comments/edit (CommentsArchive): ' + err);
+            res.status(401).end();
         });
 
 
-  Comments.update({
-       Type: req.body.Type,
-       CommentsText: req.body.CommentsText,
-       Rating: req.body.Rating,
-       Flag: req.body.Flag,
-       Status: req.body.Status,
-       ReplyLevel: req.body.ReplyLevel,
-       Parents: req.body.Parents,
-       Time: req.body.Time,
-       Complete: req.body.Complete,
-       Edited: 1
+    Comments.update({
+      Type: req.body.Type,
+      CommentsText: req.body.CommentsText,
+      Rating: req.body.Rating,
+      Flag: req.body.Flag,
+      Status: req.body.Status,
+      ReplyLevel: req.body.ReplyLevel,
+      Parents: req.body.Parents,
+      Time: req.body.Time,
+      Complete: req.body.Complete,
+      Edited: 1
 
   }, {
       where: {
           CommentsID: req.body.CommentsID
       }
   }).then(function(result) {
-              res.json({
-              "Error": false,
-              "Message": "Success"
-          });
+      res.json({
+                  'Error': false,
+                  'Message': 'Success'
+              });
   }).catch(function(err) {
       console.log('/comments/edit: ' + err);
       res.status(401).end();
@@ -5800,16 +5800,16 @@ router.post('/comments/edit', function(req, res) {
 });
 
 //-----------------------------------------------------------------------------
-router.post('/comments/delete', function(req, res) {
+    router.post('/comments/delete', function(req, res) {
 
-  if (req.body.CommentsID  == null) {
-      console.log("/comments/delete : CommentsID cannot be null");
+    if (req.body.CommentsID  == null) {
+      console.log('/comments/delete : CommentsID cannot be null');
       res.status(400).end();
       return;
   };
 
-  Comments.update({
-          Delete: 1
+    Comments.update({
+      Delete: 1
   }, {
       where: {
           CommentsID: req.body.CommentsID,
@@ -5822,10 +5822,10 @@ router.post('/comments/delete', function(req, res) {
           }
       }).then(function(CommentsUpdated) {
           res.json({
-              "Error": false,
-              "Message": "Success",
-              "Result": result,
-              "CommentsUpdated": CommentsUpdated
+              'Error': false,
+              'Message': 'Success',
+              'Result': result,
+              'CommentsUpdated': CommentsUpdated
           });
       });
   }).catch(function(err) {
@@ -5834,9 +5834,9 @@ router.post('/comments/delete', function(req, res) {
   });
 });
 //-------------------------------------------------------------------------
-   router.post('/comments/viewed', function(req, res) {
+    router.post('/comments/viewed', function(req, res) {
        if (req.body.CommentsID  == null) {
-           console.log("/comments/viewed : CommentsID cannot be null");
+           console.log('/comments/viewed : CommentsID cannot be null');
            res.status(400).end();
            return;
        };
@@ -5846,25 +5846,25 @@ router.post('/comments/delete', function(req, res) {
            Time: req.body.Time,
 
        }).then(function(result){
-         res.status(200).end();
+           res.status(200).end();
        }).catch(function(err) {
-                   console.log(err);
-                   res.status(400).end();
-               });
+           console.log(err);
+           res.status(400).end();
+       });
    });
 
 //------------------------------------------------------------------------------
 
-router.post('/comments/setFlag', function(req, res) {
+    router.post('/comments/setFlag', function(req, res) {
 
-  if (req.body.CommentsID  == null) {
-      console.log("/comments/setFlag : CommentsID cannot be null");
+    if (req.body.CommentsID  == null) {
+      console.log('/comments/setFlag : CommentsID cannot be null');
       res.status(400).end();
       return;
   }
 
-  Comments.update({
-          Flag: 1
+    Comments.update({
+      Flag: 1
   }, {
       where: {
           CommentsID: req.body.CommentsID,
@@ -5877,10 +5877,10 @@ router.post('/comments/setFlag', function(req, res) {
           }
       }).then(function(CommentsUpdated) {
           res.json({
-              "Error": false,
-              "Message": "Success",
-              "Result": result,
-              "Flag": CommentsUpdated
+              'Error': false,
+              'Message': 'Success',
+              'Result': result,
+              'Flag': CommentsUpdated
           });
       });
   }).catch(function(err) {
@@ -5889,16 +5889,16 @@ router.post('/comments/setFlag', function(req, res) {
   });
 });
  //-------------------------------------------------------------------------
- router.post('/comments/removeFlag', function(req, res) {
+    router.post('/comments/removeFlag', function(req, res) {
 
      if (req.body.CommentsID  == null) {
-         console.log("/comments/removeFlag : CommentsID cannot be null");
+         console.log('/comments/removeFlag : CommentsID cannot be null');
          res.status(400).end();
          return;
      }
 
      Comments.update({
-             Flag: 0
+         Flag: 0
      }, {
          where: {
              CommentsID: req.body.CommentsID,
@@ -5911,10 +5911,10 @@ router.post('/comments/setFlag', function(req, res) {
              }
          }).then(function(CommentsUpdated) {
              res.json({
-                 "Error": false,
-                 "Message": "Success",
-                 "Result": result,
-                 "Flag": CommentsUpdated
+                 'Error': false,
+                 'Message': 'Success',
+                 'Result': result,
+                 'Flag': CommentsUpdated
              });
          });
      }).catch(function(err) {
@@ -5924,16 +5924,16 @@ router.post('/comments/setFlag', function(req, res) {
  });
     //-------------------------------------------------------------------------
 
- router.post('/comments/rating', function(req, res) {
+    router.post('/comments/rating', function(req, res) {
 
      if (req.body.CommentsID  == null) {
-         console.log("/comments/rating : CommentsID cannot be null");
+         console.log('/comments/rating : CommentsID cannot be null');
          res.status(400).end();
          return;
      }
 
      Comments.update({
-             Rating: req.body.Rating
+         Rating: req.body.Rating
      }, {
          where: {
              CommentsID: req.body.CommentsID,
@@ -5946,10 +5946,10 @@ router.post('/comments/setFlag', function(req, res) {
              }
          }).then(function(CommentsUpdated) {
              res.json({
-                 "Error": false,
-                 "Message": "Success",
-                 "Result": result,
-                 "Rating": CommentsUpdated
+                 'Error': false,
+                 'Message': 'Success',
+                 'Result': result,
+                 'Rating': CommentsUpdated
              });
          });
      }).catch(function(err) {
@@ -5958,10 +5958,10 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //-------------------------------------------------------------------------
- router.get('/comments/countOfComments/:Target/id/:TargetID', function(req, res) {
+    router.get('/comments/countOfComments/:Target/id/:TargetID', function(req, res) {
      console.log('/comments/countOfComments/:Target/id/:TargetID was called');
      Comments.findAll({
-       where: {
+         where: {
            CommentTarget: req.params.Target,
            TargetID: req.params.TargetID,
            Status: 'submitted',
@@ -5979,10 +5979,10 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //-------------------------------------------------------------------------
- router.get('/comments/countOfUsers/:assignmentInstanceID', function(req, res) {
+    router.get('/comments/countOfUsers/:assignmentInstanceID', function(req, res) {
      console.log('comments/countOfUsers was called');
      Comments.findAll({
-       where: {
+         where: {
            AssignmentInstanceID: req.params.AssignmentInstanceID,
            Delete: null
        }
@@ -5998,10 +5998,10 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //-------------------------------------------------------------------------
- router.get('/comments/countOfRating/:assignmentInstanceID', function(req, res) {
+    router.get('/comments/countOfRating/:assignmentInstanceID', function(req, res) {
      console.log('comments/countOfRating was called');
      Comments.findAll({
-       where: {
+         where: {
            AssignmentInstanceID: req.params.AssignmentInstanceID,
            Rating: {$not: null},
            Delete: null
@@ -6019,11 +6019,11 @@ router.post('/comments/setFlag', function(req, res) {
  });
 
  //-------------------------------------------------------------------------
- router.get('/comments/aveRating/comment/:CommentsID', function(req, res) {
+    router.get('/comments/aveRating/comment/:CommentsID', function(req, res) {
      console.log('/comments/aveRating/comment/ was called');
      var total = 0.0;
      var c = Comments.findAll({
-       where: {
+         where: {
            Parents: req.params.CommentsID,
            Rating: {$not: null},
            Delete: null
@@ -6034,7 +6034,7 @@ router.post('/comments/setFlag', function(req, res) {
      }).catch(function(err) {
          console.log('/comments/count ' + err.message);
          res.status(401).end();
-     var ave = total / c.length;
+         var ave = total / c.length;
          res.json({
              'Error': false,
              'Message': 'Success',
@@ -6044,11 +6044,11 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //-------------------------------------------------------------------------
- router.get('/comments/aveRating/comment/:userID', function(req, res) {
+    router.get('/comments/aveRating/comment/:userID', function(req, res) {
      console.log('/comments/aveRating/comment/ was called');
      var total = 0.0;
      var c = Comments.findAll({
-       where: {
+         where: {
            UserID: req.params.userID,
            Rating: {$not: null},
            Delete: null
@@ -6059,7 +6059,7 @@ router.post('/comments/setFlag', function(req, res) {
      }).catch(function(err) {
          console.log('/comments/count ' + err.message);
          res.status(401).end();
-     var ave = total / c.length;
+         var ave = total / c.length;
          res.json({
              'Error': false,
              'Message': 'Success',
@@ -6070,15 +6070,15 @@ router.post('/comments/setFlag', function(req, res) {
  });
 
  //-------------------------------------------------------------------------
- router.get('/comments/ai/:AssignmentInstanceID',function(req, res) {
-   console.log('comments/ai/:AssignmentInstanceID was called');
-   Comments.findAll({
+    router.get('/comments/ai/:AssignmentInstanceID',function(req, res) {
+     console.log('comments/ai/:AssignmentInstanceID was called');
+     Comments.findAll({
        where: {
            AssignmentInstanceID: req.params.AssignmentInstanceID,
            Delete: null
        },
        attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
-     }).then(function(rows) {
+   }).then(function(rows) {
          res.json({
              'Error': false,
              'Message': 'Success',
@@ -6091,67 +6091,67 @@ router.post('/comments/setFlag', function(req, res) {
  });
 
  //-------------------------------------------------------------------------
- router.get('/comments/ti/:Target/id/:TargetID',async function(req, res) {
-       console.log('comments/ti/:Target/id/:TargetID was called');
-       console.log(req.params.Target, req.params.TargetID)
-       var parents = await Comments.findAll({
+    router.get('/comments/ti/:Target/id/:TargetID',async function(req, res) {
+     console.log('comments/ti/:Target/id/:TargetID was called');
+     console.log(req.params.Target, req.params.TargetID);
+     var parents = await Comments.findAll({
            where: {
                TargetID: req.params.TargetID,
                CommentTarget: req.params.Target,
                Delete: null,
                Parents: null
            }
-         }).catch(function(err) {
+       }).catch(function(err) {
              console.log('comments/ti ' + err.message);
              res.status(401).end();
          });
-         var children = await Comments.findAll({
+     var children = await Comments.findAll({
              where: {
                  TargetID: req.params.TargetID,
                  CommentTarget: req.params.Target,
                  Delete: null,
                  Parents: {$ne: null}
              }
-           }).catch(function(err) {
+         }).catch(function(err) {
                console.log('comments/ti ' + err.message);
                res.status(401).end();
            });
 
-           for (var j = 0; j < children.length; j++) {
-             for (var i = 0; i < parents.length; i++) {
-               if (parents[i].CommentsID == children[j].Parents) {
-                 if (i < parents.length) {
-                   i++;
-                   var m = i;
+     for (var j = 0; j < children.length; j++) {
+               for (var i = 0; i < parents.length; i++) {
+                 if (parents[i].CommentsID == children[j].Parents) {
+                   if (i < parents.length) {
+                     i++;
+                     var m = i;
                  }
-                 while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
-                   i++;
+                   while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
+                     i++;
                  }
-                 parents.splice(i, 0, children[j]);
-                 break;
+                   parents.splice(i, 0, children[j]);
+                   break;
                }
              }
            }
 
-             res.json({
+     res.json({
                  'Error': false,
                  'Message': 'Success',
                  'Comments': parents
              });
 
-     });
+ });
 
  //-------------------------------------------------------------------------
- router.get('/comments/CommentsID/:CommentsID',function(req, res) {
-   console.log('/comments/CommentsID/:CommentsID was called');
-   Comments.findAll({
+    router.get('/comments/CommentsID/:CommentsID',function(req, res) {
+     console.log('/comments/CommentsID/:CommentsID was called');
+     Comments.findAll({
        where: {
            CommentsID: req.params.CommentsID,
            Delete: null
        }
        //,
        //attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
-     }).then(function(rows) {
+   }).then(function(rows) {
          res.json({
              'Error': false,
              'Message': 'Success',
@@ -6163,14 +6163,14 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //-------------------------------------------------------------------------
- router.get('/comments/IDData/:TaskInstanceID',function(req, res) {
-   console.log('/comments/IDData/:TaskInstanceID was called');
-   TaskInstance.findAll({
+    router.get('/comments/IDData/:TaskInstanceID',function(req, res) {
+     console.log('/comments/IDData/:TaskInstanceID was called');
+     TaskInstance.findAll({
        where: {
            TaskInstanceID: req.params.TaskInstanceID,
        },
        attributes: ['AssignmentInstanceID', 'WorkflowInstanceID']
-     }).then(function(rows) {
+   }).then(function(rows) {
          res.json({
              'Error': false,
              'Message': 'Success',
@@ -6183,31 +6183,31 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //-------------------------------------------------------------------------
- router.get('/comments/userID/:UserID', function(req, res) {
-   console.log('/comments/userID/:UserID');
-   return Comments.findAll({
+    router.get('/comments/userID/:UserID', function(req, res) {
+     console.log('/comments/userID/:UserID');
+     return Comments.findAll({
        where: {
            UserID: req.params.UserID,
            Delete: null,
            Hide: 0
        },
        //attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
-     }).then(function(rows) {
-             res.json({
+   }).then(function(rows) {
+         res.json({
                  'Error': false,
                  'Message': 'Success',
                  'Comments': rows
-           });
+             });
      }).catch(function(err) {
          console.log('comments/userID/:UserID ' + err.message);
          res.status(401).end();
      });
  });
  //-------------------------------------------------------------------------
- router.get('/comments/courseData/:assignmentInstanceID', async function(req, res) {
-   console.log('/comments/courseData/:assignmentInstanceID');
+    router.get('/comments/courseData/:assignmentInstanceID', async function(req, res) {
+     console.log('/comments/courseData/:assignmentInstanceID');
 
-        var AI_Result = await AssignmentInstance.findOne({
+     var AI_Result = await AssignmentInstance.findOne({
             where: {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             },
@@ -6217,55 +6217,55 @@ router.post('/comments/setFlag', function(req, res) {
             res.status(401).end();
         });
 
-          var Section_Result = await Section.findOne({
+     var Section_Result = await Section.findOne({
               where: {
                   SectionID: AI_Result.SectionID
               },
               attributes: ['Name', 'CourseID', 'SemesterID']
-            }).catch(function(err) {
+          }).catch(function(err) {
                 console.log('comments/courseData/:assignmentInstanceID Section' + err.message);
                 res.status(401).end();
             });
 
-            var Course_Result = await Course.findOne({
+     var Course_Result = await Course.findOne({
                 where: {
                     CourseID: Section_Result.CourseID
                 },
                 attributes: ['Name']
-              }).catch(function(err) {
+            }).catch(function(err) {
                   console.log('comments/courseData/:assignmentInstanceID Course' + err.message);
                   res.status(401).end();
               });
 
-              var Semester_Result = await Semester.findOne({
+     var Semester_Result = await Semester.findOne({
                   where: {
                       SemesterID: Section_Result.SemesterID
                   },
                   attributes: ['Name']
-                }).catch(function(err) {
+              }).catch(function(err) {
                     console.log('comments/courseData/:assignmentInstanceID Semester' + err.message);
                     res.status(401).end();
                 });
 
-              res.json({
-                  "Error": false,
-                  "Message": "Success",
-                  "CourseName": Course_Result.Name,
-                  "SectionName": Section_Result.Name,
-                  "SemesterName": Semester_Result.Name
+     res.json({
+                  'Error': false,
+                  'Message': 'Success',
+                  'CourseName': Course_Result.Name,
+                  'SectionName': Section_Result.Name,
+                  'SemesterName': Semester_Result.Name
               });
  });
  //-------------------------------------------------------------------------
- router.post('/comments/hide', function(req, res) {
+    router.post('/comments/hide', function(req, res) {
      if (req.body.CommentsID  == null) {
-         console.log("/comments/hide : CommentsID cannot be null");
+         console.log('/comments/hide : CommentsID cannot be null');
          res.status(400).end();
          return;
      }
      Comments.update({
-             Hide: 1,
-             HideReason: req.body.HideReason,
-             HideType: req.body.HideType
+         Hide: 1,
+         HideReason: req.body.HideReason,
+         HideType: req.body.HideType
      }, {
          where: {
              CommentsID: req.body.CommentsID,
@@ -6278,9 +6278,9 @@ router.post('/comments/setFlag', function(req, res) {
              }
          }).then(function(CommentsUpdated) {
              res.json({
-                 "Error": false,
-                 "Message": "Success",
-                 "Rating": CommentsUpdated
+                 'Error': false,
+                 'Message': 'Success',
+                 'Rating': CommentsUpdated
              });
          });
      }).catch(function(err) {
@@ -6289,16 +6289,16 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //-------------------------------------------------------------------------
- router.post('/comments/unhide', function(req, res) {
+    router.post('/comments/unhide', function(req, res) {
      if (req.body.CommentsID  == null) {
-         console.log("/comments/unhide : CommentsID cannot be null");
+         console.log('/comments/unhide : CommentsID cannot be null');
          res.status(400).end();
          return;
      }
      Comments.update({
-             Hide: 0,
-             HideReason: 'NULL',
-             HideType: 'NULL'
+         Hide: 0,
+         HideReason: 'NULL',
+         HideType: 'NULL'
      }, {
          where: {
              CommentsID: req.body.CommentsID,
@@ -6311,9 +6311,9 @@ router.post('/comments/setFlag', function(req, res) {
              }
          }).then(function(CommentsUpdated) {
              res.json({
-                 "Error": false,
-                 "Message": "Success",
-                 "Rating": CommentsUpdated
+                 'Error': false,
+                 'Message': 'Success',
+                 'Rating': CommentsUpdated
              });
          });
      }).catch(function(err) {
@@ -6324,15 +6324,15 @@ router.post('/comments/setFlag', function(req, res) {
 
 
  //------------------------Contact APIs-------------------------------------
- router.get('/contact/add/:UserID', function(req, res) {
-     console.log("/contact/add : was called");
+    router.get('/contact/add/:UserID', function(req, res) {
+     console.log('/contact/add : was called');
      User.findAll({
          where: {
              UserID: req.params.UserID
          },
          attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup']
      }).then(function(rows) {
-         console.log("Creating UserID,FirstName,LastName,OrganizationGroup.");
+         console.log('Creating UserID,FirstName,LastName,OrganizationGroup.');
          Contact.create({
              UserID: rows[0].UserID,
              FirstName: rows[0].FirstName,
@@ -6350,23 +6350,23 @@ router.post('/comments/setFlag', function(req, res) {
          },
          attributes: ['Email']
      }).then(function(rows2) {
-         console.log("Adding Email");
+         console.log('Adding Email');
          Contact.update({
              Email: rows2[0].Email
-           }, {
+         }, {
                where: {
                    UserID: req.params.UserID
                },
-         });
+           });
          res.status(401).end();
      }).catch(function(err) {
          console.log('/contact/add/:UserID' + err.message);
          res.status(401).end();
      });
-   });
+ });
 
  //---------------------------------------------------------------------------
- router.delete('/contact/delete/:UserID', function(req, res) {
+    router.delete('/contact/delete/:UserID', function(req, res) {
 
      Contact.destroy({
          where: {
@@ -6385,10 +6385,10 @@ router.post('/comments/setFlag', function(req, res) {
  });
 
  //---------------------------------------------------------------------------
- router.get('/contact', function(req, res) {
+    router.get('/contact', function(req, res) {
 
      Contact.findAll({
-       attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
+         attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
      }).then(function(rows) {
          res.json({
              'Error': false,
@@ -6401,13 +6401,13 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //---------------------------------------------------------------------------
- router.get('/contact/organizationGroup/:OrganizationGroup', function(req, res) {
+    router.get('/contact/organizationGroup/:OrganizationGroup', function(req, res) {
 
      Contact.findAll({
-       where: {
+         where: {
            OrganizationGroup: req.params.OrganizationGroup
        },
-       attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
+         attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
      }).then(function(rows) {
          res.json({
              'Error': false,
@@ -6420,13 +6420,13 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //---------------------------------------------------------------------------
- router.get('/contact/global/:Global', function(req, res) {
+    router.get('/contact/global/:Global', function(req, res) {
 
      Contact.findAll({
-       where: {
+         where: {
            Global: req.params.Global
        },
-       attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
+         attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
      }).then(function(rows) {
          res.json({
              'Error': false,
@@ -6440,10 +6440,10 @@ router.post('/comments/setFlag', function(req, res) {
  });
  //---------------------------------------------------------------------------
 
- router.get('/VolunteerPool/:UserID', function(req, res) {
+    router.get('/VolunteerPool/:UserID', function(req, res) {
 
      VolunteerPool.findAll({
-       where: {
+         where: {
            UserID: req.params.UserID
        },
          attributes: ['VolunteerPoolID', 'UserID', 'SectionID', 'AssignmentInstanceID','status']
@@ -6461,8 +6461,8 @@ router.post('/comments/setFlag', function(req, res) {
 
  });
  //---------------------------------------------------------------------------
- router.get('/userManagement',async function(req, res) {
-     console.log("/userManagement : was called");
+    router.get('/userManagement',async function(req, res) {
+     console.log('/userManagement : was called');
      await User.findAll({
          attributes: ['UserID','FirstName', 'LastName', 'OrganizationGroup', 'Admin','Test','Instructor'],
          include: [{
@@ -6470,30 +6470,30 @@ router.post('/comments/setFlag', function(req, res) {
              attributes: ['Email', 'FirstName', 'LastName']
          },{
 
-               model: UserLogin,
-               attributes: ['Email','Pending','Attempts', 'Timeout', 'Blocked']
+             model: UserLogin,
+             attributes: ['Email','Pending','Attempts', 'Timeout', 'Blocked']
          }
 
-       ]
+         ]
      }).then(function(result) {
          console.log('Assignments have been found!');
          res.json({
              'Error': false,
              'Assignments': result
-             });
-         }).catch(function(err) {
-         console.log('/userManagement (User table)' + err.message);
-         res.status(401).end();
-     });
+         });
+     }).catch(function(err) {
+             console.log('/userManagement (User table)' + err.message);
+             res.status(401).end();
+         });
 
  });
 
  //---------------------------------------------------------------------------
- router.get('/userManagement/blocked/:UserID', function(req, res) {
-     console.log("/userManagement/blocked : was called");
+    router.get('/userManagement/blocked/:UserID', function(req, res) {
+     console.log('/userManagement/blocked : was called');
 
      UserLogin.update({
-             Blocked: 1
+         Blocked: 1
      }, {
          where: {
              UserID: req.params.UserID
@@ -6505,9 +6505,9 @@ router.post('/comments/setFlag', function(req, res) {
              }
          }).then(function(result) {
              res.json({
-                 "Error": false,
-                 "Message": "Success",
-                 "Result": result
+                 'Error': false,
+                 'Message': 'Success',
+                 'Result': result
              });
          });
      }).catch(function(err) {
@@ -6516,11 +6516,11 @@ router.post('/comments/setFlag', function(req, res) {
      });
  });
  //---------------------------------------------------------------------------
- router.get('/userManagement/unblocked/:UserID', function(req, res) {
-     console.log("/userManagement/unblocked : was called");
+    router.get('/userManagement/unblocked/:UserID', function(req, res) {
+     console.log('/userManagement/unblocked : was called');
 
      UserLogin.update({
-             Blocked: 0
+         Blocked: 0
      }, {
          where: {
              UserID: req.params.UserID
@@ -6532,9 +6532,9 @@ router.post('/comments/setFlag', function(req, res) {
              }
          }).then(function(result) {
              res.json({
-                 "Error": false,
-                 "Message": "Success",
-                 "Result": result
+                 'Error': false,
+                 'Message': 'Success',
+                 'Result': result
              });
          });
      }).catch(function(err) {
@@ -6674,13 +6674,13 @@ router.post('/comments/setFlag', function(req, res) {
                       AND c.SemesterID=?`;
 
         sequelize.query(select, {
-                replacements: [
+            replacements: [
                     req.params.courseID,
                     req.params.sectionID,
                     req.params.semesterID
                 ],
-                type: sequelize.QueryTypes.SELECT
-            }).then(categories => {
+            type: sequelize.QueryTypes.SELECT
+        }).then(categories => {
                 if (!categories) {
                     categories = [];
                 }
