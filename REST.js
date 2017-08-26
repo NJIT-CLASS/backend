@@ -3371,14 +3371,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     model: Section,
                     attributes: ['Name', 'SectionID'],
                     include: [{
-                            model: Course,
-                            attributes: ['Name', 'Number']
-                        },
-                        {
-                            model: Semester,
-                            attributes: ['SemesterID', 'Name']
-                        }
-                        ]
+                        model: Course,
+                        attributes: ['Name', 'Number']
+                    },
+                    {
+                        model: Semester,
+                        attributes: ['SemesterID', 'Name']
+                    }
+                    ]
                 }]
 
             }]
@@ -4869,55 +4869,55 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }).then(function (response) {
                         if (response == null || response.UserID == null) {
                             return sequelize.transaction(function (t) {
-                                    return User.create({
+                                return User.create({
+                                    FirstName: userDetails.firstName,
+                                    LastName: userDetails.lastName,
+                                    Instructor: userDetails.role === 'Instructor'
+                                }, {
+                                    transaction: t
+                                }).then(async function (user) {
+                                    let temp_pass = await password.generate();
+                                    return UserContact.create({
+                                        UserID: user.UserID,
                                         FirstName: userDetails.firstName,
                                         LastName: userDetails.lastName,
-                                        Instructor: userDetails.role === 'Instructor'
+                                        Email: userDetails.email,
+                                        Phone: '(XXX) XXX-XXXX'
                                     }, {
                                         transaction: t
-                                    }).then(async function (user) {
-                                        let temp_pass = await password.generate();
-                                        return UserContact.create({
-                                                UserID: user.UserID,
-                                                FirstName: userDetails.firstName,
-                                                LastName: userDetails.lastName,
-                                                Email: userDetails.email,
-                                                Phone: '(XXX) XXX-XXXX'
+                                    }).then(async function (userCon) {
+                                        return UserLogin.create({
+                                            UserID: user.UserID,
+                                            Email: userDetails.email,
+                                            Password: await password.hash(temp_pass)
+                                        }, {
+                                            transaction: t
+                                        }).then(function (userLogin) {
+
+                                            return SectionUser.create({
+                                                SectionID: req.params.sectionid,
+                                                UserID: userLogin.UserID,
+                                                Active: userDetails.active,
+                                                Volunteer: userDetails.volunteer,
+                                                Role: userDetails.role
                                             }, {
                                                 transaction: t
-                                            }).then(async function (userCon) {
-                                                return UserLogin.create({
-                                                    UserID: user.UserID,
-                                                    Email: userDetails.email,
-                                                    Password: await password.hash(temp_pass)
-                                                }, {
-                                                    transaction: t
-                                                }).then(function (userLogin) {
-
-                                                    return SectionUser.create({
-                                                        SectionID: req.params.sectionid,
-                                                        UserID: userLogin.UserID,
-                                                        Active: userDetails.active,
-                                                        Volunteer: userDetails.volunteer,
-                                                        Role: userDetails.role
-                                                    }, {
-                                                        transaction: t
-                                                    }).then(function (sectionUser) {
-                                                        console.log('Creating user, inviting, and adding to section');
-                                                        logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                            req_body: userDetails
-                                                        });
-
-                                                        let email = new Email();
-                                                        email.sendNow(user.UserID, 'invite user', temp_pass);
-
-                                                        return sectionUser;
-
-                                                    });
+                                            }).then(function (sectionUser) {
+                                                console.log('Creating user, inviting, and adding to section');
+                                                logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                    req_body: userDetails
                                                 });
+
+                                                let email = new Email();
+                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+
+                                                return sectionUser;
+
                                             });
+                                        });
                                     });
-                                })
+                                });
+                            })
                                     .catch((err) => {
                                         console.log(err);
                                         logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
@@ -4929,35 +4929,35 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                         } else {
                             SectionUser.find({
-                                    where: {
+                                where: {
+                                    SectionID: req.params.sectionid,
+                                    UserID: response.UserID
+                                },
+                                attributes: ['UserID']
+                            }).then(function (sectionUser) {
+                                if (sectionUser == null || sectionUser.UserID == null) {
+                                    SectionUser.create({
                                         SectionID: req.params.sectionid,
-                                        UserID: response.UserID
-                                    },
-                                    attributes: ['UserID']
-                                }).then(function (sectionUser) {
-                                    if (sectionUser == null || sectionUser.UserID == null) {
-                                        SectionUser.create({
-                                            SectionID: req.params.sectionid,
-                                            UserID: response.UserID,
-                                            Active: userDetails.active,
-                                            Volunteer: userDetails.volunteer,
-                                            Role: userDetails.role
+                                        UserID: response.UserID,
+                                        Active: userDetails.active,
+                                        Volunteer: userDetails.volunteer,
+                                        Role: userDetails.role
 
-                                        }).then(function (result) {
-                                            console.log('User exists, adding to section');
-                                            logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
-                                                result: result
-                                            });
-                                            return result;
+                                    }).then(function (result) {
+                                        console.log('User exists, adding to section');
+                                        logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
+                                            result: result
                                         });
-                                    } else {
-                                        console.log('User already in section');
-                                        logger.log('info', '/sectionUsers/addMany', 'user already in system', {
-                                            result: sectionUser
-                                        });
-                                        return sectionUser;
-                                    }
-                                });
+                                        return result;
+                                    });
+                                } else {
+                                    console.log('User already in section');
+                                    logger.log('info', '/sectionUsers/addMany', 'user already in system', {
+                                        result: sectionUser
+                                    });
+                                    return sectionUser;
+                                }
+                            });
                         }
                     });
                 })
@@ -5279,6 +5279,143 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+
+    router.get('/EveryonesWork/:assignmentInstanceID', async function(req, res) {
+        var everyones_work = {};
+        var ai = await AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        });
+        await Promise.map(JSON.parse(ai.WorkflowCollection), async function(wi){
+            var wi = await WorkflowInstance.find({
+                where: {
+                    assignmentInstanceID: req.params.assignmentInstanceID
+                }
+            });
+            await Promise.map(JSON.parse(wi.TaskCollection), async function(ti){
+                var ti = await TaskInstance.findAll({
+                    where: {
+                        Status: {
+                            $like:'%"complete"%'
+                        }
+                    }
+                });
+                for (var i=0; i < ti.length; i++) {
+                    if(!everyones_work.hasOwnProperty(ti[i].UserID)){
+                        everyones_work[ti[i].UserID] = [ti[i].TaskInstanceID];
+                    }
+                    else{
+                        everyones_work[ti[i].UserID].push(ti[i].TaskInstanceID);
+                        everyones_work[ti[i].UserID] = everyones_work[ti[i].UserID].filter( function( item, index, inputArray ) {
+                            return inputArray.indexOf(item) == index;
+                        });
+                    }
+                }
+            });
+        });
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'AssignmentInfo': everyones_work
+        });
+    });
+       //---------------------------------------------------------------------------
+    router.get('/EveryonesWork/AssignmentInstanceID/:assignmentInstanceID',async function(req, res) {
+        console.log('/EveryonesWork/AssignmentInstanceID/:assignmentInstanceID: was called');
+  
+        var everyones_work = {};
+
+        
+        var ai = await AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        });
+        var aa = await Assignment.findOne({
+            where: {
+                AssignmentID: ai.AssignmentID
+            }
+        });
+
+        var sec = await Section.find({
+            where: {
+                SectionID: ai.SectionID
+            },
+            attributes: ['SemesterID', 'CourseID', 'Name']
+        });
+  
+        var ses = await Semester.find({
+            where: {
+                SemesterID: sec.SemesterID
+            },
+            attributes: ['Name']
+        });
+  
+        var cou = await Course.find({
+            where: {
+                CourseID: sec.CourseID
+            },
+            attributes: ['Number']
+        });
+        var wa = await WorkflowActivity.findAll({
+            where: {
+                AssignmentID: ai.AssignmentID
+            }
+        });
+
+        var workflowActivities = wa.map(wAct => wAct.WorkflowActivityID);
+
+        Promise.map(workflowActivities, async wA => {
+            everyones_work[wA] = {};
+
+            var wI = await WorkflowInstance.findAll({
+                where: {
+                    AssignmentInstanceID: req.params.assignmentInstanceID,
+                    WorkflowActivityID: wA
+                }
+            });
+
+            var workflowInstances = wI.map(async wI => {
+                let taskCollection = JSON.parse(wI.TaskCollection);
+                var lastTask = await TaskInstance.max('TaskInstanceID', { where:{
+                    AssignmentInstanceID: req.params.assignmentInstanceID,
+                    WorkflowInstanceID: wI.WorkflowInstanceID,
+                    Status: {
+                        $like:'%"complete"%'
+                    },
+                }});
+                var firstTask = await TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskCollection[0]
+                    },
+                    attributes: ['TaskInstanceID', 'Data']
+                });
+    
+                return {
+                    FirstTask: firstTask,
+                    LatestTask: lastTask
+                };
+            });
+            
+            return Promise.all(workflowInstances).then(wIs => {
+                everyones_work[wA].Tasks = wIs;
+                return wIs;
+            });
+
+        }).then(done => {
+            return res.json({
+                'AssignmentInfo':{
+                    'Course': cou.Number,
+                    'Section': sec.Name,
+                    'Semeser': ses.Name,
+                    'Instructions': aa.Instructions
+                },
+                'Workflows': everyones_work
+            });
+        });
+        
+    });
 
     router.post('/revise', async function (req, res) {
         var trigger = new TaskTrigger();
@@ -5732,9 +5869,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function(result){
             res.status(200).end();
         }).catch(function(err) {
-             console.log(err);
-             res.status(400).end();
-         });
+            console.log(err);
+            res.status(400).end();
+        });
     });
 //------------------------------------------------------------------------------------------
     router.post('/comments/edit', function(req, res) {
@@ -5755,32 +5892,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function(rows){
             CommentsArchive.create({
-            CommentsID: rows[0].CommentsID,
-            UserID: rows[0].UserID,
-            CommentTarget: rows[0].CommentTarget,
-            TargetID: rows[0].TargetID,
-            AssignmentInstanceID: rows[0].AssignmentInstanceID,
-            Type: rows[0].Type,
-            CommentsText: rows[0].CommentsText,
-            Rating: rows[0].Rating,
-            Flag: rows[0].Flag,
-            Status: rows[0].Status,
-            Label: rows[0].Status,
-            ReplyLevel: rows[0].ReplyLevel,
-            Parents: rows[0].Parents,
-            Delete: rows[0].Delete,
-            Hide: rows[0].Hide,
-            HideReason: rows[0].HideReason,
-            HideType: rows[0].HideType,
-            Edited: rows[0].Edited,
-            Time:rows[0].Time,
-            Complete: rows[0].Complete
-        });
+                CommentsID: rows[0].CommentsID,
+                UserID: rows[0].UserID,
+                CommentTarget: rows[0].CommentTarget,
+                TargetID: rows[0].TargetID,
+                AssignmentInstanceID: rows[0].AssignmentInstanceID,
+                Type: rows[0].Type,
+                CommentsText: rows[0].CommentsText,
+                Rating: rows[0].Rating,
+                Flag: rows[0].Flag,
+                Status: rows[0].Status,
+                Label: rows[0].Status,
+                ReplyLevel: rows[0].ReplyLevel,
+                Parents: rows[0].Parents,
+                Delete: rows[0].Delete,
+                Hide: rows[0].Hide,
+                HideReason: rows[0].HideReason,
+                HideType: rows[0].HideType,
+                Edited: rows[0].Edited,
+                Time:rows[0].Time,
+                Complete: rows[0].Complete
+            });
             console.log('/comments/edit : Comments archived');
         }).catch(function(err) {
-        console.log('/comments/edit (CommentsArchive): ' + err);
-        res.status(401).end();
-    });
+            console.log('/comments/edit (CommentsArchive): ' + err);
+            res.status(401).end();
+        });
 
 
         Comments.update({
@@ -5797,17 +5934,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }, {
             where: {
-            CommentsID: req.body.CommentsID
-        }
+                CommentsID: req.body.CommentsID
+            }
         }).then(function(result) {
-        res.json({
-          'Error': false,
-          'Message': 'Success'
-      });
-    }).catch(function(err) {
-      console.log('/comments/edit: ' + err);
-      res.status(401).end();
-  });
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/comments/edit: ' + err);
+            res.status(401).end();
+        });
     });
 
 //-----------------------------------------------------------------------------
@@ -5823,26 +5960,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Delete: 1
         }, {
             where: {
-            CommentsID: req.body.CommentsID,
-            Delete: null
-        }
+                CommentsID: req.body.CommentsID,
+                Delete: null
+            }
         }).then(function(result) {
-        Comments.find({
-          where: {
-              CommentsID: req.body.CommentsID
-          }
-      }).then(function(CommentsUpdated) {
-          res.json({
-              'Error': false,
-              'Message': 'Success',
-              'Result': result,
-              'CommentsUpdated': CommentsUpdated
-          });
-      });
-    }).catch(function(err) {
-      console.log('/comments/delete: ' + err);
-      res.status(401).end();
-  });
+            Comments.find({
+                where: {
+                    CommentsID: req.body.CommentsID
+                }
+            }).then(function(CommentsUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'CommentsUpdated': CommentsUpdated
+                });
+            });
+        }).catch(function(err) {
+            console.log('/comments/delete: ' + err);
+            res.status(401).end();
+        });
     });
 //-------------------------------------------------------------------------
     router.post('/comments/viewed', function(req, res) {
@@ -5859,9 +5996,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function(result){
             res.status(200).end();
         }).catch(function(err) {
-           console.log(err);
-           res.status(400).end();
-       });
+            console.log(err);
+            res.status(400).end();
+        });
     });
 
 //------------------------------------------------------------------------------
@@ -5878,26 +6015,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Flag: 1
         }, {
             where: {
-            CommentsID: req.body.CommentsID,
-            Delete: null
-        }
+                CommentsID: req.body.CommentsID,
+                Delete: null
+            }
         }).then(function(result) {
-        Comments.find({
-          where: {
-              CommentsID: req.body.CommentsID
-          }
-      }).then(function(CommentsUpdated) {
-          res.json({
-              'Error': false,
-              'Message': 'Success',
-              'Result': result,
-              'Flag': CommentsUpdated
-          });
-      });
-    }).catch(function(err) {
-      console.log('/comment/setFlag: ' + err);
-      res.status(401).end();
-  });
+            Comments.find({
+                where: {
+                    CommentsID: req.body.CommentsID
+                }
+            }).then(function(CommentsUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Flag': CommentsUpdated
+                });
+            });
+        }).catch(function(err) {
+            console.log('/comment/setFlag: ' + err);
+            res.status(401).end();
+        });
     });
  //-------------------------------------------------------------------------
     router.post('/comments/removeFlag', function(req, res) {
@@ -5912,26 +6049,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Flag: 0
         }, {
             where: {
-             CommentsID: req.body.CommentsID,
-             Delete: null
-         }
+                CommentsID: req.body.CommentsID,
+                Delete: null
+            }
         }).then(function(result) {
-         Comments.find({
-             where: {
-                 CommentsID: req.body.CommentsID
-             }
-         }).then(function(CommentsUpdated) {
-             res.json({
-                 'Error': false,
-                 'Message': 'Success',
-                 'Result': result,
-                 'Flag': CommentsUpdated
-             });
-         });
-     }).catch(function(err) {
-         console.log('/comment/removeFlag: ' + err);
-         res.status(401).end();
-     });
+            Comments.find({
+                where: {
+                    CommentsID: req.body.CommentsID
+                }
+            }).then(function(CommentsUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Flag': CommentsUpdated
+                });
+            });
+        }).catch(function(err) {
+            console.log('/comment/removeFlag: ' + err);
+            res.status(401).end();
+        });
     });
     //-------------------------------------------------------------------------
 
@@ -5947,26 +6084,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Rating: req.body.Rating
         }, {
             where: {
-             CommentsID: req.body.CommentsID,
-             Delete: null
-         }
+                CommentsID: req.body.CommentsID,
+                Delete: null
+            }
         }).then(function(result) {
-         Comments.find({
-             where: {
-                 CommentsID: req.body.CommentsID
-             }
-         }).then(function(CommentsUpdated) {
-             res.json({
-                 'Error': false,
-                 'Message': 'Success',
-                 'Result': result,
-                 'Rating': CommentsUpdated
-             });
-         });
-     }).catch(function(err) {
-         console.log('/comment/flag: ' + err);
-         res.status(401).end();
-     });
+            Comments.find({
+                where: {
+                    CommentsID: req.body.CommentsID
+                }
+            }).then(function(CommentsUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Rating': CommentsUpdated
+                });
+            });
+        }).catch(function(err) {
+            console.log('/comment/flag: ' + err);
+            res.status(401).end();
+        });
     });
  //-------------------------------------------------------------------------
     router.get('/comments/countOfComments/:Target/id/:TargetID', function(req, res) {
@@ -5980,14 +6117,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'NumberComments': rows.length
-         });
+                'Error': false,
+                'Message': 'Success',
+                'NumberComments': rows.length
+            });
         }).catch(function(err) {
-         console.log('/comments/countOfComments/' + err.message);
-         res.status(401).end();
-     });
+            console.log('/comments/countOfComments/' + err.message);
+            res.status(401).end();
+        });
     });
  //-------------------------------------------------------------------------
     router.get('/comments/countOfUsers/:assignmentInstanceID', function(req, res) {
@@ -5999,14 +6136,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Number of Comments': rows.length
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Number of Comments': rows.length
+            });
         }).catch(function(err) {
-         console.log('/comments/count ' + err.message);
-         res.status(401).end();
-     });
+            console.log('/comments/count ' + err.message);
+            res.status(401).end();
+        });
     });
  //-------------------------------------------------------------------------
     router.get('/comments/countOfRating/:assignmentInstanceID', function(req, res) {
@@ -6019,14 +6156,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Number of Rating': rows.length
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Number of Rating': rows.length
+            });
         }).catch(function(err) {
-         console.log('/comments/count ' + err.message);
-         res.status(401).end();
-     });
+            console.log('/comments/count ' + err.message);
+            res.status(401).end();
+        });
     });
 
  //-------------------------------------------------------------------------
@@ -6047,11 +6184,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(401).end();
             var ave = total / c.length;
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Total ratings': total,
-             'Average rating': ave
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Total ratings': total,
+                'Average rating': ave
+            });
         });
     });
  //-------------------------------------------------------------------------
@@ -6072,11 +6209,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(401).end();
             var ave = total / c.length;
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Total ratings': total,
-             'Average rating': ave
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Total ratings': total,
+                'Average rating': ave
+            });
         });
     });
 
@@ -6091,14 +6228,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID', 'Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Comments': rows
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Comments': rows
+            });
         }).catch(function(err) {
-         console.log('comments/ai ' + err.message);
-         res.status(401).end();
-     });
+            console.log('comments/ai ' + err.message);
+            res.status(401).end();
+        });
     });
 
  //-------------------------------------------------------------------------
@@ -6131,16 +6268,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         for (var j = 0; j < children.length; j++) {
             for (var i = 0; i < parents.length; i++) {
                 if (parents[i].CommentsID == children[j].Parents) {
-                 if (i < parents.length) {
-                           i++;
-                           var m = i;
-                       }
-                 while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
-                           i++;
-                       }
-                 parents.splice(i, 0, children[j]);
-                 break;
-             }
+                    if (i < parents.length) {
+                        i++;
+                        var m = i;
+                    }
+                    while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
+                        i++;
+                    }
+                    parents.splice(i, 0, children[j]);
+                    break;
+                }
             }
         }
 
@@ -6164,14 +6301,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
        //attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Comments': rows
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Comments': rows
+            });
         }).catch(function(err) {
-         console.log('comments/CommentsID/:CommentsID ' + err.message);
-         res.status(401).end();
-     });
+            console.log('comments/CommentsID/:CommentsID ' + err.message);
+            res.status(401).end();
+        });
     });
  //-------------------------------------------------------------------------
     router.get('/comments/IDData/:TaskInstanceID',function(req, res) {
@@ -6183,15 +6320,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['AssignmentInstanceID', 'WorkflowInstanceID']
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'AssignmentInstanceID': rows[0].AssignmentInstanceID,
-             'WorkflowInstanceID': rows[0].WorkflowInstanceID
-         });
+                'Error': false,
+                'Message': 'Success',
+                'AssignmentInstanceID': rows[0].AssignmentInstanceID,
+                'WorkflowInstanceID': rows[0].WorkflowInstanceID
+            });
         }).catch(function(err) {
-         console.log('/comments/IDData/:TaskInstanceID ' + err.message);
-         res.status(401).end();
-     });
+            console.log('/comments/IDData/:TaskInstanceID ' + err.message);
+            res.status(401).end();
+        });
     });
  //-------------------------------------------------------------------------
     router.get('/comments/userID/:UserID', function(req, res) {
@@ -6205,14 +6342,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
        //attributes: ['CommentsID', 'UserID', 'AssignmentInstanceID', 'TaskInstanceID','Type', 'CommentsText', 'Rating', 'Flag', 'Status', 'Label', 'ReplyLevel', 'Parents', 'Hide', 'Viewed']
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Comments': rows
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Comments': rows
+            });
         }).catch(function(err) {
-         console.log('comments/userID/:UserID ' + err.message);
-         res.status(401).end();
-     });
+            console.log('comments/userID/:UserID ' + err.message);
+            res.status(401).end();
+        });
     });
  //-------------------------------------------------------------------------
     router.get('/comments/courseData/:assignmentInstanceID', async function(req, res) {
@@ -6279,25 +6416,25 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             HideType: req.body.HideType
         }, {
             where: {
-             CommentsID: req.body.CommentsID,
-             Delete: null
-         }
+                CommentsID: req.body.CommentsID,
+                Delete: null
+            }
         }).then(function(result) {
-         Comments.find({
-             where: {
-                 CommentsID: req.body.CommentsID
-             }
-         }).then(function(CommentsUpdated) {
-             res.json({
-                 'Error': false,
-                 'Message': 'Success',
-                 'Rating': CommentsUpdated
-             });
-         });
-     }).catch(function(err) {
-         console.log('/comment/hide: ' + err);
-         res.status(401).end();
-     });
+            Comments.find({
+                where: {
+                    CommentsID: req.body.CommentsID
+                }
+            }).then(function(CommentsUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Rating': CommentsUpdated
+                });
+            });
+        }).catch(function(err) {
+            console.log('/comment/hide: ' + err);
+            res.status(401).end();
+        });
     });
  //-------------------------------------------------------------------------
     router.post('/comments/unhide', function(req, res) {
@@ -6312,25 +6449,25 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             HideType: 'NULL'
         }, {
             where: {
-             CommentsID: req.body.CommentsID,
-             Delete: null
-         }
+                CommentsID: req.body.CommentsID,
+                Delete: null
+            }
         }).then(function(result) {
-         Comments.find({
-             where: {
-                 CommentsID: req.body.CommentsID
-             }
-         }).then(function(CommentsUpdated) {
-             res.json({
-                 'Error': false,
-                 'Message': 'Success',
-                 'Rating': CommentsUpdated
-             });
-         });
-     }).catch(function(err) {
-         console.log('/comment/unhide: ' + err);
-         res.status(401).end();
-     });
+            Comments.find({
+                where: {
+                    CommentsID: req.body.CommentsID
+                }
+            }).then(function(CommentsUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Rating': CommentsUpdated
+                });
+            });
+        }).catch(function(err) {
+            console.log('/comment/unhide: ' + err);
+            res.status(401).end();
+        });
     });
 
 
@@ -6345,16 +6482,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function(rows) {
             console.log('Creating UserID,FirstName,LastName,OrganizationGroup.');
             Contact.create({
-             UserID: rows[0].UserID,
-             FirstName: rows[0].FirstName,
-             LastName: rows[0].LastName,
-             OrganizationGroup: rows[0].OrganizationGroup
-         });
+                UserID: rows[0].UserID,
+                FirstName: rows[0].FirstName,
+                LastName: rows[0].LastName,
+                OrganizationGroup: rows[0].OrganizationGroup
+            });
             res.status(401).end();
         }).catch(function(err) {
-         console.log('/contact/add/:UserID' + err.message);
-         res.status(401).end();
-     });
+            console.log('/contact/add/:UserID' + err.message);
+            res.status(401).end();
+        });
         UserLogin.findAll({
             where: {
                 UserID: req.params.UserID
@@ -6363,17 +6500,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function(rows2) {
             console.log('Adding Email');
             Contact.update({
-             Email: rows2[0].Email
-         }, {
-             where: {
-                 UserID: req.params.UserID
-             },
-         });
+                Email: rows2[0].Email
+            }, {
+                where: {
+                    UserID: req.params.UserID
+                },
+            });
             res.status(401).end();
         }).catch(function(err) {
-         console.log('/contact/add/:UserID' + err.message);
-         res.status(401).end();
-     });
+            console.log('/contact/add/:UserID' + err.message);
+            res.status(401).end();
+        });
     });
 
  //---------------------------------------------------------------------------
@@ -6387,10 +6524,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log('Delete User Success');
             res.status(200).end();
         }).catch(function(err) {
-         console.log('/contact/delete/:UserID: ' + err.message);
+            console.log('/contact/delete/:UserID: ' + err.message);
 
-         res.status(400).end();
-     });
+            res.status(400).end();
+        });
 
 
     });
@@ -6402,14 +6539,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Contact': rows
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Contact': rows
+            });
         }).catch(function(err) {
-         console.log('/contact: ' + err.message);
-         res.status(401).end();
-     });
+            console.log('/contact: ' + err.message);
+            res.status(401).end();
+        });
     });
  //---------------------------------------------------------------------------
     router.get('/contact/organizationGroup/:OrganizationGroup', function(req, res) {
@@ -6421,14 +6558,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Contact': rows
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Contact': rows
+            });
         }).catch(function(err) {
-         console.log('/contact: ' + err.message);
-         res.status(401).end();
-     });
+            console.log('/contact: ' + err.message);
+            res.status(401).end();
+        });
     });
  //---------------------------------------------------------------------------
     router.get('/contact/global/:Global', function(req, res) {
@@ -6440,14 +6577,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['UserID', 'FirstName', 'LastName','Email', 'OrganizationGroup','Global']
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Contact': rows
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Contact': rows
+            });
         }).catch(function(err) {
-         console.log('/contact: ' + err.message);
-         res.status(401).end();
-     });
+            console.log('/contact: ' + err.message);
+            res.status(401).end();
+        });
     });
  //---------------------------------------------------------------------------
 
@@ -6460,14 +6597,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['VolunteerPoolID', 'UserID', 'SectionID', 'AssignmentInstanceID','status']
         }).then(function(rows) {
             res.json({
-             'Error': false,
-             'Message': 'Success',
-             'Volunteers': rows
-         });
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
+            });
         }).catch(function(err) {
-         console.log('/VolunteerPool/:UserID ' + err.message);
-         res.status(401).end();
-     });
+            console.log('/VolunteerPool/:UserID ' + err.message);
+            res.status(401).end();
+        });
 
 
     });
@@ -6481,21 +6618,21 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 attributes: ['Email', 'FirstName', 'LastName']
             },{
 
-             model: UserLogin,
-             attributes: ['Email','Pending','Attempts', 'Timeout', 'Blocked']
-         }
+                model: UserLogin,
+                attributes: ['Email','Pending','Attempts', 'Timeout', 'Blocked']
+            }
 
             ]
         }).then(function(result) {
             console.log('Assignments have been found!');
             res.json({
-             'Error': false,
-             'Assignments': result
-         });
+                'Error': false,
+                'Assignments': result
+            });
         }).catch(function(err) {
-         console.log('/userManagement (User table)' + err.message);
-         res.status(401).end();
-     });
+            console.log('/userManagement (User table)' + err.message);
+            res.status(401).end();
+        });
 
     });
 
@@ -6507,24 +6644,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Blocked: 1
         }, {
             where: {
-             UserID: req.params.UserID
-         }
+                UserID: req.params.UserID
+            }
         }).then(function(update) {
-         UserLogin.find({
-             where: {
-                 UserID: req.params.UserID
-             }
-         }).then(function(result) {
-             res.json({
-                 'Error': false,
-                 'Message': 'Success',
-                 'Result': result
-             });
-         });
-     }).catch(function(err) {
-         console.log('/userManagement/blocked/ ' + err);
-         res.status(401).end();
-     });
+            UserLogin.find({
+                where: {
+                    UserID: req.params.UserID
+                }
+            }).then(function(result) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result
+                });
+            });
+        }).catch(function(err) {
+            console.log('/userManagement/blocked/ ' + err);
+            res.status(401).end();
+        });
     });
  //---------------------------------------------------------------------------
     router.get('/userManagement/unblocked/:UserID', function(req, res) {
@@ -6534,24 +6671,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Blocked: 0
         }, {
             where: {
-             UserID: req.params.UserID
-         }
+                UserID: req.params.UserID
+            }
         }).then(function(update) {
-         UserLogin.find({
-             where: {
-                 UserID: req.params.UserID
-             }
-         }).then(function(result) {
-             res.json({
-                 'Error': false,
-                 'Message': 'Success',
-                 'Result': result
-             });
-         });
-     }).catch(function(err) {
-         console.log('/userManagement/unblocked/ ' + err);
-         res.status(401).end();
-     });
+            UserLogin.find({
+                where: {
+                    UserID: req.params.UserID
+                }
+            }).then(function(result) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result
+                });
+            });
+        }).catch(function(err) {
+            console.log('/userManagement/unblocked/ ' + err);
+            res.status(401).end();
+        });
     });
  //---------------------------------------------------------------------------
 
@@ -6706,10 +6843,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 sequelize.query(select).then(function (badges) {
                     if (badges.length > 0) {
-                            item.badges = badges[0];
-                        } else {
-                            item.badges = [];
-                        }
+                        item.badges = badges[0];
+                    } else {
+                        item.badges = [];
+                    }
                 });
             });
 
