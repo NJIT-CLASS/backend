@@ -5687,10 +5687,94 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.json({
                 "Error": false,
                 "Message": "Success",
-                "EveryonesWork": everyones_work
+                "AssignmentInfo": everyones_work
             });
      })
+     //---------------------------------------------------------------------------
+     router.get('/EveryonesWork/TaskInstanceID/:TaskInstanceID',async function(req, res) {
+         console.log("/EveryonesWork/TaskInstanceID/:TaskInstanceID: was called");
 
+         var aiID = await TaskInstance.find({
+             where: {
+                 TaskInstanceID: req.params.TaskInstanceID
+             },
+               attributes: ['AssignmentInstanceID']
+         });
+
+        var sID = await AssignmentInstance.find({
+                 where: {
+                     AssignmentInstanceID: aiID.AssignmentInstanceID
+                 },
+                   attributes: ['SectionID', 'AssignmentID']
+             });
+        var ins = await Assignment.find({
+          where: {
+              AssignmentID: sID.AssignmentID
+          },
+            attributes: ['Instructions', 'WorkflowActivityIDs']
+        });
+
+        var sec = await Section.find({
+                   where: {
+                       SectionID: sID.SectionID
+                   },
+                     attributes: ['SemesterID', 'CourseID', 'Name']
+                 });
+
+        var ses = await Semester.find({
+          where: {
+              SemesterID: sec.SemesterID
+          },
+            attributes: ['Name']
+        });
+
+        var cou = await Course.find({
+          where: {
+              CourseID: sec.CourseID
+          },
+            attributes: ['Number']
+        });
+
+        var ta = await WorkflowActivity.find({
+          where: {
+              WorkflowActivityID: ins.WorkflowActivityIDs[1]
+          },
+            attributes: ['taskActivityCollection']
+        });
+
+
+        var va = JSON.stringify(ta.dataValues["taskActivityCollection"]);
+        var num = ["1","2","3","4","5","6","7","8","9","0"];
+        va = va.replace('\"[','');
+        if (va[1] in num) {
+          if (va[2] in num) {
+            var va2 = va[0] + va[1] + va[2];
+          }
+          else{
+              var va2 = va[0] + va[1];
+          }
+        }
+        else{
+          var va2 = va[0];
+        }
+
+        var tac = await TaskActivity.find({
+          where: {
+              TaskActivityId: va2
+          }
+        });
+
+         res.json({
+           "AssignmentInfo":{
+             "Course": cou.Number,
+             "Section": sec.Name,
+             "Semeser": ses.Name,
+             "Instructions": ins.Instructions
+           },
+           "First Task":tac
+
+         });
+     });
      //-----------------------------------------------------------------------------------------------------
 
      router.get("/reallocatepools/:ai_id", function(req, res) {
