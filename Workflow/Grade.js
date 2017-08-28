@@ -4,6 +4,10 @@ import {
     AssignmentInstance,
     AssignmentInstance_Archive,
     Assignment_Archive,
+    Badge,
+    BadgeInstance,
+    Category,
+    CategoryInstance,
     Comments,
     CommentsArchive,
     CommentsViewed,
@@ -11,13 +15,21 @@ import {
     Course,
     CourseBackUp,
     EmailNotification,
+    ExtraCredit,
     FileReference,
+    Goal,
+    GoalInstance,
+    Level,
+    LevelInstance,
     Organization,
     PartialAssignments,
     ResetPasswordRequest,
     Section,
     SectionUser,
+    SectionUserRecord,
     Semester,
+    StudentRankSnapchot,
+    SectionRankSnapchot,
     TaskActivity,
     TaskActivity_Archive,
     TaskGrade,
@@ -27,6 +39,8 @@ import {
     User,
     UserContact,
     UserLogin,
+    UserBadgeInstances,
+    UserPointInstances,
     VolunteerPool,
     WorkflowActivity,
     WorkflowActivity_Archive,
@@ -503,6 +517,49 @@ class Grade {
 
 
         return tis;
+    }
+
+    async claimExtraCredit(goal_instance_id, section_user_id) {
+        let x = this;
+        let record = await SectionUserRecord.find({
+            SectionUserID: section_user_id
+        });
+
+        if(record.AvailablePoints > 0){
+            var goal_progression = JSON.parse(record.GoalProgression);
+            goal_progression[goal_instance_id].Claim = true;
+            var available_points = record.AvailablePoints;
+            available_points = available_points - 1;
+            var used_points = record.UsedPoints;
+            used_points = used_points + 1;
+
+            await x.extraCreditCreateOrUpdate(section_user_id);
+    
+            await record.update({
+                GoalProgression: goal_progression,
+                AvailablePoints: available_points,
+                UsedPoints: used_points
+            });
+        }
+    }
+
+    async extraCreditCreateOrUpdate(section_user_id) {
+        let extra_credit = await ExtraCredit.find({
+            where: {
+                SectionUserID: section_user_id
+            }
+        });
+
+        if (extra_credit === null) {
+            await ExtraCredit.create({
+                SectionUserID: section_user_id
+            });
+        } else {
+            let points = extra_credit.Points + 1;
+            await extra_credit.update({
+                Points: points
+            });
+        }
     }
 
 }
