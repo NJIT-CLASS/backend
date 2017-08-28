@@ -37,7 +37,13 @@ import {
     WorkflowGrade,
     WorkflowInstance,
     WorkflowInstance_Archive,
-    Category
+    Category,
+    SectionRankSnapchot,
+    StudentRankSnapchot,
+    CategoryInstance,
+    Level,
+    Goal,
+    Badge
 } from '../Util/models.js';
 
 var Allocator = require('./Allocator.js');
@@ -986,28 +992,29 @@ class TaskFactory {
 
         let categories = await Category.findAll();
 
-        if (!categories) {
-            categories = [];
+        if (categories.length < 1) {
 
-            let type = ['create_problem', 'create_solution', 'create_comment', 'high_grade'];
+            let name = ['Create Problem', 'Solve Problem', 'Comment', 'High Grade', 'Grade Problem'];
+            let type = ['create_problem', 'solve_problem', 'comment', 'high_grade', 'grade_problem'];
 
             for (let x = 0; x < type.length; x++) {
 
-                categories.push(Category.create({
+                await Category.create({
                     'Type': type[x],
-                    'Name': type[x],
-                    'Description': type[x],
+                    'Name': name[x],
+                    'Description': name[x],
                     'Tier1Instances': '10',
                     'Tier2Instances': '20',
                     'Tier3Instances': '30',
                     'InstanceValue': '10'
-                }));
+                });
             }
 
+            categories = await Category.findAll();
         }
 
         for (let x = 0; x < categories.length; x++) {
-            console.log('here 4')
+
             let category = categories[x];
 
             let data = {};
@@ -1026,7 +1033,6 @@ class TaskFactory {
             data.InstanceValue = category.InstanceValue;
 
             if (!categoryInstance) {
-                console.log('here 2')
                 categoryInstance = CategoryInstance.create(data);
             }
 
@@ -1041,53 +1047,57 @@ class TaskFactory {
     async createLevelInstances(semesterID, courseID, sectionID) {
         let levels = await Level.findAll();
 
-        for (let x = 0; x < levels.length; x++) {
-            let level = levels[x].dataValues;;
+        if (levels) {
+            for (let x = 0; x < levels.length; x++) {
+                let level = levels[x].dataValues;;
 
-            let data = {};
-            data.LevelID = level.LevelID;
-            data.SemesterID = semesterID;
-            data.CourseID = courseID;
-            data.SectionID = sectionID;
+                let data = {};
+                data.LevelID = level.LevelID;
+                data.SemesterID = semesterID;
+                data.CourseID = courseID;
+                data.SectionID = sectionID;
 
-            let exists = await LevelInstance.find({
-                where: data
-            });
+                let exists = await LevelInstance.find({
+                    where: data
+                });
 
-            console.info(exists);
-
-            if (!exists) {
-                data.ThresholdPoints = level.ThresholdPoints;
-                let levelInstance = await LevelInstance.create(data);
+                if (!exists) {
+                    data.ThresholdPoints = level.ThresholdPoints;
+                    let levelInstance = await LevelInstance.create(data);
+                }
             }
         }
+
     }
 
     //Create goals for class
     async createGoalInstances(categoryInstance, semesterID, courseID, sectionID) {
         let goals = await Goal.findAll();
 
-        for (let x = 0; x < goals.length; x++) {
-            let goal = goals[x];
+        if (goals) {
+            for (let x = 0; x < goals.length; x++) {
+                let goal = goals[x];
 
-            if (goal.CategoryID == categoryInstance.CategoryID) {
-                let data = {};
-                data.GoalID = goal.GoalID;
-                data.SemesterID = semesterID;
-                data.CourseID = courseID;
-                data.SectionID = sectionID;
-                data.CategoryInstanceID = categoryInstance.CategoryInstanceID;
+                if (goal.CategoryID == categoryInstance.CategoryID) {
+                    let data = {};
+                    data.GoalID = goal.GoalID;
+                    data.SemesterID = semesterID;
+                    data.CourseID = courseID;
+                    data.SectionID = sectionID;
+                    data.CategoryInstanceID = categoryInstance.CategoryInstanceID;
 
-                let goalInstance = await GoalInstance.findOne({
-                    where: data
-                });
+                    let goalInstance = await GoalInstance.findOne({
+                        where: data
+                    });
 
-                if (!goalInstance) {
-                    data.ThresholdInstances = goal.ThresholdInstances;
-                    goalInstance = await GoalInstance.create(data);
+                    if (!goalInstance) {
+                        data.ThresholdInstances = goal.ThresholdInstances;
+                        goalInstance = await GoalInstance.create(data);
+                    }
                 }
             }
         }
+
     }
 
     //Create badges for each class
@@ -1246,7 +1256,8 @@ class TaskFactory {
     }
 
     //Create snapshot for student rank and section based on average points
-    async rankingSnapshot() {
+    async rankingSnapshot(updateSectionSnap) {
+
         console.info('Runing cron here ...');
 
         let updateDate = new Date(new Date().setHours(0, 0, 0, 0));
@@ -1483,7 +1494,7 @@ class TaskFactory {
 
         };
         //Check if sanpchot has been saved for today
-        if (!secSnapExist) {
+        if (!secSnapExist && updateSectionSnap) {
             //Evaluate average points and remove unwanted values
             let SecRanks = [];
             for (let c in sectionsRanks) {

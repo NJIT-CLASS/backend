@@ -5765,7 +5765,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
                 //Amadou
                 let taskFactory = new TaskFactory;
-                taskFactory.updatePointInstance('create_comment', req.body.AssignmentInstanceID, req.body.UserID);
+                taskFactory.updatePointInstance('comment', req.body.AssignmentInstanceID, req.body.UserID);
 
                 res.status(200).end();
 
