@@ -15,6 +15,7 @@ import {
     Course,
     CourseBackUp,
     EmailNotification,
+    ExtraCredit,
     FileReference,
     Goal,
     GoalInstance,
@@ -25,6 +26,7 @@ import {
     ResetPasswordRequest,
     Section,
     SectionUser,
+    SectionUserRecord,
     Semester,
     StudentRankSnapchot,
     SectionRankSnapchot,
@@ -71,6 +73,7 @@ var Grade = require('./Workflow/Grade.js');
 var FlatToNested = require('flat-to-nested');
 var fs = require('fs');
 var logger = require('./Workflow/Logger.js');
+var LevelTrigger = require('./Workflow/LevelTrigger.js');
 
 
 const multer = require('multer'); //TODO: we may need to limit the file upload size
@@ -2293,6 +2296,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Name: req.body.name,
 
             }).save().then(function (response) {
+                
+                //Update Categories as new section is being created
+                let taskFactory = new TaskFactory;
+                taskFactory.createCategoryInstances(response.SemesterID, response.CourseID, response.SectionID);
+
                 res.json({
                     'result': response
                 });
@@ -6923,6 +6931,37 @@ router.post('/comments/setFlag', function(req, res) {
     /*********************************************************************************************************** 
      **  Amadou work ends here
      ************************************************************************************************************/
+
+    router.get('/getSectionUserRecord/:sectionUserID', async function(req,res){
+        let record = await SectionUserRecord.find({
+            where:{
+                SectionUserID: req.params.sectionUserID
+            }
+        });
+
+        res.json({
+            'Error': false,
+            'SectionUserRecord': record
+        })
+    });
+
+    router.post('/createSectionUserRecord', async function(req, res){
+        var levelTrigger = new LevelTrigger();
+
+        await levelTrigger.createSectionUserRecord(req.body.sectionUserID);
+    });
+
+    router.post('/addExp', async function(req, res){
+        var levelTrigger = new LevelTrigger();
+
+        await levelTrigger.addExp(req.body.exp, req.body.sectionUserID);
+    })
+
+    router.post('/claimExtraCredit', async function(req, res){
+        var grade = new Grade();
+
+        await grade.claimExtraCredit(req.body.goalInstanceID, req.body.sectionUserID);
+    })
 
 };
 
