@@ -5364,10 +5364,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         });
 
-        var workflowActivities = wa.map(wAct => wAct.WorkflowActivityID);
 
-        Promise.map(workflowActivities, async wA => {
-            everyones_work[wA] = {};
+        Promise.map(wa, async workflowAct => {
+            let wA = workflowAct.WorkflowActivityID;
+            everyones_work[wA] = {
+                Name: workflowAct.Name
+            };
 
             var wI = await WorkflowInstance.findAll({
                 where: {
@@ -5406,10 +5408,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(done => {
             return res.json({
                 'AssignmentInfo':{
+                    'Name': aa.DisplayName,
+                    'Instructions': aa.Instructions,
                     'Course': cou.Number,
                     'Section': sec.Name,
                     'Semeser': ses.Name,
-                    'Instructions': aa.Instructions
                 },
                 'Workflows': everyones_work
             });
