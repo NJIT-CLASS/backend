@@ -292,8 +292,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Status: 'Inactive'
             // AssignmentInstanceID: req.body.AssignmentInstanceID
         }).then(function (rows) {
-            console.log('add User Success');
-            res.status(200).end();
+            console.log('add User Success, new ID=',rows.VolunteerPoolID);
+            res.status(200).json({
+                VolunteerPoolID: rows.VolunteerPoolID
+            });
         }).catch(function (err) {
             console.log(err);
             res.status(400).end();
@@ -2722,11 +2724,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-----------------------------------------------------------------------------------------------------
     router.get('/getCourseSections/:courseID', function (req, res) {
 
+        let whereOptions = {CourseID: req.params.courseID};
+
+        if(req.query.semesterID != null){
+            whereOptions.SemesterID = req.query.semesterID;
+        }
+
         Section.findAll({
-            where: {
-                CourseID: req.params.courseID,
-                SemesterID: req.query.semesterID
-            },
+            where: whereOptions,
             order: [
                 ['Name']
             ],
@@ -5420,7 +5425,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     'Instructions': aa.Instructions,
                     'Course': cou.Number,
                     'Section': sec.Name,
-                    'Semeser': ses.Name,
+                    'Semester': ses.Name,
                 },
                 'Workflows': everyones_work
             });
@@ -7093,7 +7098,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         res.json({
             'Error': false,
             'SectionUserRecord': record
-        })
+        });
     });
 
     router.post('/createSectionUserRecord', async function(req, res){
@@ -7106,13 +7111,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var levelTrigger = new LevelTrigger();
 
         await levelTrigger.addExp(req.body.exp, req.body.sectionUserID);
-    })
+    });
 
     router.post('/claimExtraCredit', async function(req, res){
         var grade = new Grade();
 
         await grade.claimExtraCredit(req.body.goalInstanceID, req.body.sectionUserID);
-    })
+    });
 
 };
 
