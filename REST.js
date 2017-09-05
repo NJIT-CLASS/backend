@@ -1544,9 +1544,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 AssignmentInstanceID: req.params.ai_id
             },
-            // attributes: ['CourseID']
+            attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID'], 
             include: [{
                 model: Assignment,
+                attributes:['AssignmentID', 'Instructions', 'Name', 'Type', 'DisplayName']
                     // attributes: ["AssignmentInstanceID", "AssignmentID"],
                     /*include: [{
                      model: Section,
@@ -1690,7 +1691,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             });
                         });
                     });
-                }).then(function () {
+                }).then(function (done) {
                     console.log('then', 'json');
                     res.json(json);
                 });
