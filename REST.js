@@ -290,11 +290,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             UserID: req.body.UserID,
             SectionID: req.body.SectionID,
             Status: 'Inactive'
-                // AssignmentInstanceID: req.body.AssignmentInstanceID
-        }).then(function(rows) {
-            console.log('add User Success');
-            res.status(200).end();
-        }).catch(function(err) {
+            // AssignmentInstanceID: req.body.AssignmentInstanceID
+        }).then(function (rows) {
+            console.log('add User Success, new ID=',rows.VolunteerPoolID);
+            res.status(200).json({
+                VolunteerPoolID: rows.VolunteerPoolID
+            });
+        }).catch(function (err) {
             console.log(err);
             res.status(400).end();
         });
@@ -1542,9 +1544,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             where: {
                 AssignmentInstanceID: req.params.ai_id
             },
-            // attributes: ['CourseID']
+            attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID'], 
             include: [{
-                    model: Assignment,
+                model: Assignment,
+                attributes:['AssignmentID', 'Instructions', 'Name', 'Type', 'DisplayName']
                     // attributes: ["AssignmentInstanceID", "AssignmentID"],
                     /*include: [{
                      model: Section,
@@ -1688,7 +1691,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             });
                         });
                     });
-                }).then(function() {
+                }).then(function (done) {
                     console.log('then', 'json');
                     res.json(json);
                 });
@@ -2722,11 +2725,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
     router.get('/getCourseSections/:courseID', function(req, res) {
 
+        let whereOptions = {CourseID: req.params.courseID};
+
+        if(req.query.semesterID != null){
+            whereOptions.SemesterID = req.query.semesterID;
+        }
+
         Section.findAll({
-            where: {
-                CourseID: req.params.courseID,
-                SemesterID: req.query.semesterID
-            },
+            where: whereOptions,
             order: [
                 ['Name']
             ],
@@ -5371,10 +5377,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         });
 
-        var workflowActivities = wa.map(wAct => wAct.WorkflowActivityID);
 
-        Promise.map(workflowActivities, async wA => {
-            everyones_work[wA] = {};
+        Promise.map(wa, async workflowAct => {
+            let wA = workflowAct.WorkflowActivityID;
+            everyones_work[wA] = {
+                Name: workflowAct.Name
+            };
 
             var wI = await WorkflowInstance.findAll({
                 where: {
@@ -5414,11 +5422,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         }).then(done => {
             return res.json({
-                'AssignmentInfo': {
+                'AssignmentInfo':{
+                    'Name': aa.DisplayName,
+                    'Instructions': aa.Instructions,
                     'Course': cou.Number,
                     'Section': sec.Name,
-                    'Semeser': ses.Name,
-                    'Instructions': aa.Instructions
+                    'Semester': ses.Name,
                 },
                 'Workflows': everyones_work
             });
@@ -7091,7 +7100,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         res.json({
             'Error': false,
             'SectionUserRecord': record
-        })
+        });
     });
 
     router.post('/createSectionUserRecord', async function(req, res) {
