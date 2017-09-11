@@ -10,7 +10,6 @@ import {
     Assignment_Archive,
     Badge,
     BadgeInstance,
-    Category,
     CategoryInstance,
     Comments,
     CommentsArchive,
@@ -52,12 +51,6 @@ import {
     WorkflowInstance,
     WorkflowInstance_Archive,
     Category,
-    SectionRankSnapchot,
-    StudentRankSnapchot,
-    CategoryInstance,
-    Level,
-    Goal,
-    Badge
 } from '../Util/models.js';
 
 var Allocator = require('./Allocator.js');
