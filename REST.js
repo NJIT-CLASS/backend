@@ -52,6 +52,9 @@ var Comments = models.Comments;
 var CommentsArchive = models.CommentsArchive;
 var CommentsViewed = models.CommentsViewed;
 var Contact = models.Contact;
+var Notifications = models.Notifications;
+
+
 
 var Manager = require('./Workflow/Manager.js');
 var Allocator = require('./Workflow/Allocator.js');
@@ -6718,14 +6721,21 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
     //---------------------------------------------------------------------------
-    router.get('/notifications/:UserID',async function(req, res) {
-        console.log("/notifications/:UserID : was called");
+    router.get('/notifications/',async function(req, res) {
+        console.log("/notifications/ : was called");
 
         var v = await VolunteerPool.findAll({
                 where: {
-                    UserID: req.params.UserID
+                    status: "pending"
                 },
                   attributes: ['volunteerpoolID']
+            }).then(function(rows) {
+            var arrayLength = rows.length;
+              for (var i = 0; i < arrayLength; x++) {
+              Notifications.create({
+                VolunteerpoolID: rows[i].volunteerpoolID
+              });
+            }
             }).catch(function(err) {
                 console.log('/notifications/:UserID + volunteerpool ' + err);
                 res.status(401).end();
@@ -6733,10 +6743,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         var f = await Comments.findAll({
                     where: {
-                        UserID: req.params.UserID,
                         Flag: 1
                     },
                       attributes: ['commentsID']
+                }).then(function(rows2) {
+                var arrayLength = rows2.length;
+                  for (var j = 0; j < arrayLength; j++) {
+                  Notifications.create({
+                    CommentsID: rows[j].CommentsID,
+                    Flag: 1
+                  });
+                }
                 }).catch(function(err) {
                     console.log('/notifications/:UserID + volunteerpool ' + err);
                     res.status(401).end();
