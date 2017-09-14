@@ -7119,7 +7119,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         await grade.claimExtraCredit(req.body.goalInstanceID, req.body.sectionUserID);
     });
-
+    router.get('/sectionUserInfo/:userId/:sectionId',  function(req, res){
+        SectionUser.findOne({
+            where: {
+                SectionID: req.params.sectionId,
+                UserID: req.params.userId
+            },
+            attributes: ['SectionUserID', 'Role', 'Active']
+        }).then(user => {
+            return res.json({
+                Info: user
+            });
+        });
+    });
 };
 
 module.exports = REST_ROUTER;
