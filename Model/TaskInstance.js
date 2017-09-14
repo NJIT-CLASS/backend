@@ -898,6 +898,6 @@ module.exports = function (sequelize, DataTypes) {
 
         },
         // define the table's name
-        tableName: 'TaskInstance'
+        tableName: 'taskinstance'
     });
 };

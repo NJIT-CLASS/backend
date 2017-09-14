@@ -100,9 +100,9 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         IsFinalGradingTask:{
-          type: DataTypes.BOOLEAN,
-          field: 'IsFinalGradingTask',
-          allowNull: true
+            type: DataTypes.BOOLEAN,
+            field: 'IsFinalGradingTask',
+            allowNull: true
         },
         Instructions: {
             //Intructor’s Intructions for the task
@@ -124,55 +124,55 @@ module.exports = function(sequelize, DataTypes) {
         },
         //----
         AllowReflection:{
-          type: DataTypes.JSON,
-          field: 'AllowReflection',
-          allowNull: true
+            type: DataTypes.JSON,
+            field: 'AllowReflection',
+            allowNull: true
         },
         AllowRevision:{
-          type: DataTypes.BOOLEAN,
-          field: 'AllowRevision',
-          allowNull: true
+            type: DataTypes.BOOLEAN,
+            field: 'AllowRevision',
+            allowNull: true
         },
         AllowAssessment:{
-          type: DataTypes.STRING,
-          field: 'AllowAssessment',
-          allowNull: true
+            type: DataTypes.STRING,
+            field: 'AllowAssessment',
+            allowNull: true
         },
         NumberParticipants:{
-          type: DataTypes.INTEGER.UNSIGNED,
-          field: 'NumberParticipants',
-          allowNull: true,
-          defaultValue: 1
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'NumberParticipants',
+            allowNull: true,
+            defaultValue: 1
         },
         TriggerConsolidationThreshold:{
-          type: DataTypes.JSON,
-          field: 'RefersToWhichTaskThreshold',
-          allowNull: true
+            type: DataTypes.JSON,
+            field: 'RefersToWhichTaskThreshold',
+            allowNull: true
         },
         FunctionType:{
-          type: DataTypes.STRING,
-          field: 'FunctionType',
-          allowNull: true
+            type: DataTypes.STRING,
+            field: 'FunctionType',
+            allowNull: true
         },
         Function:{
-          type: DataTypes.TEXT,
-          field: 'Function',
-          allowNull: true
+            type: DataTypes.TEXT,
+            field: 'Function',
+            allowNull: true
         },
         AllowDispute:{
-          type: DataTypes.BOOLEAN,
-          field: 'AllowDispute',
-          allowNull: true
+            type: DataTypes.BOOLEAN,
+            field: 'AllowDispute',
+            allowNull: true
         },
         LeadsToNewProblem:{
-          type: DataTypes.BOOLEAN,
-          field: 'LeadsToNewProblem',
-          allowNull: true
+            type: DataTypes.BOOLEAN,
+            field: 'LeadsToNewProblem',
+            allowNull: true
         },
         LeadsToNewSolution:{
-          type: DataTypes.BOOLEAN,
-          field: 'LeadsToNewSolution',
-          allowNull: true
+            type: DataTypes.BOOLEAN,
+            field: 'LeadsToNewSolution',
+            allowNull: true
         },
         //---
         VisualID: {
@@ -240,6 +240,6 @@ module.exports = function(sequelize, DataTypes) {
         // }
 
         // define the table's name
-        tableName: 'TaskActivity_Archive'
+        tableName: 'taskactivity_archive'
     });
 };
