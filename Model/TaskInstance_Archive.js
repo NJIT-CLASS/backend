@@ -1005,6 +1005,6 @@ module.exports = function(sequelize, DataTypes) {
             //     }
         },
         // define the table's name
-        tableName: 'TaskInstance_Archive'
+        tableName: 'taskinstance_archive'
     });
 };
