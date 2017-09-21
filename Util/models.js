@@ -44,7 +44,7 @@ export let UserBadgeInstances = models.UserBadgeInstances;
 export let VolunteerPool = models.VolunteerPool;
 export let WorkflowActivity = models.WorkflowActivity;
 export let WorkflowActivity_Archive = models.WorkflowActivity_Archive;
-export let WorkflowGrade = models.WOrkflowGrade;
+export let WorkflowGrade = models.WorkflowGrade;
 export let WorkflowInstance = models.WorkflowInstance;
 export let WorkflowInstance_Archive = models.WorkflowInstance_Archive;
 

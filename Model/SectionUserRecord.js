@@ -17,6 +17,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'SectionID',
             allowNull: false
         },
+        Title:{
+            type: DataTypes.STRING(50),
+            field: 'Title',
+            allowNull: false
+        },
         Level:{
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'Level',
@@ -43,12 +48,17 @@ module.exports = function(sequelize, DataTypes) {
             field: 'UsedPoints',
             defaultValue: 0
         },
+        PlusPoint:{
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'PlusPoint',
+            defaultValue: 0
+        },
         GoalProgression:{
             type: DataTypes.JSON,
             field: 'GoalInstances',
             allowNull: false
-        }
-
+        },
+        
     }, {
         timestamps: false,
 

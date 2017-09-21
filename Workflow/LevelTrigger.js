@@ -87,14 +87,23 @@ class LevelTrigger {
         var new_level = record.Level + 1;
         var new_exp = exp - record.ThresholdPoints;
         var class_point = record.AvailablePoints;
+        var plus_point = 0;
 
-        if (((new_level % 2) - 1) === 0) {
+        if ((new_level % 2) === 0) {
             class_point = class_point + 1;
+        }
+        if (((new_level % 2)-1) === 0) {
+            plus_point = 1;
         }
 
         var level_instances = await LevelInstance.findAll({
             where: {
                 SectionID: record.SectionID
+            }
+        });
+        var level = await Level.find({
+            where: {
+                LevelID: new_level
             }
         });
 
@@ -106,7 +115,9 @@ class LevelTrigger {
                     LevelInstanceID: li.LevelInstanceID,
                     ThresholdPoints: li.ThresholdPoints,
                     Exp: new_exp,
-                    AvailablePoints: class_point
+                    AvailablePoints: class_point,
+                    Title: level.Name,
+                    PlusPoint: plus_point
                 });
             }
         });
@@ -122,7 +133,13 @@ class LevelTrigger {
         });
         let level_instance = await LevelInstance.find({
             where: {
-                SectionID: sec_user.SectionID
+                SectionID: sec_user.SectionID,
+                LevelID:1
+            }
+        });
+        let level = await Level.find({
+            where:{
+                LevelID:1
             }
         });
         let goal_instances = await GoalInstance.findAll({
@@ -159,7 +176,8 @@ class LevelTrigger {
             LevelInstanceID: level_instance.LevelInstanceID,
             SectionID: sec_user.SectionID,
             ThresholdPoints: level_instance.ThresholdPoints,
-            GoalProgression: goal_progression
+            GoalProgression: goal_progression,
+            Title:level.Name
         });
 
 

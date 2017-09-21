@@ -326,6 +326,11 @@ models.forEach(function(model) {
         foreignKey: 'WorkflowActivityID'
     });
 
+    m.WorkflowActivity.hasMany(m.TaskActivity, {
+        as: 'TaskActivities',
+        foreignKey: 'WorkflowActivityID'
+    });
+
     m.User.hasMany(m.SectionUser, {
         as: 'Users',
         foreignKey: 'UserID'
