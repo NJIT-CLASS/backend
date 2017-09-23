@@ -39,9 +39,9 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         NumberOfSets:{
-          type: DataTypes.INTEGER.UNSIGNED,
-          field: 'NumberOfSets',
-          allowNull: true
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'NumberOfSets',
+            allowNull: true
         },
         Documentation: {
             //Description of the typeof workflow
@@ -67,9 +67,9 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         VersionHistory:{
-          type: DataTypes.JSON,
-          field: 'VersionHistory',
-          allowNull: true
+            type: DataTypes.JSON,
+            field: 'VersionHistory',
+            allowNull: true
         }
     }, {
         timestamps: false,
@@ -89,6 +89,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'WorkflowActivity_Archive'
+        tableName: 'workflowactivity_archive'
     });
 };

@@ -265,6 +265,6 @@ module.exports = function(sequelize, DataTypes) {
         // }
 
         // define the table's name
-        tableName: 'TaskActivity'
+        tableName: 'taskactivity'
     });
 };

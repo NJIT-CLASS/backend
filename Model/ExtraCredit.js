@@ -1,16 +1,17 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('ResetPasswordRequest', {
-        UserID: {
+    return sequelize.define('ExtraCredit', {
+        SectionUserID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'UserID',
+            field: 'SectionUserID',
             allowNull: false,
-            primaryKey: true
+            primaryKey: true,
+            unique: true
         },
-        RequestHash: {
-            type: DataTypes.STRING,
-            field: 'RequestHash',
+        Points:{
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Points',
             allowNull: false,
-            primaryKey: true
+            defaultValue: 1
         }
     }, {
         timestamps: false,
@@ -30,6 +31,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'resetpasswordrequest'
+        tableName: 'ExtraCredit'
     });
 };

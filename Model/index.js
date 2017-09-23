@@ -27,7 +27,7 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
     'FileReference', 'Comments', 'CommentsArchive', 'CommentsViewed', 'Contact', 'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
     'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
-    'Goal', 'GoalInstance', 'Level', 'LevelInstance'
+    'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit'
 ];
 
 
@@ -41,6 +41,15 @@ models.forEach(function(model) {
 (function(m) {
     //Belongs To Relations
     //Sorted By Foreign Key
+    m.ExtraCredit.belongsTo(m.SectionUser, {
+        foreignKey: 'SectionUserID'
+    });
+    m.SectionUserRecord.belongsTo(m.SectionUser, {
+        foreignKey: 'SectionUserID'
+    });
+    m.SectionUserRecord.belongsTo(m.LevelInstance, {
+        foreignKey: 'LevelInstanceID'
+    });
 
     m.UserBadgeInstances.belongsTo(m.User, {
         foreignKey: 'UserID'
@@ -254,6 +263,12 @@ models.forEach(function(model) {
         foreignKey: 'CategoryInstanceID',
         constraints: false
     });
+    m.GoalInstance.belongsTo(m.Goal, {
+        foreignKey: 'GoalID'
+    });
+    m.Goal.hasMany(m.GoalInstance, {
+        foreignKey: 'GoalID'
+    });
 
     m.Category.hasMany(m.CategoryInstance, {
         as: 'Categories',
@@ -318,6 +333,11 @@ models.forEach(function(model) {
 
     m.WorkflowActivity.hasMany(m.WorkflowInstance, {
         as: 'WorkflowInstances',
+        foreignKey: 'WorkflowActivityID'
+    });
+
+    m.WorkflowActivity.hasMany(m.TaskActivity, {
+        as: 'TaskActivities',
         foreignKey: 'WorkflowActivityID'
     });
 
