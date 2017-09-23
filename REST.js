@@ -7089,8 +7089,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/testing', async function(req, res) {
 
         let taskFactory = new TaskFactory;
-        taskFactory.createCategoryInstances(1, 1, 1);
+        //taskFactory.createCategoryInstances(1, 1, 1);
+        //taskFactory.updatePointInstance('create_problem', '1', '1');
 
+        res.json({
+            'Error': false,
+            'SectionUserRecord': 'hello world'
+        });
     });
     /*********************************************************************************************************** 
      **  Amadou work ends here

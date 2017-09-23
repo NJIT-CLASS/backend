@@ -932,12 +932,22 @@ class TaskFactory {
             attributes: ['SectionID'],
         });
 
+        if(assignmentInstance == null){
+            console.info('The assignment was not found');
+            return;
+        }
+
         let section = await Section.find({
             where: {
                 SectionID: assignmentInstance.SectionID
             },
             attributes: ['SectionID', 'SemesterID', 'CourseID']
         });
+
+        if(section == null){
+            console.info('The section was not found');
+            return;
+        }
 
         let category = await Category.find({
             where: {
@@ -948,18 +958,36 @@ class TaskFactory {
             attributes: ['Type', 'CategoryID']
         });
 
+        if(category == null){
+            await this.createCategoryInstances(section.SemesterID, section.CourseID, section.SectionID);
+            category = await Category.find({
+                where: {
+                    Type: {
+                        $like: taskActivityType
+                    }
+                },
+                attributes: ['Type', 'CategoryID']
+            });
+        }
+
+        let categoryInstanceData =  {
+            SemesterID: section.SemesterID,
+            CourseID: section.CourseID,
+            SectionID: section.SectionID,
+            CategoryID: category.CategoryID
+        };
+
         let categoryInstance = await CategoryInstance.find({
-            where: {
-                SemesterID: section.SemesterID,
-                CourseID: section.CourseID,
-                SectionID: section.SectionID,
-                CategoryID: category.CategoryID
-            },
+            where: categoryInstanceData,
             attributes: ['CategoryInstanceID', 'CategoryID']
         });
 
         if(categoryInstance == null){
-            categoryInstance = createCategoryInstances(section.SemesterID, section.CourseID, section.SectionID);
+            await this.createCategoryInstances(section.SemesterID, section.CourseID, section.SectionID);
+            let categoryInstance = await CategoryInstance.find({
+                where: categoryInstanceData,
+                attributes: ['CategoryInstanceID', 'CategoryID']
+            });
         }
 
         var $this = this;
@@ -1038,22 +1066,17 @@ class TaskFactory {
                 where: data
             });
 
-            data.Tier1Instances = category.Tier1Instances;
-            data.Tier2Instances = category.Tier2Instances;
-            data.Tier3Instances = category.Tier3Instances;
-            data.InstanceValue = category.InstanceValue;
-
             if (!categoryInstance) { 
+                data.Tier1Instances = category.Tier1Instances;
+                data.Tier2Instances = category.Tier2Instances;
+                data.Tier3Instances = category.Tier3Instances;
+                data.InstanceValue = category.InstanceValue;
                 categoryInstance = CategoryInstance.create(data);
             }
 
             this.createBadgeInstances(category.CategoryID, categoryInstance);
             this.createGoalInstances(categoryInstance, data.SemesterID, data.CourseID, data.SectionID);
         }
-
-        this.createLevelInstances(semesterID, courseID, sectionID);
-        console.info('this is the category instance: ', categoryInstance);
-        return categoryInstance;
     }
 
     //Create levels for each class
