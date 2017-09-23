@@ -958,18 +958,8 @@ class TaskFactory {
             attributes: ['CategoryInstanceID', 'CategoryID']
         });
 
-        if(!categoryInstance){
-            this.createCategoryInstances(section.SemesterID, section.CourseID, section.SectionID);
-
-            let categoryInstance = await CategoryInstance.find({
-                where: {
-                    SemesterID: section.SemesterID,
-                    CourseID: section.CourseID,
-                    SectionID: section.SectionID,
-                    CategoryID: category.CategoryID
-                },
-                attributes: ['CategoryInstanceID', 'CategoryID']
-            });
+        if(categoryInstance == null){
+            categoryInstance = createCategoryInstances(section.SemesterID, section.CourseID, section.SectionID);
         }
 
         var $this = this;
@@ -1053,7 +1043,7 @@ class TaskFactory {
             data.Tier3Instances = category.Tier3Instances;
             data.InstanceValue = category.InstanceValue;
 
-            if (!categoryInstance) {
+            if (!categoryInstance) { 
                 categoryInstance = CategoryInstance.create(data);
             }
 
@@ -1062,6 +1052,8 @@ class TaskFactory {
         }
 
         this.createLevelInstances(semesterID, courseID, sectionID);
+        console.info('this is the category instance: ', categoryInstance);
+        return categoryInstance;
     }
 
     //Create levels for each class

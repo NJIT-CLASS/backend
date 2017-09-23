@@ -3461,6 +3461,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             return res.status(403).end();
         }
 
+        //Update points for student as they submit tasks
+        let taskFactory = new TaskFactory;
+        taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, req.body.userid);
+
         logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
         if (req.body.userid != ti.UserID) {
@@ -6237,7 +6241,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //-------------------------------------------------------------------------
     router.get('/comments/ai/:AssignmentInstanceID', function(req, res) {
-        console.log('comments/ai/:AssignmentInstanceID was called');
+        //console.log('comments/ai/:AssignmentInstanceID was called');
         Comments.findAll({
             where: {
                 AssignmentInstanceID: req.params.AssignmentInstanceID,
@@ -6251,15 +6255,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'Comments': rows
             });
         }).catch(function(err) {
-            console.log('comments/ai ' + err.message);
+            //console.log('comments/ai ' + err.message);
             res.status(401).end();
         });
     });
 
     //-------------------------------------------------------------------------
     router.get('/comments/ti/:Target/id/:TargetID', async function(req, res) {
-        console.log('comments/ti/:Target/id/:TargetID was called');
-        console.log(req.params.Target, req.params.TargetID);
+        //console.log('comments/ti/:Target/id/:TargetID was called');
+        //console.log(req.params.Target, req.params.TargetID);
         var parents = await Comments.findAll({
             where: {
                 TargetID: req.params.TargetID,
@@ -6268,7 +6272,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Parents: null
             }
         }).catch(function(err) {
-            console.log('comments/ti ' + err.message);
+            //console.log('comments/ti ' + err.message);
             res.status(401).end();
         });
         var children = await Comments.findAll({
@@ -6279,22 +6283,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Parents: { $ne: null }
             }
         }).catch(function(err) {
-            console.log('comments/ti ' + err.message);
+            //console.log('comments/ti ' + err.message);
             res.status(401).end();
         });
 
-        for (var j = 0; j < children.length; j++) {
-            for (var i = 0; i < parents.length; i++) {
-                if (parents[i].CommentsID == children[j].Parents) {
-                    if (i < parents.length) {
-                        i++;
-                        var m = i;
+        if(children){
+            for (var j = 0; j < children.length; j++) {
+                for (var i = 0; i < parents.length; i++) {
+                    if (parents[i].CommentsID == children[j].Parents) {
+                        if (i < parents.length) {
+                            i++;
+                            var m = i;
+                        }
+                        while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
+                            i++;
+                        }
+                        parents.splice(i, 0, children[j]);
+                        break;
                     }
-                    while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
-                        i++;
-                    }
-                    parents.splice(i, 0, children[j]);
-                    break;
                 }
             }
         }
