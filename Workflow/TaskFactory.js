@@ -958,6 +958,20 @@ class TaskFactory {
             attributes: ['CategoryInstanceID', 'CategoryID']
         });
 
+        if(!categoryInstance){
+            this.createCategoryInstances(section.SemesterID, section.CourseID, section.SectionID);
+
+            let categoryInstance = await CategoryInstance.find({
+                where: {
+                    SemesterID: section.SemesterID,
+                    CourseID: section.CourseID,
+                    SectionID: section.SectionID,
+                    CategoryID: category.CategoryID
+                },
+                attributes: ['CategoryInstanceID', 'CategoryID']
+            });
+        }
+
         var $this = this;
 
         UserPointInstances.find({
