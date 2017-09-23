@@ -66,6 +66,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'WorkflowInstance_Archive'
+        tableName: 'workflowinstance_archive'
     });
 };

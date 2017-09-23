@@ -35,12 +35,12 @@ module.exports = function(sequelize, DataTypes) {
         }
 
     }, {
-      indexes: [
+        indexes: [
           // Create a unique index
           {
-            name: 'uniqueVolunteer',
-            unique: true,
-            fields: ['UserID','SectionID', 'AssignmentInstanceID']
+              name: 'uniqueVolunteer',
+              unique: true,
+              fields: ['UserID','SectionID', 'AssignmentInstanceID']
           }],
 
         timestamps: false,
@@ -60,6 +60,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'VolunteerPool'
+        tableName: 'volunteerpool'
     });
 };

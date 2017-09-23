@@ -31,7 +31,7 @@ var EmailNotification = models.EmailNotification;
 
 const logger = require('./Logger.js');
 
-var email = MASTER_EMAIL;
+var email = 'njitplamaster@gmail.com';
 var password = MASTER_PASSWORD;
 var active = EMAIL_SERVER_STATUS;
 
@@ -88,13 +88,9 @@ class Email {
         console.log('Creating Transport');
 
         smtpTransporter = nodemailer.createTransport(smtpTransport({
-            host: 'smtp.gmail.com',
+            host: 'mail.njit.edu',
             secureConnection: true,
-            port: 587,
-            auth: {
-                user: email,
-                pass: password
-            }
+            port: 25
         }));
 
         // mailing options

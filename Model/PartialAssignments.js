@@ -16,9 +16,9 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false
         },
         CourseID:{
-          type: DataTypes.INTEGER.UNSIGNED,
-          field: 'CourseID',
-          allowNull: false,
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CourseID',
+            allowNull: false,
         },
         PartialAssignmentName: {
             type: DataTypes.STRING(255),
@@ -48,6 +48,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'PartialAssignments'
+        tableName: 'partialassignments'
     });
 };

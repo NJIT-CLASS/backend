@@ -33,9 +33,9 @@ module.exports = function (sequelize, DataTypes) {
         },
         AssignmentInstanceID: {
          //Foreign Key
-         type: DataTypes.INTEGER.UNSIGNED,
-         field: 'AssignmentInstanceID',
-         allowNull: false
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'AssignmentInstanceID',
+            allowNull: false
         },
         WorkflowActivityID: {
             //Foreign Key
@@ -81,6 +81,6 @@ module.exports = function (sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'TaskGrade'
+        tableName: 'taskgrade'
     });
 };
