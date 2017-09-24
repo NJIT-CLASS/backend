@@ -18,7 +18,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false
         },
         Title:{
-            type: DataTypes.STRING(50),
+            type: DataTypes.STRING,
             field: 'Title',
             allowNull: false
         },
@@ -48,7 +48,7 @@ module.exports = function(sequelize, DataTypes) {
             field: 'UsedPoints',
             defaultValue: 0
         },
-        PlusPoint:{
+        PlusPoint: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'PlusPoint',
             defaultValue: 0
