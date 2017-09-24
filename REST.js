@@ -7116,8 +7116,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/claimExtraCredit', async function(req, res){
         var grade = new Grade();
-
+        console.log(req.body.goalInstanceID, req.body.sectionUserID);
         await grade.claimExtraCredit(req.body.goalInstanceID, req.body.sectionUserID);
+        res.status(200).end();
     });
     router.get('/sectionUserInfo/:userId/:sectionId',  function(req, res){
         SectionUser.findOne({
