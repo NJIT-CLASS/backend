@@ -6726,7 +6726,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      ************************************************************************************************************/
     //Endpoints to get user's badges
     router.get('/userBadges/:userID', async function (req, res) {
-        let select = `SELECT u.UserID, bi.BadgeInstanceID, b.Name, b.Description, b.Logo, ci.SemesterID, ci.CourseID, ci.SectionID, ci.CategoryID
+        let select = `SELECT u.UserID, bi.BadgeInstanceID, b.Name, b.Description, b.Logo logo, ci.SemesterID, ci.CourseID, ci.SectionID, ci.CategoryID
                         FROM  badgeinstance AS bi
                         JOIN Userbadgeinstances AS ub ON bi.BadgeInstanceID = ub.BadgeInstanceID 
                         JOIN user AS u ON u.UserID = ub.UserID 
@@ -6758,7 +6758,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/userProgress/:userID/:categoryID', async function (req, res) {
 
         let select = `SELECT ci.CategoryID, ci.CourseID, ci.SectionID, ci.SemesterID, 
-                      ci.Tier1Instances, ci.Tier2Instances, c.Tier3Instances, upi.pointInstances,
+                      ci.Tier1Instances, ci.Tier2Instances, ci.Tier3Instances, upi.pointInstances,
                       b.Name, b.Description, b.Logo, upi.UserID, bi.BadgeInstanceID
                       FROM categoryinstance AS ci
                       JOIN userpointinstances upi ON upi.CategoryInstanceID = ci.CategoryInstanceID
@@ -6940,17 +6940,27 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         let lastUpdate = await SectionRankSnapchot.findOne({
             attributes: ['UpdateDate'],
             order: [
-                ['SectionRankSnapchotID', 'DESC']
+                ['SectionRankSnapchotID', 'DESC'] 
             ]
         });
 
-        SectionRankSnapchot.findAll({
-            where: {
+        let where = {};
+        if(lastUpdate){
+            where = {
                 SemesterID: req.params.semesterID,
                 UpdateDate: {
                     $eq: lastUpdate.UpdateDate
                 }
-            },
+            };
+        }
+        else{
+            where = {
+                SemesterID: req.params.semesterID,
+            };
+        }
+
+        SectionRankSnapchot.findAll({
+            where: where,
             order: [
                 ['Rank', 'ASC']
             ]
@@ -7094,13 +7104,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/testing', async function(req, res) {
 
         let taskFactory = new TaskFactory;
-        //taskFactory.createCategoryInstances(1, 1, 1);
-        //taskFactory.updatePointInstance('create_problem', '1', '1');
+       //taskFactory.createCategoryInstances(1, 1, 1);
+        taskFactory.rankingSnapshot(true);
+        taskFactory.rankingSnapshot(false, true);
+        //taskFactory.updatePointInstance('create_problem', '3', '1');
         // let taskFactory = new TaskFactory;
         // taskFactory.createCategoryInstances(1, 1, 1);
 
-        let email = new Email();
-        email.sendNow(2, 'late');
+        // let email = new Email();
+        // email.sendNow(2, 'late');
 
         res.json({
             'Error': false,

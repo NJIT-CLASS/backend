@@ -17,6 +17,7 @@ const sequelize = require('./Model/index.js').sequelize;
 var TaskFactory = require('./Workflow/TaskFactory.js');
 
 var manager = new Manager();
+var taskFactory = new TaskFactory();
 
 
 function REST() {
@@ -75,18 +76,19 @@ rule.minute = 1;
 //'1 * * * * *' 1 minute.
 var job = schedule.scheduleJob('1 * * * * *', function(time) {
     manager.check();
+    //Just for testing 
+    taskFactory.rankingSnapshot(true);
 });
 
 //Everyday at midnight
 schedule.scheduleJob({ hour: 0, minute: 0 }, function() {
-    var taskFactory = new TaskFactory;
     taskFactory.rankingSnapshot(true);
 });
 
+
 //Every sunday at midnight
 schedule.scheduleJob({ hour: 0, minute: 0, dayOfWeek: 0 }, function() {
-    var taskFactory = new TaskFactory();
-    taskFactory.rankingSnapshot(false);
+    taskFactory.rankingSnapshot(false, true);
 });
 
 

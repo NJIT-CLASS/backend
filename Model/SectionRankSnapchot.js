@@ -1,9 +1,9 @@
 module.exports = function(sequelize, DataTypes) {
     return sequelize.define('SectionRankSnapchot', {
 
-        SectionRankSnapchatID: {
+        SectionRankSnapchotID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SectionRankSnapchatID',
+            field: 'SectionRankSnapchotID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
