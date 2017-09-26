@@ -14,6 +14,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Flag',
             allowNull: true
         },
+        UserID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'CommentsID',
+            allowNull: true
+        },
         CommentsID: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'CommentsID',
@@ -24,7 +29,7 @@ module.exports = function(sequelize, DataTypes) {
             field: 'VolunteerpoolID',
             allowNull: true
         },
-        Deleted: {
+        Dismiss: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'Deleted',
             allowNull: true
