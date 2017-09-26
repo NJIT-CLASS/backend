@@ -6721,8 +6721,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
     //---------------------------------------------------------------------------
-    router.get('/notifications/',async function(req, res) {
-        console.log("/notifications/ : was called");
+    router.get('/notifications/load',async function(req, res) {
+        console.log("/notifications/load : was called");
 
         var v = await VolunteerPool.findAll({
                 where: {
@@ -6737,7 +6737,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
               });
             }
             }).catch(function(err) {
-                console.log('/notifications/:UserID + volunteerpool ' + err);
+                console.log('/notifications/load/:UserID + volunteerpool ' + err);
                 res.status(401).end();
             });
 
@@ -6745,17 +6745,18 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     where: {
                         Flag: 1
                     },
-                      attributes: ['commentsID']
+                      attributes: ['commentsID','UserID']
                 }).then(function(rows2) {
                 var arrayLength = rows2.length;
                   for (var j = 0; j < arrayLength; j++) {
                   Notifications.create({
                     CommentsID: rows[j].CommentsID,
+                    UserID: rows[j].UserID,
                     Flag: 1
                   });
                 }
                 }).catch(function(err) {
-                    console.log('/notifications/:UserID + volunteerpool ' + err);
+                    console.log('/notifications/load/:UserID + volunteerpool ' + err);
                     res.status(401).end();
                 });
 
@@ -6770,7 +6771,68 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     });
     //---------------------------------------------------------------------------
+    router.get('/notifications/all', function(req, res) {
+        console.log("/notifications/all: was called");
 
+        Notifications.findAll({
+          where: {
+              Dismiss: null
+          }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/all' + err.message);
+            res.status(401).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/user/:UserID', function(req, res) {
+        console.log("/notifications/user/:UserID was called");
+
+        Notifications.findAll({
+          where: {
+              UserID: req.params.UserID,
+              Dismiss: null
+          }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/user/:UserID' + err.message);
+            res.status(401).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/dismiss/:notificationsID', function(req, res) {
+        console.log("/notifications/dismiss/:notificationsID was called");
+
+        Notifications.update({
+          Dismiss:1
+        },{
+          where: {
+              NotificationsID: req.params.notificationsID
+          }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/notifications/dismiss/:notificationsID' + err.message);
+            res.status(401).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
 
 
 
