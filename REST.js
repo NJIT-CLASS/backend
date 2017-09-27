@@ -64,6 +64,7 @@ const sequelize = require('./Model/index.js').sequelize;
 var contentDisposition = require('content-disposition');
 var Manager = require('./Workflow/Manager.js');
 var Allocator = require('./Workflow/Allocator.js');
+import Reallocator from './Workflow/Reallocator.js';
 var TaskFactory = require('./Workflow/TaskFactory.js');
 var TaskTrigger = require('./Workflow/TaskTrigger.js');
 var Email = require('./Workflow/Email.js');
@@ -85,6 +86,8 @@ var storage = multer({
         files: max_files
     }
 });
+
+let ra = new Reallocator();
 
 
 //-----------------------------------------------------------------------------------------------------
@@ -5848,14 +5851,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function (req, res) {
-        console.log('/comments/add : was called');
+        console.log("/comments/add : was called");
 
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
-            console.log('/comments/add : Missing attributes');
+            console.log("/comments/add : Missing attributes");
             res.status(400).end();
         }
 
-        console.log('got to create part');
+        console.log("got to create part");
 
         Comments.create({
             CommentsID: req.body.CommentsID,
@@ -5881,17 +5884,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log(err);
             res.status(400).end();
         });
-    });
+    })
     //------------------------------------------------------------------------------------------
     router.post('/comments/edit', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log('/comments/edit : CommentsID cannot be null');
+            console.log("/comments/edit : CommentsID cannot be null");
             res.status(400).end();
             return;
         };
         if (req.body.CommentsText == null) {
-            console.log('/comments/edit : CommentsText cannot be null');
+            console.log("/comments/edit : CommentsText cannot be null");
             res.status(400).end();
             return;
         };
@@ -5922,7 +5925,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Time: rows[0].Time,
                 Complete: rows[0].Complete
             });
-            console.log('/comments/edit : Comments archived');
+            console.log("/comments/edit : Comments archived");
         }).catch(function (err) {
             console.log('/comments/edit (CommentsArchive): ' + err);
             res.status(401).end();
@@ -5947,8 +5950,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function (result) {
             res.json({
-                'Error': false,
-                'Message': 'Success'
+                "Error": false,
+                "Message": "Success"
             });
         }).catch(function (err) {
             console.log('/comments/edit: ' + err);
@@ -5960,7 +5963,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/comments/delete', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log('/comments/delete : CommentsID cannot be null');
+            console.log("/comments/delete : CommentsID cannot be null");
             res.status(400).end();
             return;
         };
@@ -5979,10 +5982,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Result': result,
-                    'CommentsUpdated': CommentsUpdated
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result,
+                    "CommentsUpdated": CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -5993,7 +5996,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------------
     router.post('/comments/viewed', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log('/comments/viewed : CommentsID cannot be null');
+            console.log("/comments/viewed : CommentsID cannot be null");
             res.status(400).end();
             return;
         };
@@ -6015,7 +6018,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/comments/setFlag', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log('/comments/setFlag : CommentsID cannot be null');
+            console.log("/comments/setFlag : CommentsID cannot be null");
             res.status(400).end();
             return;
         }
@@ -6034,10 +6037,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Result': result,
-                    'Flag': CommentsUpdated
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result,
+                    "Flag": CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6049,7 +6052,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/comments/removeFlag', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log('/comments/removeFlag : CommentsID cannot be null');
+            console.log("/comments/removeFlag : CommentsID cannot be null");
             res.status(400).end();
             return;
         }
@@ -6068,10 +6071,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Result': result,
-                    'Flag': CommentsUpdated
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result,
+                    "Flag": CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6084,7 +6087,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/comments/rating', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log('/comments/rating : CommentsID cannot be null');
+            console.log("/comments/rating : CommentsID cannot be null");
             res.status(400).end();
             return;
         }
@@ -6103,10 +6106,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Result': result,
-                    'Rating': CommentsUpdated
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result,
+                    "Rating": CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6256,7 +6259,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------------
     router.get('/comments/ti/:Target/id/:TargetID', async function (req, res) {
         console.log('comments/ti/:Target/id/:TargetID was called');
-        console.log(req.params.Target, req.params.TargetID);
+        console.log(req.params.Target, req.params.TargetID)
         var parents = await Comments.findAll({
             where: {
                 TargetID: req.params.TargetID,
@@ -6413,17 +6416,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
 
         res.json({
-            'Error': false,
-            'Message': 'Success',
-            'CourseName': Course_Result.Name,
-            'SectionName': Section_Result.Name,
-            'SemesterName': Semester_Result.Name
+            "Error": false,
+            "Message": "Success",
+            "CourseName": Course_Result.Name,
+            "SectionName": Section_Result.Name,
+            "SemesterName": Semester_Result.Name
         });
     });
     //-------------------------------------------------------------------------
     router.post('/comments/hide', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log('/comments/hide : CommentsID cannot be null');
+            console.log("/comments/hide : CommentsID cannot be null");
             res.status(400).end();
             return;
         }
@@ -6443,9 +6446,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Rating': CommentsUpdated
+                    "Error": false,
+                    "Message": "Success",
+                    "Rating": CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6456,7 +6459,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------------
     router.post('/comments/unhide', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log('/comments/unhide : CommentsID cannot be null');
+            console.log("/comments/unhide : CommentsID cannot be null");
             res.status(400).end();
             return;
         }
@@ -6476,9 +6479,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Rating': CommentsUpdated
+                    "Error": false,
+                    "Message": "Success",
+                    "Rating": CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -7219,7 +7222,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }]
             });
 
-            tasks['id'] =  workflow.WorkflowInstanceID;
+            tasks['id'] = workflow.WorkflowInstanceID;
 
             await Promise.mapSeries(tis, async(ti) => {
                 tasks[ti.TaskActivityID] = {
@@ -7251,19 +7254,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
 
         let assignment = await AssignmentInstance.find({
-            where:{
+            where: {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             },
             attributes: ['SectionID']
         });
 
         let students = await SectionUser.findAll({
-            where:{
+            where: {
                 SectionID: assignment.SectionID,
-                Active:1
+                Active: 1
             },
             attributes: ['UserID', 'Volunteer', 'Role'],
-            include:[{
+            include: [{
                 model: User,
                 attributes: ['FirstName', 'LastName']
             }]
@@ -7273,28 +7276,37 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Error: false,
             Students: students,
             Data: data
-            
+
         });
 
     });
 
-    router.post('/reallocate/task_to_user/', async (req, res) => {
-        let alloc = new Allocator();
-
-        console.log('req.body.ti_id', req.body.ti_id);
-        console.log('req.body.user_id,', req.body.user_id,);
-        console.log('req.body.isExtraCredit,', req.body.isExtraCredit,);
+    router.post('/reallocate/task_to_user/', async(req, res) => {
+        // console.log('req.body.ti_id', req.body.ti_id);
+        // console.log('req.body.user_id,', req.body.user_id,);
+        // console.log('req.body.isExtraCredit,', req.body.isExtraCredit,);
 
         let ti = await TaskInstance.find({
-            where:{
+            where: {
                 TaskInstanceID: req.body.ti_id
             }
         });
 
-        
-        await alloc.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        console.log('respose back', response);
+        res.json(response);
+    });
 
-        res.status(200).end();
+    router.post('/reallocate/tasks', async(req, res) => {
+        console.log('req.body.tasks', req.body.tasks);
+        console.log('req.body.users', req.body.users);
+        console.log('req.body.sectionID', req.body.sectionID);
+        console.log('req.body.option', req.body.option);
+        console.log('req.body.isExtraCredit', req.body.isExtraCredit);
+
+        let response = await ra.reallocate_tasks(req.body.tasks, req.body.users, req.body.sectionID, undefined, req.body.option, req.body.isExtraCredit);
+
+        res.json(response);
     });
 
     router.post('/createSectionUserRecord', async function (req, res) {

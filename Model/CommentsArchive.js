@@ -19,6 +19,17 @@ module.exports = function(sequelize, DataTypes) {
             field: 'UserID',
             allowNull: false
         },
+        CommentTarget:{
+            type: DataTypes.STRING(255),
+            field: 'Hide',
+            allowNull: true
+        },
+        TargetID: {
+            //Unique identifier for the user
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'TargetID',
+            allowNull: false
+        },
         AssignmentInstanceID: {
             //Unique identifier for assignment instance
             //Foreign Key
