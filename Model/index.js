@@ -10,6 +10,7 @@ var settings = require('../backend_settings');
 var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
     host: settings.DB_HOST,
     dialect: 'mysql',
+    port: settings.DB_PORT,
     omitNull: true,
     pool: {
         max: 5,
@@ -24,12 +25,10 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference','Comments','CommentsArchive', 'CommentsViewed', 'Contact','BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
+    'FileReference', 'Comments', 'CommentsArchive', 'CommentsViewed', 'Contact', 'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
     'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
     'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit'
 ];
-
-
 
 
 
@@ -87,9 +86,11 @@ models.forEach(function(model) {
     m.User.hasOne(m.UserLogin, {
         foreignKey: 'UserID'
     });
+
     m.User.hasOne(m.UserContact, {
         foreignKey: 'UserID'
     });
+
     m.UserLogin.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
@@ -127,7 +128,7 @@ models.forEach(function(model) {
         foreignKey: 'CourseID'
     });
 
-   
+
     // m.VolunteerPool.belongsTo(m.AssignmentInstance, {
     //     foreignKey: 'AssignmentInstanceID'
     // });
@@ -227,9 +228,7 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
-    m.Assignment.belongsTo(m.Course,{foreignKey: 'CourseID'});
-
-
+    m.Assignment.belongsTo(m.Course, { foreignKey: 'CourseID' });
 
     //has Many Relations
     m.CategoryInstance.hasMany(m.BadgeInstance, {
