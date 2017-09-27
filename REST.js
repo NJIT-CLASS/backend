@@ -5871,6 +5871,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         console.log("got to create part");
 
         Comments.create({
+            CommentsID: req.body.CommentsID,
+            UserID: req.body.UserID,
             TargetID: req.body.TargetID,
             AssignmentInstanceID: req.body.AssignmentInstanceID,
             Type: req.body.Type,
@@ -7108,8 +7110,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         let taskFactory = new TaskFactory;
        //taskFactory.createCategoryInstances(1, 1, 1);
-        taskFactory.rankingSnapshot(true);
-        taskFactory.rankingSnapshot(false, true);
+        //taskFactory.rankingSnapshot(true);
+        //taskFactory.rankingSnapshot(false, true);
         //taskFactory.updatePointInstance('create_problem', '3', '1');
         // let taskFactory = new TaskFactory;
         // taskFactory.createCategoryInstances(1, 1, 1);

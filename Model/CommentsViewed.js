@@ -5,6 +5,8 @@ module.exports = function(sequelize, DataTypes) {
             field: 'CommentsViewedID',
             allowNull: true,
             primaryKey: true,
+            autoIncrement: true,
+            unique: true
         },
         CommentsID: {
             //Unique identifier for the user
