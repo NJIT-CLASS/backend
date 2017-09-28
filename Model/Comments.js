@@ -15,6 +15,12 @@ module.exports = function(sequelize, DataTypes) {
             field: 'UserID',
             allowNull: false
         },
+        TargetID: {
+            //Unique identifier for the user
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'TargetID',
+            allowNull: false
+        },
         AssignmentInstanceID: {
             //Unique identifier for assignment instance
             //Foreign Key
@@ -59,6 +65,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Label',
             allowNull: true
         },
+        Viewed:{
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Viewed',
+            allowNull: true
+        },
         ReplyLevel: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'ReplyLevel',
@@ -89,8 +100,12 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'Hide',
             allowNull: true
+        },
+        CommentTarget:{
+            type: DataTypes.STRING(255),
+            field: 'Hide',
+            allowNull: true
         }
-
     }, {
       /*
       indexes: [

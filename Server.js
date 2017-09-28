@@ -74,22 +74,22 @@ sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 var rule = new schedule.RecurrenceRule();
 rule.minute = 1;
 //'1 * * * * *' 1 minute.
-var job = schedule.scheduleJob('1 * * * * *', function(time) {
-    manager.check();
-    //Just for testing 
-    taskFactory.rankingSnapshot(true);
-});
+// var job = schedule.scheduleJob('1 * * * * *', function(time) {
+//     manager.check();
+//     //Just for testing 
+//     taskFactory.rankingSnapshot(true);
+// });
 
-//Everyday at midnight
-schedule.scheduleJob({ hour: 0, minute: 0 }, function() {
-    taskFactory.rankingSnapshot(true);
-});
+// //Everyday at midnight
+// schedule.scheduleJob({ hour: 0, minute: 0 }, function() {
+//     taskFactory.rankingSnapshot(true);
+// });
 
 
-//Every sunday at midnight
-schedule.scheduleJob({ hour: 0, minute: 0, dayOfWeek: 0 }, function() {
-    taskFactory.rankingSnapshot(false, true);
-});
+// //Every sunday at midnight
+// schedule.scheduleJob({ hour: 0, minute: 0, dayOfWeek: 0 }, function() {
+//     taskFactory.rankingSnapshot(false, true);
+// });
 
 
 
