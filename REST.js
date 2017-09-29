@@ -6156,6 +6156,29 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
     });
+
+    //-------------------------------------------------------------------------
+    router.get('/comments/countOfFlags/:Target/id/:TargetID', function(req, res) {
+        console.log('/comments/countOfFlags/:Target/id/:TargetID was called');
+        Comments.findAll({
+          where: {
+              CommentTarget: req.params.Target,
+              TargetID: req.params.TargetID,
+              Status: 'submitted',
+              Type: 'flag',
+              Delete: null
+          }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'NumberComments': rows.length
+            });
+        }).catch(function(err) {
+            console.log('/comments/countOfComments/' + err.message);
+            res.status(401).end();
+        });
+    });
     //-------------------------------------------------------------------------
     router.get('/comments/countOfUsers/:assignmentInstanceID', function(req, res) {
         console.log('comments/countOfUsers was called');
