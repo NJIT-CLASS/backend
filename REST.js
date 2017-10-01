@@ -4927,8 +4927,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                 Volunteer: userDetails.volunteer,
                                                 Role: userDetails.role
                                             }, {
-                                                    transaction: t
-                                                }).then(function(sectionUser) {
+                                                transaction: t
+                                            }).then(function(sectionUser) {
                                                     console.log('Creating user, inviting, and adding to section');
                                                     logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
                                                         req_body: userDetails
@@ -5867,14 +5867,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function (req, res) {
-        console.log("/comments/add : was called");
+        console.log('/comments/add : was called');
 
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
-            console.log("/comments/add : Missing attributes");
+            console.log('/comments/add : Missing attributes');
             res.status(400).end();
         }
 
-        console.log("got to create part");
+        console.log('got to create part');
 
         Comments.create({
             CommentsID: req.body.CommentsID,
@@ -5900,17 +5900,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log(err);
             res.status(400).end();
         });
-    })
+    });
     //------------------------------------------------------------------------------------------
     router.post('/comments/edit', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/edit : CommentsID cannot be null");
+            console.log('/comments/edit : CommentsID cannot be null');
             res.status(400).end();
             return;
         };
         if (req.body.CommentsText == null) {
-            console.log("/comments/edit : CommentsText cannot be null");
+            console.log('/comments/edit : CommentsText cannot be null');
             res.status(400).end();
             return;
         };
@@ -5941,7 +5941,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 Time: rows[0].Time,
                 Complete: rows[0].Complete
             });
-            console.log("/comments/edit : Comments archived");
+            console.log('/comments/edit : Comments archived');
         }).catch(function (err) {
             console.log('/comments/edit (CommentsArchive): ' + err);
             res.status(401).end();
@@ -5971,8 +5971,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
         }).then(function (result) {
             res.json({
-                "Error": false,
-                "Message": "Success"
+                'Error': false,
+                'Message': 'Success'
             });
         }).catch(function (err) {
             console.log('/comments/edit: ' + err);
@@ -5984,7 +5984,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.post('/comments/delete', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/delete : CommentsID cannot be null");
+            console.log('/comments/delete : CommentsID cannot be null');
             res.status(400).end();
             return;
         };
@@ -6003,10 +6003,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": result,
-                    "CommentsUpdated": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'CommentsUpdated': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6017,7 +6017,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-------------------------------------------------------------------------
     router.post('/comments/viewed', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log("/comments/viewed : CommentsID cannot be null");
+            console.log('/comments/viewed : CommentsID cannot be null');
             res.status(400).end();
             return;
         };
@@ -6039,7 +6039,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.post('/comments/setFlag', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/setFlag : CommentsID cannot be null");
+            console.log('/comments/setFlag : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6058,10 +6058,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": result,
-                    "Flag": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Flag': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6073,7 +6073,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.post('/comments/removeFlag', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/removeFlag : CommentsID cannot be null");
+            console.log('/comments/removeFlag : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6092,10 +6092,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": result,
-                    "Flag": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Flag': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6108,7 +6108,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.post('/comments/rating', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/rating : CommentsID cannot be null");
+            console.log('/comments/rating : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6127,10 +6127,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": result,
-                    "Rating": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Rating': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6280,7 +6280,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-------------------------------------------------------------------------
     router.get('/comments/ti/:Target/id/:TargetID', async function (req, res) {
         console.log('comments/ti/:Target/id/:TargetID was called');
-        console.log(req.params.Target, req.params.TargetID)
+        console.log(req.params.Target, req.params.TargetID);
         var parents = await Comments.findAll({
             where: {
                 TargetID: req.params.TargetID,
@@ -6436,17 +6436,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
 
         res.json({
-            "Error": false,
-            "Message": "Success",
-            "CourseName": Course_Result.Name,
-            "SectionName": Section_Result.Name,
-            "SemesterName": Semester_Result.Name
+            'Error': false,
+            'Message': 'Success',
+            'CourseName': Course_Result.Name,
+            'SectionName': Section_Result.Name,
+            'SemesterName': Semester_Result.Name
         });
     });
     //-------------------------------------------------------------------------
     router.post('/comments/hide', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log("/comments/hide : CommentsID cannot be null");
+            console.log('/comments/hide : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6466,9 +6466,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Rating": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Rating': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6479,7 +6479,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-------------------------------------------------------------------------
     router.post('/comments/unhide', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log("/comments/unhide : CommentsID cannot be null");
+            console.log('/comments/unhide : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6499,9 +6499,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Rating": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Rating': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -7381,6 +7381,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(user => {
             return res.json({
                 Info: user
+            });
+        });
+    });
+
+    router.get('/goals/section/:sectionId', function(req, res) {
+        GoalInstance.findAll({
+            where : {
+                SectionID: req.params.sectionId
+            },
+            include: [Goal]
+        }).then(result => {
+            return res.json({
+                Goals: result
             });
         });
     });
