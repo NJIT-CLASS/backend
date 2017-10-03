@@ -1388,6 +1388,51 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+    router.post('/file/upload/', function(req,res) {
+
+        FileReference.create({
+            UserID: req.body.userId,
+            Info: req.body.fileInfo,
+            LastUpdated: new Date(),
+        }).then(function(result){
+            res.status(200).end();
+        })
+        .catch(function(err){
+            logger.log('error', 'file info not uploaded successfully');
+            res.status(400).end();
+        });
+    });
+
+    router.get('/file/download/:fileId', function(req,res) {
+        FileReference.findOne({
+            where:{
+                FileID: req.params.fileId
+            }
+        }).then(function(result){
+            res.status(200).json(result);
+        })
+        .catch(function(err){
+            logger.log('error', 'file info not downloaded successfully');
+            res.status(400).json(result);
+        });
+    });
+
+    router.delete('/file/delete/:fileId', function(req,res) {
+        FileReference.findOne({
+            where:{
+                FileID: req.params.fileId
+            }
+        }).then(function(result){
+
+            res.status(200).json(result);
+
+            result.destroy();
+        })
+        .catch(function(err){
+            logger.log('error', 'file info not downloaded successfully');
+            res.status(400).json(result);
+        });
+    });
 
     // Upload files for a task
     // router.post('/upload/files/:userId', storage.array('files'), function (req, res) {
@@ -4929,17 +4974,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                             }, {
                                                 transaction: t
                                             }).then(function(sectionUser) {
-                                                    console.log('Creating user, inviting, and adding to section');
-                                                    logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                        req_body: userDetails
-                                                    });
-
-                                                    let email = new Email();
-                                                    email.sendNow(user.UserID, 'invite user', temp_pass);
-
-                                                    return sectionUser;
-
+                                                console.log('Creating user, inviting, and adding to section');
+                                                logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                    req_body: userDetails
                                                 });
+
+                                                let email = new Email();
+                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+
+                                                return sectionUser;
+
+                                            });
                                         });
                                     });
                                 });
