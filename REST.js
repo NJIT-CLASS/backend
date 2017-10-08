@@ -261,7 +261,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             where: {
                 UserID: req.body.UserID,
                 SectionID: req.body.SectionID
-                    //AssignmentInstanceID: req.body.AssignmentInstanceID
+                //AssignmentInstanceID: req.body.AssignmentInstanceID
             }
         }).then(function(rows) {
             console.log('Delete User Success');
@@ -1338,10 +1338,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         logger.log('warn', 'only info', ([1, 2, {
             k: 'v'
         },
-            ['hi'],
-            function(test) {
-                console.log(test);
-            }
+        ['hi'],
+        function(test) {
+            console.log(test);
+        }
         ]).toString());
 
         // var manager = new Manager()
@@ -1388,19 +1388,80 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.post('/file/upload/', function(req,res) {
+    router.post('/file/upload/:type?', function(req,res) {
 
         FileReference.create({
             UserID: req.body.userId,
             Info: req.body.fileInfo,
             LastUpdated: new Date(),
         }).then(function(result){
-            res.status(200).end();
+
+            switch(req.params.type){
+            case 'task':
+                TaskInstance.find({
+                    where: {
+                        TaskInstanceID: req.body.taskInstanceId
+                    }
+                }).then(ti => {
+                    let newFilesArray = JSON.parse(ti.Files) || [];
+                    newFilesArray = newFilesArray.concat([result.FileID]);
+
+                    // Update task instance with the new file references
+                    return TaskInstance.update({
+                        Files: newFilesArray
+                    }, {
+                        where: {
+                            TaskInstanceID: req.body.taskInstanceId
+                        }
+                    }).then(done => {
+                        logger.log('info', 'task updated with new files', {
+                            res: done
+                        });
+                        // Respond wtih file info
+                        res.status(200).json({
+                            FileID: result.FileID
+                        });
+                    });
+                })
+                    .catch(er => {
+                        logger.log('error', 'file task info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            case 'profile-picture':
+                UserContact.update({
+                    ProfilePicture: [result.FileID]
+                }, {
+                    where: {
+                        UserID: req.body.userId
+                    }
+                }).then(function(done) {
+                    logger.log('info', 'user updated with new profile pictures info', {
+                        res: done
+                    });
+                    // respond with file info
+                    res.status(200).json({
+                        FileID: result.FileID
+                    });
+                    return done;
+                })
+                    .catch(er => {
+                        logger.log('error', 'profile-picture info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            default:
+                res.status(200).json({
+                    FileID: result.FileID
+                });
+                break;
+            }
+            
         })
-        .catch(function(err){
-            logger.log('error', 'file info not uploaded successfully');
-            res.status(400).end();
-        });
+            .catch(function(err){
+                logger.log('error', 'file info not uploaded successfully');
+                res.status(400).end();
+            });
     });
 
     router.get('/file/download/:fileId', function(req,res) {
@@ -1411,10 +1472,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(result){
             res.status(200).json(result);
         })
-        .catch(function(err){
-            logger.log('error', 'file info not downloaded successfully');
-            res.status(400).json(result);
-        });
+            .catch(function(err){
+                logger.log('error', 'file info not downloaded successfully');
+                res.status(400).json(result);
+            });
     });
 
     router.delete('/file/delete/:fileId', function(req,res) {
@@ -1428,12 +1489,15 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
             result.destroy();
         })
-        .catch(function(err){
-            logger.log('error', 'file info not downloaded successfully');
-            res.status(400).json(result);
-        });
+            .catch(function(err){
+                logger.log('error', 'file info not deleted successfully');
+                res.status(400).json(result);
+            });
     });
+    
+    router.post('/upload/task', function(req,res){
 
+    });
     // Upload files for a task
     // router.post('/upload/files/:userId', storage.array('files'), function (req, res) {
     router.post('/upload/files', storage.array('files'), function(req, res) {
@@ -1595,8 +1659,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID'], 
             include: [{
                 model: Assignment,
-                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                    /*include: [{
+                // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                /*include: [{
                      model: Section,
                      }],*/
             },
@@ -1604,8 +1668,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 model: Section,
                 include: [{
                     model: Course,
-                        // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                        /*include: [{
+                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                    /*include: [{
                          model: Section,
                          attributes: ["SectionID"],
                          }],*/
@@ -2464,58 +2528,58 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 
-                .then(function() {
-                    User.create({
-                        FirstName: req.body.firstname,
-                        LastName: req.body.lastname,
-                        Instructor: req.body.instructor,
-                        Admin: req.body.admin
-                    }).catch(function(err) {
-                        console.log(err);
-                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                            .then(function() {
-                                res.status(500).end();
-                            });
-                    }).then(async function(user) {
-                        UserContact.create({
-                            UserID: user.UserID,
+                    .then(function() {
+                        User.create({
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
-                            Email: req.body.email,
-                            Phone: '(XXX) XXX-XXXX'
+                            Instructor: req.body.instructor,
+                            Admin: req.body.admin
                         }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                 .then(function() {
                                     res.status(500).end();
                                 });
-                        }).then(async function(userCon) {
-                            console.log('trustpass', req.body.trustpassword);
-                            UserLogin.create({
+                        }).then(async function(user) {
+                            UserContact.create({
                                 UserID: user.UserID,
+                                FirstName: req.body.firstname,
+                                LastName: req.body.lastname,
                                 Email: req.body.email,
-                                Password: await password.hash(req.body.password),
-                                Pending: req.body.trustpassword ? false : true
+                                Phone: '(XXX) XXX-XXXX'
                             }).catch(function(err) {
                                 console.log(err);
                                 sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                     .then(function() {
                                         res.status(500).end();
                                     });
-                            }).then(function(userLogin) {
-                                let email = new Email();
-                                email.sendNow(user.UserID, 'invite user', '[user defined]');
-                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                    .then(function() {
-                                        res.json({
-                                            'Message': 'User has succesfully added'
+                            }).then(async function(userCon) {
+                                console.log('trustpass', req.body.trustpassword);
+                                UserLogin.create({
+                                    UserID: user.UserID,
+                                    Email: req.body.email,
+                                    Password: await password.hash(req.body.password),
+                                    Pending: req.body.trustpassword ? false : true
+                                }).catch(function(err) {
+                                    console.log(err);
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.status(500).end();
                                         });
-                                    });
+                                }).then(function(userLogin) {
+                                    let email = new Email();
+                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.json({
+                                                'Message': 'User has succesfully added'
+                                            });
+                                        });
 
+                                });
                             });
                         });
                     });
-                });
             } else {
                 res.json({
                     'Message': 'User is currently exist'
@@ -3350,20 +3414,20 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).catch(function(e) {
             console.log('getUserID ' + e);
             UserContact.find({
-                Email: req.params.email
-
+                where: {
+                    Email: req.params.email
+                }
             }).then(function(user) {
                 res.json({
                     'UserID': user.UserID
                 });
-            })
-                .catch(function(e) {
-                    console.log('getUserID ' + e);
+            }).catch(function(e) {
+                console.log('getUserID ' + e);
 
-                    res.json({
-                        'UserID': -1
-                    });
+                res.json({
+                    'UserID': -1
                 });
+            });
 
         });
     });
@@ -4989,14 +5053,14 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                     });
                                 });
                             })
-                                    .catch((err) => {
-                                        console.log(err);
-                                        logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
-                                            body: userDetails,
-                                            err: err
+                                .catch((err) => {
+                                    console.log(err);
+                                    logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
+                                        body: userDetails,
+                                        err: err
 
-                                        });
                                     });
+                                });
 
                         } else {
                             SectionUser.find({
@@ -5111,9 +5175,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                             error: err
                                         });
                                         sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                                .then(function() {
-                                                    res.status(500).end();
-                                                });
+                                            .then(function() {
+                                                res.status(500).end();
+                                            });
                                     })
                                         .then(async function(userCon) {
                                             return UserLogin.create({
@@ -5224,34 +5288,34 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }, {
                 transaction: t
             })
-                    .then((loginRowsDeleted) => {
-                        return UserContact.destroy({
-                            where: {
-                                UserID: req.params.userID
-                            }
-                        }, {
-                            transaction: t
-                        })
-                            .then((contactRowsDeleted) => {
-                                return SectionUser.destroy({
-                                    where: {
-                                        UserID: req.params.userID
-                                    }
-                                }, {
-                                    transaction: t
-                                })
-                                    .then((sectionUsersDeleted) => {
-                                        return User.destroy({
-                                            where: {
-                                                UserID: req.params.userID
-                                            }
-                                        }, {
-                                            transaction: t
-                                        });
+                .then((loginRowsDeleted) => {
+                    return UserContact.destroy({
+                        where: {
+                            UserID: req.params.userID
+                        }
+                    }, {
+                        transaction: t
+                    })
+                        .then((contactRowsDeleted) => {
+                            return SectionUser.destroy({
+                                where: {
+                                    UserID: req.params.userID
+                                }
+                            }, {
+                                transaction: t
+                            })
+                                .then((sectionUsersDeleted) => {
+                                    return User.destroy({
+                                        where: {
+                                            UserID: req.params.userID
+                                        }
+                                    }, {
+                                        transaction: t
                                     });
-                            });
+                                });
+                        });
 
-                    });
+                });
         })
             .then((result) => {
                 logger.log('info', 'post: /delete/user, user deleted from system', {
@@ -7160,7 +7224,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/testing', async function(req, res) {
 
         let taskFactory = new TaskFactory;
-       //taskFactory.createCategoryInstances(1, 1, 1);
+        //taskFactory.createCategoryInstances(1, 1, 1);
         //taskFactory.rankingSnapshot(true);
         //taskFactory.rankingSnapshot(false, true);
         //taskFactory.updatePointInstance('create_problem', '3', '1');

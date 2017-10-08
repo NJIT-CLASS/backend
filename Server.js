@@ -3,7 +3,7 @@ var mysql = require('mysql');
 var bodyParser = require('body-parser');
 var rest = require('./REST.js');
 var app = express();
-var settings = require("./backend_settings");
+var settings = require('./backend_settings');
 const logger = require('./Workflow/Logger.js');
 
 var schedule = require('node-schedule');
