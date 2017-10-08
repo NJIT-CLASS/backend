@@ -26,7 +26,7 @@
     "nodemailer-smtp-transport": "^2.7.4",
     "random-number-csprng": "^1.0.2",
     "sendgrid": "^5.2.3",
-    "sequelize": "^4.13.5",
+    "sequelize": "^3.30.4",
     "supervisor": "^0.12.0",
     "tree-model": "^1.0.6",
     "winston": "^2.4.0",

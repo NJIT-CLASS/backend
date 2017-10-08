@@ -2991,6 +2991,21 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             res.status(401).end();
         });
 
+        function checkForDuplicateIDs(a) {
+            var seen = {};
+            var out = [];
+            var len = a.length;
+            var j = 0;
+            for(var i = 0; i < len; i++) {
+                var item = a[i];
+                if(seen[item.CourseID] !== 1) {
+                    seen[item.CourseID] = 1;
+                    out[j++] = item;
+                }
+            }
+            return out;
+        }
+
         await sections.forEach(function(section) {
             //console.log(section.Section);
             if (section.Section !== null) {
@@ -2999,8 +3014,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     'Number': section.Section.Course.Number,
                     'Name': section.Section.Course.Name
                 });
-
-                addedCourseIDs.push(section.Section.Course.CourseID);
             }
         });
 
@@ -3017,20 +3030,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
         await createdCourses.forEach(function(course) {
 
-            if (!addedCourseIDs.includes(course.CourseID)) {
-                courses.push({
-                    'CourseID': course.CourseID,
-                    'Number': course.Number,
-                    'Name': course.Name
-                });
-            }
+            
+            courses.push({
+                'CourseID': course.CourseID,
+                'Number': course.Number,
+                'Name': course.Name
+            });
+            
         });
-
 
         res.json({
             'Error': false,
             'Message': 'Success',
-            'Courses': courses
+            'Courses': checkForDuplicateIDs(courses)
         });
     });
     //-----------------------------------------------------------------------------------------------------
