@@ -1389,7 +1389,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     });
 
     router.post('/file/upload/:type?', function(req,res) {
-
+        console.log('File upload:', req.body);
         FileReference.create({
             UserID: req.body.userId,
             Info: req.body.fileInfo,
@@ -1495,9 +1495,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
     });
     
-    router.post('/upload/task', function(req,res){
-
-    });
+    /*
     // Upload files for a task
     // router.post('/upload/files/:userId', storage.array('files'), function (req, res) {
     router.post('/upload/files', storage.array('files'), function(req, res) {
@@ -1642,7 +1640,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-
+*/
     //Endpoint for Assignment Manager
     router.post('/getAssignmentGrades/:ai_id', function(req, res) {
 
