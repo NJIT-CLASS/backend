@@ -15,6 +15,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'UserID',
             allowNull: false
         },
+        CommentTarget:{
+            type: DataTypes.STRING(255),
+            field: 'CommentTarget',
+            allowNull: true
+        },
         TargetID: {
             //Unique identifier for the user
             type: DataTypes.INTEGER.UNSIGNED,
@@ -28,18 +33,13 @@ module.exports = function(sequelize, DataTypes) {
             field: 'AssignmentInstanceID',
             allowNull: true
         },
-        TaskInstanceID: {
-            //Unique identifier for assignment instance
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskInstanceID',
-            allowNull: true
-        },
-        Type: {
-            type: DataTypes.STRING,
-            field: 'Type',
-            allowNull: true
-        },
+        // TaskInstanceID: {
+        //     //Unique identifier for assignment instance
+        //     //Foreign Key
+        //     type: DataTypes.INTEGER.UNSIGNED,
+        //     field: 'TaskInstanceID',
+        //     allowNull: true
+        // },
         CommentsText: {
             type: DataTypes.STRING,
             field: 'CommentsText',
@@ -55,6 +55,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Flag',
             allowNull: true
         },
+        Type: {
+            type: DataTypes.STRING,
+            field: 'Type',
+            allowNull: true
+        }, 
         Status: {
             type: DataTypes.STRING(255),
             field: 'Status',
@@ -65,11 +70,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Label',
             allowNull: true
         },
-        Viewed:{
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Viewed',
-            allowNull: true
-        },
+        // Viewed:{
+        //     type: DataTypes.INTEGER.UNSIGNED,
+        //     field: 'Viewed',
+        //     allowNull: true
+        // },
         ReplyLevel: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'ReplyLevel',
@@ -85,6 +90,21 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Delete',
             allowNull: true
         },
+        Hide: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Hide',
+            allowNull: true
+        },
+        HideReason:{
+            type: DataTypes.STRING(255),
+            field: 'HideReason',
+            allowNull: true
+        },
+        HideType:{
+            type: DataTypes.STRING(255),
+            field: 'HideType',
+            allowNull: true
+        },
         Time: {
             // date and time after which user will be allowed to log in
             type: DataTypes.DATE,
@@ -96,26 +116,17 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Complete',
             allowNull: true
         },
-        Hide: {
+        Edited:{
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Hide',
+            field: 'Edited',
             allowNull: true
         },
-        CommentTarget:{
-            type: DataTypes.STRING(255),
-            field: 'Hide',
+        OriginTaskInstanceID:{
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'OriginalTaskInstanceID',
             allowNull: true
         }
     }, {
-      /*
-      indexes: [
-          // Create a unique index
-          {
-            name: 'uniqueComments',
-            unique: true,
-            fields: ['UserID','SectionID', 'AssignmentInstanceID']
-          }],
-*/
         timestamps: false,
 
         // don't delete database entries but set the newly added attribute deletedAt
