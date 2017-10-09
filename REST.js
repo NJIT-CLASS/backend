@@ -282,6 +282,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log(err);
             res.status(400).end();
         });
+        VolunteerPool.findAll({
+                where: {
+                    UserID: req.body.UserID,
+                    SectionID: req.body.SectionID,
+                    AssignmentInstanceID: req.body.AssignmentInstanceID
+                },
+                  attributes: ['volunteerpoolID']
+            }).then(function(rows2) {
+            var arrayLength = rows.length;
+              for (var i = 0; i < arrayLength; x++) {
+              Notifications.create({
+                VolunteerpoolID: rows2[i].volunteerpoolID
+              });
+            }
+            }).catch(function(err) {
+                console.log('/VolunteerPool/add + notifications ' + err);
+                res.status(401).end();
+            });
         //             });
         // });
     });
@@ -5902,6 +5920,24 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                        console.log(err);
                        res.status(400).end();
                    });
+                   Comments.findAll({
+                               where: {
+                                   CommentsID: req.body.CommentsID
+                               },
+                                 attributes: ['commentsID','UserID']
+                           }).then(function(rows2) {
+                           var arrayLength = rows2.length;
+                             for (var j = 0; j < arrayLength; j++) {
+                             Notifications.create({
+                               CommentsID: rows[j].CommentsID,
+                               UserID: rows[j].UserID,
+                               Flag: 1
+                             });
+                           }
+                           }).catch(function(err) {
+                               console.log('/comments/add notifications' + err);
+                               res.status(401).end();
+                           });
        })
  //------------------------------------------------------------------------------------------
  router.post('/comments/edit', function(req, res) {
@@ -6064,6 +6100,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
      }).catch(function(err) {
          console.log('/comment/setFlag: ' + err);
          res.status(401).end();
+     });
+     Notifications.create({
+       CommentsID: req.body.CommentsID,
+       Flag: 1
      });
  });
     //-------------------------------------------------------------------------
