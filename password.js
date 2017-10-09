@@ -12,7 +12,7 @@ const options = {
 
 // hash password
 const hash = async (plain) => {
-    return await argon2.hash(plain, await argon2.generateSalt(64), options);
+    return await argon2.hash(plain, options);
 };
 
 // verify password against hash

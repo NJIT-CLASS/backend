@@ -4118,6 +4118,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         var DisplayName;
         var workflowNames = {};
 
+        console.log('req.query.assignmentid', req.query.assignmentid);
+        console.log('req.query.courseid', req.query.courseid);
+
         Assignment.find({
             where: {
                 AssignmentID: req.query.assignmentid
