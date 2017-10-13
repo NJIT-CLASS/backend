@@ -1128,16 +1128,16 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //Endpoint to get the data from a partial assignment for the assignment editor
     router.get('/partialAssignments/byId/:partialAssignmentId', function(req, res) {
         console.log(req.query.courseId, req.query.userId);
-        if (req.query.courseId === undefined || req.query.userId === undefined) {
+        /*if (req.query.courseId === undefined || req.query.userId === undefined) {
             console.log('/partialAssignments/byId/:partialAssignmentId: UserID and CourseId cann be empty');
             res.status(400).end();
             return;
-        }
+        }*/
         PartialAssignments.find({
             where: {
                 PartialAssignmentID: req.params.partialAssignmentId,
-                UserID: req.query.userId,
-                CourseID: req.query.courseId
+                /*UserID: req.query.userId,
+                CourseID: req.query.courseId*/
             }
         }).then(result => {
             console.log(result);
@@ -3283,39 +3283,44 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         }).then(function(userID) {
             if (userID == null) {
                 console.log('Email Not Found - Making Instructor ' + email);
-                UserContact.create({
-                    Email: email,
-                    Phone: 'XXX-XXX-XXXX',
+                User.create({
                     FirstName: 'Temp',
                     LastName: 'Temp',
-                }).catch(function(err) {
-                    console.log(err);
-                }).then(function(userCon) {
-                    User.create({
-                        FirstName: 'Temp',
-                        LastName: 'Temp',
-                        OrganizationGroup: {
-                            'OrganizationID': []
-                        },
-                        UserContactID: userCon.UserContactID,
-                        Instructor: true,
-                        Admin: 0
-                    }).catch(function(err) {
-                        console.log(err);
-                    }).then(async function(user) {
-                        UserLogin.create({
-                            UserID: user.UserID,
+                    OrganizationGroup: {
+                        'OrganizationID': []
+                    },
+                    Instructor: true,
+                    Admin: false
+                })
+                    .then(function(user) {
+                        UserContact.create({
                             Email: email,
-                            Password: await password.hash('pass123')
-                        }).catch(function(err) {
-                            console.log(err);
-                        }).then(function(userLogin) {
+                            Phone: 'XXX-XXX-XXXX',
+                            FirstName: 'Temp',
+                            LastName: 'Temp',
+                            UserID: user.UserID
+                        }).then(async function(userCon) {
+                            UserLogin.create({
+                                UserID: user.UserID,
+                                Email: email,
+                                Password: await password.hash('pass123')
+                            }).then(function(userLogin) {
                             //Email User With Password
-                            console.log('/instructor/new made');
-                            res.status(200).end();
-                        });
+                                console.log('/instructor/new made');
+                                res.status(200).end();
+                            })
+                                .catch(function(err) {
+                                    console.log(err);
+                                });
+                        })
+                            .catch(function(err) {
+                                console.log('Error creating user');
+                                console.log(err);
+                            });
+                    })
+                    .catch(function(err) {
+                        console.log(err);
                     });
-                });
             } else {
                 User.find({
                     where: {
