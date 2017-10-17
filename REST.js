@@ -4188,7 +4188,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
                 //Loop through TaskActivityCollection in each workflowActivity
                 console.log('workflow.TaskActivityCollection',workflow.TaskActivityCollection);
-                return Promise.map(workflow.TaskActivityCollection, function(taskActivityID) {
+                return Promise.map(JSON.parse(workflow.TaskActivityCollection), function(taskActivityID) {
 
                     console.log('TaskActivityID:', taskActivityID);
 

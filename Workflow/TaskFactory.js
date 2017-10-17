@@ -385,7 +385,7 @@ class TaskFactory {
                         TaskActivityID: task
                     }
                 }).then(function(result) {
-                    var assigneeConstraints = result.AssigneeConstraints;
+                    var assigneeConstraints = JSON.parse(result.AssigneeConstraints);
                     //Loop through Assignee Constraints
                     for (var item in assigneeConstraints[2]) {
                         var temp = [];
