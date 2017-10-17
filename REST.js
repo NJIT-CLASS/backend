@@ -1,3 +1,4 @@
+
 var dateFormat = require('dateformat');
 var Guid = require('guid');
 var models = require('./Model');
@@ -6895,9 +6896,48 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
 
     });
-    //---------------------------------------------------------------------------
+    //-------inactive a user from a section---------------------------------
+    router.post('/inactiveuser/section', function(req, res) {
 
+        if (req.body.UserID  == null) {
+            console.log("/inactiveuser/section : UserID cannot be null");
+            res.status(400).end();
+            return;
+        };
+        if (req.body.SectionID == null) {
+            console.log("/inactiveuser/section : SectionID cannot be null");
+            res.status(400).end();
+            return;
+        };
+        SectionUser.update({
+          Active:0
+        },{
+            where: {
+                UserID: req.body.UserID,
+                SectionID: req.body.SectionID
 
+            }
+          })
+
+    //---------Section status---------------------------------------------------
+    router.post('/status/section/:sectionID', function(req, res) {
+
+        Section.find({
+            where: {
+                SectionID: req.params.sectionID
+                }
+          }).then(function(rows) {
+              res.json({
+                  'Error': false,
+                  'Message': 'Success',
+                  'Semester': rows
+              });
+          }).catch(function(err) {
+              console.log('/status/section/:sectionID ' + err.message);
+              res.status(401).end();
+          });
+
+    //----------------------------------------------------------------
 
 };
 
