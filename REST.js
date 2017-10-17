@@ -5896,6 +5896,11 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
 
            console.log("got to create part");
+           Notifications.create({
+               CommentsID: req.body.CommentsID,
+               UserID: req.body.UserID,
+               Flag: req.body.Flag
+           });
 
            Comments.create({
                CommentsID: req.body.CommentsID,
@@ -5915,11 +5920,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                Complete: req.body.Complete,
                CommentTarget: req.body.CommentTarget
 
-               Notifications.create({
-                   CommentsID: req.body.CommentsID,
-                   UserID: req.body.UserID,
-                   Flag: req.body.Flag
-               });
+
 
            }).then(function(result){
              res.status(200).end();
