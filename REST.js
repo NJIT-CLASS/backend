@@ -5913,7 +5913,13 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                Viewed: 0,
                Time:req.body.Time,
                Complete: req.body.Complete,
-               CommentTarget: req.body.CommentTarget,
+               CommentTarget: req.body.CommentTarget
+
+               Notifications.create({
+                   CommentsID: req.body.CommentsID,
+                   UserID: req.body.UserID,
+                   Flag: req.body.Flag
+               });
 
            }).then(function(result){
              res.status(200).end();
@@ -5921,24 +5927,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                        console.log(err);
                        res.status(400).end();
                    });
-                   Comments.findAll({
-                               where: {
-                                   CommentsID: req.body.CommentsID
-                               },
-                                 attributes: ['commentsID','UserID']
-                           }).then(function(rows2) {
-                           var arrayLength = rows2.length;
-                             for (var j = 0; j < arrayLength; j++) {
-                             Notifications.create({
-                               CommentsID: rows[j].CommentsID,
-                               UserID: rows[j].UserID,
-                               Flag: 1
-                             });
-                           }
-                           }).catch(function(err) {
-                               console.log('/comments/add notifications' + err);
-                               res.status(401).end();
-                           });
+
        })
  //------------------------------------------------------------------------------------------
  router.post('/comments/edit', function(req, res) {
@@ -6849,7 +6838,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 'Notifications': rows
             });
         }).catch(function(err) {
-            console.log('/notifications/all' + err.message);
+            console.log('/notifications/all ' + err.message);
             res.status(401).end();
         });
 
@@ -6917,7 +6906,9 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 SectionID: req.body.SectionID
 
             }
-          })
+          });
+
+      });
 
     //---------Section status---------------------------------------------------
     router.post('/status/section/:sectionID', function(req, res) {
@@ -6936,6 +6927,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
               console.log('/status/section/:sectionID ' + err.message);
               res.status(401).end();
           });
+
+      });
 
     //----------------------------------------------------------------
 
