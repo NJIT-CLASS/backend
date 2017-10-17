@@ -5896,11 +5896,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             }
 
            console.log("got to create part");
-           Notifications.create({
-               CommentsID: req.body.CommentsID,
-               UserID: req.body.UserID,
-               Flag: req.body.Flag
-           });
+
 
            Comments.create({
                CommentsID: req.body.CommentsID,
@@ -5928,7 +5924,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                        console.log(err);
                        res.status(400).end();
                    });
+          Comments.findAll({
 
+          }).then(function(rows) {
+            var cid = rows[-1].CommentsID;
+                 Notifications.create({
+                       CommentsID: cid,
+                       UserID: req.body.UserID,
+                       Flag: req.body.Flag
+                   });
+                 }).catch(function(err) {
+                   console.log('Notifications create ' + err);
+                   res.status(401).end();
+                 });
        })
  //------------------------------------------------------------------------------------------
  router.post('/comments/edit', function(req, res) {
