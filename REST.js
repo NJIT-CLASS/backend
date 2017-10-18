@@ -5925,11 +5925,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                        res.status(400).end();
                    });
           Comments.findAll({
-
+            UserID: req.body.UserID
           }).then(function(rows) {
-            var cid = rows[-1].CommentsID;
                  Notifications.create({
-                       CommentsID: cid,
+                       CommentsID: rows[rows.length - 1].CommentsID,
                        UserID: req.body.UserID,
                        Flag: req.body.Flag
                    });
