@@ -3781,7 +3781,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ['Name', 'DisplayName', 'Type', 'VisualID'],
+                    attributes: ['Name', 'DisplayName', 'Type', 'AllowRevision'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -3805,6 +3805,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
 
     });
+
 
     //Endpoint to get completed task instances for user
     router.get('/getCompletedTaskInstances/:userID', function(req, res) {
@@ -4859,12 +4860,19 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 [User, 'FirstName'],
                 [UserLogin, 'Email']
             ],
-            attributes: ['UserID', 'Active', 'Volunteer', 'Role']
+            attributes: ['SectionUserID', 'UserID', 'Active', 'Volunteer', 'Role']
         }).then(function(SectionUsers) {
             console.log('/sectionUsers called');
             if (req.params.role === 'Student') {
                 SectionUsers = SectionUsers.map(user => {
-                    let newUser = user;
+                    let newUser = {
+                        UserID: user.UserID,
+                        SectionUserID: user.SectionUserID,
+                        Active: user.Active,
+                        Role: user.Role,
+                        User: user.User,
+                        UserLogin: user.UserLogin
+                    };
                     if (user.User.VolunteerPools.length != 0) {
                         newUser.Volunteer = true;
                         newUser.Status = user.User.VolunteerPools[0].status;
@@ -5167,6 +5175,34 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     }
                 });
             }
+        });
+    });
+
+    router.post('/sectionUsers/changeActive/:sectionUserID', (req, res) => {
+        /** TODO:  This API does a simple database update, but it may need
+          * to do some special reallocation to deal with inactive students
+         */
+        var newActiveStatus = true;
+        if(req.body.active != null){
+            newActiveStatus = req.body.active;
+        }
+        SectionUser.update({
+            Active: newActiveStatus
+        },{
+            where: {
+                SectionUserID: req.params.sectionUserID
+            }
+        }).then(sectionUser => {
+            res.status(201).json({
+                message: 'Success',
+                SectionUserID: sectionUser.SectionUserID
+            });
+        }).catch( err => {
+            logger.log('error', 'post: /sectionUser/changeActive/, user active status not set', {
+                error: err,
+                req_params: req.params,
+            });
+            res.status(401).end();
         });
     });
 
@@ -7386,6 +7422,67 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
         });
     });
+<<<<<<< HEAD
+=======
+
+    router.get('/goals/section/:sectionId', function(req, res) {
+        GoalInstance.findAll({
+            where : {
+                SectionID: req.params.sectionId
+            },
+            include: [Goal]
+        }).then(result => {
+            return res.json({
+                Goals: result
+            });
+        });
+    });
+
+    router.get('/task/files/:taskId', async function(req,res){
+        
+        let result = await TaskInstance.findOne({
+            where: {
+                TaskInstanceID: req.params.taskId
+            },
+            attributes: ['Files']
+        }).catch(err => {
+            logger.log('error', 'could not get files', err, req.params);
+            return res.status(400).end();
+        });
+
+        if(result.Files == null){
+            return res.json({
+                Files: []
+            });
+        } else {
+            return res.json({
+                Files: result.Files
+            });
+        }
+        
+
+        // let fileArray = JSON.parse(JSON.stringify(result.Files).map(file => {
+        //     return FileReference.findOne({
+        //         where: {
+        //             FileID: file
+        //         },
+        //         attributes: ['Info']
+        //     });
+        // });
+
+        // Promise.all(fileArray).then(results=>{
+        //     console.log(results);
+        //     let parsedResults = results.map(JSON.parse);
+        //     return res.json({
+        //         Files: parsedResults
+        //     });
+            
+        // });
+    });
+
+   
+
+>>>>>>> 959437895eabc18f715b9823ca1a4f5d2d2a6cf4
 };
 
 module.exports = REST_ROUTER;
