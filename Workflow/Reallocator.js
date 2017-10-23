@@ -142,6 +142,7 @@ export default class Reallocator {
 
 
     async reallocate_tasks(tis, new_users, section_id, ai_id, option, is_extra_credit) {
+        
         let x = this;
         let users = new_users;
         let response = null;
@@ -182,20 +183,20 @@ export default class Reallocator {
         // let maps = x.check(tis, users);
         // let keys = Object.keys(maps);
 
-        // await Promise.mapSeries(keys, async(ti_id, index) => {
-        //     let ti = await TaskInstance.find({
-        //         where: {
-        //             TaskInstanceID: ti_id
-        //         }
-        //     });
+        await Promise.mapSeries(keys, async(ti_id, index) => {
+            let ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: ti_id
+                }
+            });
 
-        //     return await x.reallocate_user_to_task(ti, maps[keys[index]], is_extra_credit);
-        // });
+            return await x.reallocate_user_to_task(ti, maps[keys[index]], is_extra_credit);
+        });
 
-        // return {
-        //     Error: false,
-        //     Message: null
-        // };
+        return {
+            Error: false,
+            Message: null
+        };
     }
 
     //checks if the users are valid for reallocation
