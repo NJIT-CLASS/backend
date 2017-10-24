@@ -301,10 +301,46 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 console.log('/VolunteerPool/add + notifications ' + err);
                 res.status(401).end();
             });
-        //             });
-        // });
     });
+    //-----------------------------------------------------------------------------
+    router.post('/VolunteerPool/assignment/add', function(req, res) {
+        console.log('/VolunteerPool/assignment/add : was called');
 
+        if (req.body.UserID === null || req.body.AssignmentInstanceID === null) {
+            console.log('/VolunteerPool/assignment/add : Missing attributes');
+            res.status(400).end();
+        }
+
+        console.log('got to create part');
+        //console.log("UserID: " + req.params.UserID);
+        VolunteerPool.create({
+            UserID: req.body.UserID,
+            AssignmentInstanceID: req.body.AssignmentInstanceID
+        }).then(function(rows) {
+            console.log('add User Success');
+            res.status(200).end();
+        }).catch(function(err) {
+            console.log(err);
+            res.status(400).end();
+        });
+        VolunteerPool.findAll({
+                where: {
+                    UserID: req.body.UserID,
+                    AssignmentInstanceID: req.body.AssignmentInstanceID
+                },
+                  attributes: ['volunteerpoolID']
+            }).then(function(rows2) {
+            var arrayLength = rows.length;
+              for (var i = 0; i < arrayLength; x++) {
+              Notifications.create({
+                VolunteerpoolID: rows2[i].volunteerpoolID
+              });
+            }
+            }).catch(function(err) {
+                console.log('/VolunteerPool/assignment/add + notifications ' + err);
+                res.status(401).end();
+            });
+    });
 
     //Endpoint to change status of volunteer individually
     router.post('/VolunteerPool/individualStatusUpdate/', function(req, res) {
@@ -5924,18 +5960,61 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                        console.log(err);
                        res.status(400).end();
                    });
-          Comments.findAll({
-            UserID: req.body.UserID
-          }).then(function(rows) {
-                 Notifications.create({
-                       CommentsID: rows[rows.length - 1].CommentsID,
-                       UserID: req.body.UserID,
-                       Flag: req.body.Flag
+
+          if (req.body.ReplyLevel != 0){
+            Comments.findAll({
+              where: {
+                  CommentsID: req.body.Parents
+              }
+            }).then(function(l1) {
+                   Notifications.create({
+                         //CommentsID: rows[rows.length - 1].CommentsID,
+                         CommentsID: l1[0].CommentsID,
+                         UserID: l1[0].UserID,
+                         Flag: l1[0].Flag
+                     });
+                   }).catch(function(err) {
+                     console.log('Notifications create ' + err);
+                     res.status(401).end();
                    });
-                 }).catch(function(err) {
-                   console.log('Notifications create ' + err);
-                   res.status(401).end();
-                 });
+                   if(l1[0].Parents != null){
+          Comments.findAll({
+                     where: {
+                         CommentsID: l1[0].Parents
+                     }
+                   }).then(function(l2) {
+                            Notifications.create({
+                                  //CommentsID: rows[rows.length - 1].CommentsID,
+                                  CommentsID: l2[0].CommentsID,
+                                  UserID: l2[0].UserID,
+                                  Flag: l2[0].Flag
+                              });
+                            }).catch(function(err) {
+                              console.log('Notifications create ' + err);
+                              res.status(401).end();
+                            });
+                            if(l2[0].Parents != null){
+                   Comments.findAll({
+                              where: {
+                                  CommentsID: l2[0].Parents
+                              }
+                            }).then(function(l3) {
+                                     Notifications.create({
+                                           //CommentsID: rows[rows.length - 1].CommentsID,
+                                           CommentsID: l3[0].CommentsID,
+                                           UserID: l3[0].UserID,
+                                           Flag: l3[0].Flag
+                                       });
+                                     }).catch(function(err) {
+                                       console.log('Notifications create ' + err);
+                                       res.status(401).end();
+                                     });
+
+
+
+}
+}
+          }
        })
  //------------------------------------------------------------------------------------------
  router.post('/comments/edit', function(req, res) {
