@@ -1007,7 +1007,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         //         console.error(err);
         //     });
         // }
-
+        var taskFactory = new TaskFactory();
         if (req.body.partialAssignmentId == null) {
             PartialAssignments.create({
                 PartialAssignmentName: req.body.assignment.AA_name,
@@ -1015,7 +1015,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 CourseID: req.body.courseId,
                 Data: req.body.assignment
             }).then((result) => {
-                var taskFactory = new TaskFactory();
+                
                 console.log('assignment: ', req.body.assignment);
                 taskFactory.createAssignment(req.body.assignment).then(function(done) {
                     if (done) {
