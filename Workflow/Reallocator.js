@@ -53,6 +53,7 @@ var models = require('../Model');
 var Promise = require('bluebird');
 var moment = require('moment');
 var TaskFactory = require('./TaskFactory.js');
+const sequelize = require('../Model/index.js').sequelize;
 var _ = require('underscore');
 var Email = require('./Email.js');
 
@@ -171,25 +172,30 @@ export default class Reallocator {
             } else {
                 return await x.reallocate_instructor(tis, users[0]);
             }
+        } else {
+            return {
+                Error: true,
+                Message: 'invalid option'
+            };
         }
 
-        let maps = x.check(tis, users);
-        let keys = Object.keys(maps);
+        // let maps = x.check(tis, users);
+        // let keys = Object.keys(maps);
 
-        await Promise.mapSeries(keys, async(ti_id, index) => {
-            let ti = await TaskInstance.find({
-                where: {
-                    TaskInstanceID: ti_id
-                }
-            });
+        // await Promise.mapSeries(keys, async(ti_id, index) => {
+        //     let ti = await TaskInstance.find({
+        //         where: {
+        //             TaskInstanceID: ti_id
+        //         }
+        //     });
 
-            return await x.reallocate_user_to_task(ti, maps[keys[index]], is_extra_credit);
-        });
+        //     return await x.reallocate_user_to_task(ti, maps[keys[index]], is_extra_credit);
+        // });
 
-        return {
-            Error: false,
-            Message: null
-        };
+        // return {
+        //     Error: false,
+        //     Message: null
+        // };
     }
 
     //checks if the users are valid for reallocation
@@ -257,9 +263,9 @@ export default class Reallocator {
 
     }
 
-    async get_section_users(section_id, ai_id){
+    async get_volunteers(section_id, ai_id){
         let volunteers;
-        if(ai_id !== null){
+        if(ai_id !== null && ai_id !== undefined){
             volunteers = await VolunteerPool.findAll({
                 where:{
                     SectionID: section_id,
@@ -278,7 +284,7 @@ export default class Reallocator {
         return volunteers;
     }
 
-    async get_students(section_id, option){
+    async get_section_users(section_id, option){
         let users;
         if(option === 'students'){
             users = await SectionUser.findAll({
@@ -299,7 +305,7 @@ export default class Reallocator {
                 attributes:['UserID']
             });
         }
-        return students;
+        return users;
     }
 
     async get_workflow_users(wi_id){
