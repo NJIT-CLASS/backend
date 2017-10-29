@@ -4366,7 +4366,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         var make = new Make();
 
         console.log('/getAssignToSection/submit/  Creating Assignment Instance...');
-
+        logger.log('info', 'Assing TO Section submit', req.body);
 
         //create assignment instance
         await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function(done) {
@@ -7552,8 +7552,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
-    router.get('/task/files/:taskId', async function(req,res){
-        
+    router.get('/task/files/:taskId', async function (req, res) {
+
         let result = await TaskInstance.findOne({
             where: {
                 TaskInstanceID: req.params.taskId
@@ -7564,34 +7564,30 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             return res.status(400).end();
         });
 
-        if(result.Files == null){
-            return res.json({
-                Files: []
-            });
-        } else {
-            return res.json({
-                Files: result.Files
-            });
-        }
-        
+        let fileArray = [];
 
-        // let fileArray = JSON.parse(JSON.stringify(result.Files).map(file => {
-        //     return FileReference.findOne({
-        //         where: {
-        //             FileID: file
-        //         },
-        //         attributes: ['Info']
-        //     });
-        // });
+        await Promise.map(JSON.parse(result.Files), async file => {
+            var fr = await FileReference.findOne({
+                where: {
+                    FileID: file
+                },
+                attributes: ['FileID','Info']
+            });
 
-        // Promise.all(fileArray).then(results=>{
-        //     console.log(results);
-        //     let parsedResults = results.map(JSON.parse);
-        //     return res.json({
-        //         Files: parsedResults
-        //     });
-            
-        // });
+            fileArray.push(fr);
+        });
+
+        let parsedResults = [];
+
+        await Promise.map(fileArray, async results => {
+            console.log('results', results);
+            parsedResults.push(results);
+        });
+
+        return res.json({
+            Files: parsedResults
+        });
+
     });
 
    
