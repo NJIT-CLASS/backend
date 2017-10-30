@@ -2858,7 +2858,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Endpoint to get a user's courses
-    router.get('/course/getCourses/:userid', async function(req, res) {
+    router.get('/course/getCourses/:userid', async function (req, res) {
         var courses = [];
         let addedCourseIDs = [];
 
@@ -2875,14 +2875,29 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     attributes: ['CourseID', 'Number', 'Name']
                 }]
             }]
-        }).catch(function(err) {
+        }).catch(function (err) {
             logger.log('error', 'failed getting section information', {
                 error: err
             });
             res.status(401).end();
         });
 
-        await sections.forEach(function(section) {
+        function checkForDuplicateIDs(a) {
+            var seen = {};
+            var out = [];
+            var len = a.length;
+            var j = 0;
+            for (var i = 0; i < len; i++) {
+                var item = a[i];
+                if (seen[item.CourseID] !== 1) {
+                    seen[item.CourseID] = 1;
+                    out[j++] = item;
+                }
+            }
+            return out;
+        }
+
+        await sections.forEach(function (section) {
             //console.log(section.Section);
             if (section.Section !== null) {
                 courses.push({
@@ -2890,8 +2905,6 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     'Number': section.Section.Course.Number,
                     'Name': section.Section.Course.Name
                 });
-
-                addedCourseIDs.push(section.Section.Course.CourseID);
             }
         });
 
@@ -2899,29 +2912,28 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             where: {
                 CreatorID: req.params.userid
             }
-        }).catch(function(err) {
+        }).catch(function (err) {
             logger.log('error', 'failed getting courses created information', {
                 error: err
             });
             res.status(401).end();
         });
 
-        await createdCourses.forEach(function(course) {
+        await createdCourses.forEach(function (course) {
 
-            if (!addedCourseIDs.includes(course.CourseID)) {
-                courses.push({
-                    'CourseID': course.CourseID,
-                    'Number': course.Number,
-                    'Name': course.Name
-                });
-            }
+
+            courses.push({
+                'CourseID': course.CourseID,
+                'Number': course.Number,
+                'Name': course.Name
+            });
+
         });
-
 
         res.json({
             'Error': false,
             'Message': 'Success',
-            'Courses': courses
+            'Courses': checkForDuplicateIDs(courses)
         });
     });
     //-----------------------------------------------------------------------------------------------------
@@ -7456,15 +7468,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             fileArray.push(fr);
         });
 
-        let parsedResults = [];
-
-        await Promise.map(fileArray, async results => {
-            console.log('results', results);
-            parsedResults.push(results);
-        });
+        
 
         return res.json({
-            Files: parsedResults
+            Files: fileArray
         });
 
     });
