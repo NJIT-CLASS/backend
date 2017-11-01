@@ -246,7 +246,7 @@ class Manager {
         //Change parameter WhatIfLate to Array of [action, number(days)];
 
         //decision point to decide change the status whether late, abandon, or complete
-        
+
         var x = this;
         var status = JSON.parse(task.Status);
         if (task.TaskActivity.Type === 'dispute') {
