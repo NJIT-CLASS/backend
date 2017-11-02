@@ -1388,6 +1388,91 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         });
     });
 
+    router.post('/files/upload/:type?', function (req, res) {
+        console.log('File upload:', req.body);
+        let successfulFiles = [];
+        let unsuccessfulFiles = [];
+
+        Promise.mapSeries(req.body.files, (file) => {
+            return FileReference.create({
+                UserID: req.body.userId,
+                Info: file,
+                LastUpdated: new Date(),
+            }).then(function (result) {
+                successfulFiles.push(file);
+                return {File: file, FileID: result.FileID};
+            }).catch(function (err) {
+                unsuccessfulFiles.push(file);
+                return { File: file, Error: err };
+            });
+        }).then(results => {
+            console.log(results);
+            let newFileIDs = results.map(instanceInfo => instanceInfo.FileID);
+            switch (req.params.type) {
+            case 'task':
+                return TaskInstance.find({
+                    where: {
+                        TaskInstanceID: req.body.taskInstanceId
+                    }
+                }).then(ti => {
+                    let newFilesArray = JSON.parse(ti.Files) || [];
+                    newFilesArray = newFilesArray.concat(newFileIDs);
+
+                    // Update task instance with the new file references
+                    return TaskInstance.update({
+                        Files: newFilesArray
+                    }, {
+                        where: {
+                            TaskInstanceID: req.body.taskInstanceId
+                        }
+                    }).then(done => {
+                        logger.log('info', 'task updated with new files', {
+                            res: done
+                        });
+                        // Respond wtih file info
+                        return res.status(200).json({
+                            SuccessfulFiles: successfulFiles,
+                            UnsuccessfulFiles: unsuccessfulFiles
+                        });
+                    });
+                })
+                    .catch(er => {
+                        logger.log('error', 'file task info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            case 'profile-picture':
+                UserContact.update({
+                    ProfilePicture: newFileIDs[0]
+                }, {
+                    where: {
+                        UserID: req.body.userId
+                    }
+                }).then(function (done) {
+                    logger.log('info', 'user updated with new profile pictures info', {
+                        res: done
+                    });
+                    // respond with file info
+                    return res.status(200).json({
+                        SuccessfulFiles: successfulFiles,
+                        UnsuccessfulFiles: unsuccessfulFiles
+                    });
+                })
+                    .catch(er => {
+                        logger.log('error', 'profile-picture info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            default:
+                res.status(200).json({
+                    FileID: result.FileID
+                });
+                break;
+            }
+        });
+
+    });
+
 
     router.post('/file/upload/:type?', function (req, res) {
         console.log('File upload:', req.body);
