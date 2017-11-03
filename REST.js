@@ -5961,7 +5961,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                        res.status(400).end();
                    });
 
-          if (req.body.ReplyLevel != 0){
+          if (req.body.ReplyLevel != null){
             Comments.findAll({
               where: {
                   CommentsID: req.body.Parents
@@ -5973,47 +5973,40 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                          UserID: l1[0].UserID,
                          Flag: l1[0].Flag
                      });
+
+                     if(l1[0].Parents != null){
+                     Comments.findAll({
+                                where: {
+                                    CommentsID: l1[0].Parents
+                                }
+                              }).then(function(l2) {
+                                       Notifications.create({
+                                             //CommentsID: rows[rows.length - 1].CommentsID,
+                                             CommentsID: l2[0].CommentsID,
+                                             UserID: l2[0].UserID,
+                                             Flag: l2[0].Flag
+                                         });
+
+                                         if(l2[0].Parents != null){
+                                         Comments.findAll({
+                                                    where: {
+                                                        CommentsID: l2[0].Parents
+                                                    }
+                                                  }).then(function(l3) {
+                                                           Notifications.create({
+                                                                 //CommentsID: rows[rows.length - 1].CommentsID,
+                                                                 CommentsID: l3[0].CommentsID,
+                                                                 UserID: l3[0].UserID,
+                                                                 Flag: l3[0].Flag
+                                                             });
+                                                           });
+                                                         }
+                                                           });
+                                                         }
                    }).catch(function(err) {
                      console.log('Notifications create ' + err);
                      res.status(401).end();
                    });
-                   if(l1[0].Parents != null){
-          Comments.findAll({
-                     where: {
-                         CommentsID: l1[0].Parents
-                     }
-                   }).then(function(l2) {
-                            Notifications.create({
-                                  //CommentsID: rows[rows.length - 1].CommentsID,
-                                  CommentsID: l2[0].CommentsID,
-                                  UserID: l2[0].UserID,
-                                  Flag: l2[0].Flag
-                              });
-                            }).catch(function(err) {
-                              console.log('Notifications create ' + err);
-                              res.status(401).end();
-                            });
-                            if(l2[0].Parents != null){
-                   Comments.findAll({
-                              where: {
-                                  CommentsID: l2[0].Parents
-                              }
-                            }).then(function(l3) {
-                                     Notifications.create({
-                                           //CommentsID: rows[rows.length - 1].CommentsID,
-                                           CommentsID: l3[0].CommentsID,
-                                           UserID: l3[0].UserID,
-                                           Flag: l3[0].Flag
-                                       });
-                                     }).catch(function(err) {
-                                       console.log('Notifications create ' + err);
-                                       res.status(401).end();
-                                     });
-
-
-
-}
-}
           }
        })
  //------------------------------------------------------------------------------------------
