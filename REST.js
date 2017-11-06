@@ -5914,7 +5914,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
             TargetID: req.body.TargetID,
-            CommentTarget: req.body.CommentTarget,
             AssignmentInstanceID: req.body.AssignmentInstanceID,
             Type: req.body.Type,
             CommentsText: req.body.CommentsText,
@@ -5927,7 +5926,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Viewed: 0,
             Time: req.body.Time,
             Complete: req.body.Complete,
-            Edited: 1
+            CommentTarget: req.body.CommentTarget,
+            OriginTaskInstanceID: req.body.OriginTaskInstanceID,
 
         }).then(function (result) {
             res.status(200).end();
@@ -5974,21 +5974,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 HideType: rows[0].HideType,
                 Edited: rows[0].Edited,
                 Time: rows[0].Time,
-                Complete: rows[0].Complete
+                Complete: rows[0].Complete,
+                OriginTaskInstanceID: rows[0].OriginTaskInstanceID,
             });
             console.log("/comments/edit : Comments archived");
         }).catch(function (err) {
             console.log('/comments/edit (CommentsArchive): ' + err);
             res.status(401).end();
         });
-    });
-    //-------------------------------------------------------------------------
-    router.post('/comments/removeFlag', function (req, res) {
 
-        Comments.create({
-            CommentsID: req.body.CommentsID,
-            TargetID: req.body.TargetID,
-            AssignmentInstanceID: req.body.AssignmentInstanceID,
+
+        Comments.update({
             Type: req.body.Type,
             CommentsText: req.body.CommentsText,
             Rating: req.body.Rating,
@@ -5998,7 +5994,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Parents: req.body.Parents,
             Time: req.body.Time,
             Complete: req.body.Complete,
-            Edited: 1
+            Edited: 1,
 
         }, {
             where: {
@@ -6181,6 +6177,29 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 CommentTarget: req.params.Target,
                 TargetID: req.params.TargetID,
                 Status: 'submitted',
+                Type: 'comment',
+                Delete: null
+            }
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'NumberComments': rows.length
+            });
+        }).catch(function (err) {
+            console.log('/comments/countOfComments/' + err.message);
+            res.status(401).end();
+        });
+    });
+    //-------------------------------------------------------------------------
+    router.get('/comments/countOfFlags/:Target/id/:TargetID', function (req, res) {
+        console.log('/comments/countOfFlags/:Target/id/:TargetID was called');
+        Comments.findAll({
+            where: {
+                CommentTarget: req.params.Target,
+                TargetID: req.params.TargetID,
+                Status: 'submitted',
+                Type: 'flag',
                 Delete: null
             }
         }).then(function (rows) {
@@ -6264,6 +6283,39 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
     //-------------------------------------------------------------------------
+    router.get('/comments/aveRating/comment/:Target/id/:TargetID', async function (req, res) {
+        console.log('/comments/aveRating/comment/:Target/id/:TargetID was called');
+        var total = 0.0;
+        var c = await Comments.findAll({
+            where: {
+                CommentTarget: req.params.Target,
+                TargetID: req.params.TargetID,
+                Rating: {
+                    $not: null
+                },
+                Delete: null,
+                Hide: 0,
+                Status: 'submitted'
+            }
+        });
+        /*Promise.map(c, function(t){
+            total += t.Rating;
+            console.log(t.Rating)*/
+
+        for (let i of c) {
+            total += i.Rating;
+        }
+
+        var ave = total / c.length;
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'NumRatings': c.length,
+            'TotalRatings': total,
+            'AveRating': ave
+        });
+    });
+    //-------------------------------------------------------------------------
     router.get('/comments/aveRating/comment/:userID', function (req, res) {
         console.log('/comments/aveRating/comment/ was called');
         var total = 0.0;
@@ -6341,20 +6393,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(401).end();
         });
 
-        if (children) {
-            for (var j = 0; j < children.length; j++) {
-                for (var i = 0; i < parents.length; i++) {
-                    if (parents[i].CommentsID == children[j].Parents) {
-                        if (i < parents.length) {
-                            i++;
-                            var m = i;
-                        }
-                        while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
-                            i++;
-                        }
-                        parents.splice(i, 0, children[j]);
-                        break;
+        for (var j = 0; j < children.length; j++) {
+            for (var i = 0; i < parents.length; i++) {
+                if (parents[i].CommentsID == children[j].Parents) {
+                    if (i < parents.length) {
+                        i++;
+                        var m = i;
                     }
+                    while ((parents[i] != null) && (i < parents.length) && ((parents[i].Parents == children[j].Parents) || (parents[i].Parents == parents[m].CommentsID))) {
+                        i++;
+                    }
+                    parents.splice(i, 0, children[j]);
+                    break;
                 }
             }
         }
@@ -6409,6 +6459,25 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
     //-------------------------------------------------------------------------
+    router.get('/comments/TaskIDData/:WorkflowInstanceID', function (req, res) {
+        console.log('/comments/TaskIDData/:WorkflowInstanceID was called');
+        TaskInstance.findOne({
+            where: {
+                WorkflowInstanceID: req.params.WorkflowInstanceID,
+            },
+            attributes: ['AssignmentInstanceID', 'TaskInstanceID']
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'TaskInstanceID': rows.TaskInstanceID,
+            });
+        }).catch(function (err) {
+            console.log('/comments/TaskIDData/:WorkflowInstanceID ' + err.message);
+            res.status(401).end();
+        });
+    });
+    //-------------------------------------------------------------------------
     router.get('/comments/userID/:UserID', function (req, res) {
         console.log('/comments/userID/:UserID');
         return Comments.findAll({
@@ -6458,7 +6527,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 CourseID: Section_Result.CourseID
             },
             attributes: ['Name']
-        }).catch(function (err) {});
+        }).catch(function (err) {
+            console.log('comments/courseData/:assignmentInstanceID Course' + err.message);
+            res.status(401).end();
+        });
+
         var Semester_Result = await Semester.findOne({
             where: {
                 SemesterID: Section_Result.SemesterID
@@ -6543,8 +6616,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(401).end();
         });
     });
-
-
     //------------------------Contact APIs-------------------------------------
     router.get('/contact/add/:UserID', function (req, res) {
         console.log('/contact/add : was called');

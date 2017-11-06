@@ -909,37 +909,65 @@ class Allocator {
     }
 
 
-    async reallocate_user_to_workflow(old_ti, new_u_id, wi_id, is_extra_credit /*, new_status*/ ) {
+    // async reallocate_user_to_workflow(old_ti, new_u_id, wi_id, is_extra_credit /*, new_status*/ ) {
+    //     var x = this;
+    //     var wi = await WorkflowInstance.find({
+    //         where: {
+    //             WorkflowInstanceID: wi_id
+    //         }
+    //     });
+
+    //     await email.sendNow(old_ti.UserID, 'remove_reallocated');
+    //     await email.sendNow(new_u_id, 'new_reallocated');
+
+    //     await Promise.mapSeries(JSON.parse(wi.TaskCollection), async function (ti_id) {
+    //         var ti = await TaskInstance.find({
+    //             where: {
+    //                 TaskInstanceID: ti_id
+    //             }
+    //         });
+
+    //         if (ti.UserID === old_ti.UserID) {
+    //             logger.log('debug', {
+    //                 wi_id: wi_id,
+    //                 old_user: old_ti.UserID,
+    //                 old_ti: old_ti.TaskInstanceID,
+    //                 ti: ti.TaskInstanceID,
+    //                 ti_user: ti.UserID,
+    //                 new_u_id: new_u_id
+    //             });
+    //             await x.reallocate_user_to_task(ti, new_u_id, is_extra_credit /*, new_status*/ );
+    //         }
+    //     });
+
+    // }
+
+
+    async reallocate_user_to_workflow(ti, new_u_id, is_extra_credit /*, new_status*/ ) {
         var x = this;
         var wi = await WorkflowInstance.find({
             where: {
-                WorkflowInstanceID: wi_id
+                WorkflowInstanceID: ti.WorkflowInstanceID
             }
         });
 
-        await email.sendNow(old_ti.UserID, 'remove_reallocated');
-        await email.sendNow(new_u_id, 'new_reallocated');
+        // await email.sendNow(old_ti.UserID, 'remove_reallocated');
+        // await email.sendNow(new_u_id, 'new_reallocated');
 
-        await Promise.mapSeries(JSON.parse(wi.TaskCollection), async function (ti_id) {
-            var ti = await TaskInstance.find({
-                where: {
-                    TaskInstanceID: ti_id
+        var tis = await TaskInstance.findAll({
+            where:{
+                WorkflowInstanceID: ti.WorkflowInstanceID,
+                Status: {
+                    $notLike: '%"complete"%',
                 }
-            });
-
-            if (ti.UserID === old_ti.UserID) {
-                logger.log('debug', {
-                    wi_id: wi_id,
-                    old_user: old_ti.UserID,
-                    old_ti: old_ti.TaskInstanceID,
-                    ti: ti.TaskInstanceID,
-                    ti_user: ti.UserID,
-                    new_u_id: new_u_id
-                });
-                await x.reallocate_user_to_task(ti, new_u_id, is_extra_credit /*, new_status*/ );
             }
         });
 
+        await Promise.mapSeries(tis, async (new_ti) => {
+            if(new_ti.UserID === ti.UserID){
+                await x.reallocate_user_to_task(new_ti, new_u_id, is_extra_credit);
+            }
+        });
     }
 
 
@@ -970,60 +998,7 @@ class Allocator {
     //Done: The algorithm would always reallocate the first user from the list obtained. Needs to update the list of the users so
     //the same user won't be reallocated second time.
 
-    async reallocate(ti, u_ids, is_extra_credit /*, new_status*/ ) { //reallocates the user with a new user. Knock the old user out of all Workflows
-        logger.log('debug', {
-            call: 'reallocate'
-        });
-        if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
-            is_extra_credit = true;
-        }
-        logger.log('info', 'reallocate new user to a given task instance', {
-            task_instance: ti.toJSON(),
-            user_ids: u_ids,
-            is_extra_credit: is_extra_credit,
-        });
-
-        var ti_id = ti.TaskInstanceID;
-        var x = this;
-
-        var lateUsers = await x.getLateUser(ti_id);
-        var vol_u_ids = await x.get_ai_volunteers(ti.AssignmentInstanceID) || [];
-        var wi_ids = await x.getWorkflowInstanceIDs(ti.AssignmentInstanceID, ti.UserID);
-
-        await x.inactivate_section_user(ti.AssignmentInstance.Section.SectionID, ti.UserID);
-        await x.delete_volunteer(ti.AssignmentInstance.Section.SectionID, ti.UserID);
-
-        // console.log('vol:' + volunteers)
-        vol_u_ids = vol_u_ids || [];
-        await Promise.mapSeries(wi_ids, async function (wi_id) {
-
-            var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
-            var new_u_id = await x.find_new_user(u_ids, vol_u_ids, avoid_u_ids);
-
-            logger.log('debug', 'update assignment instance volunteers', {
-                assignment_instance_id: ti.AssignmentInstanceID,
-                volunteer_user_ids: vol_u_ids,
-            });
-
-            let res = await AssignmentInstance.update({
-                Volunteers: vol_u_ids
-            }, {
-                where: {
-                    AssignmentInstanceID: ti.AssignmentInstanceID
-                }
-            });
-            
-            logger.log('info', 'assignment instance volunteers updated', {
-                res: res
-            });
-            //await x.reallocate_user_to_task(ti, new_u_id, is_extra_credit/*, new_status*/);
-            await x.reallocate_user_to_workflow(ti, new_u_id, wi_id, is_extra_credit /*, new_status*/ );
-
-        });
-    }
-
-
-    // reallocate(ti, u_ids, is_extra_credit) {
+    // async reallocate(ti, u_ids, is_extra_credit /*, new_status*/ ) { //reallocates the user with a new user. Knock the old user out of all Workflows
     //     logger.log('debug', {
     //         call: 'reallocate'
     //     });
@@ -1038,66 +1013,121 @@ class Allocator {
 
     //     var ti_id = ti.TaskInstanceID;
     //     var x = this;
-    //     // var task = ti_id //task instance needs to be given
-    //     // var constraint
-    //     // var lateUser
-    //     // var avoid_users = []
-    //     // var users = userList // users need to be given
-    //     //console.log(users)
 
-    //     /*Promise.all([]).spread(function(lateUsers, volunteers) {
-    //      lateUser = done[0]
-    //      //console.log(lateUser)
-    //      })*/
-    //     // return Promise.all([x.getLateUser(ti_id), x.getVolunteers(ti), x.getTaskActivityID(ti_id), x.getWorkflowInstanceID(ti_id)]).spread(function (lateUsers, vol_u_ids, ta_ids, workflowInstanceIDs) {
-    //     return Promise.all([x.getLateUser(ti_id), x.get_ai_volunteers(ti.AssignmentInstanceID), x.getWorkflowInstanceID(ti_id)]).spread(function (lateUsers, vol_u_ids, wi_ids) {
-    //         // console.log('vol:' + volunteers)
-    //         vol_u_ids = vol_u_ids || [];
-    //         // return Promise.map(taskActivityIDs, function (ta_id) {
-    //         //console.log(ta_id)
-    //         return Promise.map(wi_ids, function (wi_id) {
-    //             //console.log(wi_id)
-    //             // return Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUsers[0], wi_id, ti_id)]).spread(function (avoid_u_ids, TaskInstances) {
-    //             return Promise.all([x.getUsersFromWorkflowInstance(wi_id)]).spread(function (avoid_u_ids) {
-    //                 // console.log("avoidUsers", avoidUsers)
-    //                 // avoidUsers.map(function(user) {
-    //                 //     avoid_users.push(user)
-    //                 // })
-    //                 return x.find_new_user(u_ids, vol_u_ids, avoid_u_ids).then(function (new_u_id) {
-    //                     // return Promise.map(TaskInstances, function (task) {
-    //                     /*WorkflowInstance.update({
-    //                      Volunteers: volunteers
-    //                      }, {
-    //                      where: {
-    //                      WorkflowInstanceID: ti.WorkflowInstanceID
-    //                      }
-    //                      })*/
-    //                     logger.log('debug', 'update assignment instance volunteers', {
-    //                         assignment_instance_id: ti.AssignmentInstanceID,
-    //                         volunteer_user_ids: vol_u_ids,
-    //                     });
-    //                     return AssignmentInstance.update({
-    //                         Volunteers: vol_u_ids
-    //                     }, {
-    //                         where: {
-    //                             AssignmentInstanceID: ti.AssignmentInstanceID
-    //                         }
-    //                     }).then(function (res) {
-    //                         logger.log('info', 'assignment instance volunteers updated', {
-    //                             res: res
-    //                         });
-    //                         return x.reallocate_user_to_task(ti, new_u_id, is_extra_credit);
-    //                     }).catch(function (err) {
-    //                         logger.log('error', 'assignment instance volunteers update failed', err);
-    //                         return err;
-    //                     });
-    //                     // })
-    //                 });
-    //             });
+    //     var lateUsers = await x.getLateUser(ti_id);
+    //     var vol_u_ids = await x.get_ai_volunteers(ti.AssignmentInstanceID) || [];
+    //     var wi_ids = await x.getWorkflowInstanceIDs(ti.AssignmentInstanceID, ti.UserID);
+
+    //     await x.inactivate_section_user(ti.AssignmentInstance.Section.SectionID, ti.UserID);
+    //     await x.delete_volunteer(ti.AssignmentInstance.Section.SectionID, ti.UserID);
+
+    //     // console.log('vol:' + volunteers)
+    //     vol_u_ids = vol_u_ids || [];
+    //     await Promise.mapSeries(wi_ids, async function (wi_id) {
+
+    //         var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
+    //         var new_u_id = await x.find_new_user(u_ids, vol_u_ids, avoid_u_ids);
+
+    //         logger.log('debug', 'update assignment instance volunteers', {
+    //             assignment_instance_id: ti.AssignmentInstanceID,
+    //             volunteer_user_ids: vol_u_ids,
     //         });
-    //         // })
+
+    //         let res = await AssignmentInstance.update({
+    //             Volunteers: vol_u_ids
+    //         }, {
+    //             where: {
+    //                 AssignmentInstanceID: ti.AssignmentInstanceID
+    //             }
+    //         });
+            
+    //         logger.log('info', 'assignment instance volunteers updated', {
+    //             res: res
+    //         });
+    //         //await x.reallocate_user_to_task(ti, new_u_id, is_extra_credit/*, new_status*/);
+    //         await x.reallocate_user_to_workflow(ti, new_u_id, wi_id, is_extra_credit /*, new_status*/ );
+
     //     });
     // }
+
+
+    reallocate(ti, u_ids, is_extra_credit) {
+        logger.log('debug', {
+            call: 'reallocate'
+        });
+        if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
+            is_extra_credit = true;
+        }
+        logger.log('info', 'reallocate new user to a given task instance', {
+            task_instance: ti.toJSON(),
+            user_ids: u_ids,
+            is_extra_credit: is_extra_credit,
+        });
+
+        var ti_id = ti.TaskInstanceID;
+        var x = this;
+        // var task = ti_id //task instance needs to be given
+        // var constraint
+        // var lateUser
+        // var avoid_users = []
+        // var users = userList // users need to be given
+        //console.log(users)
+
+        /*Promise.all([]).spread(function(lateUsers, volunteers) {
+         lateUser = done[0]
+         //console.log(lateUser)
+         })*/
+        // return Promise.all([x.getLateUser(ti_id), x.getVolunteers(ti), x.getTaskActivityID(ti_id), x.getWorkflowInstanceID(ti_id)]).spread(function (lateUsers, vol_u_ids, ta_ids, workflowInstanceIDs) {
+        return Promise.all([x.getLateUser(ti_id), x.get_ai_volunteers(ti.AssignmentInstanceID), x.getWorkflowInstanceID(ti_id)]).spread(function (lateUsers, vol_u_ids, wi_ids) {
+            // console.log('vol:' + volunteers)
+            vol_u_ids = vol_u_ids || [];
+            // return Promise.map(taskActivityIDs, function (ta_id) {
+            //console.log(ta_id)
+            return Promise.map(wi_ids, function (wi_id) {
+                //console.log(wi_id)
+                // return Promise.all([x.getUsersFromWorkflowInstance(wi_id), x.getTaskInstancesWhereUserAlloc(lateUsers[0], wi_id, ti_id)]).spread(function (avoid_u_ids, TaskInstances) {
+                return Promise.all([x.getUsersFromWorkflowInstance(wi_id)]).spread(function (avoid_u_ids) {
+                    // console.log("avoidUsers", avoidUsers)
+                    // avoidUsers.map(function(user) {
+                    //     avoid_users.push(user)
+                    // })
+                    return x.find_new_user(u_ids, vol_u_ids, avoid_u_ids).then(function (new_u_id) {
+                        // return Promise.map(TaskInstances, function (task) {
+                        /*WorkflowInstance.update({
+                         Volunteers: volunteers
+                         }, {
+                         where: {
+                         WorkflowInstanceID: ti.WorkflowInstanceID
+                         }
+                         })*/
+                        logger.log('debug', 'update assignment instance volunteers', {
+                            assignment_instance_id: ti.AssignmentInstanceID,
+                            volunteer_user_ids: vol_u_ids,
+                        });
+                        return AssignmentInstance.update({
+                            Volunteers: vol_u_ids
+                        }, {
+                            where: {
+                                AssignmentInstanceID: ti.AssignmentInstanceID
+                            }
+                        }).then(function (res) {
+                            logger.log('info', 'assignment instance volunteers updated', {
+                                res: res
+                            });
+                            //return x.reallocate_user_to_task(ti, new_u_id, is_extra_credit);
+
+                            return x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
+                        }).catch(function (err) {
+                            logger.log('error', 'assignment instance volunteers update failed', err);
+                            return err;
+                        });
+                        // })
+                    });
+                });
+            });
+            // })
+        });
+    }
 
 
     //finds the students from the same section

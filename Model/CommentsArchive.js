@@ -7,12 +7,6 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true,
             primaryKey: true,
         },
-        CommentsID: {
-            //Unique identifier for the user
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CommentsID',
-            allowNull: true,
-        },
         UserID: {
             //Unique identifier for the user
             type: DataTypes.INTEGER.UNSIGNED,
@@ -20,8 +14,8 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false
         },
         CommentTarget:{
-            type: DataTypes.STRING(255),
-            field: 'Hide',
+            type: DataTypes.STRING(40),
+            field: 'CommentTarget',
             allowNull: true
         },
         TargetID: {
@@ -37,18 +31,13 @@ module.exports = function(sequelize, DataTypes) {
             field: 'AssignmentInstanceID',
             allowNull: true
         },
-        TaskInstanceID: {
-            //Unique identifier for assignment instance
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskInstanceID',
-            allowNull: true
-        },
-        Type: {
-            type: DataTypes.STRING,
-            field: 'Type',
-            allowNull: true
-        },
+        // TaskInstanceID: {
+        //     //Unique identifier for assignment instance
+        //     //Foreign Key
+        //     type: DataTypes.INTEGER.UNSIGNED,
+        //     field: 'TaskInstanceID',
+        //     allowNull: true
+        // },
         CommentsText: {
             type: DataTypes.STRING,
             field: 'CommentsText',
@@ -64,16 +53,26 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Flag',
             allowNull: true
         },
+        Type: {
+            type: DataTypes.STRING(40),
+            field: 'Type',
+            allowNull: true
+        }, 
         Status: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING(40),
             field: 'Status',
             allowNull: true
         },
         Label: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING(40),
             field: 'Label',
             allowNull: true
         },
+        // Viewed:{
+        //     type: DataTypes.INTEGER.UNSIGNED,
+        //     field: 'Viewed',
+        //     allowNull: true
+        // },
         ReplyLevel: {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'ReplyLevel',
@@ -89,6 +88,21 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Delete',
             allowNull: true
         },
+        Hide: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Hide',
+            allowNull: true
+        },
+        HideReason:{
+            type: DataTypes.STRING(255),
+            field: 'HideReason',
+            allowNull: true
+        },
+        HideType:{
+            type: DataTypes.STRING(40),
+            field: 'HideType',
+            allowNull: true
+        },
         Time: {
             // date and time after which user will be allowed to log in
             type: DataTypes.DATE,
@@ -96,8 +110,18 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         Complete : {
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.BOOLEAN,
             field: 'Complete',
+            allowNull: true
+        },
+        Edited:{
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'Edited',
+            allowNull: true
+        },
+        OriginTaskInstanceID:{
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'OriginalTaskInstanceID',
             allowNull: true
         }
 
