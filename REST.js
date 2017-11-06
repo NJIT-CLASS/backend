@@ -1336,12 +1336,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
         logger.log('warn', 'only info');
         logger.log('warn', 'only info', ([1, 2, {
-                k: 'v'
-            },
-            ['hi'],
-            function (test) {
-                console.log(test);
-            }
+            k: 'v'
+        },
+        ['hi'],
+        function(test) {
+            console.log(test);
+        }
         ]).toString());
 
         // var manager = new Manager()
@@ -1388,38 +1388,35 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+    router.post('/files/upload/:type?', function (req, res) {
+        console.log('File upload:', req.body);
+        let successfulFiles = [];
+        let unsuccessfulFiles = [];
 
-    // Upload files for a task
-    // router.post('/upload/files/:userId', storage.array('files'), function (req, res) {
-    router.post('/upload/files', storage.array('files'), function (req, res) {
-        logger.log('info', 'post: /upload/files, files uploaded to file system', {
-            req_body: req.body,
-            req_params: req.params,
-            // req_files: req.files,
-        });
-        if (req.body.userId == null) {
-            logger.log('error', 'userId is required but not specified');
-            return res.status(400).end();
-        }
-        if (req.body.taskInstanceId == null) {
-            logger.log('error', 'taskInstanceId is required but not specified');
-            return res.status(400).end();
-        }
-        // Add file references (info)
-        return new Util().addFileRefs(req.files, req.body.userId).then(function (file_refs) {
-
-            return Promise.all(file_refs.map(function (it) {
-                return it.FileID;
-            })).then(function (file_ids) {
-                logger.log('info', 'new task file ids', file_ids);
-
-                TaskInstance.find({
+        Promise.mapSeries(req.body.files, (file) => {
+            return FileReference.create({
+                UserID: req.body.userId,
+                Info: file,
+                LastUpdated: new Date(),
+            }).then(function (result) {
+                successfulFiles.push(file);
+                return {File: file, FileID: result.FileID};
+            }).catch(function (err) {
+                unsuccessfulFiles.push(file);
+                return { File: file, Error: err };
+            });
+        }).then(results => {
+            console.log(results);
+            let newFileIDs = results.map(instanceInfo => instanceInfo.FileID);
+            switch (req.params.type) {
+            case 'task':
+                return TaskInstance.find({
                     where: {
                         TaskInstanceID: req.body.taskInstanceId
                     }
                 }).then(ti => {
                     let newFilesArray = JSON.parse(ti.Files) || [];
-                    newFilesArray = newFilesArray.concat(file_ids);
+                    newFilesArray = newFilesArray.concat(newFileIDs);
 
                     // Update task instance with the new file references
                     return TaskInstance.update({
@@ -1433,40 +1430,20 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             res: done
                         });
                         // Respond wtih file info
-                        res.json(file_refs).end();
-                        return done;
+                        return res.status(200).json({
+                            SuccessfulFiles: successfulFiles,
+                            UnsuccessfulFiles: unsuccessfulFiles
+                        });
                     });
-                });
-
-            });
-
-        });
-    });
-
-    // Upload a user profile pictures //TODO: we may want to limit this to just one profile picture upload and also allow only (PNG, JPG, etc) picture formatted files
-    // router.post('/upload/profile-picture/:userId', multer({dest: './uploads/'}).single('profilePicture'), function(req, res) {
-    router.post('/upload/profile-picture', storage.array('files'), function (req, res) {
-        // router.post('/upload/profile-picture/:userId', storage.array('files'), function (req, res) {
-        logger.log('info', 'post: /upload/profile-picture, profile pictures uploaded to file system', {
-            req_body: req.body,
-            req_params: req.params,
-            // req_files: req.files,
-        });
-        if (req.body.userId == null) {
-            logger.log('info', 'userId is required but not specified');
-            return res.status(400).end();
-            // req.body.userId = 2
-        }
-        // Add file reference (info)
-        return new Util().addFileRefs(req.files, req.body.userId).then(function (file_refs) {
-            return Promise.all(file_refs.map(function (it) {
-                return it.FileID;
-            })).then(function (file_ids) {
-                logger.log('info', 'new profile picture file ids', file_ids);
-
-                // update user profile picture field with file reference
-                return UserContact.update({
-                    ProfilePicture: file_ids
+                })
+                    .catch(er => {
+                        logger.log('error', 'file task info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            case 'profile-picture':
+                UserContact.update({
+                    ProfilePicture: newFileIDs[0]
                 }, {
                     where: {
                         UserID: req.body.userId
@@ -1476,61 +1453,169 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         res: done
                     });
                     // respond with file info
-                    res.json(file_refs).end();
-                    return done;
+                    return res.status(200).json({
+                        SuccessfulFiles: successfulFiles,
+                        UnsuccessfulFiles: unsuccessfulFiles
+                    });
+                })
+                    .catch(er => {
+                        logger.log('error', 'profile-picture info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            default:
+                res.status(200).json({
+                    FileID: result.FileID
                 });
-            });
+                break;
+            }
         });
+
     });
 
 
-    // download a file using file reference //TODO: we may want to add a parameter that controls the response type (direct download or show up (display) on the browser)
-    router.get('/download/file/:fileId', function (req, res) {
-        // router.post('/download/file/:fileId', function (req, res) {
-        // router.get('/download/file', function (req, res) {
-        logger.log('info', 'post: /download/file', {
-            req_body: req.body,
-            req_params: req.params
-        });
-        var file_id = req.body.fileId || req.params.fileId;
+    router.post('/file/upload/:type?', function (req, res) {
+        console.log('File upload:', req.body);
+        FileReference.create({
+            UserID: req.body.userId,
+            Info: req.body.fileInfo,
+            LastUpdated: new Date(),
+        }).then(function (result) {
 
-        if (file_id == null) {
-            logger.log('info', 'file_id is required but not specified');
-            return res.status(400).end();
-        }
-        return FileReference.find({
-            where: {
-                FileID: file_id
-            }
-        }).then(function (file_ref) {
-            if (!file_ref) {
-                logger.log('error', 'file reference not found', {
-                    file_id: file_id
+            switch (req.params.type) {
+            case 'task':
+                TaskInstance.find({
+                    where: {
+                        TaskInstanceID: req.body.taskInstanceId
+                    }
+                }).then(ti => {
+                    let newFilesArray = JSON.parse(ti.Files) || [];
+                    newFilesArray = newFilesArray.concat([result.FileID]);
+
+                    // Update task instance with the new file references
+                    return TaskInstance.update({
+                        Files: newFilesArray
+                    }, {
+                        where: {
+                            TaskInstanceID: req.body.taskInstanceId
+                        }
+                    }).then(done => {
+                        logger.log('info', 'task updated with new files', {
+                            res: done
+                        });
+                        // Respond wtih file info
+                        res.status(200).json({
+                            FileID: result.FileID
+                        });
+                    });
+                })
+                    .catch(er => {
+                        logger.log('error', 'file task info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            case 'profile-picture':
+                UserContact.update({
+                    ProfilePicture: [result.FileID]
+                }, {
+                    where: {
+                        UserID: req.body.userId
+                    }
+                }).then(function (done) {
+                    logger.log('info', 'user updated with new profile pictures info', {
+                        res: done
+                    });
+                    // respond with file info
+                    res.status(200).json({
+                        FileID: result.FileID
+                    });
+                    return done;
+                })
+                    .catch(er => {
+                        logger.log('error', 'profile-picture info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            default:
+                res.status(200).json({
+                    FileID: result.FileID
                 });
-                return res.status(400).end();
+                break;
             }
-            logger.log('info', 'file reference', file_ref.toJSON());
-            file_ref.Info = JSON.parse(file_ref.Info);
-            let contDisp = file_ref.Info.mimetype.match('image') ? 'inline' : contentDisposition(file_ref.Info.originalname);
-            var content_headers = {
-                'Content-Type': file_ref.Info.mimetype,
-                'Content-Length': file_ref.Info.size,
-                'Content-Disposition': contDisp,
-            };
-            logger.log('debug', 'response content file headers', content_headers);
-            res.writeHead(200, content_headers);
-            logger.log('info', 'Sending file to client');
-            const readStream = fs.createReadStream(file_ref.Info.path);
-            readStream.on('open', () => {
-                readStream.pipe(res);
-            });
-            readStream.on('error', (err) => {
-                logger.log('error', 'valid reference but file not found', {
-                    file_id: file_id
-                });
+
+        })
+            .catch(function (err) {
+                logger.log('error', 'file info not uploaded successfully');
                 res.status(400).end();
             });
-        });
+    });
+
+    router.get('/file/download/:fileId', function (req, res) {
+        FileReference.findOne({
+            where: {
+                FileID: req.params.fileId
+            }
+        }).then(function (result) {
+            res.status(200).json(result);
+        })
+            .catch(function (err) {
+                logger.log('error', 'file info not downloaded successfully');
+                res.status(400).json(result);
+            });
+    });
+
+    router.delete('/file/delete/:fileId', async function (req, res) {
+        let taskId = req.body.taskId || '';
+        var userId = req.body.userId;
+        if(userId === null || userId === ''){
+            logger.log('error', '/file/delete User Not Authorized');
+            return res.status(401).end();
+        }
+        logger.log('info', 'deleting file info from database with FileID: ',req.params.fileId, req.body);
+        FileReference.findOne({
+            where: {
+                FileID: req.params.fileId,
+                UserID: userId
+            }
+        }).then(async function (fileResult) {
+            fileResult.destroy();
+
+            if(taskId !== ''){
+                let result = await TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskId
+                    },
+                    attributes: ['Files']
+                }).catch(err => {
+                    logger.log('error', 'could not get files', err, req.params);
+                    return res.status(400).end();
+                });
+
+                let fileArray = result.Files;
+
+                fileArray = JSON.parse(fileArray);
+                fileArray.splice(fileArray.indexOf(req.body.fileId), 1);
+
+
+                await TaskInstance.update({
+                    Files: fileArray
+                },
+                {
+                    where: {
+                        TaskInstanceID: taskId
+                    }
+                });
+
+                return res.json({
+                    DeletedID: req.body.fileId
+                });
+            }
+            
+        })
+            .catch(function (err) {
+                logger.log('error', 'file info not deleted successfully', err);
+                res.status(400).end();
+            });
     });
 
 
@@ -1549,23 +1634,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID'],
             include: [{
-                    model: Assignment,
-                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                    /*include: [{
+                model: Assignment,
+                // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                /*include: [{
                      model: Section,
                      }],*/
-                },
-                {
-                    model: Section,
-                    include: [{
-                        model: Course,
-                        // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                        /*include: [{
+            },
+            {
+                model: Section,
+                include: [{
+                    model: Course,
+                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                    /*include: [{
                          model: Section,
                          attributes: ["SectionID"],
                          }],*/
-                    }, ],
-                },
+                }, ],
+            },
                 /*{
                  model: AssignmentGrade,
                  }*/
@@ -1964,26 +2049,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     if (attempts >= 5) {
                         console.log('/login: setting new timeout for ' + user.Email);
                         switch (attempts) {
-                            case 5:
-                                minutes = 1;
-                                break;
-                            case 6:
-                                minutes = 2;
-                                break;
-                            case 7:
-                                minutes = 5;
-                                break;
-                            case 8:
-                                minutes = 10;
-                                break;
-                            case 9:
-                                minutes = 15;
-                                break;
-                            case 10:
-                                minutes = 30;
-                                break;
-                            default:
-                                minutes = 60;
+                        case 5:
+                            minutes = 1;
+                            break;
+                        case 6:
+                            minutes = 2;
+                            break;
+                        case 7:
+                            minutes = 5;
+                            break;
+                        case 8:
+                            minutes = 10;
+                            break;
+                        case 9:
+                            minutes = 15;
+                            break;
+                        case 10:
+                            minutes = 30;
+                            break;
+                        default:
+                            minutes = 60;
                         }
                         let timeout = current_timestamp;
                         timeout.setMinutes(timeout.getMinutes() + minutes);
@@ -2088,13 +2173,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
             include: [{
-                    model: UserLogin,
-                    attributes: ['Email']
-                },
-                {
-                    model: UserContact,
-                    attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
-                }
+                model: UserLogin,
+                attributes: ['Email']
+            },
+            {
+                model: UserContact,
+                attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
+            }
             ]
         }).then(function (user) {
             res.json({
@@ -2419,49 +2504,49 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 
-                    .then(function () {
+                    .then(function() {
                         User.create({
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
                             Instructor: req.body.instructor,
                             Admin: req.body.admin
-                        }).catch(function (err) {
+                        }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                 .then(function () {
                                     res.status(500).end();
                                 });
-                        }).then(async function (user) {
+                        }).then(async function(user) {
                             UserContact.create({
                                 UserID: user.UserID,
                                 FirstName: req.body.firstname,
                                 LastName: req.body.lastname,
                                 Email: req.body.email,
                                 Phone: '(XXX) XXX-XXXX'
-                            }).catch(function (err) {
+                            }).catch(function(err) {
                                 console.log(err);
                                 sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                     .then(function () {
                                         res.status(500).end();
                                     });
-                            }).then(async function (userCon) {
+                            }).then(async function(userCon) {
                                 console.log('trustpass', req.body.trustpassword);
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
                                     Password: await password.hash(req.body.password),
                                     Pending: req.body.trustpassword ? false : true
-                                }).catch(function (err) {
+                                }).catch(function(err) {
                                     console.log(err);
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function () {
+                                        .then(function() {
                                             res.status(500).end();
                                         });
-                                }).then(function (userLogin) {
+                                }).then(function(userLogin) {
                                     let email = new Email();
                                     email.sendNow(user.UserID, 'invite user', '[user defined]');
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function () {
+                                        .then(function() {
                                             res.json({
                                                 'Message': 'User has succesfully added'
                                             });
@@ -2884,6 +2969,21 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(401).end();
         });
 
+        function checkForDuplicateIDs(a) {
+            var seen = {};
+            var out = [];
+            var len = a.length;
+            var j = 0;
+            for (var i = 0; i < len; i++) {
+                var item = a[i];
+                if (seen[item.CourseID] !== 1) {
+                    seen[item.CourseID] = 1;
+                    out[j++] = item;
+                }
+            }
+            return out;
+        }
+
         await sections.forEach(function (section) {
             //console.log(section.Section);
             if (section.Section !== null) {
@@ -2892,8 +2992,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     'Number': section.Section.Course.Number,
                     'Name': section.Section.Course.Name
                 });
-
-                addedCourseIDs.push(section.Section.Course.CourseID);
             }
         });
 
@@ -2910,20 +3008,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         await createdCourses.forEach(function (course) {
 
-            if (!addedCourseIDs.includes(course.CourseID)) {
-                courses.push({
-                    'CourseID': course.CourseID,
-                    'Number': course.Number,
-                    'Name': course.Name
-                });
-            }
-        });
 
+            courses.push({
+                'CourseID': course.CourseID,
+                'Number': course.Number,
+                'Name': course.Name
+            });
+
+        });
 
         res.json({
             'Error': false,
             'Message': 'Success',
-            'Courses': courses
+            'Courses': checkForDuplicateIDs(courses)
         });
     });
     //-----------------------------------------------------------------------------------------------------
@@ -2940,10 +3037,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
 
         return UserLogin.findOne({
-                where: {
-                    Email: req.body.email
-                }
-            })
+            where: {
+                Email: req.body.email
+            }
+        })
             .then(async(user) => {
                 console.log('found user', user);
                 if (user == null) {
@@ -3312,14 +3409,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (e) {
             console.log('getUserID ' + e);
             UserContact.find({
-                    Email: req.params.email
+                Email: req.params.email
 
-                }).then(function (user) {
-                    res.json({
-                        'UserID': user.UserID
-                    });
-                })
-                .catch(function (e) {
+            }).then(function(user) {
+                res.json({
+                    'UserID': user.UserID
+                });
+            })
+                .catch(function(e) {
                     console.log('getUserID ' + e);
 
                     res.json({
@@ -3378,35 +3475,35 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             req_query: req.query
         });
         TaskInstance.find({
-                where: {
-                    TaskInstanceID: req.params.taskInstanceID
-                },
+            where: {
+                TaskInstanceID: req.params.taskInstanceID
+            },
+            include: [{
+                model: TaskActivity,
                 include: [{
-                    model: TaskActivity,
+                    model: Assignment,
+                    attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
+                }],
+                attributes: ['Type']
+            }, {
+                model: AssignmentInstance,
+                include: [{
+                    model: Section,
+                    attributes: ['Name', 'SectionID'],
                     include: [{
-                        model: Assignment,
-                        attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-                    }],
-                    attributes: ['Type']
-                }, {
-                    model: AssignmentInstance,
-                    include: [{
-                        model: Section,
-                        attributes: ['Name', 'SectionID'],
-                        include: [{
-                                model: Course,
-                                attributes: ['Name', 'Number']
-                            },
-                            {
-                                model: Semester,
-                                attributes: ['SemesterID', 'Name']
-                            }
-                        ]
-                    }]
-
+                        model: Course,
+                        attributes: ['Name', 'Number']
+                    },
+                    {
+                        model: Semester,
+                        attributes: ['SemesterID', 'Name']
+                    }
+                    ]
                 }]
-            })
-            .catch(function (err) {
+
+            }]
+        })
+            .catch(function(err) {
                 //Catch error and print into console.
                 console.log(err);
                 logger.log('error', '/taskInstanceTemplate/main/', {
@@ -4253,7 +4350,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var make = new Make();
 
         console.log('/getAssignToSection/submit/  Creating Assignment Instance...');
-
+        logger.log('info', 'Assing TO Section submit', req.body);
 
         //create assignment instance
         await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
@@ -4640,14 +4737,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     attributes: ['CourseID', 'Name', 'Number']
                 }]
             }]
-        }).then(function (assignments) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Assignments': assignments
+        }).then(function(assignments) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Assignments': assignments
 
-                });
-            }
+            });
+        }
 
         );
     });
@@ -4846,16 +4943,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Role: req.params.role
             },
             include: [{
-                    model: User,
-                    attributes: ['FirstName', 'LastName'],
-                    include: [{
-                        model: VolunteerPool
-                    }]
-                },
-                {
-                    model: UserLogin,
-                    attributes: ['Email']
-                }
+                model: User,
+                attributes: ['FirstName', 'LastName'],
+                include: [{
+                    model: VolunteerPool
+                }]
+            },
+            {
+                model: UserLogin,
+                attributes: ['Email']
+            }
             ],
             order: [
                 [User, 'LastName'],
@@ -4900,106 +4997,106 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         return sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
             .then(function () {
                 Promise.mapSeries(req.body.users, (userDetails) => {
-                        return UserLogin.find({
-                            where: {
-                                Email: userDetails.email
-                            },
-                            attributes: ['UserID']
-                        }).then(function (response) {
-                            if (response == null || response.UserID == null) {
-                                return sequelize.transaction(function (t) {
-                                        return User.create({
-                                            FirstName: userDetails.firstName,
-                                            LastName: userDetails.lastName,
-                                            Instructor: userDetails.role === 'Instructor'
+                    return UserLogin.find({
+                        where: {
+                            Email: userDetails.email
+                        },
+                        attributes: ['UserID']
+                    }).then(function(response) {
+                        if (response == null || response.UserID == null) {
+                            return sequelize.transaction(function(t) {
+                                return User.create({
+                                    FirstName: userDetails.firstName,
+                                    LastName: userDetails.lastName,
+                                    Instructor: userDetails.role === 'Instructor'
+                                }, {
+                                    transaction: t
+                                }).then(async function(user) {
+                                    let temp_pass = await password.generate();
+                                    return UserContact.create({
+                                        UserID: user.UserID,
+                                        FirstName: userDetails.firstName,
+                                        LastName: userDetails.lastName,
+                                        Email: userDetails.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
+                                        transaction: t
+                                    }).then(async function(userCon) {
+                                        return UserLogin.create({
+                                            UserID: user.UserID,
+                                            Email: userDetails.email,
+                                            Password: await password.hash(temp_pass)
                                         }, {
                                             transaction: t
-                                        }).then(async function (user) {
-                                            let temp_pass = await password.generate();
-                                            return UserContact.create({
-                                                UserID: user.UserID,
-                                                FirstName: userDetails.firstName,
-                                                LastName: userDetails.lastName,
-                                                Email: userDetails.email,
-                                                Phone: '(XXX) XXX-XXXX'
+                                        }).then(function(userLogin) {
+
+                                            return SectionUser.create({
+                                                SectionID: req.params.sectionid,
+                                                UserID: userLogin.UserID,
+                                                Active: userDetails.active,
+                                                Volunteer: userDetails.volunteer,
+                                                Role: userDetails.role
                                             }, {
                                                 transaction: t
-                                            }).then(async function (userCon) {
-                                                return UserLogin.create({
-                                                    UserID: user.UserID,
-                                                    Email: userDetails.email,
-                                                    Password: await password.hash(temp_pass)
-                                                }, {
-                                                    transaction: t
-                                                }).then(function (userLogin) {
-
-                                                    return SectionUser.create({
-                                                        SectionID: req.params.sectionid,
-                                                        UserID: userLogin.UserID,
-                                                        Active: userDetails.active,
-                                                        Volunteer: userDetails.volunteer,
-                                                        Role: userDetails.role
-                                                    }, {
-                                                        transaction: t
-                                                    }).then(function (sectionUser) {
-                                                        console.log('Creating user, inviting, and adding to section');
-                                                        logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                            req_body: userDetails
-                                                        });
-
-                                                        let email = new Email();
-                                                        email.sendNow(user.UserID, 'invite user', temp_pass);
-
-                                                        return sectionUser;
-
-                                                    });
+                                            }).then(function(sectionUser) {
+                                                console.log('Creating user, inviting, and adding to section');
+                                                logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                    req_body: userDetails
                                                 });
-                                            });
-                                        });
-                                    })
-                                    .catch((err) => {
-                                        console.log(err);
-                                        logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
-                                            body: userDetails,
-                                            err: err
 
+                                                let email = new Email();
+                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+
+                                                return sectionUser;
+
+                                            });
                                         });
                                     });
-
-                            } else {
-                                SectionUser.find({
-                                    where: {
-                                        SectionID: req.params.sectionid,
-                                        UserID: response.UserID
-                                    },
-                                    attributes: ['UserID']
-                                }).then(function (sectionUser) {
-                                    if (sectionUser == null || sectionUser.UserID == null) {
-                                        SectionUser.create({
-                                            SectionID: req.params.sectionid,
-                                            UserID: response.UserID,
-                                            Active: userDetails.active,
-                                            Volunteer: userDetails.volunteer,
-                                            Role: userDetails.role
-
-                                        }).then(function (result) {
-                                            console.log('User exists, adding to section');
-                                            logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
-                                                result: result
-                                            });
-                                            return result;
-                                        });
-                                    } else {
-                                        console.log('User already in section');
-                                        logger.log('info', '/sectionUsers/addMany', 'user already in system', {
-                                            result: sectionUser
-                                        });
-                                        return sectionUser;
-                                    }
                                 });
-                            }
-                        });
-                    })
+                            })
+                                .catch((err) => {
+                                    console.log(err);
+                                    logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
+                                        body: userDetails,
+                                        err: err
+
+                                    });
+                                });
+
+                        } else {
+                            SectionUser.find({
+                                where: {
+                                    SectionID: req.params.sectionid,
+                                    UserID: response.UserID
+                                },
+                                attributes: ['UserID']
+                            }).then(function(sectionUser) {
+                                if (sectionUser == null || sectionUser.UserID == null) {
+                                    SectionUser.create({
+                                        SectionID: req.params.sectionid,
+                                        UserID: response.UserID,
+                                        Active: userDetails.active,
+                                        Volunteer: userDetails.volunteer,
+                                        Role: userDetails.role
+
+                                    }).then(function(result) {
+                                        console.log('User exists, adding to section');
+                                        logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
+                                            result: result
+                                        });
+                                        return result;
+                                    });
+                                } else {
+                                    console.log('User already in section');
+                                    logger.log('info', '/sectionUsers/addMany', 'user already in system', {
+                                        result: sectionUser
+                                    });
+                                    return sectionUser;
+                                }
+                            });
+                        }
+                    });
+                })
                     .then((results) => {
                         console.log(results);
                         return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -5044,13 +5141,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     .then(function () {
                         return sequelize.transaction(function (t) {
                             return User.create({
-                                    FirstName: req.body.firstName,
-                                    LastName: req.body.lastName,
-                                    Instructor: req.body.role === 'Instructor'
-                                }, {
-                                    transaction: t
-                                })
-                                .catch(function (err) {
+                                FirstName: req.body.firstName,
+                                LastName: req.body.lastName,
+                                Instructor: req.body.role === 'Instructor'
+                            }, {
+                                transaction: t
+                            })
+                                .catch(function(err) {
                                     console.error(err);
                                     logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
                                         req_body: req.body,
@@ -5065,25 +5162,25 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     console.log(user.UserID);
                                     let temp_pass = await password.generate();
                                     return UserContact.create({
-                                            UserID: user.UserID,
-                                            FirstName: req.body.firstName,
-                                            LastName: req.body.lastName,
-                                            Email: req.body.email,
-                                            Phone: '(XXX) XXX-XXXX'
-                                        }, {
-                                            transaction: t
-                                        }).catch(function (err) {
-                                            console.error(err);
-                                            logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                req_body: req.body,
-                                                error: err
+                                        UserID: user.UserID,
+                                        FirstName: req.body.firstName,
+                                        LastName: req.body.lastName,
+                                        Email: req.body.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
+                                        transaction: t
+                                    }).catch(function(err) {
+                                        console.error(err);
+                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                            req_body: req.body,
+                                            error: err
+                                        });
+                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                            .then(function() {
+                                                res.status(500).end();
                                             });
-                                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                                .then(function () {
-                                                    res.status(500).end();
-                                                });
-                                        })
-                                        .then(async function (userCon) {
+                                    })
+                                        .then(async function(userCon) {
                                             return UserLogin.create({
                                                 UserID: user.UserID,
                                                 Email: req.body.email,
@@ -5127,9 +5224,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                         req_body: req.body
                                                     });
                                                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
-                                                            transaction: t
-                                                        })
-                                                        .then(function () {
+                                                        transaction: t
+                                                    })
+                                                        .then(function() {
                                                             res.json({
                                                                 success: true,
                                                                 message: 'new user'
@@ -5212,43 +5309,43 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.delete('/delete/user/:userID', (req, res) => {
         console.log('deleting user', req.params.userID);
 
-        return sequelize.transaction(function (t) {
-                return UserLogin.destroy({
+        return sequelize.transaction(function(t) {
+            return UserLogin.destroy({
+                where: {
+                    UserID: req.params.userID
+                }
+            }, {
+                transaction: t
+            })
+                .then((loginRowsDeleted) => {
+                    return UserContact.destroy({
                         where: {
                             UserID: req.params.userID
                         }
                     }, {
                         transaction: t
                     })
-                    .then((loginRowsDeleted) => {
-                        return UserContact.destroy({
+                        .then((contactRowsDeleted) => {
+                            return SectionUser.destroy({
                                 where: {
                                     UserID: req.params.userID
                                 }
                             }, {
                                 transaction: t
                             })
-                            .then((contactRowsDeleted) => {
-                                return SectionUser.destroy({
+                                .then((sectionUsersDeleted) => {
+                                    return User.destroy({
                                         where: {
                                             UserID: req.params.userID
                                         }
                                     }, {
                                         transaction: t
-                                    })
-                                    .then((sectionUsersDeleted) => {
-                                        return User.destroy({
-                                            where: {
-                                                UserID: req.params.userID
-                                            }
-                                        }, {
-                                            transaction: t
-                                        });
                                     });
-                            });
+                                });
+                        });
 
-                    });
-            })
+                });
+        })
             .then((result) => {
                 logger.log('info', 'post: /delete/user, user deleted from system', {
                     req_params: req.params,
@@ -5277,7 +5374,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log('userContact: UserID cannot be null');
             res.status(400).end();
             return;
-        } else {
+        }
+        else{
             var va2 = va[0];
         }
         UserContact.upsert(
@@ -5538,32 +5636,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchTask = (taskInstanceID) => {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
-                        where: {
-                            TaskInstanceID: taskInstanceID
-                        },
-                        attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                        include: {
+                            model: WorkflowActivity,
+                            attributes: ['WorkflowStructure']
+                        }
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
                         include: [{
-                                model: TaskActivity,
-                                attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                            },
-                            {
-                                model: WorkflowInstance,
-                                attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                                include: {
-                                    model: WorkflowActivity,
-                                    attributes: ['WorkflowStructure']
-                                }
-                            },
-                            {
-                                model: User,
-                                attributes: ['UserID', 'FirstName', 'LastName'],
-                                include: [{
-                                    model: UserContact,
-                                    attributes: ['Email', 'Alias']
-                                }]
-                            }
-                        ]
-                    })
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
+                })
                     .catch(err => reject(err))
                     .then(task => resolve(task));
             });
@@ -5576,10 +5674,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         };
 
         WorkflowInstance.find({
-                where: {
-                    WorkflowInstanceID: req.params.workflowInstanceID
-                }
-            })
+            where: {
+                WorkflowInstanceID: req.params.workflowInstanceID
+            }
+        })
             .then(async(result) => {
                 let mappedTasks = JSON.parse(result.TaskCollection);
 
@@ -5602,32 +5700,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchTask = (taskInstanceID) => {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
-                        where: {
-                            TaskInstanceID: taskInstanceID
-                        },
-                        attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                        include: {
+                            model: WorkflowActivity,
+                            attributes: ['WorkflowStructure']
+                        }
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
                         include: [{
-                                model: TaskActivity,
-                                attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                            },
-                            {
-                                model: WorkflowInstance,
-                                attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                                include: {
-                                    model: WorkflowActivity,
-                                    attributes: ['WorkflowStructure']
-                                }
-                            },
-                            {
-                                model: User,
-                                attributes: ['UserID', 'FirstName', 'LastName'],
-                                include: [{
-                                    model: UserContact,
-                                    attributes: ['Email', 'Alias']
-                                }]
-                            }
-                        ]
-                    })
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
+                })
                     .catch(err => reject(err))
                     .then(tiData => {
                         if (workflowInstanceObject[tiData.TaskActivity.TaskActivityID]) {
@@ -5650,10 +5748,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //key: taskActivityID
         //value: array of resolved tasks
         WorkflowInstance.find({
-                where: {
-                    WorkflowInstanceID: req.params.workflowInstanceID
-                }
-            })
+            where: {
+                WorkflowInstanceID: req.params.workflowInstanceID
+            }
+        })
             .then(async(result) => {
                 let mappedTasks = JSON.parse(result.TaskCollection);
 
@@ -5677,32 +5775,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchTask = (taskInstanceID) => {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
-                        where: {
-                            TaskInstanceID: taskInstanceID
-                        },
-                        attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                        include: {
+                            model: WorkflowActivity,
+                            attributes: ['WorkflowStructure']
+                        }
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
                         include: [{
-                                model: TaskActivity,
-                                attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                            },
-                            {
-                                model: WorkflowInstance,
-                                attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                                include: {
-                                    model: WorkflowActivity,
-                                    attributes: ['WorkflowStructure']
-                                }
-                            },
-                            {
-                                model: User,
-                                attributes: ['UserID', 'FirstName', 'LastName'],
-                                include: [{
-                                    model: UserContact,
-                                    attributes: ['Email', 'Alias']
-                                }]
-                            }
-                        ]
-                    })
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
+                })
                     .catch(err => reject(err))
                     .then(task => resolve(task));
             });
@@ -5717,10 +5815,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchWorkflow = (workflowArray) => {
             return workflowArray.map((workflow) => {
                 return WorkflowInstance.find({
-                        where: {
-                            WorkflowInstanceID: workflow
-                        }
-                    })
+                    where: {
+                        WorkflowInstanceID: workflow
+                    }
+                })
                     .then((result) => {
                         let mappedTasks = JSON.parse(result.TaskCollection);
                         return mappedTasks.map(fetchTask);
@@ -5755,28 +5853,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchTask = (taskInstanceID) => {
             return new Promise(function (resolve, reject) {
                 TaskInstance.findOne({
-                        where: {
-                            TaskInstanceID: taskInstanceID
-                        },
-                        attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
                         include: [{
-                                model: TaskActivity,
-                                attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
-                            },
-                            {
-                                model: WorkflowInstance,
-                                attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
-                            },
-                            {
-                                model: User,
-                                attributes: ['UserID', 'FirstName', 'LastName'],
-                                include: [{
-                                    model: UserContact,
-                                    attributes: ['Email', 'Alias']
-                                }]
-                            }
-                        ]
-                    })
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
+                })
                     .catch(err => reject(err))
                     .then(tiData => {
                         const waID = tiData.WorkflowInstance.WorkflowActivityID;
@@ -5806,11 +5904,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fetchWorkflow = (workflowArray) => {
             return workflowArray.map((workflow) => {
                 return WorkflowInstance.find({
-                        where: {
-                            WorkflowInstanceID: workflow
-                        },
-                        include: [WorkflowActivity]
-                    })
+                    where: {
+                        WorkflowInstanceID: workflow
+                    },
+                    include: [WorkflowActivity]
+                })
                     .then((result) => {
                         assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
                             WorkflowInstances: {},
@@ -5901,14 +5999,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function (req, res) {
-        console.log("/comments/add : was called");
+        console.log('/comments/add : was called');
 
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
-            console.log("/comments/add : Missing attributes");
+            console.log('/comments/add : Missing attributes');
             res.status(400).end();
         }
 
-        console.log("got to create part");
+        console.log('got to create part');
 
         Comments.create({
             CommentsID: req.body.CommentsID,
@@ -5935,17 +6033,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log(err);
             res.status(400).end();
         });
-    })
+    });
     //------------------------------------------------------------------------------------------
     router.post('/comments/edit', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/edit : CommentsID cannot be null");
+            console.log('/comments/edit : CommentsID cannot be null');
             res.status(400).end();
             return;
         };
         if (req.body.CommentsText == null) {
-            console.log("/comments/edit : CommentsText cannot be null");
+            console.log('/comments/edit : CommentsText cannot be null');
             res.status(400).end();
             return;
         };
@@ -5977,7 +6075,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Complete: rows[0].Complete,
                 OriginTaskInstanceID: rows[0].OriginTaskInstanceID,
             });
-            console.log("/comments/edit : Comments archived");
+            console.log('/comments/edit : Comments archived');
         }).catch(function (err) {
             console.log('/comments/edit (CommentsArchive): ' + err);
             res.status(401).end();
@@ -6002,8 +6100,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function (result) {
             res.json({
-                "Error": false,
-                "Message": "Success"
+                'Error': false,
+                'Message': 'Success'
             });
         }).catch(function (err) {
             console.log('/comments/edit: ' + err);
@@ -6015,7 +6113,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/comments/delete', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/delete : CommentsID cannot be null");
+            console.log('/comments/delete : CommentsID cannot be null');
             res.status(400).end();
             return;
         };
@@ -6034,10 +6132,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": result,
-                    "CommentsUpdated": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'CommentsUpdated': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6048,7 +6146,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------------
     router.post('/comments/viewed', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log("/comments/viewed : CommentsID cannot be null");
+            console.log('/comments/viewed : CommentsID cannot be null');
             res.status(400).end();
             return;
         };
@@ -6070,7 +6168,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/comments/setFlag', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/setFlag : CommentsID cannot be null");
+            console.log('/comments/setFlag : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6089,10 +6187,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": result,
-                    "Flag": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Flag': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6104,7 +6202,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/comments/removeFlag', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/removeFlag : CommentsID cannot be null");
+            console.log('/comments/removeFlag : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6123,10 +6221,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": result,
-                    "Flag": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Flag': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6139,7 +6237,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/comments/rating', function (req, res) {
 
         if (req.body.CommentsID == null) {
-            console.log("/comments/rating : CommentsID cannot be null");
+            console.log('/comments/rating : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6158,10 +6256,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Result": result,
-                    "Rating": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result,
+                    'Rating': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6367,7 +6465,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------------
     router.get('/comments/ti/:Target/id/:TargetID', async function (req, res) {
         console.log('comments/ti/:Target/id/:TargetID was called');
-        console.log(req.params.Target, req.params.TargetID)
+        console.log(req.params.Target, req.params.TargetID);
         var parents = await Comments.findAll({
             where: {
                 TargetID: req.params.TargetID,
@@ -6543,17 +6641,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
 
         res.json({
-            "Error": false,
-            "Message": "Success",
-            "CourseName": Course_Result.Name,
-            "SectionName": Section_Result.Name,
-            "SemesterName": Semester_Result.Name
+            'Error': false,
+            'Message': 'Success',
+            'CourseName': Course_Result.Name,
+            'SectionName': Section_Result.Name,
+            'SemesterName': Semester_Result.Name
         });
     });
     //-------------------------------------------------------------------------
     router.post('/comments/hide', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log("/comments/hide : CommentsID cannot be null");
+            console.log('/comments/hide : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6573,9 +6671,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Rating": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Rating': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6586,7 +6684,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------------
     router.post('/comments/unhide', function (req, res) {
         if (req.body.CommentsID == null) {
-            console.log("/comments/unhide : CommentsID cannot be null");
+            console.log('/comments/unhide : CommentsID cannot be null');
             res.status(400).end();
             return;
         }
@@ -6606,9 +6704,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).then(function (CommentsUpdated) {
                 res.json({
-                    "Error": false,
-                    "Message": "Success",
-                    "Rating": CommentsUpdated
+                    'Error': false,
+                    'Message': 'Success',
+                    'Rating': CommentsUpdated
                 });
             });
         }).catch(function (err) {
@@ -6759,13 +6857,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         await User.findAll({
             attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin', 'Test', 'Instructor'],
             include: [{
-                    model: UserContact,
-                    attributes: ['Email', 'FirstName', 'LastName']
-                }, {
+                model: UserContact,
+                attributes: ['Email', 'FirstName', 'LastName']
+            }, {
 
-                    model: UserLogin,
-                    attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked']
-                }
+                model: UserLogin,
+                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked']
+            }
 
             ]
         }).then(function (result) {
@@ -6967,41 +7065,41 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                       AND c.SemesterID=?`;
 
         sequelize.query(select, {
-                replacements: [
-                    req.params.courseID,
-                    req.params.sectionID,
-                    req.params.semesterID
-                ],
-                type: sequelize.QueryTypes.SELECT
-            }).then(categories => {
-                if (!categories) {
-                    categories = [];
-                }
+            replacements: [
+                req.params.courseID,
+                req.params.sectionID,
+                req.params.semesterID
+            ],
+            type: sequelize.QueryTypes.SELECT
+        }).then(categories => {
+            if (!categories) {
+                categories = [];
+            }
 
-                categories.forEach((item) => {
+            categories.forEach((item) => {
 
-                    var select = `SELECT DISTINCT b.Name, b.Description, bi.BadgeInstanceID BadgeID, bi.CategoryInstanceID CategoryID
+                var select = `SELECT DISTINCT b.Name, b.Description, bi.BadgeInstanceID BadgeID, bi.CategoryInstanceID CategoryID
                                     FROM badgeinstance bi
                                     JOIN badge b ON b.BadgeID = bi.BadgeID 
                                     JOIN categoryinstance ci ON ci.CategoryInstanceID = bi.CategoryInstanceID
                                     WHERE ci.CategoryInstanceID = ${item.CategoryID}`;
 
-                    sequelize.query(select).then(function (badges) {
-                        if (badges.length > 0) {
-                            item.badges = badges[0];
-                        } else {
-                            item.badges = [];
-                        }
-                    });
+                sequelize.query(select).then(function(badges) {
+                    if (badges.length > 0) {
+                        item.badges = badges[0];
+                    } else {
+                        item.badges = [];
+                    }
                 });
+            });
 
-                setTimeout(() => {
-                    res.json({
-                        'Error': false,
-                        'categories': categories
-                    });
-                }, 1000);
-            })
+            setTimeout(() => {
+                res.json({
+                    'Error': false,
+                    'categories': categories
+                });
+            }, 1000);
+        })
             .catch(() => {
                 res.status(401).end();
             });
@@ -7310,7 +7408,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
 
         await Promise.mapSeries(was, async(wa) => {
-            console.log('wa id', wa.WorkflowActivityID)
+            console.log('wa id', wa.WorkflowActivityID);
             let tas = [];
             let ta = await TaskActivity.findAll({
                 where: {
@@ -7501,6 +7599,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+<<<<<<< HEAD
     // router.get('/task/files/:taskId', async function (req, res) {
 
     //     let result = await TaskInstance.findOne({
@@ -7543,6 +7642,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //     // });
     // });
 
+=======
+>>>>>>> 718da4cd0a9131c6c07bafb933b5d9a3e77b8014
     router.get('/task/files/:taskId', async function (req, res) {
 
         let result = await TaskInstance.findOne({
@@ -7555,6 +7656,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return res.status(400).end();
         });
 
+<<<<<<< HEAD
         /*if(result.Files == null){
         return res.json({
         Files: []
@@ -7566,6 +7668,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }*/
 
 
+=======
+>>>>>>> 718da4cd0a9131c6c07bafb933b5d9a3e77b8014
         let fileArray = [];
 
         await Promise.map(JSON.parse(result.Files), async file => {
@@ -7573,22 +7677,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 where: {
                     FileID: file
                 },
-                attributes: ['Info']
+                attributes: ['FileID','Info']
             });
 
-            fileArray.push(fr.Info);
+            fileArray.push(fr);
         });
 
-        let parsedResults = [];
-
-        await Promise.map(fileArray, async results => {
-            console.log('results', results);
-            parsedResults.push(results);
-        });
+        
 
         return res.json({
-            Files: parsedResults
+            Files: fileArray
         });
+
+    });
+
+    router.delete('/task/files/delete/', async function (req, res) {
+
+       
 
     });
 

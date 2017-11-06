@@ -121,7 +121,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         OriginTaskInstanceID:{
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'OriginalTaskInstanceID',
+            field: 'OriginTaskInstanceID',
             allowNull: true
         }
 
