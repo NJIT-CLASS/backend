@@ -1578,6 +1578,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                 UserID: userId
             }
         }).then(async function (fileResult) {
+            var fileInfo = fileResult;
             fileResult.destroy();
 
             if(taskId !== ''){
@@ -1606,9 +1607,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                     }
                 });
 
-                return res.json({
-                    DeletedID: req.body.fileId
-                });
+                return res.json(fileInfo);
             }
             
         })
@@ -1959,6 +1958,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             });
     });
     //---------------------------------------------------------------------------------------------------
+
 
 
     //-----------------------------------------------------------------------------------------------------
@@ -7561,11 +7561,10 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
     });
 
-    router.delete('/task/files/delete/', async function (req, res) {
+    
 
-       
 
-    });
+    
 
 };
 module.exports = REST_ROUTER;

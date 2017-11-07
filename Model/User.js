@@ -40,12 +40,12 @@ module.exports = function(sequelize, DataTypes) {
             field: 'OrganizationGroup',
             allowTrue: true
         },
-        Test: {
+        /* Test: {
             type: DataTypes.BOOLEAN,
             field: 'Test',
             allowNull: false,
             defaultValue: false
-        }
+        }*/
         //UserType: {
         //    //User type either instructor or student
         //    //Instructor Boolean?????
