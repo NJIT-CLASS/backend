@@ -16,7 +16,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: false
         },
         CommentTarget:{
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING(40),
             field: 'CommentTarget',
             allowNull: true
         },
@@ -56,17 +56,17 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         Type: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(40),
             field: 'Type',
             allowNull: true
         }, 
         Status: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING(40),
             field: 'Status',
             allowNull: true
         },
         Label: {
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING(40),
             field: 'Label',
             allowNull: true
         },
@@ -101,7 +101,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         HideType:{
-            type: DataTypes.STRING(255),
+            type: DataTypes.STRING(40),
             field: 'HideType',
             allowNull: true
         },
@@ -112,7 +112,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         Complete : {
-            type: DataTypes.INTEGER.UNSIGNED,
+            type: DataTypes.BOOLEAN,
             field: 'Complete',
             allowNull: true
         },
@@ -123,7 +123,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         OriginTaskInstanceID:{
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'OriginalTaskInstanceID',
+            field: 'OriginTaskInstanceID',
             allowNull: true
         }
     }, {

@@ -200,7 +200,7 @@ class Grade {
                 Grade: grade
             });
         } else {
-            var total = t_grade.grade + grade;
+            var total = w_grade.grade + grade;
             await w_grade.update({
                 Grade: total
             });
