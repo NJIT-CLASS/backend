@@ -3264,35 +3264,35 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             if (userID == null) {
                 console.log('Email Not Found - Making Instructor ' + email);
                 User.create({
-                        FirstName: 'Temp',
-                        LastName: 'Temp',
-                        OrganizationGroup: {
-                            'OrganizationID': []
-                        },
-                        Instructor: true,
-                        Admin: false
-                    })
+                    FirstName: 'Temp',
+                    LastName: 'Temp',
+                    OrganizationGroup: {
+                        'OrganizationID': []
+                    },
+                    Instructor: true,
+                    Admin: false
+                })
                     .then(function (user) {
                         UserContact.create({
+                            Email: email,
+                            Phone: 'XXX-XXX-XXXX',
+                            FirstName: 'Temp',
+                            LastName: 'Temp',
+                            UserID: user.UserID
+                        }).then(async function (userCon) {
+                            UserLogin.create({
+                                UserID: user.UserID,
                                 Email: email,
-                                Phone: 'XXX-XXX-XXXX',
-                                FirstName: 'Temp',
-                                LastName: 'Temp',
-                                UserID: user.UserID
-                            }).then(async function (userCon) {
-                                UserLogin.create({
-                                        UserID: user.UserID,
-                                        Email: email,
-                                        Password: await password.hash('pass123')
-                                    }).then(function (userLogin) {
-                                        //Email User With Password
-                                        console.log('/instructor/new made');
-                                        res.status(200).end();
-                                    })
-                                    .catch(function (err) {
-                                        console.log(err);
-                                    });
+                                Password: await password.hash('pass123')
+                            }).then(function (userLogin) {
+                                //Email User With Password
+                                console.log('/instructor/new made');
+                                res.status(200).end();
                             })
+                                .catch(function (err) {
+                                    console.log(err);
+                                });
+                        })
                             .catch(function (err) {
                                 console.log('Error creating user');
                                 console.log(err);
@@ -7599,7 +7599,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-<<<<<<< HEAD
     // router.get('/task/files/:taskId', async function (req, res) {
 
     //     let result = await TaskInstance.findOne({
@@ -7642,8 +7641,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //     // });
     // });
 
-=======
->>>>>>> 718da4cd0a9131c6c07bafb933b5d9a3e77b8014
     router.get('/task/files/:taskId', async function (req, res) {
 
         let result = await TaskInstance.findOne({
@@ -7656,7 +7653,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return res.status(400).end();
         });
 
-<<<<<<< HEAD
         /*if(result.Files == null){
         return res.json({
         Files: []
@@ -7668,8 +7664,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }*/
 
 
-=======
->>>>>>> 718da4cd0a9131c6c07bafb933b5d9a3e77b8014
         let fileArray = [];
 
         await Promise.map(JSON.parse(result.Files), async file => {
