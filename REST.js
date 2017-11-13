@@ -5961,7 +5961,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                        res.status(400).end();
                    });
 
-          if (req.body.ReplyLevel != null){
+          if (req.body.ReplyLevel == 1){
             Comments.findAll({
               where: {
                   CommentsID: req.body.Parents
@@ -5973,7 +5973,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                          UserID: l1[0].UserID,
                          Flag: l1[0].Flag
                      });
-
+/*
                      if(l1[0].Parents != null){
                      Comments.findAll({
                                 where: {
@@ -6003,6 +6003,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                                                          }
                                                            });
                                                          }
+*/
                    }).catch(function(err) {
                      console.log('Notifications create ' + err);
                      res.status(401).end();
