@@ -1120,24 +1120,20 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch((result) => {
             console.error(result);
-            res.status(400).end();
+            res.status(400).json({
+              'Error': true
+            });
         });
 
     });
 
     //Endpoint to get the data from a partial assignment for the assignment editor
     router.get('/partialAssignments/byId/:partialAssignmentId', function (req, res) {
-        console.log(req.query.courseId, req.query.userId);
-        /*if (req.query.courseId === undefined || req.query.userId === undefined) {
-            console.log('/partialAssignments/byId/:partialAssignmentId: UserID and CourseId cann be empty');
-            res.status(400).end();
-            return;
-        }*/
+
         PartialAssignments.find({
             where: {
                 PartialAssignmentID: req.params.partialAssignmentId,
-                /*UserID: req.query.userId,
-                CourseID: req.query.courseId*/
+
             }
         }).then(result => {
             console.log(result);
@@ -1147,7 +1143,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(result => {
             console.log(result);
-            res.status(400).end();
+            res.status(400).json({
+              Error: true
+            });
         });
     });
 
@@ -1175,7 +1173,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
 
             console.log('/getCompletedTaskInstances: ' + err);
-            res.status(404).end();
+            res.status(404).json({
+                Error: true
+            });
 
         });
     });
@@ -1201,7 +1201,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
-            res.status(404).end();
+            res.status(404).json({
+                Error: true
+            });
         });
     });
 
@@ -1609,7 +1611,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 return res.json(fileInfo);
             }
-            
+
         })
             .catch(function (err) {
                 logger.log('error', 'file info not deleted successfully', err);
@@ -3092,7 +3094,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 attributes: ['Name'],
                 include: [{
                     model: Course,
-                    attributes: ['Number', 'Name', 'Abbreviations']
+                    attributes: ['Number', 'Name']
                 }]
             }]
         }).then(function (Courses) {
@@ -4502,101 +4504,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         realloc.reallocate(req.body.taskid, req.body.users);
     });
 
-    router.get('/getActiveAssignmentsForSection/:sectionId', function (req, res) {
-        console.log(`Finding Assignments for Section ${req.params.sectionId}`);
-        AssignmentInstance.findAll({
-            where: {
-                SectionID: req.params.sectionId
-            },
-            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
-            include: [{
-                model: Assignment,
-                attributes: ['DisplayName']
-            }]
-        }).then(function (result) {
-            console.log('Assignments have been found!');
-            res.json({
-                'Error': false,
-                'Assignments': result
-            });
-        }).catch(function (err) {
-            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
-            res.status(404).end();
-        });
-    });
-
-    router.get('/getActiveAssignments/:courseId', function (req, res) {
-        console.log('Finding assignments...');
-        Assignment.findAll({
-            where: {
-                CourseID: req.params.courseId
-            },
-            attributes: ['AssignmentID', 'DisplayName', 'Type'],
-            include: [{
-                model: AssignmentInstance,
-                as: 'AssignmentInstances',
-                attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'SectionID']
-
-            }]
-        }).then(function (result) {
-            console.log('Assignments have been found!');
-            res.json({
-                'Error': false,
-                'Assignments': result
-            });
-        }).catch(function (err) {
-            console.log('/getActiveAssignments/' + req.params.courseId + ': ' + err);
-            res.status(404).end();
-        });
-    });
-
-    router.get('/getAllEnrolledCourses/:studentID', function (req, res) {
-        SectionUser.findAll({
-            where: {
-                UserID: req.params.studentID
-            },
-            attributes: ['Role', ' Active'],
-            include: [{
-                model: Section,
-                attributes: ['Name'],
-                include: [{
-                    model: Course,
-                    attributes: ['Number', 'Name', 'Abbreviations']
-                }]
-            }]
-        }).then(function (Courses) {
-            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
-            res.json({
-                'Error': false,
-                'Courses': Courses
-            });
-        });
-    });
-
-    router.get('/getActiveEnrolledCourses/:studentID', function (req, res) {
-        SectionUser.findAll({
-            where: {
-                UserID: req.params.studentID,
-                Active: true
-            },
-            raw: true,
-            attributes: ['Role'],
-            include: [{
-                model: Section,
-                attributes: ['Name'],
-                include: [{
-                    model: Course,
-                    attributes: ['Number', 'Name', 'Abbreviations']
-                }]
-            }]
-        }).then(function (Courses) {
-            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
-            res.json({
-                'Error': false,
-                'Courses': Courses
-            });
-        });
-    });
 
     router.get('/getSubWorkFlow/:taskInstanceID', function (req, res) {
         var taskFactory = new TaskFactory();
@@ -5396,46 +5303,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.get('/EveryonesWork/:assignmentInstanceID', async function (req, res) {
-        var everyones_work = {};
-        var ai = await AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            }
-        });
-        await Promise.map(JSON.parse(ai.WorkflowCollection), async function (wi) {
-            var wi = await WorkflowInstance.find({
-                where: {
-                    assignmentInstanceID: req.params.assignmentInstanceID
-                }
-            });
-            await Promise.map(JSON.parse(wi.TaskCollection), async function (ti) {
-                var ti = await TaskInstance.findAll({
-                    where: {
-                        Status: {
-                            $like: '%"complete"%'
-                        }
-                    }
-                });
-                for (var i = 0; i < ti.length; i++) {
-                    if (!everyones_work.hasOwnProperty(ti[i].UserID)) {
-                        everyones_work[ti[i].UserID] = [ti[i].TaskInstanceID];
-                    } else {
-                        everyones_work[ti[i].UserID].push(ti[i].TaskInstanceID);
-                        everyones_work[ti[i].UserID] = everyones_work[ti[i].UserID].filter(function (item, index, inputArray) {
-                            return inputArray.indexOf(item) == index;
 
-                        });
-                    }
-                }
-            });
-        });
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'EveryonesWork': everyones_work
-        });
-    });
 
 
     router.get('/EveryonesWork/:assignmentInstanceID', async function (req, res) {
@@ -5630,145 +5498,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-----------------------------------------------------------------------------------------------------
 
 
-    //Endpoint for workflow reports
-
-    router.get('/getWorkflowReport/:workflowInstanceID', (req, res) => {
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject) {
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                    },
-                    {
-                        model: WorkflowInstance,
-                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                        include: {
-                            model: WorkflowActivity,
-                            attributes: ['WorkflowStructure']
-                        }
-                    },
-                    {
-                        model: User,
-                        attributes: ['UserID', 'FirstName', 'LastName'],
-                        include: [{
-                            model: UserContact,
-                            attributes: ['Email', 'Alias']
-                        }]
-                    }
-                    ]
-                })
-                    .catch(err => reject(err))
-                    .then(task => resolve(task));
-            });
-        };
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-        WorkflowInstance.find({
-            where: {
-                WorkflowInstanceID: req.params.workflowInstanceID
-            }
-        })
-            .then(async(result) => {
-                let mappedTasks = JSON.parse(result.TaskCollection);
-
-                let finalResults = mappedTasks.map(fetchTasks);
-
-                Promise.all(finalResults.map(Promise.all)).then(arrArr => {
-                    return res.json({
-                        'Result': arrArr
-                    });
-                });
-
-            });
-    });
-
-
-    //------------------------------------
-    router.get('/getWorkflowReport/alternate/:workflowInstanceID', async(req, res) => {
-        let workflowInstanceObject = {};
-
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject) {
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                    },
-                    {
-                        model: WorkflowInstance,
-                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                        include: {
-                            model: WorkflowActivity,
-                            attributes: ['WorkflowStructure']
-                        }
-                    },
-                    {
-                        model: User,
-                        attributes: ['UserID', 'FirstName', 'LastName'],
-                        include: [{
-                            model: UserContact,
-                            attributes: ['Email', 'Alias']
-                        }]
-                    }
-                    ]
-                })
-                    .catch(err => reject(err))
-                    .then(tiData => {
-                        if (workflowInstanceObject[tiData.TaskActivity.TaskActivityID]) {
-                            workflowInstanceObject[tiData.TaskActivity.TaskActivityID].push(tiData);
-                        } else {
-                            workflowInstanceObject[tiData.TaskActivity.TaskActivityID] = [tiData];
-                        }
-                        resolve(tiData);
-                    });
-            });
-        };
-
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-        //key: taskActivityID
-        //value: array of resolved tasks
-        WorkflowInstance.find({
-            where: {
-                WorkflowInstanceID: req.params.workflowInstanceID
-            }
-        })
-            .then(async(result) => {
-                let mappedTasks = JSON.parse(result.TaskCollection);
-
-                let finalResults = mappedTasks.map(fetchTasks);
-
-                Promise.all(finalResults.map(Promise.all)).then(arrArr => {
-                    return res.json({
-                        'Result': workflowInstanceObject
-                    });
-                });
-
-            });
-    });
-
-
-    //---------------------------------------------------------------------------
-    //---------------------------------------------------------------------------
 
     // Endpoint to get assignment instance report
     router.get('/getAssignmentReport/:assignmentInstanceID', function (req, res) {
@@ -5845,7 +5574,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     });
-    //-------------------------------------------------------------------------
 
     router.get('/getAssignmentReport/alternate/:assignmentInstanceID', (req, res) => {
         let assignmentObject = {};
@@ -5943,6 +5671,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     });
+
+    //-------------------------------------------------------------------------
 
     router.get('/reallocatepools/:ai_id', function (req, res) {
         var reallocate = new Allocator();
@@ -6935,15 +6665,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //---------------------------------------------------------------------------
 
-    /*********************************************************************************************************** 
+    /***********************************************************************************************************
      ** Amadou work starts here
      ************************************************************************************************************/
     //Endpoints to get user's badges
     router.get('/userBadges/:userID', async function (req, res) {
         let select = `SELECT u.UserID, bi.BadgeInstanceID, b.Name, b.Description, b.Logo logo, ci.SemesterID, ci.CourseID, ci.SectionID, ci.CategoryID
                         FROM  badgeinstance AS bi
-                        JOIN Userbadgeinstances AS ub ON bi.BadgeInstanceID = ub.BadgeInstanceID 
-                        JOIN user AS u ON u.UserID = ub.UserID 
+                        JOIN Userbadgeinstances AS ub ON bi.BadgeInstanceID = ub.BadgeInstanceID
+                        JOIN user AS u ON u.UserID = ub.UserID
                         JOIN categoryinstance AS ci ON ci.CategoryID = bi.CategoryInstanceID
                         JOIN badge AS b ON b.BadgeID = bi.BadgeID
                         WHERE u.UserID = ?`;
@@ -6971,7 +6701,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Endpoint to get the user's points
     router.get('/userProgress/:userID/:categoryID', async function (req, res) {
 
-        let select = `SELECT ci.CategoryID, ci.CourseID, ci.SectionID, ci.SemesterID, 
+        let select = `SELECT ci.CategoryID, ci.CourseID, ci.SectionID, ci.SemesterID,
                       ci.Tier1Instances, ci.Tier2Instances, ci.Tier3Instances, upi.pointInstances,
                       b.Name, b.Description, b.Logo, upi.UserID, bi.BadgeInstanceID
                       FROM categoryinstance AS ci
@@ -7026,9 +6756,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Endpoint for user courses/sections
     router.get('/studentCourses/:userID/:semesterID', async function (req, res) {
 
-        let select = `SELECT DISTINCT c.Name, c.Number, c.Description, c.CourseID, 
+        let select = `SELECT DISTINCT c.Name, c.Number, c.Description, c.CourseID,
                         s.SectionID, s.SemesterID, s.Name SectionName
-                        FROM course AS c 
+                        FROM course AS c
                         JOIN section AS s ON s.CourseID = c.CourseID
                         JOIN sectionuser AS us ON us.SectionID = s.SectionID
                         WHERE us.UserID =? AND s.SemesterID=?`;
@@ -7058,9 +6788,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         var select = `SELECT c.CategoryID,c.Tier1Instances,c.Tier2Instances,c.Tier3Instances,
                       ct.Name, ct.Description
-                      FROM categoryinstance c 
+                      FROM categoryinstance c
                       join category ct on ct.CategoryID = c.CategoryID
-                      WHERE c.CourseID=? 
+                      WHERE c.CourseID=?
                       AND c.sectionID=?
                       AND c.SemesterID=?`;
 
@@ -7080,7 +6810,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 var select = `SELECT DISTINCT b.Name, b.Description, bi.BadgeInstanceID BadgeID, bi.CategoryInstanceID CategoryID
                                     FROM badgeinstance bi
-                                    JOIN badge b ON b.BadgeID = bi.BadgeID 
+                                    JOIN badge b ON b.BadgeID = bi.BadgeID
                                     JOIN categoryinstance ci ON ci.CategoryInstanceID = bi.CategoryInstanceID
                                     WHERE ci.CategoryInstanceID = ${item.CategoryID}`;
 
@@ -7332,7 +7062,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             'SectionUserRecord': 'hello world'
         });
     });
-    /*********************************************************************************************************** 
+    /***********************************************************************************************************
      **  Amadou work ends here
      ************************************************************************************************************/
 
@@ -7677,7 +7407,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             fileArray.push(fr);
         });
 
-        
+
 
         return res.json({
             Files: fileArray
@@ -7685,10 +7415,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    
 
 
-    
+
+
 
 };
 module.exports = REST_ROUTER;
