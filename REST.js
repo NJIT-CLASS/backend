@@ -5961,14 +5961,12 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                        res.status(400).end();
                    });
 
-          if (req.body.ReplyLevel == 1){
             Comments.findAll({
               where: {
                   CommentsID: req.body.Parents
               }
             }).then(function(l1) {
                    Notifications.create({
-                         //CommentsID: rows[rows.length - 1].CommentsID,
                          CommentsID: l1[0].CommentsID,
                          UserID: l1[0].UserID,
                          Flag: l1[0].Flag
@@ -6008,8 +6006,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                      console.log('Notifications create ' + err);
                      res.status(401).end();
                    });
-          }
-       })
+                 });
+
  //------------------------------------------------------------------------------------------
  router.post('/comments/edit', function(req, res) {
 
@@ -6361,7 +6359,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
         var total = 0.0;
         var c = Comments.findAll({
           where: {
-              UserID: req.params.userID,
+              UserID: req.params.UserID,
               Rating: {$not: null},
               Delete: null
           }
