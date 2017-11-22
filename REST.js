@@ -5963,7 +5963,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
             Comments.findAll({
               where: {
-                  CommentsID: req.body.Parents
+                  UserID: req.body.UserID
               }
             }).then(function(l1) {
                    Notifications.create({
