@@ -5971,6 +5971,25 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                          UserID: l1[0].UserID,
                          Flag: l1[0].Flag
                      });
+            UserContact.find({
+              where: {
+                  UserID: req.body.UserID
+              },
+              attributes: ['Email']
+            }).then(function(row3) {
+              var email = new Email();
+              var opts = {
+                from: 'njitplamaster@gmail.com',
+                replyTo: 'njitplamaster@gmail.com',
+                to: row3.email,
+                subject: 'Email notification',
+                html: 'New comment'
+              };
+              email.send(opts);
+            }).catch(function(err) {
+                console.log('Send email ' + err.message);
+                res.status(401).end();
+            });
 /*
                      if(l1[0].Parents != null){
                      Comments.findAll({
