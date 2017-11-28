@@ -30,6 +30,7 @@
     "supervisor": "^0.12.0",
     "tree-model": "^1.0.6",
     "winston": "^2.4.0",
+    "winston-daily-rotate-file": "^1.7.2",
     "xoauth2": "^1.2.0"
   },
   "repository": {

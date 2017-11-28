@@ -400,7 +400,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 VersionHistory: rows[0].VersionHistory
 
             });
-            res.status(401).end();
+            res.status(200).end();
         }).catch(function (err) {
             console.log('/AssignmentArchive/save/:AssignmentInstanceID ' + err.message);
             res.status(401).end();
@@ -7599,51 +7599,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-<<<<<<< HEAD
-    // router.get('/task/files/:taskId', async function (req, res) {
-
-    //     let result = await TaskInstance.findOne({
-    //         where: {
-    //             TaskInstanceID: req.params.taskId
-    //         },
-    //         attributes: ['Files']
-    //     }).catch(err => {
-    //         logger.log('error', 'could not get files', err, req.params);
-    //         return res.status(400).end();
-    //     });
-
-    //     if (result.Files == null) {
-    //         return res.json({
-    //             Files: []
-    //         });
-    //     } else {
-    //         return res.json({
-    //             Files: result.Files
-    //         });
-    //     }
-
-
-    //     // let fileArray = JSON.parse(JSON.stringify(result.Files).map(file => {
-    //     //     return FileReference.findOne({
-    //     //         where: {
-    //     //             FileID: file
-    //     //         },
-    //     //         attributes: ['Info']
-    //     //     });
-    //     // });
-
-    //     // Promise.all(fileArray).then(results=>{
-    //     //     console.log(results);
-    //     //     let parsedResults = results.map(JSON.parse);
-    //     //     return res.json({
-    //     //         Files: parsedResults
-    //     //     });
-
-    //     // });
-    // });
-
-=======
->>>>>>> 718da4cd0a9131c6c07bafb933b5d9a3e77b8014
     router.get('/task/files/:taskId', async function (req, res) {
 
         let result = await TaskInstance.findOne({
@@ -7656,20 +7611,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return res.status(400).end();
         });
 
-<<<<<<< HEAD
-        /*if(result.Files == null){
-        return res.json({
-        Files: []
-        });
-        } else {
-        return res.json({
-        Files: result.Files
-        });
-        }*/
-
-
-=======
->>>>>>> 718da4cd0a9131c6c07bafb933b5d9a3e77b8014
         let fileArray = [];
 
         await Promise.map(JSON.parse(result.Files), async file => {
