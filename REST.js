@@ -283,6 +283,17 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
             console.log(err);
             res.status(400).end();
         });
+
+        VolunteerPool.findAll({
+          where: {
+              UserID: req.body.UserID
+          }
+        }).then(function(l1) {
+               Notifications.create({
+                     UserID: l1[0].UserID,
+                     VolunteerpoolID: l1[0].VolunteerpoolID
+                 });
+
         VolunteerPool.findAll({
                 where: {
                     UserID: req.body.UserID,
