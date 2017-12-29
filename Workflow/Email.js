@@ -31,7 +31,8 @@ var EmailNotification = models.EmailNotification;
 
 const logger = require('./Logger.js');
 
-var email = 'njitplamaster@gmail.com';
+// var email = 'njitplamaster@gmail.com';
+var email = 'participatory-learning@njit.edu';
 var password = MASTER_PASSWORD;
 var active = EMAIL_SERVER_STATUS;
 

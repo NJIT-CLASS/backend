@@ -1,6 +1,6 @@
 export const MASTER_EMAIL = 'njitplamaster@gmail.com';
 export const MASTER_PASSWORD = 'plamaster123';
-export const EMAIL_SERVER_STATUS = false;
+export const EMAIL_SERVER_STATUS = true;
 export const FILE_SIZE = 52428800;
 export const MAX_NUM_FILES = 3;
 
