@@ -1121,7 +1121,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch((result) => {
             console.error(result);
             res.status(400).json({
-              'Error': true
+                'Error': true
             });
         });
 
@@ -1144,7 +1144,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(result => {
             console.log(result);
             res.status(400).json({
-              Error: true
+                Error: true
             });
         });
     });
@@ -7416,7 +7416,48 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
 
+    //get Section information
+    router.get('/section/info/:sectionId',async function(req,res) {
+        let sectionInfo = await Section.findOne({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            include: [{
+                model: Course
+            },{
+                model:Semester
+            }]
+        });
 
+        let activeAssignments = await AssignmentInstance.findAll({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+            include: [{
+                model: Assignment,
+                attributes: ['DisplayName']
+            }]
+        });
+
+        let sectionUsers = await SectionUser.findAll({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ['UserID', 'Role', 'Active'],
+            include: {
+                model: User,
+                attributes: ['FirstName', 'LastName']
+            }
+        });
+
+        res.json({
+            Section: sectionInfo,
+            OngoingAssignments: activeAssignments,
+            Users: sectionUsers
+        });
+        
+    });
 
 
 
