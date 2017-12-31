@@ -7039,6 +7039,69 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
 
       });
 
+    //-----------user management------------------------------------
+    router.post('/usermanagement/testuser/add', function(req, res) {
+
+        User.update({
+          Test: 1
+        }, {
+            where: {
+                UserID: req.body.UserID
+                }
+          }).then(function(rows) {
+              res.json({
+                  'Error': false,
+                  'Message': 'Success'
+              });
+          }).catch(function(err) {
+              console.log('/usermanagement/testuser/add' + err.message);
+              res.status(401).end();
+          });
+
+      });
+
+    //----------------------------------------------------------------
+    router.post('/usermanagement/testuser/remove', function(req, res) {
+
+        User.update({
+          Test: 0
+        }, {
+            where: {
+                UserID: req.body.UserID
+                }
+          }).then(function(rows) {
+              res.json({
+                  'Error': false,
+                  'Message': 'Success'
+              });
+          }).catch(function(err) {
+              console.log('/usermanagement/testuser/remove' + err.message);
+              res.status(401).end();
+          });
+
+      });
+
+    //----------------------------------------------------------------
+    router.post('/usermanagement/role', function(req, res) {
+
+        User.update({
+          Role: req.body.Role
+        }, {
+            where: {
+                UserID: req.body.UserID
+                }
+          }).then(function(rows) {
+              res.json({
+                  'Error': false,
+                  'Message': 'Success'
+              });
+          }).catch(function(err) {
+              console.log('/usermanagement/role' + err.message);
+              res.status(401).end();
+          });
+
+      });
+
     //----------------------------------------------------------------
 
 };
