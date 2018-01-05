@@ -53,7 +53,9 @@ import {
     FILE_SIZE as file_size,
     MAX_NUM_FILES as max_files
 } from './Util/constant';
-
+import {TOKEN_KEY, REFRESH_TOKEN_KEY} from './backend_settings';
+const TOKEN_LIFE = '10s';
+const REFRESH_TOKEN_LIFE = '1m';
 
 var dateFormat = require('dateformat');
 var Guid = require('guid');
@@ -75,8 +77,7 @@ var FlatToNested = require('flat-to-nested');
 var fs = require('fs');
 var logger = require('./Workflow/Logger.js');
 var LevelTrigger = require('./Workflow/LevelTrigger.js');
-
-
+var jwt = require('jsonwebtoken');
 const multer = require('multer'); //TODO: we may need to limit the file upload size
 
 var storage = multer({
@@ -145,6 +146,287 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //     // })
     //     //});
     // });
+    // endpoint for login function
+    router.post('/login', function (req, res) {
+        if (req.body.emailaddress == null || req.body.password == null) {
+            console.log('/login : invalid credentials');
+            res.status(401).end();
+        }
+        UserLogin.find({
+            where: {
+                Email: req.body.emailaddress
+            },
+            attributes: ['UserID', 'Email', 'Password', 'Pending', 'Attempts', 'Timeout', 'Blocked'],
+            include: [{
+                model: User,
+                attributes: ['Admin', 'Instructor']
+            }]
+        }).then(async function (user) {
+            let current_timestamp = new Date(); // get current time of login
+            if (user == null) { // deny if user doesn't exist
+                console.log('/login: invalid credentials');
+                return res.status(401).end();
+            } else if (user.Blocked) { // deny if user is manually blocked
+                console.log('/login: blocked login of ' + user.Email);
+                return res.status(401).json({
+                    'Error': true,
+                    'Message': 'Timeout',
+                    'Timeout': 60
+                });
+            } else if (user.Timeout != null && user.Timeout > current_timestamp) { // deny if there is a timeout in the future
+                console.log('/login: prevented login due to timeout for ' + user.Email);
+                let timeOut = new Date(user.Timeout) - new Date();
+                timeOut = Math.ceil(timeOut / 1000 / 60);
+                console.log(timeOut);
+                return res.status(401).json({
+                    'Error': true,
+                    'Message': 'Timeout',
+                    'Timeout': timeOut
+                });
+            } else {
+                // if the password is correct
+                if (user != null && await password.verify(user.Password, req.body.password)) {
+                    // unset past timeout with correct password, login
+                    // set attempts back to zero
+
+                    UserLogin.update({
+                        Attempts: 0,
+                        Timeout: null
+                    }, {
+                        where: {
+                            UserID: user.UserID
+                        }
+                    }).then(function (userLogin) {
+                        // normal login (ideal scenario)
+
+                        //Create JSON Web token for authentication
+                        const payload = {
+                            admin: user.User.Admin,
+                            instructor: user.User.Instructor,
+                            id: user.UserID 
+                        };
+                        let token = jwt.sign(payload, TOKEN_KEY, {
+                            expiresIn: TOKEN_LIFE
+                        });
+                        let refreshToken = jwt.sign(payload, REFRESH_TOKEN_KEY, {
+                            expiresIn: REFRESH_TOKEN_LIFE
+                        });
+
+                        res.status(201).json({
+                            'Error': false,
+                            'Message': 'Success',
+                            'UserID': user.UserID,
+                            'Pending': user.Pending,
+                            'Token':token,
+                            'RefreshToken': refreshToken
+                        });
+                            
+                    }).catch(function (err) {
+                        sequelize.options.omitNull = true;
+                        console.log('/login: ' + err);
+                        res.status(401).end();
+                    });
+                        
+                    
+                } else {
+                    // incorrect password, increment attempt count
+                    let attempts = user.Attempts + 1;
+                    let minutes = 0;
+
+                    console.log('/login: incorrect attempt #' + attempts + ' for ' + user.Email);
+                    let update_data = {
+                        Attempts: attempts
+                    };
+                    // calculate timeout if five or more attempts
+                    // timeout is calculated relative to current time, not relative to previous timeout,
+                    // this is done by design
+                    if (attempts >= 5) {
+                        console.log('/login: setting new timeout for ' + user.Email);
+                        switch (attempts) {
+                        case 5:
+                            minutes = 1;
+                            break;
+                        case 6:
+                            minutes = 2;
+                            break;
+                        case 7:
+                            minutes = 5;
+                            break;
+                        case 8:
+                            minutes = 10;
+                            break;
+                        case 9:
+                            minutes = 15;
+                            break;
+                        case 10:
+                            minutes = 30;
+                            break;
+                        default:
+                            minutes = 60;
+                        }
+                        let timeout = current_timestamp;
+                        timeout.setMinutes(timeout.getMinutes() + minutes);
+                        update_data.Blocked = attempts > 10;
+                        update_data.Timeout = timeout;
+                    }
+                    // update UserLogin with new attempts and timeout
+                    UserLogin.update(update_data, {
+                        where: {
+                            UserID: user.UserID
+                        }
+                    }).then(function (userLogin) {
+                        console.log('/login: invalid credentials');
+
+                        console.log('minutes', minutes);
+                        res.status(401).json({
+                            'Error': true,
+                            'Message': 'Timeout',
+                            'Timeout': minutes,
+                        });
+                    }).catch(function (err) {
+                        console.log('/login: ' + err);
+                        res.status(401).end();
+                    });
+                }
+            }
+        }).catch(function (err) {
+            console.log('/login: ' + err);
+            res.status(401).end();
+        });
+    });
+    //-----------------------------------------------------------------------------------------------------
+
+    router.post('/password/reset', function (req, res) {
+        if (req.body.email === null || req.body.email === '') {
+            return res.status(401).end();
+        }
+
+        return UserLogin.findOne({
+            where: {
+                Email: req.body.email
+            }
+        })
+            .then(async(user) => {
+                console.log('found user', user);
+                if (user == null) {
+                    return res.status(401).end();
+                }
+                let temp_pass = await password.generate();
+                user.Password = await password.hash(temp_pass);
+                user.Pending = true;
+                user.Attempts = 0;
+                user.save().then((result) => {
+                    let email = new Email();
+                    email.sendNow(result.UserID, 'reset password', temp_pass);
+                    res.status(200).end();
+
+                });
+            })
+            .catch((err) => {
+                console.log(err);
+                res.status(500).end();
+            });
+    });
+    //Endpoint to check if initial user in system
+    router.get('/initial', function (req, res) {
+        return User.findOne()
+            .then(result => {
+                if (result === null) {
+                    return res.status(400).end();
+                } else {
+                    return res.status(200).end();
+                }
+            })
+            .catch((err) => {
+                console.error(err);
+                logger.log('error', '/initial', 'couldn\'t fetch user from DB', {
+                    error: err
+                });
+
+                res.status(500).end();
+            });
+    });
+
+    router.post('/addInitialUser',async function (req, res) {
+        let isThereOneUser = await User.findOne();
+        if(isThereOneUser !== null){
+            return res.status(400).end();
+        }
+
+        var email = new Email();
+        if (req.body.email === null) {
+            console.log('/adduser : Email cannot be null');
+            res.status(400).end();
+        }
+
+        UserLogin.find({
+            where: {
+                Email: req.body.email
+            },
+            attributes: ['UserID']
+        }).then(function (response) {
+            if (response == null || response.UserID == null) {
+                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+
+                    .then(function() {
+                        User.create({
+                            FirstName: req.body.firstname,
+                            LastName: req.body.lastname,
+                            Instructor: req.body.instructor,
+                            Admin: req.body.admin
+                        }).catch(function(err) {
+                            console.log(err);
+                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                .then(function () {
+                                    res.status(500).end();
+                                });
+                        }).then(async function(user) {
+                            UserContact.create({
+                                UserID: user.UserID,
+                                FirstName: req.body.firstname,
+                                LastName: req.body.lastname,
+                                Email: req.body.email,
+                                Phone: '(XXX) XXX-XXXX'
+                            }).catch(function(err) {
+                                console.log(err);
+                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                    .then(function () {
+                                        res.status(500).end();
+                                    });
+                            }).then(async function(userCon) {
+                                console.log('trustpass', req.body.trustpassword);
+                                UserLogin.create({
+                                    UserID: user.UserID,
+                                    Email: req.body.email,
+                                    Password: await password.hash(req.body.password),
+                                    Pending: req.body.trustpassword ? false : true
+                                }).catch(function(err) {
+                                    console.log(err);
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.status(500).end();
+                                        });
+                                }).then(function(userLogin) {
+                                    let email = new Email();
+                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.json({
+                                                'Message': 'User has succesfully added'
+                                            });
+                                        });
+
+                                });
+                            });
+                        });
+                    });
+            } else {
+                res.json({
+                    'Message': 'User is currently exist'
+                });
+            }
+        });
+    });
 
     router.get('/test', async function (req, res) {
 
@@ -172,6 +454,88 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         res.status(200).end();
     });
 
+    router.post('/refreshToken', function(req,res){
+        let refreshToken = req.body.refreshToken;
+        let token = req.body.token || req.query.token || req.headers['x-access-token'];
+        let userId = req.body.userId;
+
+        if(refreshToken){
+            jwt.verify(refreshToken, REFRESH_TOKEN_KEY,  async function(refreshErr, refreshPayload){
+                if(refreshErr){
+                    return res.status(410).end();
+                }
+                let decodedToken = jwt.decode(token, TOKEN_KEY);
+                var unverifiedUserID = decodedToken.id;
+                if(unverifiedUserID === req.body.userId){
+                    let user = await User.findOne({
+                        where: {
+                            UserID: userId
+                        },
+                        attributes: ['UserID','Admin', 'Instructor']
+                    });
+    
+                    const payload = {
+                        admin: user.Admin,
+                        instructor: user.Instructor,
+                        id: user.UserID 
+                    };
+                    let token = jwt.sign(payload, TOKEN_KEY, {
+                        expiresIn: TOKEN_LIFE
+                    });
+                    
+                    return res.status(200).json({
+                        Token: token
+                    });
+                } else {
+                    
+                    return res.status(401).end();
+                }
+
+                
+
+            }); 
+        } else {
+            return res.status(410).end();
+        }
+    });
+
+    //Middleware to verify token
+    router.use(function(req,res,next){
+        // if(process.env.NODE_ENV != 'production'){
+        //     req.user = {};
+        //     next();
+        // }
+        let token = req.body.token || req.query.token || req.headers['x-access-token'];
+
+        if (token) {
+            jwt.verify(token,TOKEN_KEY, function(err, decoded) {      
+                if (err) {
+                    if(err.name == 'TokenExpiredError'){
+                        return res.status(409).end();
+                    } else {
+                        return res.status(401).json({ 
+                            success: false, 
+                            message: 'Failed to authenticate token.' 
+                        });  
+                    }
+                      
+                } else {
+                    req.user = decoded;    
+                    next();
+                }
+            });
+        }
+        else {
+            return res.status(403).json({ 
+                success: false, 
+                message: 'No token provided.' 
+            });
+        
+        }
+    });
+    //-------------------------------------------------------------------
+    //-------------------------------------------------------------------
+    //-------------------------------------------------------------------
     //Endpoint to return VolunteerPool list of Volunteers
     router.get('/VolunteerPool/', function (req, res) {
 
@@ -1940,168 +2304,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
 
-    //Endpoint to check if initial user in system
-    router.get('/initial', function (req, res) {
-        return User.findOne()
-            .then(result => {
-                if (result === null) {
-                    return res.status(400).end();
-                } else {
-                    return res.status(200).end();
-                }
-            })
-            .catch((err) => {
-                console.error(err);
-                logger.log('error', '/initial', 'couldn\'t fetch user from DB', {
-                    error: err
-                });
-
-                res.status(500).end();
-            });
-    });
+    
     //---------------------------------------------------------------------------------------------------
 
 
 
     //-----------------------------------------------------------------------------------------------------
 
-    // endpoint for login function
-    router.post('/login', function (req, res) {
-        if (req.body.emailaddress == null || req.body.password == null) {
-            console.log('/login : invalid credentials');
-            res.status(401).end();
-        }
-        UserLogin.find({
-            where: {
-                Email: req.body.emailaddress
-            },
-            attributes: ['UserID', 'Email', 'Password', 'Pending', 'Attempts', 'Timeout', 'Blocked']
-        }).then(async function (user) {
-            let current_timestamp = new Date(); // get current time of login
-            if (user == null) { // deny if user doesn't exist
-                console.log('/login: invalid credentials');
-                return res.status(401).end();
-            } else if (user.Blocked) { // deny if user is manually blocked
-                console.log('/login: blocked login of ' + user.Email);
-                return res.status(401).json({
-                    'Error': true,
-                    'Message': 'Timeout',
-                    'Timeout': 60
-                });
-            } else if (user.Timeout != null && user.Timeout > current_timestamp) { // deny if there is a timeout in the future
-                console.log('/login: prevented login due to timeout for ' + user.Email);
-                let timeOut = new Date(user.Timeout) - new Date();
-                timeOut = Math.ceil(timeOut / 1000 / 60);
-                console.log(timeOut);
-                return res.status(401).json({
-                    'Error': true,
-                    'Message': 'Timeout',
-                    'Timeout': timeOut
-                });
-            } else {
-                // if the password is correct
-                if (user != null && await password.verify(user.Password, req.body.password)) {
-                    // unset past timeout with correct password, login
-                    // set attempts back to zero
-                    if (user.Timeout != null) {
-                        sequelize.options.omitNull = false;
-                        UserLogin.update({
-                            Attempts: 0,
-                            Timeout: null
-                        }, {
-                            where: {
-                                UserID: user.UserID
-                            }
-                        }).then(function (userLogin) {
-                            sequelize.options.omitNull = true;
-
-                            res.status(201).json({
-                                'Error': false,
-                                'Message': 'Success',
-                                'UserID': user.UserID,
-                                Pending: user.Pending
-                            });
-                        }).catch(function (err) {
-                            sequelize.options.omitNull = true;
-                            console.log('/login: ' + err);
-                            res.status(401).end();
-                        });
-                    } else {
-                        // normal login (ideal scenario)
-
-                        res.status(201).json({
-                            'Error': false,
-                            'Message': 'Success',
-                            'UserID': user.UserID,
-                            Pending: user.Pending
-                        });
-                    }
-                } else {
-                    // incorrect password, increment attempt count
-                    let attempts = user.Attempts + 1;
-                    let minutes = 0;
-
-                    console.log('/login: incorrect attempt #' + attempts + ' for ' + user.Email);
-                    let update_data = {
-                        Attempts: attempts
-                    };
-                    // calculate timeout if five or more attempts
-                    // timeout is calculated relative to current time, not relative to previous timeout,
-                    // this is done by design
-                    if (attempts >= 5) {
-                        console.log('/login: setting new timeout for ' + user.Email);
-                        switch (attempts) {
-                        case 5:
-                            minutes = 1;
-                            break;
-                        case 6:
-                            minutes = 2;
-                            break;
-                        case 7:
-                            minutes = 5;
-                            break;
-                        case 8:
-                            minutes = 10;
-                            break;
-                        case 9:
-                            minutes = 15;
-                            break;
-                        case 10:
-                            minutes = 30;
-                            break;
-                        default:
-                            minutes = 60;
-                        }
-                        let timeout = current_timestamp;
-                        timeout.setMinutes(timeout.getMinutes() + minutes);
-                        update_data.Blocked = attempts > 10;
-                        update_data.Timeout = timeout;
-                    }
-                    // update UserLogin with new attempts and timeout
-                    UserLogin.update(update_data, {
-                        where: {
-                            UserID: user.UserID
-                        }
-                    }).then(function (userLogin) {
-                        console.log('/login: invalid credentials');
-
-                        console.log('minutes', minutes);
-                        res.status(401).json({
-                            'Error': true,
-                            'Message': 'Timeout',
-                            'Timeout': minutes,
-                        });
-                    }).catch(function (err) {
-                        console.log('/login: ' + err);
-                        res.status(401).end();
-                    });
-                }
-            }
-        }).catch(function (err) {
-            console.log('/login: ' + err);
-            res.status(401).end();
-        });
-    });
+    
 
     //-----------------------------------------------------------------------------------------------------
 
@@ -3031,39 +3241,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
 
-    //-----------------------------------------------------------------------------------------------------
-
-    router.post('/password/reset', function (req, res) {
-        if (req.body.email === null || req.body.email === '') {
-            return res.status(401).end();
-        }
-
-        return UserLogin.findOne({
-            where: {
-                Email: req.body.email
-            }
-        })
-            .then(async(user) => {
-                console.log('found user', user);
-                if (user == null) {
-                    return res.status(401).end();
-                }
-                let temp_pass = await password.generate();
-                user.Password = await password.hash(temp_pass);
-                user.Pending = true;
-                user.Attempts = 0;
-                user.save().then((result) => {
-                    let email = new Email();
-                    email.sendNow(result.UserID, 'reset password', temp_pass);
-                    res.status(200).end();
-
-                });
-            })
-            .catch((err) => {
-                console.log(err);
-                res.status(500).end();
-            });
-    });
+    
 
     //-----------------------------------------------------------------------------------------------------
 
