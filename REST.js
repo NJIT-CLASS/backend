@@ -293,6 +293,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                      UserID: l1[0].UserID,
                      VolunteerpoolID: l1[0].VolunteerpoolID
                  });
+          });
 
         VolunteerPool.findAll({
                 where: {
@@ -2456,7 +2457,8 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
                             Instructor: req.body.instructor,
-                            Admin: req.body.admin
+                            Admin: req.body.admin,
+                            Test: req.body.Test
                         }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -6804,7 +6806,7 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
     router.get('/userManagement',async function(req, res) {
         console.log("/userManagement : was called");
         await User.findAll({
-            attributes: ['UserID','FirstName', 'LastName', 'OrganizationGroup', 'Admin','Test','Instructor'],
+            attributes: ['UserID','FirstName', 'LastName', 'OrganizationGroup', 'Admin','Test','Instructor','Role'],
             include: [{
                 model: UserContact,
                 attributes: ['Email', 'FirstName', 'LastName']
