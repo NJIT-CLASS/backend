@@ -3052,9 +3052,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 user.Password = await password.hash(temp_pass);
                 user.Pending = true;
                 user.Attempts = 0;
+                let data = {
+                    'pass': temp_pass
+                };
                 user.save().then((result) => {
                     let email = new Email();
-                    email.sendNow(result.UserID, 'reset password', temp_pass);
+                    email.sendNow(result.UserID, 'reset password', data);
                     res.status(200).end();
 
                 });
@@ -7046,21 +7049,21 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Just for testing
     router.get('/testing', async function (req, res) {
 
-        let taskFactory = new TaskFactory;
+        // let taskFactory = new TaskFactory;
         //taskFactory.createCategoryInstances(1, 1, 1);
         //taskFactory.rankingSnapshot(true);
         //taskFactory.rankingSnapshot(false, true);
         //taskFactory.updatePointInstance('create_problem', '3', '1');
         // let taskFactory = new TaskFactory;
         // taskFactory.createCategoryInstances(1, 1, 1);
+        console.log('sending from testing ....');
+        let email = new Email();
+        email.sendNow(2, 'late');
 
-        // let email = new Email();
-        // email.sendNow(2, 'late');
-
-        res.json({
-            'Error': false,
-            'SectionUserRecord': 'hello world'
-        });
+        // res.json({
+        //     'Error': false,
+        //     'SectionUserRecord': 'hello world'
+        // });
     });
     /***********************************************************************************************************
      **  Amadou work ends here
