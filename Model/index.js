@@ -87,6 +87,10 @@ models.forEach(function(model) {
         foreignKey: 'UserID'
     });
 
+    m.UserLogin.hasOne(m.UserContact, {
+        foreignKey: 'UserID'
+    });
+
     m.User.hasOne(m.UserContact, {
         foreignKey: 'UserID'
     });
@@ -97,6 +101,11 @@ models.forEach(function(model) {
     m.UserContact.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
+
+    m.UserContact.belongsTo(m.UserLogin, {
+        foreignKey: 'UserID'
+    });
+
     m.SectionUser.belongsTo(m.UserLogin, {
         foreignKey: 'UserID'
     });

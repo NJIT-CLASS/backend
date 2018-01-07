@@ -52,7 +52,6 @@ import {
 
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
-var smtpTransport = require('nodemailer-smtp-transport');
 //var sequelize = require('../Model/index.js').sequelize;
 const logger = require('./Logger.js');
 
