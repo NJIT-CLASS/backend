@@ -523,6 +523,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         if(process.env.NODE_ENV != 'production'){
             req.user = {};
             next();
+            return;
         }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
 
