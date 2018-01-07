@@ -53,9 +53,7 @@ import {
     FILE_SIZE as file_size,
     MAX_NUM_FILES as max_files
 } from './Util/constant';
-import {TOKEN_KEY, REFRESH_TOKEN_KEY} from './backend_settings';
-const TOKEN_LIFE = '10s';
-const REFRESH_TOKEN_LIFE = '1m';
+import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE} from './backend_settings';
 
 var dateFormat = require('dateformat');
 var Guid = require('guid');
@@ -79,6 +77,10 @@ var logger = require('./Workflow/Logger.js');
 var LevelTrigger = require('./Workflow/LevelTrigger.js');
 var jwt = require('jsonwebtoken');
 const multer = require('multer'); //TODO: we may need to limit the file upload size
+const randtoken = require('rand-token');
+
+//In-memory object to store refresh tokens 
+const refreshTokens = {};
 
 var storage = multer({
     dest: './files/',
@@ -90,7 +92,12 @@ var storage = multer({
 
 let ra = new Reallocator();
 
-
+Date.prototype.addDays = function(days) {
+    var dat = new Date(this.valueOf());
+    dat.setDate(dat.getDate() + days);
+    return dat;
+};
+  
 //-----------------------------------------------------------------------------------------------------
 
 
@@ -208,10 +215,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         let token = jwt.sign(payload, TOKEN_KEY, {
                             expiresIn: TOKEN_LIFE
                         });
-                        let refreshToken = jwt.sign(payload, REFRESH_TOKEN_KEY, {
-                            expiresIn: REFRESH_TOKEN_LIFE
-                        });
+                        // let refreshToken = jwt.sign({}, REFRESH_TOKEN_KEY, {
+                        //     expiresIn: REFRESH_TOKEN_LIFE
+                        // });
 
+                        let refreshToken = randtoken.uid(256); 
+                        refreshTokens[refreshToken] = [new Date().addDays(REFRESH_TOKEN_LIFE), user.UserID];
                         res.status(201).json({
                             'Error': false,
                             'Message': 'Success',
@@ -454,20 +463,27 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         res.status(200).end();
     });
 
-    router.post('/refreshToken', function(req,res){
+    router.post('/refreshToken',async function(req,res){
         let refreshToken = req.body.refreshToken;
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         let userId = req.body.userId;
-
+        
         if(refreshToken){
-            jwt.verify(refreshToken, REFRESH_TOKEN_KEY,  async function(refreshErr, refreshPayload){
-                if(refreshErr){
+            if(refreshToken in refreshTokens){
+                // jwt.verify(refreshToken,TOKEN_KEY, async function(err, decoded) {    
+                //let expDate = refreshTokens[refreshToken][0];
+                if (Date.now() >= refreshTokens[refreshToken][0]) {
+                    
+                    console.log('Expired  refresh Token');
+                    delete refreshTokens[refreshToken];
                     return res.status(410).end();
                 }
+
                 let decodedToken = jwt.decode(token, TOKEN_KEY);
-                var unverifiedUserID = decodedToken.id;
-                if(unverifiedUserID === req.body.userId){
-                    let user = await User.findOne({
+                var userIDFromToken = decodedToken.id;
+                var userIDFromMemory = refreshTokens[refreshToken][1];
+                if(userIDFromToken === userId && userIDFromMemory  === userId ){
+                    const user = await User.findOne({
                         where: {
                             UserID: userId
                         },
@@ -490,10 +506,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     
                     return res.status(401).end();
                 }
-
+                    
+                //});
                 
+            } else {
+                return res.status(410).end();
 
-            }); 
+            }
         } else {
             return res.status(410).end();
         }
@@ -501,16 +520,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Middleware to verify token
     router.use(function(req,res,next){
-        // if(process.env.NODE_ENV != 'production'){
-        //     req.user = {};
-        //     next();
-        // }
+        if(process.env.NODE_ENV != 'production'){
+            req.user = {};
+            next();
+        }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
 
         if (token) {
             jwt.verify(token,TOKEN_KEY, function(err, decoded) {      
                 if (err) {
                     if(err.name == 'TokenExpiredError'){
+                        console.log('Expired Token');
                         return res.status(409).end();
                     } else {
                         return res.status(401).json({ 
