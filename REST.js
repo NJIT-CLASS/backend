@@ -221,6 +221,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                         let refreshToken = randtoken.uid(256); 
                         refreshTokens[refreshToken] = [new Date().addDays(REFRESH_TOKEN_LIFE), user.UserID];
+                        //refreshTokens[refreshToken] = [new Date(new Date().getTime() + 2*60000), user.UserID];
                         res.status(201).json({
                             'Error': false,
                             'Message': 'Success',
@@ -526,7 +527,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     return;
         // }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
-        console.log(token)
+        console.log(token);
         if (token) {
             jwt.verify(token,TOKEN_KEY, function(err, decoded) {      
                 if (err) {
@@ -4067,10 +4068,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     attributes: ['AssignmentInstanceID', 'AssignmentID'],
                     include: [{
                         model: Section,
-                        attributes: ['SectionID'],
+                        attributes: ['SectionID', 'Name'],
                         include: [{
                             model: Course,
-                            attributes: ['Name', 'CourseID']
+                            attributes: ['Name', 'CourseID', 'Number']
                         }]
 
                     }, {
@@ -4126,10 +4127,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     attributes: ['AssignmentInstanceID', 'AssignmentID'],
                     include: [{
                         model: Section,
-                        attributes: ['SectionID'],
+                        attributes: ['SectionID', 'Name'],
                         include: [{
                             model: Course,
-                            attributes: ['Name', 'CourseID']
+                            attributes: ['Name', 'CourseID', 'Number']
                         }]
 
                     }, {
