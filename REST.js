@@ -198,7 +198,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                     UserLogin.update({
                         Attempts: 0,
-                        Timeout: null
+                        Timeout: null,
+                        LastLogin: new Date()
                     }, {
                         where: {
                             UserID: user.UserID
@@ -2003,6 +2004,68 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 res.status(400).end();
             });
     });
+
+    // Grade reporting ==========================================================================
+
+    router.post('/getUserAssignmentGrades', function(req, res){
+        if(req.body.userID == null || req.body.sectionID == null){
+            console.log(req);
+            console.log('/getUserAssignmentGrades:userID : no user or section ID passed');
+            res.status(400).end();
+            return;
+        }
+
+        var json = {
+            error:false,
+            grades:[]
+        };
+        console.log("userid: ");
+        console.log(req.body.userID);
+        console.log("sectionid: ");
+        console.log(req.body.sectionID);
+
+
+        return SectionUser.findAll({
+            where: {
+                UserID:req.body.userID,
+                SectionID:req.body.sectionID
+            },
+            attributes:['SectionUserID','Role','SectionID']
+        }).then(function(response){
+            if(!response) return;
+
+            console.log("User grades called");
+            return Promise.map(response, function(sectionIDs){
+                if(!sectionIDs) return;
+
+                var userSectionIDs=sectionIDs.toJSON();
+                //console.log(userSectionIDs.SectionUserID);
+
+                return AssignmentGrade.find({
+                    where:{
+                        SectionUserID:userSectionIDs.SectionUserID
+                    },
+                    attributes:['Grade','AssignmentGradeID','AssignmentInstanceID','Comments']
+                }).then(function (grades){
+                    console.log("grades: ");
+                    console.log(grades);
+                    if(!grades) return;
+                    var gradesJSON = grades.toJSON();
+                    json.grades.push(gradesJSON);
+                    return grades;
+                });
+            });
+          
+
+        }).then(function(done){
+            //console.log(done.toJSON());
+            res.json(json);
+        });
+
+    });
+
+    // Grade reporting ==========================================================================
+
 
 
     //Endpoint for Assignment Manager
@@ -4805,7 +4868,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 UserID: req.params.userId
             },
-            attributes: ['SectionID'],
+            attributes: ['SectionID','Role'],
             include: [{
                 model: Section,
                 attributes: ['Name'],
@@ -6784,14 +6847,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/userManagement', async function (req, res) {
         console.log('/userManagement : was called');
         await User.findAll({
-            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin', 'Test', 'Instructor'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin','Role', 'Test', 'Instructor'],
             include: [{
                 model: UserContact,
                 attributes: ['Email', 'FirstName', 'LastName']
             }, {
 
                 model: UserLogin,
-                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked']
+                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked','LastLogin']
             }
 
             ]
@@ -7658,7 +7721,67 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         
     });
 
+    //-----------user management------------------------------------
+    router.post('/usermanagement/testuser/add', function(req, res) {
 
+    User.update({
+        Test: 1
+    }, {
+        where: {
+            UserID: req.body.UserID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/usermanagement/testuser/add' + err.message);
+            res.status(401).end();
+        });
+
+    });
+
+    //----------------------------------------------------------------
+    router.post('/usermanagement/testuser/remove', function(req, res) {
+
+        User.update({
+          Test: 0
+        }, {
+            where: {
+                UserID: req.body.UserID
+                }
+          }).then(function(rows) {
+              res.json({
+                  'Error': false,
+                  'Message': 'Success'
+              });
+          }).catch(function(err) {
+              console.log('/usermanagement/testuser/remove' + err.message);
+              res.status(401).end();
+          });
+
+      });
+
+      router.post('/usermanagement/role', function(req, res) {
+console.log(req.body.Role+"   "+req.body.UserID);
+        User.update({
+          Role: req.body.Role
+        }, {
+            where: {
+                UserID: req.body.UserID
+                }
+          }).then(function(rows) {
+              res.json({
+                  'Error': false,
+                  'Message': 'Success'
+              });
+          }).catch(function(err) {
+              console.log('/usermanagement/role' + err.message);
+              res.status(401).end();
+          });
+
+      });
 
 };
 module.exports = REST_ROUTER;
