@@ -54,6 +54,7 @@ var CommentsArchive = models.CommentsArchive;
 var CommentsViewed = models.CommentsViewed;
 var Contact = models.Contact;
 var Notifications = models.Notifications;
+var TestUser = models.TestUser;
 
 
 
@@ -7102,6 +7103,50 @@ REST_ROUTER.prototype.handleRoutes = function(router) {
               res.status(401).end();
           });
 
+      });
+
+    //----------------------------------------------------------------
+    router.post('/testuser/create',async function(req, res) {
+        console.log("/testuser/create : was called");
+
+        await TestUser.create({
+          Test: true
+          }).catch(function(err) {
+              console.log('TestUser.create ' + err.message);
+              res.status(401).end();
+          });
+
+         var f = await TestUser.findAll({
+            }).catch(function(err) {
+                console.log('TestUser.findAll ' + err.message);
+                res.status(401).end();
+            });
+
+            var n = f[f.length-1].X;
+
+
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'FirstName': 'Test' + n,
+                'LastName': 'User' + n,
+                'Email': 'testuser' + n + '@dummysite.tst'
+            });
+
+            /*
+            await TestUser.update({
+              FirstName: "Test" + n,
+              LastName: "User" + n,
+              Email: 'testuser'+ n +'@dummysite.tst'
+            }, {
+                where: {
+                    UserID: req.body.UserID
+                    }
+              }).catch(function(err) {
+                  console.log('TestUser.create ' + err.message);
+                  res.status(401).end();
+              });
+              */
       });
 
     //----------------------------------------------------------------
