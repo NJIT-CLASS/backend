@@ -558,6 +558,1836 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------
     //-------------------------------------------------------------------
     //-------------------------------------------------------------------
+
+    ////////////////                 Guest Level APIs                   ///////////////////////////
+    ////////////----------------   END Guest APIs
+
+
+    ///////////////                 Participant Level APIs                   ///////////////////////////
+    
+
+    router.post('/assignment/create', function (req, res) {
+
+        //
+        // console.log('assignment: ', req.body.assignment);
+        // allocator.createAssignment(req.body.assignment).then(function(done) {
+        //     if (done === false) {
+        //         res.status(400).end();
+        //     } else {
+        //         res.status(200).end();
+        //     }
+        // });
+
+        // if (req.body.partialAssignmentId !== null) {
+        //     PartialAssignments.find({
+        //         where: {
+        //             PartialAssignmentID: req.body.partialAssignmentId,
+        //             UserID: req.body.userId,
+        //             CourseID: req.body.courseId
+        //         }
+        //     }).then((result) => {
+        //         result.destroy();
+        //     }).catch((err) => {
+        //         console.error(err);
+        //     });
+        // }
+        var taskFactory = new TaskFactory();
+        if (req.body.partialAssignmentId == null) {
+            PartialAssignments.create({
+                PartialAssignmentName: req.body.assignment.AA_name,
+                UserID: req.body.userId,
+                CourseID: req.body.courseId,
+                Data: req.body.assignment
+            }).then((result) => {
+
+                console.log('assignment: ', req.body.assignment);
+                taskFactory.createAssignment(req.body.assignment).then(function (done) {
+                    if (done) {
+                        res.json({
+                            'Error': false,
+                            'PartialAssignmentID': result.PartialAssignmentID
+                        });
+                    } else {
+                        res.status(400).end();
+                    }
+                });
+            }).catch((err) => {
+                console.error(err);
+                res.status(400).end();
+            });
+        } else {
+            PartialAssignments.update({
+                PartialAssignmentName: req.body.assignment.AA_name,
+                Data: req.body.assignment
+            }, {
+                where: {
+                    PartialAssignmentID: req.body.partialAssignmentId
+                }
+            }).then((result) => {
+                console.log('assignment: ', req.body.assignment);
+                taskFactory.createAssignment(req.body.assignment).then(function (done) {
+                    if (done) {
+                        res.json({
+                            'Error': false,
+                            'PartialAssignmentID': req.body.partialAssignmentId
+                        });
+                    } else {
+                        res.status(400).end();
+                    }
+                });
+            }).catch((result) => {
+                console.error(result);
+                res.status(400).end();
+            });
+        }
+        //save all assignments submitted
+
+
+    });
+
+    //Endpoint to save partially made assignments from ASA to database
+    router.post('/assignment/save/', function (req, res) {
+        if (req.body.partialAssignmentId == null) {
+            PartialAssignments.create({
+                PartialAssignmentName: req.body.assignment.AA_name,
+                UserID: req.body.userId,
+                CourseID: req.body.courseId,
+                Data: req.body.assignment
+            }).then((result) => {
+                res.json({
+                    'Error': false,
+                    'PartialAssignmentID': result.PartialAssignmentID
+                });
+            }).catch((err) => {
+                console.error(err);
+                res.status(400).end();
+            });
+        } else {
+            PartialAssignments.update({
+                PartialAssignmentName: req.body.assignment.AA_name,
+                Data: req.body.assignment
+            }, {
+                where: {
+                    PartialAssignmentID: req.body.partialAssignmentId
+                }
+            }).then((result) => {
+                console.log(result);
+                console.log('PartialAssignmentID:', result.PartialAssignmentID);
+                res.json({
+                    'Error': false,
+                    'PartialAssignmentID': req.body.partialAssignmentId
+                });
+            }).catch((result) => {
+                console.error(result);
+                res.status(400).end();
+            });
+        }
+    });
+
+    //Endpoint to load the names and IDs partial assignments by User and/or CourseID
+    router.get('/partialAssignments/all/:userId', function (req, res) {
+        var whereConditions = {
+            UserID: req.params.userId
+        };
+
+        if (req.query.courseId !== undefined) {
+            whereConditions.CourseID = req.query.courseId;
+        }
+
+        PartialAssignments.findAll({
+            where: whereConditions,
+            attributes: ['PartialAssignmentID', 'PartialAssignmentName']
+        }).then((result) => {
+            res.json({
+                'Error': false,
+                'PartialAssignments': result
+            });
+        }).catch((result) => {
+            console.error(result);
+            res.status(400).json({
+                'Error': true
+            });
+        });
+
+    });
+
+    //Endpoint to get the data from a partial assignment for the assignment editor
+    router.get('/partialAssignments/byId/:partialAssignmentId', function (req, res) {
+
+        PartialAssignments.find({
+            where: {
+                PartialAssignmentID: req.params.partialAssignmentId,
+
+            }
+        }).then(result => {
+            console.log(result);
+            res.json({
+                'Error': false,
+                'PartialAssignment': result
+            });
+        }).catch(result => {
+            console.log(result);
+            res.status(400).json({
+                Error: true
+            });
+        });
+    });
+
+    //Endpoint to get an assignment associate with courseId
+    router.get('/getAssignments/:courseId', function (req, res) {
+
+        console.log('Finding assignments...');
+
+        Assignment.findAll({
+
+            where: {
+                CourseID: req.params.courseId
+            },
+            attributes: ['AssignmentID', 'Name', 'DisplayName', 'Type', 'Documentation', 'CourseID']
+
+        }).then(function (result) {
+
+            console.log('Assignments have been found!');
+
+            res.json({
+                'Error': false,
+                'Assignments': result
+            });
+
+        }).catch(function (err) {
+
+            console.log('/getCompletedTaskInstances: ' + err);
+            res.status(404).json({
+                Error: true
+            });
+
+        });
+    });
+
+    //Endpoint to get a user's active assignment instances by the section
+    router.get('/getActiveAssignmentsForSection/:sectionId', function (req, res) {
+        console.log(`/getActiveAssignmentsForSection/:sectionId: Finding Assignments for Section ${req.params.sectionId}`);
+        AssignmentInstance.findAll({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+            include: [{
+                model: Assignment,
+                attributes: ['DisplayName']
+            }]
+        }).then(function (result) {
+            console.log('/getActiveAssignmentsForSection/:sectionId: Assignments have been found!');
+            res.json({
+                'Error': false,
+                'Assignments': result
+            });
+        }).catch(function (err) {
+            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
+            res.status(404).json({
+                Error: true
+            });
+        });
+    });
+
+    //Endpoint to get a user's active assignment instances by the course
+    router.get('/getActiveAssignments/:courseId', function (req, res) {
+        console.log('Finding assignments...');
+        Assignment.findAll({
+            where: {
+                CourseID: req.params.courseId
+            },
+            attributes: ['AssignmentID', 'DisplayName', 'Type'],
+            include: [{
+                model: AssignmentInstance,
+                as: 'AssignmentInstances',
+                attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'SectionID']
+
+            }]
+        }).then(function (result) {
+            console.log('Assignments have been found!');
+            res.json({
+                'Error': false,
+                'Assignments': result
+            });
+        }).catch(function (err) {
+            console.log('/getActiveAssignments/' + req.params.courseId + ': ' + err);
+            res.status(404).end();
+        });
+    });
+
+    router.post('/files/upload/:type?', function (req, res) {
+        console.log('File upload:', req.body);
+        let successfulFiles = [];
+        let unsuccessfulFiles = [];
+
+        Promise.mapSeries(req.body.files, (file) => {
+            return FileReference.create({
+                UserID: req.body.userId,
+                Info: file,
+                LastUpdated: new Date(),
+            }).then(function (result) {
+                successfulFiles.push(file);
+                return {File: file, FileID: result.FileID};
+            }).catch(function (err) {
+                unsuccessfulFiles.push(file);
+                return { File: file, Error: err };
+            });
+        }).then(results => {
+            console.log(results);
+            let newFileIDs = results.map(instanceInfo => instanceInfo.FileID);
+            switch (req.params.type) {
+            case 'task':
+                return TaskInstance.find({
+                    where: {
+                        TaskInstanceID: req.body.taskInstanceId
+                    }
+                }).then(ti => {
+                    let newFilesArray = JSON.parse(ti.Files) || [];
+                    newFilesArray = newFilesArray.concat(newFileIDs);
+
+                    // Update task instance with the new file references
+                    return TaskInstance.update({
+                        Files: newFilesArray
+                    }, {
+                        where: {
+                            TaskInstanceID: req.body.taskInstanceId
+                        }
+                    }).then(done => {
+                        logger.log('info', 'task updated with new files', {
+                            res: done
+                        });
+                        // Respond wtih file info
+                        return res.status(200).json({
+                            SuccessfulFiles: successfulFiles,
+                            UnsuccessfulFiles: unsuccessfulFiles
+                        });
+                    });
+                })
+                    .catch(er => {
+                        logger.log('error', 'file task info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            case 'profile-picture':
+                UserContact.update({
+                    ProfilePicture: newFileIDs[0]
+                }, {
+                    where: {
+                        UserID: req.body.userId
+                    }
+                }).then(function (done) {
+                    logger.log('info', 'user updated with new profile pictures info', {
+                        res: done
+                    });
+                    // respond with file info
+                    return res.status(200).json({
+                        SuccessfulFiles: successfulFiles,
+                        UnsuccessfulFiles: unsuccessfulFiles
+                    });
+                })
+                    .catch(er => {
+                        logger.log('error', 'profile-picture info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            default:
+                res.status(200).json({
+                    FileID: result.FileID
+                });
+                break;
+            }
+        });
+
+    });
+
+
+    router.post('/file/upload/:type?', function (req, res) {
+        console.log('File upload:', req.body);
+        FileReference.create({
+            UserID: req.body.userId,
+            Info: req.body.fileInfo,
+            LastUpdated: new Date(),
+        }).then(function (result) {
+
+            switch (req.params.type) {
+            case 'task':
+                TaskInstance.find({
+                    where: {
+                        TaskInstanceID: req.body.taskInstanceId
+                    }
+                }).then(ti => {
+                    let newFilesArray = JSON.parse(ti.Files) || [];
+                    newFilesArray = newFilesArray.concat([result.FileID]);
+
+                    // Update task instance with the new file references
+                    return TaskInstance.update({
+                        Files: newFilesArray
+                    }, {
+                        where: {
+                            TaskInstanceID: req.body.taskInstanceId
+                        }
+                    }).then(done => {
+                        logger.log('info', 'task updated with new files', {
+                            res: done
+                        });
+                        // Respond wtih file info
+                        res.status(200).json({
+                            FileID: result.FileID
+                        });
+                    });
+                })
+                    .catch(er => {
+                        logger.log('error', 'file task info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            case 'profile-picture':
+                UserContact.update({
+                    ProfilePicture: [result.FileID]
+                }, {
+                    where: {
+                        UserID: req.body.userId
+                    }
+                }).then(function (done) {
+                    logger.log('info', 'user updated with new profile pictures info', {
+                        res: done
+                    });
+                    // respond with file info
+                    res.status(200).json({
+                        FileID: result.FileID
+                    });
+                    return done;
+                })
+                    .catch(er => {
+                        logger.log('error', 'profile-picture info not uploaded successfully', er);
+                        res.status(400).end();
+                    });
+                break;
+            default:
+                res.status(200).json({
+                    FileID: result.FileID
+                });
+                break;
+            }
+
+        })
+            .catch(function (err) {
+                logger.log('error', 'file info not uploaded successfully');
+                res.status(400).end();
+            });
+    });
+
+    router.get('/file/download/:fileId', function (req, res) {
+        FileReference.findOne({
+            where: {
+                FileID: req.params.fileId
+            }
+        }).then(function (result) {
+            res.status(200).json(result);
+        })
+            .catch(function (err) {
+                logger.log('error', 'file info not downloaded successfully');
+                res.status(400).json(result);
+            });
+    });
+
+    router.delete('/file/delete/:fileId', async function (req, res) {
+        let taskId = req.body.taskId || '';
+        var userId = req.body.userId;
+        if(userId === null || userId === ''){
+            logger.log('error', '/file/delete User Not Authorized');
+            return res.status(401).end();
+        }
+        logger.log('info', 'deleting file info from database with FileID: ',req.params.fileId, req.body);
+        FileReference.findOne({
+            where: {
+                FileID: req.params.fileId,
+                UserID: userId
+            }
+        }).then(async function (fileResult) {
+            var fileInfo = fileResult;
+            fileResult.destroy();
+
+            if(taskId !== ''){
+                let result = await TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskId
+                    },
+                    attributes: ['Files']
+                }).catch(err => {
+                    logger.log('error', 'could not get files', err, req.params);
+                    return res.status(400).end();
+                });
+
+                let fileArray = result.Files;
+
+                fileArray = JSON.parse(fileArray);
+                fileArray.splice(fileArray.indexOf(req.body.fileId), 1);
+
+
+                await TaskInstance.update({
+                    Files: fileArray
+                },
+                {
+                    where: {
+                        TaskInstanceID: taskId
+                    }
+                });
+
+                return res.json(fileInfo);
+            }
+
+        })
+            .catch(function (err) {
+                logger.log('error', 'file info not deleted successfully', err);
+                res.status(400).end();
+            });
+    });
+
+    router.get('/getCourseSections/:courseID', function (req, res) {
+
+        let whereOptions = {
+            CourseID: req.params.courseID
+        };
+
+        if (req.query.semesterID != null) {
+            whereOptions.SemesterID = req.query.semesterID;
+        }
+
+        Section.findAll({
+            where: whereOptions,
+            order: [
+                ['Name']
+            ],
+            attributes: ['SectionID', 'Name']
+        }).then(function (sections) {
+            res.json({
+                'Sections': sections
+            });
+        });
+    });
+
+    //Endpoint to Get Courses Created by an Instructor
+    router.get('/getCourseCreated/:instructorID', function (req, res) {
+        Course.findAll({
+            where: {
+                CreatorID: req.params.instructorID
+            }
+        }).then(function (Courses) {
+            console.log('/getCourseCreated/ Courses found');
+            res.json({
+                'Error': false,
+                'Courses': Courses
+            });
+        });
+    });
+
+    //Get all courses that the student has been enrolled in by their ID
+    router.get('/getAllEnrolledCourses/:studentID', function (req, res) {
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.studentID
+            },
+            attributes: ['Role', ' Active'],
+            include: [{
+                model: Section,
+                attributes: ['Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['Number', 'Name']
+                }]
+            }]
+        }).then(function (Courses) {
+            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
+            res.json({
+                'Error': false,
+                'Courses': Courses
+            });
+        });
+    });
+
+    //Get the courses that are currently active(eg. in current semester) for a student
+    router.get('/getActiveEnrolledCourses/:studentID', function (req, res) {
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.studentID,
+                Active: true
+            },
+            attributes: ['Role'],
+            include: [{
+                model: Section,
+                attributes: ['Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['Number', 'Name', 'Abbreviations']
+                }]
+            }]
+        }).then(function (Courses) {
+            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
+            res.json({
+                'Error': false,
+                'Courses': Courses
+            });
+        });
+    });
+
+    //Get the active sections for a student in a particular course
+    router.get('/getActiveEnrolledSections/:courseID', function (req, res) {
+        SectionUser.findAll({
+            where: {
+                UserID: req.query.studentID,
+                Active: true
+            },
+            attributes: ['Role'],
+            include: [{
+                model: Section,
+                attributes: ['SectionID', 'Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['CourseID', 'Number', 'Name']
+                }, {
+                    model: Semester,
+                    attributes: ['SemesterID', 'Name']
+                }]
+            }]
+        }).then(function (sections) {
+            let returnSections = sections.filter((section) => {
+                return section.Section.Course.CourseID == req.params.courseID;
+            }).map(section => section.Section);
+            Course.find({
+                where: {
+                    CourseID: req.params.courseID
+                },
+                attributes: ['CourseID', 'Number', 'Name', 'Description']
+            }).then(function (result) {
+                console.log(`/getActiveEnrolledSections/ Courses for ${req.query.studentID} found `);
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Sections': returnSections,
+                    'Course': result
+                });
+            });
+
+        });
+    });
+
+    //Endpoint to Get Courses Created by an Instructor
+    router.get('/getOrganizationCourses/:organizationID', function (req, res) {
+        Course.findAll({
+            where: {
+                OrganizationID: req.params.organizationID
+            },
+            order: [
+                ['Number'],
+                ['Name']
+            ]
+        }).then(function (Courses) {
+            console.log('/getOrganizationCourses/ Courses found');
+            res.json({
+                'Error': false,
+                'Courses': Courses
+            });
+        });
+    });
+
+    router.get('/getUserID/:email', function (req, res) {
+        UserLogin.find({
+            where: {
+                Email: req.params.email
+            }
+        }).then(function (user) {
+
+            res.json({
+                'UserID': user.UserID
+            });
+        }).catch(function (e) {
+            console.log('getUserID ' + e);
+            UserContact.find({
+                Email: req.params.email
+
+            }).then(function(user) {
+                res.json({
+                    'UserID': user.UserID
+                });
+            })
+                .catch(function(e) {
+                    console.log('getUserID ' + e);
+
+                    res.json({
+                        'UserID': -1
+                    });
+                });
+
+        });
+    });
+
+    //Endpoint to get task instance header data for front end
+    router.get('/taskInstanceTemplate/main/:taskInstanceID', function (req, res) {
+
+        logger.log('info', 'get: /taskInstanceTemplate/main/:taskInstanceID', {
+            req_query: req.query
+        });
+        TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.taskInstanceID
+            },
+            include: [{
+                model: TaskActivity,
+                include: [{
+                    model: Assignment,
+                    attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
+                }],
+                attributes: ['Type']
+            }, {
+                model: AssignmentInstance,
+                include: [{
+                    model: Section,
+                    attributes: ['Name', 'SectionID'],
+                    include: [{
+                        model: Course,
+                        attributes: ['Name', 'Number']
+                    },
+                    {
+                        model: Semester,
+                        attributes: ['SemesterID', 'Name']
+                    }
+                    ]
+                }]
+
+            }]
+        })
+            .catch(function(err) {
+                //Catch error and print into console.
+                console.log(err);
+                logger.log('error', '/taskInstanceTemplate/main/', {
+                    error: err
+                });
+                res.status(400).end();
+            })
+            .then(function (taskInstanceResult) {
+                return res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'taskActivityID': taskInstanceResult.TaskActivityID,
+                    'taskActivityType': taskInstanceResult.TaskActivity.Type,
+                    'courseName': taskInstanceResult.AssignmentInstance.Section.Course.Name,
+                    'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
+                    'assignment': taskInstanceResult.TaskActivity.Assignment,
+                    'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
+                    'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name,
+                    'sectionName': taskInstanceResult.AssignmentInstance.Section.Name,
+                    'sectionID': taskInstanceResult.AssignmentInstance.Section.Name
+                });
+            });
+
+    });
+
+    // Endpoint to submit the taskInstance input and sync into database
+    router.post('/taskInstanceTemplate/create/submit', async function (req, res) {
+
+        var grade = new Grade();
+        var trigger = new TaskTrigger();
+
+        logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
+            req_body: req.body
+        });
+
+        if (req.body.taskInstanceid == null) {
+            logger.log('info', 'TaskInstanceID cannot be null');
+            return res.status(400).end();
+        }
+        if (req.body.userid == null) {
+            logger.log('info', 'UserID cannot be null');
+            return res.status(400).end();
+        }
+        if (req.body.taskInstanceData == null) {
+            logger.log('info', 'Data cannot be null');
+            return res.status(400).end();
+        }
+
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.taskInstanceid,
+            },
+            include: [{
+                model: TaskActivity,
+                attributes: ['Type', 'AllowRevision', 'AllowReflection'],
+            }, ],
+        });
+
+        if (JSON.parse(ti.Status)[0] === 'complete') {
+            logger.log('error', 'The task has been complted already');
+            return res.status(403).end();
+        }
+
+        //Update points for student as they submit tasks
+        let taskFactory = new TaskFactory;
+        taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, req.body.userid);
+
+        logger.log('info', 'task instance found', ti.toJSON());
+        //Ensure userid input matches TaskInstance.UserID
+        if (req.body.userid != ti.UserID) {
+            logger.log('error', 'UserID Not Matched');
+            return res.status(400).end();
+        }
+        if (ti.TaskActivity.Type === 'edit') {
+            await trigger.approved(req.body.taskInstanceid, req.body.taskInstanceData);
+        } else {
+
+            var ti_data = await JSON.parse(ti.Data);
+
+            if (!ti_data) {
+                ti_data = [];
+            }
+
+            await ti_data.push(req.body.taskInstanceData);
+
+            logger.log('info', 'updating task instance', {
+                ti_data: ti_data
+            });
+
+            var newStatus = JSON.parse(ti.Status);
+            newStatus[0] = 'complete';
+
+            var final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
+
+            var done = await TaskInstance.update({
+                Data: ti_data,
+                ActualEndDate: new Date(),
+                Status: JSON.stringify(newStatus),
+                FinalGrade: final_grade
+            }, {
+                where: {
+                    TaskInstanceID: req.body.taskInstanceid,
+                    UserID: req.body.userid,
+                }
+            });
+
+            var new_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: req.body.taskInstanceid,
+                },
+                include: [{
+                    model: TaskActivity,
+                    attributes: ['Type'],
+                }, ],
+            });
+
+            console.log(JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
+
+            logger.log('info', 'task instance updated');
+            logger.log('info', 'triggering next task');
+
+            await trigger.next(req.body.taskInstanceid);
+        }
+
+        // if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
+        //     var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id;
+        //     logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id);
+
+        //     TaskInstance.find({
+        //         where: {
+        //             TaskInstanceID: pre_ti_id
+        //         }
+        //     }).then(function (pre_ti) {
+        //         logger.log('info', 'task instance found', pre_ti.toJSON());
+        //         ti_data = JSON.parse(pre_ti.Data);
+
+        //         if (!ti_data) {
+        //             ti_data = [];
+        //         }
+        //         ti_data.push(req.body.taskInstanceData);
+
+        //         logger.log('info', 'updating task instance', {
+        //             ti_data: ti_data
+        //         });
+
+        //         return TaskInstance.update({
+        //             Data: ti_data,
+        //         }, {
+        //             where: {
+        //                 TaskInstanceID: pre_ti.TaskInstanceID,
+        //             },
+        //         }).then(function (done) {
+        //             logger.log('info', 'task instance updated', {
+        //                 done: done
+        //             });
+        //         }).catch(function (err) {
+        //             logger.log('error', 'task instance update failed', {
+        //                 err: err
+        //             });
+        //         });
+        //     });
+        // }
+
+        return res.status(200).end();
+
+
+
+
+        // return TaskInstance.find({
+        //     where: {
+        //         TaskInstanceID: req.body.taskInstanceid,
+        //     },
+        //     include: [{
+        //         model: TaskActivity,
+        //         attributes: ['Type'],
+        //     }, ],
+        // }).then(async function(ti) {
+        //     logger.log('info', 'task instance found', ti.toJSON())
+        //     //Ensure userid input matches TaskInstance.UserID
+        //     if (req.body.userid != ti.UserID) {
+        //         logger.log('error', 'UserID Not Matched')
+        //         return res.status(400).end()
+        //     }
+        //     var ti_data = JSON.parse(ti.Data)
+        //
+        //     if (!ti_data) {
+        //         ti_data = []
+        //     }
+        //     ti_data.push(req.body.taskInstanceData)
+        //
+        //     logger.log('info', 'updating task instance', {
+        //         ti_data: ti_data
+        //     })
+        //
+        //     // return TaskInstance.find({
+        //     //     where: {
+        //     //         TaskInstanceID: req.body.taskInstanceid,
+        //     //         UserID: req.body.userid,
+        //     //     },
+        //     //     include:[
+        //     //       {
+        //     //         model: TaskActivity
+        //     //       }
+        //     //     ]
+        //     // }).then(function(ti) {
+        //     var newStatus = JSON.parse(ti.Status);
+        //     newStatus[0] = 'complete';
+        //     await TaskInstance.update({
+        //         Data: ti_data,
+        //         ActualEndDate: new Date(),
+        //         Status: JSON.stringify(newStatus),
+        //     }, {
+        //         where: {
+        //             TaskInstanceID: req.body.taskInstanceid,
+        //             UserID: req.body.userid,
+        //         }
+        //     }).then(async function(done) {
+        //         logger.log('info', 'task instance updated', {
+        //             done: done
+        //         })
+        //         logger.log('info', 'triggering next task')
+        //         //Trigger next task to start
+        //         await ti.triggerNext()
+        //
+        //         console.log('trigger completed');
+        //
+        //         if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
+        //             var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id
+        //             logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id)
+        //
+        //             TaskInstance.find({
+        //                 where: {
+        //                     TaskInstanceID: pre_ti_id
+        //                 }
+        //             }).then(function(pre_ti) {
+        //                 logger.log('info', 'task instance found', pre_ti.toJSON())
+        //                 ti_data = JSON.parse(pre_ti.Data)
+        //
+        //                 if (!ti_data) {
+        //                     ti_data = []
+        //                 }
+        //                 ti_data.push(req.body.taskInstanceData)
+        //
+        //                 logger.log('info', 'updating task instance', {
+        //                     ti_data: ti_data
+        //                 })
+        //
+        //                 return TaskInstance.update({
+        //                     Data: ti_data,
+        //                 }, {
+        //                     where: {
+        //                         TaskInstanceID: pre_ti.TaskInstanceID,
+        //                     },
+        //                 }).then(function(done) {
+        //                     logger.log('info', 'task instance updated', {
+        //                         done: done
+        //                     })
+        //                 }).catch(function(err) {
+        //                     logger.log('error', 'task instance update failed', {
+        //                         err: err
+        //                     })
+        //                 })
+        //             })
+        //         }
+        //         return res.status(200).end()
+        //     }).catch(function(err) {
+        //         console.log('err', err);
+        //         logger.log('error', 'task instance update failed', {
+        //             err: err
+        //         })
+        //         return res.status(400).end();
+        //     })
+        //     //})
+        // })
+    });
+
+    //Endpoint to save the task instance input
+    router.post('/taskInstanceTemplate/create/save', async function (req, res) {
+        if (req.body.taskInstanceid == null) {
+            console.log('/taskInstanceTemplate/create/save : TaskInstanceID cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.userid == null) {
+            console.log('/taskInstanceTemplate/create/save : UserID cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.taskInstanceData == null) {
+            console.log('/taskInstanceTemplate/create/save : Data cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.taskInstanceid,
+                UserID: req.body.userid
+            }
+        });
+        //Ensure userid input matches TaskInstance.UserID
+        if (req.body.userid != ti.UserID) {
+            console.log('/taskInstanceTemplate/create/save : UserID Incorrect Match');
+            res.status(400).end();
+            return;
+        }
+
+        var status = JSON.parse(ti.Status);
+        status[4] = 'saved';
+
+        var ti_data = await JSON.parse(ti.Data);
+        if (!ti_data) {
+            ti_data = [];
+        }
+        await ti_data.push(req.body.taskInstanceData);
+
+
+
+        //Task_Status remains incomplete and store userCreatedProblem
+        await ti.update({
+            Data: ti_data,
+            Status: status
+        });
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'Result': response
+        });
+
+    });
+
+    router.get('/getPendingTaskInstances/:userID', function (req, res) {
+        TaskInstance.findAll({
+            where: {
+                UserID: req.params.userID,
+                $or: [{
+                    Status: {
+                        $like: '%"incomplete"%'
+                    }
+                }, {
+                    Status: {
+                        $like: '%"started"%'
+                    }
+                }]
+            },
+
+            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status'],
+            include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
+                {
+                    model: AssignmentInstance,
+                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
+                    include: [{
+                        model: Section,
+                        attributes: ['SectionID', 'Name'],
+                        include: [{
+                            model: Course,
+                            attributes: ['Name', 'CourseID', 'Number']
+                        }]
+
+                    }, {
+                        model: Assignment,
+                        attributes: ['Name']
+                    }]
+                },
+                /*TaskInstance - > AssignmentInstance - > Section - > Course */
+                {
+                    model: TaskActivity,
+                    attributes: ['Name', 'DisplayName', 'Type', 'AllowRevision'],
+                    include: [{
+                        model: WorkflowActivity,
+                        attributes: ['Name']
+                    }]
+                }
+            ]
+        }).then(function (taskInstances) {
+
+            console.log('/getPendingTaskInstances/ TaskInstances found');
+            res.json({
+                'Error': false,
+                'PendingTaskInstances': taskInstances
+            });
+
+        }).catch(function (err) {
+
+            console.log('/getPendingTaskInstances: ' + err);
+            res.status(404).end();
+
+        });
+
+
+    });
+
+
+    //Endpoint to get completed task instances for user
+    router.get('/getCompletedTaskInstances/:userID', function (req, res) {
+
+        TaskInstance.findAll({
+            where: {
+
+
+                UserID: req.params.userID,
+                Status: {
+                    $like: '%"complete"%'
+                }
+            },
+            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status', 'ActualEndDate'],
+            include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
+                {
+                    model: AssignmentInstance,
+                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
+                    include: [{
+                        model: Section,
+                        attributes: ['SectionID', 'Name'],
+                        include: [{
+                            model: Course,
+                            attributes: ['Name', 'CourseID', 'Number']
+                        }]
+
+                    }, {
+                        model: Assignment,
+                        attributes: ['Name']
+                    }]
+                }, {
+                    model: TaskActivity,
+                    attributes: ['Name', 'DisplayName', 'Type', 'VisualID'],
+                    include: [{
+                        model: WorkflowActivity,
+                        attributes: ['Name']
+                    }]
+                }
+            ]
+        }).then(function (taskInstances) {
+
+            console.log('/getCompletedTaskInstances/ TaskInstances found');
+
+            res.json({
+                'Error': false,
+                'CompletedTaskInstances': taskInstances
+            });
+        }).catch(function (err) {
+
+            console.log('/getCompletedTaskInstances: ' + err);
+            res.status(404).end();
+
+        });
+    });
+
+    //Endpoint to retrieve all the assignment and its current state
+    router.get('/getAssignmentRecord/:assignmentInstanceid', function (req, res) {
+        var taskFactory = new TaskFactory();
+
+        console.log('/getAssignmentRecord/:assignmentInstanceid: Initiating...');
+
+        var tasks = [];
+        var info = {};
+
+        return AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceid
+            }
+        }).then(function (AI_Result) {
+
+            return WorkflowInstance.findAll({
+                where: {
+                    AssignmentInstanceID: req.params.assignmentInstanceid
+                }
+            }).then(function (WI_Result) {
+
+                if (WI_Result === null || typeof WI_Result === undefined) {
+                    console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
+                } else {
+                    //Iterate through all workflow instances found
+                    return Promise.mapSeries(WI_Result, function (workflowInstance) {
+
+                        console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
+                        var tempTasks = [];
+
+                        return Promise.mapSeries(JSON.parse(workflowInstance.TaskCollection), function (task) {
+
+                            console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
+                            //each task is TaskInstanceID
+                            return TaskInstance.find({
+                                where: {
+                                    TaskInstanceID: task
+                                },
+                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                                include: [{
+                                    model: User,
+                                    attributes: ['UserID', 'FirstName', 'Instructor']
+                                }, {
+                                    model: TaskActivity,
+
+                                    attributes: ['Name', 'Type']
+                                }]
+                            }).then(function (taskInstanceResult) {
+
+                                //Array of all the task instances found within taskcollection
+                                if (taskInstanceResult.IsSubWorkflow === 0) {
+
+                                    taskFactory.getSubWorkflow(taskInstanceResult.TaskInstanceID, new Array()).then(function (subworkflow) {
+                                        if (!taskInstanceResult.hasOwnProperty('SubWorkflow')) {
+                                            taskInstanceResult.setDataValue('SubWorkflow', subworkflow);
+                                        } else {
+                                            taskInstanceResult.SubWorkflow.push(sw);
+                                        }
+                                    });
+
+                                    tempTasks.push(taskInstanceResult);
+                                }
+                            });
+                        }).then(function (result) {
+
+                            //Array of arrays of all task instance collection
+                            tasks.push(tempTasks);
+
+                            return AssignmentInstance.find({
+                                where: {
+                                    AssignmentInstanceID: req.params.assignmentInstanceid
+                                }
+                            }).then(function (AI_Result) {
+                                info.SectionID = AI_Result;
+                                return Assignment.find({
+                                    where: {
+                                        AssignmentID: AI_Result.AssignmentID
+                                    },
+                                    attributes: ['OwnerID', 'SemesterID', 'CourseID', 'DisplayName', 'SectionID']
+                                }).then(function (A_Result) {
+                                    info.Assignment = A_Result;
+                                    //console.log("A_Result", A_Result);
+                                    return User.find({
+                                        where: {
+                                            UserID: A_Result.OwnerID
+                                        },
+                                        attributes: ['FirstName', 'LastName']
+                                    }).then(function (user) {
+                                        info.User = user;
+
+                                        return Course.find({
+                                            where: {
+                                                CourseID: A_Result.CourseID
+                                            },
+                                            attributes: ['Name']
+                                        }).then(function (course) {
+                                            info.Course = course;
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                }
+
+            }).then(function (done) {
+
+                console.log('/getAssignmentRecord/:assignmentInstanceid: Done!');
+
+                res.json({
+                    'Error': false,
+                    'Info': info,
+                    'Workflows': JSON.parse(AI_Result.WorkflowCollection),
+                    'AssignmentRecords': tasks
+                });
+
+            }).catch(function (err) {
+
+                console.log('/getAssignmentRecord: ' + err);
+                res.status(404).end();
+            });
+        });
+    });
+
+    //Endpoint assignments in Section
+    router.get('/AssignmentsBySection/:SectionID', function (req, res) {
+        AssignmentInstance.findAll({
+            where: {
+                SectionID: req.params.SectionID
+            },
+            attributes: ['AssignmentInstanceID'],
+            include: [{
+                model: Assignment,
+                attributes: ['AssignmentID', 'Name', 'Type', 'DisplayName'],
+                include: [{
+                    model: Course,
+                    attributes: ['CourseID', 'Name', 'Number']
+                }]
+            }]
+        }).then(function(assignments) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Assignments': assignments
+
+            });
+        }
+
+        );
+    });
+
+    router.get('/SectionsByUser/:userId', function (req, res) {
+
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.userId
+            },
+            attributes: ['SectionID'],
+            include: [{
+                model: Section,
+                attributes: ['Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['CourseID', 'Name', 'Number']
+                }, ]
+
+            }]
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Sections': rows
+            });
+        }).catch(function (err) {
+            console.log('/section: ' + err.message);
+            res.status(401).end();
+        });
+    });
+
+    // get users in section by role
+    router.get('/sectionUsers/:sectionid/:role', function (req, res) {
+        SectionUser.findAll({
+            where: {
+                SectionID: req.params.sectionid,
+                Role: req.params.role
+            },
+            include: [{
+                model: User,
+                attributes: ['FirstName', 'LastName'],
+                include: [{
+                    model: VolunteerPool
+                }]
+            },
+            {
+                model: UserLogin,
+                attributes: ['Email']
+            }
+            ],
+            order: [
+                [User, 'LastName'],
+                [User, 'FirstName'],
+                [UserLogin, 'Email']
+            ],
+            attributes: ['SectionUserID', 'UserID', 'Active', 'Volunteer', 'Role']
+        }).then(function (SectionUsers) {
+            console.log('/sectionUsers called');
+            if (req.params.role === 'Student') {
+                SectionUsers = SectionUsers.map(user => {
+                    let newUser = {
+                        UserID: user.UserID,
+                        SectionUserID: user.SectionUserID,
+                        Active: user.Active,
+                        Role: user.Role,
+                        User: user.User,
+                        UserLogin: user.UserLogin
+                    };
+                    if (user.User.VolunteerPools.length != 0) {
+                        newUser.Volunteer = true;
+                        newUser.Status = user.User.VolunteerPools[0].status;
+
+                    } else {
+                        newUser.Volunteer = false;
+                        newUser.Status = 'Inactive';
+
+                    }
+                    return newUser;
+                });
+            }
+            return res.json({
+                'Error': false,
+                'SectionUsers': SectionUsers
+            });
+        });
+    });
+
+    //End point to add mutliple users to a section and invite any new ones
+    router.post('/sectionUsers/addMany/:sectionid', function (req, res) {
+        //expects - users
+        return sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+            .then(function () {
+                Promise.mapSeries(req.body.users, (userDetails) => {
+                    return UserLogin.find({
+                        where: {
+                            Email: userDetails.email
+                        },
+                        attributes: ['UserID']
+                    }).then(function(response) {
+                        if (response == null || response.UserID == null) {
+                            return sequelize.transaction(function(t) {
+                                return User.create({
+                                    FirstName: userDetails.firstName,
+                                    LastName: userDetails.lastName,
+                                    Instructor: userDetails.role === 'Instructor'
+                                }, {
+                                    transaction: t
+                                }).then(async function(user) {
+                                    let temp_pass = await password.generate();
+                                    return UserContact.create({
+                                        UserID: user.UserID,
+                                        FirstName: userDetails.firstName,
+                                        LastName: userDetails.lastName,
+                                        Email: userDetails.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
+                                        transaction: t
+                                    }).then(async function(userCon) {
+                                        return UserLogin.create({
+                                            UserID: user.UserID,
+                                            Email: userDetails.email,
+                                            Password: await password.hash(temp_pass)
+                                        }, {
+                                            transaction: t
+                                        }).then(function(userLogin) {
+
+                                            return SectionUser.create({
+                                                SectionID: req.params.sectionid,
+                                                UserID: userLogin.UserID,
+                                                Active: userDetails.active,
+                                                Volunteer: userDetails.volunteer,
+                                                Role: userDetails.role
+                                            }, {
+                                                transaction: t
+                                            }).then(function(sectionUser) {
+                                                console.log('Creating user, inviting, and adding to section');
+                                                logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                    req_body: userDetails
+                                                });
+
+                                                let email = new Email();
+                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+
+                                                return sectionUser;
+
+                                            });
+                                        });
+                                    });
+                                });
+                            })
+                                .catch((err) => {
+                                    console.log(err);
+                                    logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
+                                        body: userDetails,
+                                        err: err
+
+                                    });
+                                });
+
+                        } else {
+                            SectionUser.find({
+                                where: {
+                                    SectionID: req.params.sectionid,
+                                    UserID: response.UserID
+                                },
+                                attributes: ['UserID']
+                            }).then(function(sectionUser) {
+                                if (sectionUser == null || sectionUser.UserID == null) {
+                                    SectionUser.create({
+                                        SectionID: req.params.sectionid,
+                                        UserID: response.UserID,
+                                        Active: userDetails.active,
+                                        Volunteer: userDetails.volunteer,
+                                        Role: userDetails.role
+
+                                    }).then(function(result) {
+                                        console.log('User exists, adding to section');
+                                        logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
+                                            result: result
+                                        });
+                                        return result;
+                                    });
+                                } else {
+                                    console.log('User already in section');
+                                    logger.log('info', '/sectionUsers/addMany', 'user already in system', {
+                                        result: sectionUser
+                                    });
+                                    return sectionUser;
+                                }
+                            });
+                        }
+                    });
+                })
+                    .then((results) => {
+                        console.log(results);
+                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                            .then(() => {
+                                return res.status(200).end();
+                            });
+                    }).catch(function (err) {
+                        console.error(err);
+                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                            req_body: req.body,
+                            error: err
+                        });
+                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                            .then(() => {
+                                res.status(500).end();
+                            });
+                    });
+            });
+    });
+
+    // endpoint to add sectionusers, invite users not yet in system
+    router.post('/sectionUsers/:sectionid', async function (req, res) {
+
+        //expects -email
+        //        -firstName
+        //        -lastName
+        //        -email
+        //        -sectionid
+        //        -email
+        //        -active
+        //        -body
+        //        -role
+
+        UserLogin.find({
+            where: {
+                Email: req.body.email
+            },
+            attributes: ['UserID']
+        }).then(function (response) {
+            if (response == null || response.UserID == null) {
+                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                    .then(function () {
+                        return sequelize.transaction(function (t) {
+                            return User.create({
+                                FirstName: req.body.firstName,
+                                LastName: req.body.lastName,
+                                Instructor: req.body.role === 'Instructor'
+                            }, {
+                                transaction: t
+                            })
+                                .catch(function(err) {
+                                    console.error(err);
+                                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                        req_body: req.body,
+                                        error: err
+                                    });
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function () {
+                                            res.status(500).end();
+                                        });
+                                })
+                                .then(async function (user) {
+                                    console.log(user.UserID);
+                                    let temp_pass = await password.generate();
+                                    return UserContact.create({
+                                        UserID: user.UserID,
+                                        FirstName: req.body.firstName,
+                                        LastName: req.body.lastName,
+                                        Email: req.body.email,
+                                        Phone: '(XXX) XXX-XXXX'
+                                    }, {
+                                        transaction: t
+                                    }).catch(function(err) {
+                                        console.error(err);
+                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                            req_body: req.body,
+                                            error: err
+                                        });
+                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                            .then(function() {
+                                                res.status(500).end();
+                                            });
+                                    })
+                                        .then(async function(userCon) {
+                                            return UserLogin.create({
+                                                UserID: user.UserID,
+                                                Email: req.body.email,
+                                                Password: await password.hash(temp_pass)
+                                            }, {
+                                                transaction: t
+                                            }).catch(function (err) {
+                                                console.error(err);
+                                                logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                    req_body: req.body,
+                                                    error: err
+                                                });
+                                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                                    .then(function () {
+                                                        res.status(500).end();
+                                                    });
+                                            }).then(function (userLogin) {
+                                                let email = new Email();
+                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+                                                return SectionUser.create({
+                                                    SectionID: req.params.sectionid,
+                                                    UserID: userLogin.UserID,
+                                                    Active: req.body.active,
+                                                    Volunteer: req.body.volunteer,
+                                                    Role: req.body.role
+                                                }, {
+                                                    transaction: t
+                                                }).catch(function (err) {
+                                                    console.error(err);
+                                                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                        req_body: req.body,
+                                                        error: err
+                                                    });
+                                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                                        .then(function () {
+                                                            res.status(500).end();
+                                                        });
+                                                }).then(function (sectionUser) {
+                                                    console.log('Creating user, inviting, and adding to section');
+                                                    logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
+                                                        req_body: req.body
+                                                    });
+                                                    return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
+                                                        transaction: t
+                                                    })
+                                                        .then(function() {
+                                                            res.json({
+                                                                success: true,
+                                                                message: 'new user'
+                                                            });
+
+                                                        });
+                                                });
+                                            });
+                                        });
+                                });
+                        });
+                    });
+
+            } else {
+                SectionUser.find({
+                    where: {
+                        SectionID: req.params.sectionid,
+                        UserID: response.UserID
+                    },
+                    attributes: ['UserID']
+                }).then(function (sectionUser) {
+                    if (sectionUser == null || sectionUser.UserID == null) {
+                        SectionUser.create({
+                            SectionID: req.params.sectionid,
+                            UserID: response.UserID,
+                            Active: req.body.active,
+                            Volunteer: req.body.volunteer,
+                            Role: req.body.role
+                        }).catch(function (err) {
+                            console.log(err);
+                            res.status(500).end();
+                        }).then(function (result) {
+                            console.log('User exists, adding to section');
+                            res.json({
+                                success: true,
+                                message: 'existing user'
+                            });
+                        });
+                    } else {
+                        console.log('User already in section');
+                        res.json({
+                            success: false,
+                            error: 'already in section'
+                        });
+                    }
+                });
+            }
+        });
+    });
+
+    router.post('/sectionUsers/changeActive/:sectionUserID', (req, res) => {
+        /** TODO:  This API does a simple database update, but it may need
+         * to do some special reallocation to deal with inactive students
+         */
+        var newActiveStatus = true;
+        if (req.body.active != null) {
+            newActiveStatus = req.body.active;
+        }
+        SectionUser.update({
+            Active: newActiveStatus
+        }, {
+            where: {
+                SectionUserID: req.params.sectionUserID
+            }
+        }).then(sectionUser => {
+            res.status(201).json({
+                message: 'Success',
+                SectionUserID: sectionUser.SectionUserID
+            });
+        }).catch(err => {
+            logger.log('error', 'post: /sectionUser/changeActive/, user active status not set', {
+                error: err,
+                req_params: req.params,
+            });
+            res.status(401).end();
+        });
+    });
+
+    router.get('/getWorkflow/:ti_id', async function (req, res) {
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.ti_id
+            },
+            include: [{
+                model: WorkflowInstance,
+                attributes: ['TaskCollection'],
+                include: [{
+                    model: WorkflowActivity,
+                    attributes: ['WorkflowStructure']
+                }]
+            }]
+        });
+
+        var json = {};
+
+        await Promise.mapSeries(JSON.parse(ti.WorkflowInstance.TaskCollection), async function (ti_id) {
+            var new_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: ti_id
+                },
+                include: [TaskActivity]
+            });
+            json[ti_id] = new_ti;
+        });
+
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'Workflow': json,
+            'WorkflowTree': ti.WorkflowInstance.WorkflowActivity.WorkflowStructure
+        });
+    });
+
+    router.get('/task/files/:taskId', async function (req, res) {
+
+        let result = await TaskInstance.findOne({
+            where: {
+                TaskInstanceID: req.params.taskId
+            },
+            attributes: ['Files']
+        }).catch(err => {
+            logger.log('error', 'could not get files', err, req.params);
+            return res.status(400).end();
+        });
+
+        /*if(result.Files == null){
+        return res.json({
+        Files: []
+        });
+        } else {
+        return res.json({
+        Files: result.Files
+        });
+        }*/
+
+
+        let fileArray = [];
+
+        await Promise.map(JSON.parse(result.Files), async file => {
+            var fr = await FileReference.findOne({
+                where: {
+                    FileID: file
+                },
+                attributes: ['FileID','Info']
+            });
+
+            fileArray.push(fr);
+        });
+
+
+
+        return res.json({
+            Files: fileArray
+        });
+
+    });
+
+
+    //get Section information
+    router.get('/section/info/:sectionId',async function(req,res) {
+        let sectionInfo = await Section.findOne({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            include: [{
+                model: Course
+            },{
+                model:Semester
+            }]
+        });
+
+        let activeAssignments = await AssignmentInstance.findAll({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+            include: [{
+                model: Assignment,
+                attributes: ['DisplayName']
+            }]
+        });
+
+        let sectionUsers = await SectionUser.findAll({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ['UserID', 'Role', 'Active'],
+            include: {
+                model: User,
+                attributes: ['FirstName', 'LastName']
+            }
+        });
+
+        res.json({
+            Section: sectionInfo,
+            OngoingAssignments: activeAssignments,
+            Users: sectionUsers
+        });
+        
+    });
+    ////////////----------------   END Participant APIs
+
+    ////////////                 Enhanced Access Level APIs                   ///////////////////////////
+    ////////////----------------   END Enhanced Access APIs
+
+    ////////////                 Admin Level APIs                   ///////////////////////////
+    ////////////----------------   END Admin APIs
+   
+   
     //Endpoint to return VolunteerPool list of Volunteers
     router.get('/VolunteerPool/', function (req, res) {
 
@@ -1368,257 +3198,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------------------------------------
 
     //Endpoint to Create an Assignment
-    router.post('/assignment/create', function (req, res) {
-
-        //
-        // console.log('assignment: ', req.body.assignment);
-        // allocator.createAssignment(req.body.assignment).then(function(done) {
-        //     if (done === false) {
-        //         res.status(400).end();
-        //     } else {
-        //         res.status(200).end();
-        //     }
-        // });
-
-        // if (req.body.partialAssignmentId !== null) {
-        //     PartialAssignments.find({
-        //         where: {
-        //             PartialAssignmentID: req.body.partialAssignmentId,
-        //             UserID: req.body.userId,
-        //             CourseID: req.body.courseId
-        //         }
-        //     }).then((result) => {
-        //         result.destroy();
-        //     }).catch((err) => {
-        //         console.error(err);
-        //     });
-        // }
-        var taskFactory = new TaskFactory();
-        if (req.body.partialAssignmentId == null) {
-            PartialAssignments.create({
-                PartialAssignmentName: req.body.assignment.AA_name,
-                UserID: req.body.userId,
-                CourseID: req.body.courseId,
-                Data: req.body.assignment
-            }).then((result) => {
-
-                console.log('assignment: ', req.body.assignment);
-                taskFactory.createAssignment(req.body.assignment).then(function (done) {
-                    if (done) {
-                        res.json({
-                            'Error': false,
-                            'PartialAssignmentID': result.PartialAssignmentID
-                        });
-                    } else {
-                        res.status(400).end();
-                    }
-                });
-            }).catch((err) => {
-                console.error(err);
-                res.status(400).end();
-            });
-        } else {
-            PartialAssignments.update({
-                PartialAssignmentName: req.body.assignment.AA_name,
-                Data: req.body.assignment
-            }, {
-                where: {
-                    PartialAssignmentID: req.body.partialAssignmentId
-                }
-            }).then((result) => {
-                console.log('assignment: ', req.body.assignment);
-                taskFactory.createAssignment(req.body.assignment).then(function (done) {
-                    if (done) {
-                        res.json({
-                            'Error': false,
-                            'PartialAssignmentID': req.body.partialAssignmentId
-                        });
-                    } else {
-                        res.status(400).end();
-                    }
-                });
-            }).catch((result) => {
-                console.error(result);
-                res.status(400).end();
-            });
-        }
-        //save all assignments submitted
+   
 
 
-    });
-
-    //Endpoint to save partially made assignments from ASA to database
-    router.post('/assignment/save/', function (req, res) {
-        if (req.body.partialAssignmentId == null) {
-            PartialAssignments.create({
-                PartialAssignmentName: req.body.assignment.AA_name,
-                UserID: req.body.userId,
-                CourseID: req.body.courseId,
-                Data: req.body.assignment
-            }).then((result) => {
-                res.json({
-                    'Error': false,
-                    'PartialAssignmentID': result.PartialAssignmentID
-                });
-            }).catch((err) => {
-                console.error(err);
-                res.status(400).end();
-            });
-        } else {
-            PartialAssignments.update({
-                PartialAssignmentName: req.body.assignment.AA_name,
-                Data: req.body.assignment
-            }, {
-                where: {
-                    PartialAssignmentID: req.body.partialAssignmentId
-                }
-            }).then((result) => {
-                console.log(result);
-                console.log('PartialAssignmentID:', result.PartialAssignmentID);
-                res.json({
-                    'Error': false,
-                    'PartialAssignmentID': req.body.partialAssignmentId
-                });
-            }).catch((result) => {
-                console.error(result);
-                res.status(400).end();
-            });
-        }
-    });
-
-    //Endpoint to load the names and IDs partial assignments by User and/or CourseID
-    router.get('/partialAssignments/all/:userId', function (req, res) {
-        var whereConditions = {
-            UserID: req.params.userId
-        };
-
-        if (req.query.courseId !== undefined) {
-            whereConditions.CourseID = req.query.courseId;
-        }
-
-        PartialAssignments.findAll({
-            where: whereConditions,
-            attributes: ['PartialAssignmentID', 'PartialAssignmentName']
-        }).then((result) => {
-            res.json({
-                'Error': false,
-                'PartialAssignments': result
-            });
-        }).catch((result) => {
-            console.error(result);
-            res.status(400).json({
-                'Error': true
-            });
-        });
-
-    });
-
-    //Endpoint to get the data from a partial assignment for the assignment editor
-    router.get('/partialAssignments/byId/:partialAssignmentId', function (req, res) {
-
-        PartialAssignments.find({
-            where: {
-                PartialAssignmentID: req.params.partialAssignmentId,
-
-            }
-        }).then(result => {
-            console.log(result);
-            res.json({
-                'Error': false,
-                'PartialAssignment': result
-            });
-        }).catch(result => {
-            console.log(result);
-            res.status(400).json({
-                Error: true
-            });
-        });
-    });
-
-    //Endpoint to get an assignment associate with courseId
-    router.get('/getAssignments/:courseId', function (req, res) {
-
-        console.log('Finding assignments...');
-
-        Assignment.findAll({
-
-            where: {
-                CourseID: req.params.courseId
-            },
-            attributes: ['AssignmentID', 'Name', 'DisplayName', 'Type', 'Documentation', 'CourseID']
-
-        }).then(function (result) {
-
-            console.log('Assignments have been found!');
-
-            res.json({
-                'Error': false,
-                'Assignments': result
-            });
-
-        }).catch(function (err) {
-
-            console.log('/getCompletedTaskInstances: ' + err);
-            res.status(404).json({
-                Error: true
-            });
-
-        });
-    });
-
-
-    //Endpoint to get a user's active assignment instances by the section
-    router.get('/getActiveAssignmentsForSection/:sectionId', function (req, res) {
-        console.log(`/getActiveAssignmentsForSection/:sectionId: Finding Assignments for Section ${req.params.sectionId}`);
-        AssignmentInstance.findAll({
-            where: {
-                SectionID: req.params.sectionId
-            },
-            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
-            include: [{
-                model: Assignment,
-                attributes: ['DisplayName']
-            }]
-        }).then(function (result) {
-            console.log('/getActiveAssignmentsForSection/:sectionId: Assignments have been found!');
-            res.json({
-                'Error': false,
-                'Assignments': result
-            });
-        }).catch(function (err) {
-            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
-            res.status(404).json({
-                Error: true
-            });
-        });
-    });
-
-    //Endpoint to get a user's active assignment instances by the course
-    router.get('/getActiveAssignments/:courseId', function (req, res) {
-        console.log('Finding assignments...');
-        Assignment.findAll({
-            where: {
-                CourseID: req.params.courseId
-            },
-            attributes: ['AssignmentID', 'DisplayName', 'Type'],
-            include: [{
-                model: AssignmentInstance,
-                as: 'AssignmentInstances',
-                attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'SectionID']
-
-            }]
-        }).then(function (result) {
-            console.log('Assignments have been found!');
-            res.json({
-                'Error': false,
-                'Assignments': result
-            });
-        }).catch(function (err) {
-            console.log('/getActiveAssignments/' + req.params.courseId + ': ' + err);
-            res.status(404).end();
-        });
-    });
-
+    
 
     //-----------------------------------------------------------------------------------------------------
 
@@ -1776,234 +3359,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.post('/files/upload/:type?', function (req, res) {
-        console.log('File upload:', req.body);
-        let successfulFiles = [];
-        let unsuccessfulFiles = [];
-
-        Promise.mapSeries(req.body.files, (file) => {
-            return FileReference.create({
-                UserID: req.body.userId,
-                Info: file,
-                LastUpdated: new Date(),
-            }).then(function (result) {
-                successfulFiles.push(file);
-                return {File: file, FileID: result.FileID};
-            }).catch(function (err) {
-                unsuccessfulFiles.push(file);
-                return { File: file, Error: err };
-            });
-        }).then(results => {
-            console.log(results);
-            let newFileIDs = results.map(instanceInfo => instanceInfo.FileID);
-            switch (req.params.type) {
-            case 'task':
-                return TaskInstance.find({
-                    where: {
-                        TaskInstanceID: req.body.taskInstanceId
-                    }
-                }).then(ti => {
-                    let newFilesArray = JSON.parse(ti.Files) || [];
-                    newFilesArray = newFilesArray.concat(newFileIDs);
-
-                    // Update task instance with the new file references
-                    return TaskInstance.update({
-                        Files: newFilesArray
-                    }, {
-                        where: {
-                            TaskInstanceID: req.body.taskInstanceId
-                        }
-                    }).then(done => {
-                        logger.log('info', 'task updated with new files', {
-                            res: done
-                        });
-                        // Respond wtih file info
-                        return res.status(200).json({
-                            SuccessfulFiles: successfulFiles,
-                            UnsuccessfulFiles: unsuccessfulFiles
-                        });
-                    });
-                })
-                    .catch(er => {
-                        logger.log('error', 'file task info not uploaded successfully', er);
-                        res.status(400).end();
-                    });
-                break;
-            case 'profile-picture':
-                UserContact.update({
-                    ProfilePicture: newFileIDs[0]
-                }, {
-                    where: {
-                        UserID: req.body.userId
-                    }
-                }).then(function (done) {
-                    logger.log('info', 'user updated with new profile pictures info', {
-                        res: done
-                    });
-                    // respond with file info
-                    return res.status(200).json({
-                        SuccessfulFiles: successfulFiles,
-                        UnsuccessfulFiles: unsuccessfulFiles
-                    });
-                })
-                    .catch(er => {
-                        logger.log('error', 'profile-picture info not uploaded successfully', er);
-                        res.status(400).end();
-                    });
-                break;
-            default:
-                res.status(200).json({
-                    FileID: result.FileID
-                });
-                break;
-            }
-        });
-
-    });
-
-
-    router.post('/file/upload/:type?', function (req, res) {
-        console.log('File upload:', req.body);
-        FileReference.create({
-            UserID: req.body.userId,
-            Info: req.body.fileInfo,
-            LastUpdated: new Date(),
-        }).then(function (result) {
-
-            switch (req.params.type) {
-            case 'task':
-                TaskInstance.find({
-                    where: {
-                        TaskInstanceID: req.body.taskInstanceId
-                    }
-                }).then(ti => {
-                    let newFilesArray = JSON.parse(ti.Files) || [];
-                    newFilesArray = newFilesArray.concat([result.FileID]);
-
-                    // Update task instance with the new file references
-                    return TaskInstance.update({
-                        Files: newFilesArray
-                    }, {
-                        where: {
-                            TaskInstanceID: req.body.taskInstanceId
-                        }
-                    }).then(done => {
-                        logger.log('info', 'task updated with new files', {
-                            res: done
-                        });
-                        // Respond wtih file info
-                        res.status(200).json({
-                            FileID: result.FileID
-                        });
-                    });
-                })
-                    .catch(er => {
-                        logger.log('error', 'file task info not uploaded successfully', er);
-                        res.status(400).end();
-                    });
-                break;
-            case 'profile-picture':
-                UserContact.update({
-                    ProfilePicture: [result.FileID]
-                }, {
-                    where: {
-                        UserID: req.body.userId
-                    }
-                }).then(function (done) {
-                    logger.log('info', 'user updated with new profile pictures info', {
-                        res: done
-                    });
-                    // respond with file info
-                    res.status(200).json({
-                        FileID: result.FileID
-                    });
-                    return done;
-                })
-                    .catch(er => {
-                        logger.log('error', 'profile-picture info not uploaded successfully', er);
-                        res.status(400).end();
-                    });
-                break;
-            default:
-                res.status(200).json({
-                    FileID: result.FileID
-                });
-                break;
-            }
-
-        })
-            .catch(function (err) {
-                logger.log('error', 'file info not uploaded successfully');
-                res.status(400).end();
-            });
-    });
-
-    router.get('/file/download/:fileId', function (req, res) {
-        FileReference.findOne({
-            where: {
-                FileID: req.params.fileId
-            }
-        }).then(function (result) {
-            res.status(200).json(result);
-        })
-            .catch(function (err) {
-                logger.log('error', 'file info not downloaded successfully');
-                res.status(400).json(result);
-            });
-    });
-
-    router.delete('/file/delete/:fileId', async function (req, res) {
-        let taskId = req.body.taskId || '';
-        var userId = req.body.userId;
-        if(userId === null || userId === ''){
-            logger.log('error', '/file/delete User Not Authorized');
-            return res.status(401).end();
-        }
-        logger.log('info', 'deleting file info from database with FileID: ',req.params.fileId, req.body);
-        FileReference.findOne({
-            where: {
-                FileID: req.params.fileId,
-                UserID: userId
-            }
-        }).then(async function (fileResult) {
-            var fileInfo = fileResult;
-            fileResult.destroy();
-
-            if(taskId !== ''){
-                let result = await TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskId
-                    },
-                    attributes: ['Files']
-                }).catch(err => {
-                    logger.log('error', 'could not get files', err, req.params);
-                    return res.status(400).end();
-                });
-
-                let fileArray = result.Files;
-
-                fileArray = JSON.parse(fileArray);
-                fileArray.splice(fileArray.indexOf(req.body.fileId), 1);
-
-
-                await TaskInstance.update({
-                    Files: fileArray
-                },
-                {
-                    where: {
-                        TaskInstanceID: taskId
-                    }
-                });
-
-                return res.json(fileInfo);
-            }
-
-        })
-            .catch(function (err) {
-                logger.log('error', 'file info not deleted successfully', err);
-                res.status(400).end();
-            });
-    });
+   
 
 
     //Endpoint for Assignment Manager
@@ -3044,28 +4400,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //-----------------------------------------------------------------------------------------------------
-    router.get('/getCourseSections/:courseID', function (req, res) {
-
-        let whereOptions = {
-            CourseID: req.params.courseID
-        };
-
-        if (req.query.semesterID != null) {
-            whereOptions.SemesterID = req.query.semesterID;
-        }
-
-        Section.findAll({
-            where: whereOptions,
-            order: [
-                ['Name']
-            ],
-            attributes: ['SectionID', 'Name']
-        }).then(function (sections) {
-            res.json({
-                'Sections': sections
-            });
-        });
-    });
+    
 
     //-----------------------------------------------------------------------------------------------------
 
@@ -3267,134 +4602,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to Get Courses Created by an Instructor
-    router.get('/getCourseCreated/:instructorID', function (req, res) {
-        Course.findAll({
-            where: {
-                CreatorID: req.params.instructorID
-            }
-        }).then(function (Courses) {
-            console.log('/getCourseCreated/ Courses found');
-            res.json({
-                'Error': false,
-                'Courses': Courses
-            });
-        });
-    });
-
-    //Get all courses that the student has been enrolled in by their ID
-    router.get('/getAllEnrolledCourses/:studentID', function (req, res) {
-        SectionUser.findAll({
-            where: {
-                UserID: req.params.studentID
-            },
-            attributes: ['Role', ' Active'],
-            include: [{
-                model: Section,
-                attributes: ['Name'],
-                include: [{
-                    model: Course,
-                    attributes: ['Number', 'Name']
-                }]
-            }]
-        }).then(function (Courses) {
-            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
-            res.json({
-                'Error': false,
-                'Courses': Courses
-            });
-        });
-    });
-
-    //Get the courses that are currently active(eg. in current semester) for a student
-    router.get('/getActiveEnrolledCourses/:studentID', function (req, res) {
-        SectionUser.findAll({
-            where: {
-                UserID: req.params.studentID,
-                Active: true
-            },
-            attributes: ['Role'],
-            include: [{
-                model: Section,
-                attributes: ['Name'],
-                include: [{
-                    model: Course,
-                    attributes: ['Number', 'Name', 'Abbreviations']
-                }]
-            }]
-        }).then(function (Courses) {
-            console.log(`/getEnrolledCourses/ Courses for ${req.params.studentID} found `);
-            res.json({
-                'Error': false,
-                'Courses': Courses
-            });
-        });
-    });
+    
 
     //------------------------------------------------------------
     //------------------------------------------------------------
 
-    //Get the active sections for a student in a particular course
-    router.get('/getActiveEnrolledSections/:courseID', function (req, res) {
-        SectionUser.findAll({
-            where: {
-                UserID: req.query.studentID,
-                Active: true
-            },
-            attributes: ['Role'],
-            include: [{
-                model: Section,
-                attributes: ['SectionID', 'Name'],
-                include: [{
-                    model: Course,
-                    attributes: ['CourseID', 'Number', 'Name']
-                }, {
-                    model: Semester,
-                    attributes: ['SemesterID', 'Name']
-                }]
-            }]
-        }).then(function (sections) {
-            let returnSections = sections.filter((section) => {
-                return section.Section.Course.CourseID == req.params.courseID;
-            }).map(section => section.Section);
-            Course.find({
-                where: {
-                    CourseID: req.params.courseID
-                },
-                attributes: ['CourseID', 'Number', 'Name', 'Description']
-            }).then(function (result) {
-                console.log(`/getActiveEnrolledSections/ Courses for ${req.query.studentID} found `);
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Sections': returnSections,
-                    'Course': result
-                });
-            });
-
-        });
-    });
+   
 
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to Get Courses Created by an Instructor
-    router.get('/getOrganizationCourses/:organizationID', function (req, res) {
-        Course.findAll({
-            where: {
-                OrganizationID: req.params.organizationID
-            },
-            order: [
-                ['Number'],
-                ['Name']
-            ]
-        }).then(function (Courses) {
-            console.log('/getOrganizationCourses/ Courses found');
-            res.json({
-                'Error': false,
-                'Courses': Courses
-            });
-        });
-    });
+    
 
     //-----------------------------------------------------------------------------------------------------
 
@@ -3598,36 +4815,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-----------------------------------------------------------------------------------------------------
 
     //Get UserID from Email
-    router.get('/getUserID/:email', function (req, res) {
-        UserLogin.find({
-            where: {
-                Email: req.params.email
-            }
-        }).then(function (user) {
-
-            res.json({
-                'UserID': user.UserID
-            });
-        }).catch(function (e) {
-            console.log('getUserID ' + e);
-            UserContact.find({
-                Email: req.params.email
-
-            }).then(function(user) {
-                res.json({
-                    'UserID': user.UserID
-                });
-            })
-                .catch(function(e) {
-                    console.log('getUserID ' + e);
-
-                    res.json({
-                        'UserID': -1
-                    });
-                });
-
-        });
-    });
+    
 
     //-----------------------------------------------------------------------------------------------------
 
@@ -3670,622 +4858,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    //Endpoint to get task instance header data for front end
-    router.get('/taskInstanceTemplate/main/:taskInstanceID', function (req, res) {
-
-        logger.log('info', 'get: /taskInstanceTemplate/main/:taskInstanceID', {
-            req_query: req.query
-        });
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceID
-            },
-            include: [{
-                model: TaskActivity,
-                include: [{
-                    model: Assignment,
-                    attributes: ['AssignmentID', 'Instructions', 'Documentation', 'Name', 'Type', 'DisplayName']
-                }],
-                attributes: ['Type']
-            }, {
-                model: AssignmentInstance,
-                include: [{
-                    model: Section,
-                    attributes: ['Name', 'SectionID'],
-                    include: [{
-                        model: Course,
-                        attributes: ['Name', 'Number']
-                    },
-                    {
-                        model: Semester,
-                        attributes: ['SemesterID', 'Name']
-                    }
-                    ]
-                }]
-
-            }]
-        })
-            .catch(function(err) {
-                //Catch error and print into console.
-                console.log(err);
-                logger.log('error', '/taskInstanceTemplate/main/', {
-                    error: err
-                });
-                res.status(400).end();
-            })
-            .then(function (taskInstanceResult) {
-                return res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'taskActivityID': taskInstanceResult.TaskActivityID,
-                    'taskActivityType': taskInstanceResult.TaskActivity.Type,
-                    'courseName': taskInstanceResult.AssignmentInstance.Section.Course.Name,
-                    'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
-                    'assignment': taskInstanceResult.TaskActivity.Assignment,
-                    'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
-                    'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name,
-                    'sectionName': taskInstanceResult.AssignmentInstance.Section.Name,
-                    'sectionID': taskInstanceResult.AssignmentInstance.Section.Name
-                });
-            });
-
-    });
-
-    // Endpoint to submit the taskInstance input and sync into database
-    router.post('/taskInstanceTemplate/create/submit', async function (req, res) {
-
-        var grade = new Grade();
-        var trigger = new TaskTrigger();
-
-        logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
-            req_body: req.body
-        });
-
-        if (req.body.taskInstanceid == null) {
-            logger.log('info', 'TaskInstanceID cannot be null');
-            return res.status(400).end();
-        }
-        if (req.body.userid == null) {
-            logger.log('info', 'UserID cannot be null');
-            return res.status(400).end();
-        }
-        if (req.body.taskInstanceData == null) {
-            logger.log('info', 'Data cannot be null');
-            return res.status(400).end();
-        }
-
-        var ti = await TaskInstance.find({
-            where: {
-                TaskInstanceID: req.body.taskInstanceid,
-            },
-            include: [{
-                model: TaskActivity,
-                attributes: ['Type', 'AllowRevision', 'AllowReflection'],
-            }, ],
-        });
-
-        if (JSON.parse(ti.Status)[0] === 'complete') {
-            logger.log('error', 'The task has been complted already');
-            return res.status(403).end();
-        }
-
-        //Update points for student as they submit tasks
-        let taskFactory = new TaskFactory;
-        taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, req.body.userid);
-
-        logger.log('info', 'task instance found', ti.toJSON());
-        //Ensure userid input matches TaskInstance.UserID
-        if (req.body.userid != ti.UserID) {
-            logger.log('error', 'UserID Not Matched');
-            return res.status(400).end();
-        }
-        if (ti.TaskActivity.Type === 'edit') {
-            await trigger.approved(req.body.taskInstanceid, req.body.taskInstanceData);
-        } else {
-
-            var ti_data = await JSON.parse(ti.Data);
-
-            if (!ti_data) {
-                ti_data = [];
-            }
-
-            await ti_data.push(req.body.taskInstanceData);
-
-            logger.log('info', 'updating task instance', {
-                ti_data: ti_data
-            });
-
-            var newStatus = JSON.parse(ti.Status);
-            newStatus[0] = 'complete';
-
-            var final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
-
-            var done = await TaskInstance.update({
-                Data: ti_data,
-                ActualEndDate: new Date(),
-                Status: JSON.stringify(newStatus),
-                FinalGrade: final_grade
-            }, {
-                where: {
-                    TaskInstanceID: req.body.taskInstanceid,
-                    UserID: req.body.userid,
-                }
-            });
-
-            var new_ti = await TaskInstance.find({
-                where: {
-                    TaskInstanceID: req.body.taskInstanceid,
-                },
-                include: [{
-                    model: TaskActivity,
-                    attributes: ['Type'],
-                }, ],
-            });
-
-            console.log(JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
-
-            logger.log('info', 'task instance updated');
-            logger.log('info', 'triggering next task');
-
-            await trigger.next(req.body.taskInstanceid);
-        }
-
-        // if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
-        //     var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id;
-        //     logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id);
-
-        //     TaskInstance.find({
-        //         where: {
-        //             TaskInstanceID: pre_ti_id
-        //         }
-        //     }).then(function (pre_ti) {
-        //         logger.log('info', 'task instance found', pre_ti.toJSON());
-        //         ti_data = JSON.parse(pre_ti.Data);
-
-        //         if (!ti_data) {
-        //             ti_data = [];
-        //         }
-        //         ti_data.push(req.body.taskInstanceData);
-
-        //         logger.log('info', 'updating task instance', {
-        //             ti_data: ti_data
-        //         });
-
-        //         return TaskInstance.update({
-        //             Data: ti_data,
-        //         }, {
-        //             where: {
-        //                 TaskInstanceID: pre_ti.TaskInstanceID,
-        //             },
-        //         }).then(function (done) {
-        //             logger.log('info', 'task instance updated', {
-        //                 done: done
-        //             });
-        //         }).catch(function (err) {
-        //             logger.log('error', 'task instance update failed', {
-        //                 err: err
-        //             });
-        //         });
-        //     });
-        // }
-
-        return res.status(200).end();
-
-
-
-
-        // return TaskInstance.find({
-        //     where: {
-        //         TaskInstanceID: req.body.taskInstanceid,
-        //     },
-        //     include: [{
-        //         model: TaskActivity,
-        //         attributes: ['Type'],
-        //     }, ],
-        // }).then(async function(ti) {
-        //     logger.log('info', 'task instance found', ti.toJSON())
-        //     //Ensure userid input matches TaskInstance.UserID
-        //     if (req.body.userid != ti.UserID) {
-        //         logger.log('error', 'UserID Not Matched')
-        //         return res.status(400).end()
-        //     }
-        //     var ti_data = JSON.parse(ti.Data)
-        //
-        //     if (!ti_data) {
-        //         ti_data = []
-        //     }
-        //     ti_data.push(req.body.taskInstanceData)
-        //
-        //     logger.log('info', 'updating task instance', {
-        //         ti_data: ti_data
-        //     })
-        //
-        //     // return TaskInstance.find({
-        //     //     where: {
-        //     //         TaskInstanceID: req.body.taskInstanceid,
-        //     //         UserID: req.body.userid,
-        //     //     },
-        //     //     include:[
-        //     //       {
-        //     //         model: TaskActivity
-        //     //       }
-        //     //     ]
-        //     // }).then(function(ti) {
-        //     var newStatus = JSON.parse(ti.Status);
-        //     newStatus[0] = 'complete';
-        //     await TaskInstance.update({
-        //         Data: ti_data,
-        //         ActualEndDate: new Date(),
-        //         Status: JSON.stringify(newStatus),
-        //     }, {
-        //         where: {
-        //             TaskInstanceID: req.body.taskInstanceid,
-        //             UserID: req.body.userid,
-        //         }
-        //     }).then(async function(done) {
-        //         logger.log('info', 'task instance updated', {
-        //             done: done
-        //         })
-        //         logger.log('info', 'triggering next task')
-        //         //Trigger next task to start
-        //         await ti.triggerNext()
-        //
-        //         console.log('trigger completed');
-        //
-        //         if (-1 != ['edit', 'comment'].indexOf(ti.TaskActivity.Type)) {
-        //             var pre_ti_id = JSON.parse(ti.PreviousTask)[0].id
-        //             logger.log('info', 'this is a revision task, finding previous task instance id', pre_ti_id)
-        //
-        //             TaskInstance.find({
-        //                 where: {
-        //                     TaskInstanceID: pre_ti_id
-        //                 }
-        //             }).then(function(pre_ti) {
-        //                 logger.log('info', 'task instance found', pre_ti.toJSON())
-        //                 ti_data = JSON.parse(pre_ti.Data)
-        //
-        //                 if (!ti_data) {
-        //                     ti_data = []
-        //                 }
-        //                 ti_data.push(req.body.taskInstanceData)
-        //
-        //                 logger.log('info', 'updating task instance', {
-        //                     ti_data: ti_data
-        //                 })
-        //
-        //                 return TaskInstance.update({
-        //                     Data: ti_data,
-        //                 }, {
-        //                     where: {
-        //                         TaskInstanceID: pre_ti.TaskInstanceID,
-        //                     },
-        //                 }).then(function(done) {
-        //                     logger.log('info', 'task instance updated', {
-        //                         done: done
-        //                     })
-        //                 }).catch(function(err) {
-        //                     logger.log('error', 'task instance update failed', {
-        //                         err: err
-        //                     })
-        //                 })
-        //             })
-        //         }
-        //         return res.status(200).end()
-        //     }).catch(function(err) {
-        //         console.log('err', err);
-        //         logger.log('error', 'task instance update failed', {
-        //             err: err
-        //         })
-        //         return res.status(400).end();
-        //     })
-        //     //})
-        // })
-    });
-
-    //Endpoint to save the task instance input
-    router.post('/taskInstanceTemplate/create/save', async function (req, res) {
-        if (req.body.taskInstanceid == null) {
-            console.log('/taskInstanceTemplate/create/save : TaskInstanceID cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.userid == null) {
-            console.log('/taskInstanceTemplate/create/save : UserID cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.taskInstanceData == null) {
-            console.log('/taskInstanceTemplate/create/save : Data cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        var ti = await TaskInstance.find({
-            where: {
-                TaskInstanceID: req.body.taskInstanceid,
-                UserID: req.body.userid
-            }
-        });
-        //Ensure userid input matches TaskInstance.UserID
-        if (req.body.userid != ti.UserID) {
-            console.log('/taskInstanceTemplate/create/save : UserID Incorrect Match');
-            res.status(400).end();
-            return;
-        }
-
-        var status = JSON.parse(ti.Status);
-        status[4] = 'saved';
-
-        var ti_data = await JSON.parse(ti.Data);
-        if (!ti_data) {
-            ti_data = [];
-        }
-        await ti_data.push(req.body.taskInstanceData);
-
-
-
-        //Task_Status remains incomplete and store userCreatedProblem
-        await ti.update({
-            Data: ti_data,
-            Status: status
-        });
-
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'Result': response
-        });
-
-    });
+   
 
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
 
 
-    //Endpoint to get the PendingTasks of users
-    /* Need to only pick relevant data. Too big, could cause scaling slowdown issues
-    Most likely: TaskInstanceID,UserID,WorlkflowID, StartDate,EndDate,Status from TaskInstance; Name,Visual_ID from TaskActivity; Name from WorkflowActivity
-    */
-    router.get('/getPendingTaskInstances/:userID', function (req, res) {
-        TaskInstance.findAll({
-            where: {
-                UserID: req.params.userID,
-                $or: [{
-                    Status: {
-                        $like: '%"incomplete"%'
-                    }
-                }, {
-                    Status: {
-                        $like: '%"started"%'
-                    }
-                }]
-            },
-
-            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status'],
-            include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
-                {
-                    model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
-                    include: [{
-                        model: Section,
-                        attributes: ['SectionID', 'Name'],
-                        include: [{
-                            model: Course,
-                            attributes: ['Name', 'CourseID', 'Number']
-                        }]
-
-                    }, {
-                        model: Assignment,
-                        attributes: ['Name']
-                    }]
-                },
-                /*TaskInstance - > AssignmentInstance - > Section - > Course */
-                {
-                    model: TaskActivity,
-                    attributes: ['Name', 'DisplayName', 'Type', 'AllowRevision'],
-                    include: [{
-                        model: WorkflowActivity,
-                        attributes: ['Name']
-                    }]
-                }
-            ]
-        }).then(function (taskInstances) {
-
-            console.log('/getPendingTaskInstances/ TaskInstances found');
-            res.json({
-                'Error': false,
-                'PendingTaskInstances': taskInstances
-            });
-
-        }).catch(function (err) {
-
-            console.log('/getPendingTaskInstances: ' + err);
-            res.status(404).end();
-
-        });
-
-
-    });
-
-
-    //Endpoint to get completed task instances for user
-    router.get('/getCompletedTaskInstances/:userID', function (req, res) {
-
-        TaskInstance.findAll({
-            where: {
-
-
-                UserID: req.params.userID,
-                Status: {
-                    $like: '%"complete"%'
-                }
-            },
-            attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status', 'ActualEndDate'],
-            include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
-                {
-                    model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
-                    include: [{
-                        model: Section,
-                        attributes: ['SectionID', 'Name'],
-                        include: [{
-                            model: Course,
-                            attributes: ['Name', 'CourseID', 'Number']
-                        }]
-
-                    }, {
-                        model: Assignment,
-                        attributes: ['Name']
-                    }]
-                }, {
-                    model: TaskActivity,
-                    attributes: ['Name', 'DisplayName', 'Type', 'VisualID'],
-                    include: [{
-                        model: WorkflowActivity,
-                        attributes: ['Name']
-                    }]
-                }
-            ]
-        }).then(function (taskInstances) {
-
-            console.log('/getCompletedTaskInstances/ TaskInstances found');
-
-            res.json({
-                'Error': false,
-                'CompletedTaskInstances': taskInstances
-            });
-        }).catch(function (err) {
-
-            console.log('/getCompletedTaskInstances: ' + err);
-            res.status(404).end();
-
-        });
-    });
-
-    //Endpoint to retrieve all the assignment and its current state
-    router.get('/getAssignmentRecord/:assignmentInstanceid', function (req, res) {
-        var taskFactory = new TaskFactory();
-
-        console.log('/getAssignmentRecord/:assignmentInstanceid: Initiating...');
-
-        var tasks = [];
-        var info = {};
-
-        return AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceid
-            }
-        }).then(function (AI_Result) {
-
-            return WorkflowInstance.findAll({
-                where: {
-                    AssignmentInstanceID: req.params.assignmentInstanceid
-                }
-            }).then(function (WI_Result) {
-
-                if (WI_Result === null || typeof WI_Result === undefined) {
-                    console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
-                } else {
-                    //Iterate through all workflow instances found
-                    return Promise.mapSeries(WI_Result, function (workflowInstance) {
-
-                        console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
-                        var tempTasks = [];
-
-                        return Promise.mapSeries(JSON.parse(workflowInstance.TaskCollection), function (task) {
-
-                            console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
-                            //each task is TaskInstanceID
-                            return TaskInstance.find({
-                                where: {
-                                    TaskInstanceID: task
-                                },
-                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                                include: [{
-                                    model: User,
-                                    attributes: ['UserID', 'FirstName', 'Instructor']
-                                }, {
-                                    model: TaskActivity,
-
-                                    attributes: ['Name', 'Type']
-                                }]
-                            }).then(function (taskInstanceResult) {
-
-                                //Array of all the task instances found within taskcollection
-                                if (taskInstanceResult.IsSubWorkflow === 0) {
-
-                                    taskFactory.getSubWorkflow(taskInstanceResult.TaskInstanceID, new Array()).then(function (subworkflow) {
-                                        if (!taskInstanceResult.hasOwnProperty('SubWorkflow')) {
-                                            taskInstanceResult.setDataValue('SubWorkflow', subworkflow);
-                                        } else {
-                                            taskInstanceResult.SubWorkflow.push(sw);
-                                        }
-                                    });
-
-                                    tempTasks.push(taskInstanceResult);
-                                }
-                            });
-                        }).then(function (result) {
-
-                            //Array of arrays of all task instance collection
-                            tasks.push(tempTasks);
-
-                            return AssignmentInstance.find({
-                                where: {
-                                    AssignmentInstanceID: req.params.assignmentInstanceid
-                                }
-                            }).then(function (AI_Result) {
-                                info.SectionID = AI_Result;
-                                return Assignment.find({
-                                    where: {
-                                        AssignmentID: AI_Result.AssignmentID
-                                    },
-                                    attributes: ['OwnerID', 'SemesterID', 'CourseID', 'DisplayName', 'SectionID']
-                                }).then(function (A_Result) {
-                                    info.Assignment = A_Result;
-                                    //console.log("A_Result", A_Result);
-                                    return User.find({
-                                        where: {
-                                            UserID: A_Result.OwnerID
-                                        },
-                                        attributes: ['FirstName', 'LastName']
-                                    }).then(function (user) {
-                                        info.User = user;
-
-                                        return Course.find({
-                                            where: {
-                                                CourseID: A_Result.CourseID
-                                            },
-                                            attributes: ['Name']
-                                        }).then(function (course) {
-                                            info.Course = course;
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                }
-
-            }).then(function (done) {
-
-                console.log('/getAssignmentRecord/:assignmentInstanceid: Done!');
-
-                res.json({
-                    'Error': false,
-                    'Info': info,
-                    'Workflows': JSON.parse(AI_Result.WorkflowCollection),
-                    'AssignmentRecords': tasks
-                });
-
-            }).catch(function (err) {
-
-                console.log('/getAssignmentRecord: ' + err);
-                res.status(404).end();
-            });
-        });
-    });
-
+    
+    
     //Endpoint for all current task data and previous task data and put it in an array
     router.get('/superCall/:taskInstanceId', async function (req, res) {
         logger.log('info', 'get: /superCall/:taskInstanceId', {
@@ -4510,6 +5090,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         taskCollection[workflow.WorkflowActivityID].push({
                             'taskActivityID': taskActivity.TaskActivityID,
                             'name': taskActivity.Name,
+                            'displayName': taskActivity.DisplayName,
                             'type': taskActivity.Type,
                             'defaults': taskActivity.DueType
                         });
@@ -4800,61 +5381,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.get('/SectionsByUser/:userId', function (req, res) {
-
-        SectionUser.findAll({
-            where: {
-                UserID: req.params.userId
-            },
-            attributes: ['SectionID'],
-            include: [{
-                model: Section,
-                attributes: ['Name'],
-                include: [{
-                    model: Course,
-                    attributes: ['CourseID', 'Name', 'Number']
-                }, ]
-
-            }]
-        }).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Sections': rows
-            });
-        }).catch(function (err) {
-            console.log('/section: ' + err.message);
-            res.status(401).end();
-        });
-    });
+    
 
 
-    //Endpoint assignments in Section
-    router.get('/AssignmentsBySection/:SectionID', function (req, res) {
-        AssignmentInstance.findAll({
-            where: {
-                SectionID: req.params.SectionID
-            },
-            attributes: ['AssignmentInstanceID'],
-            include: [{
-                model: Assignment,
-                attributes: ['AssignmentID', 'Name', 'Type', 'DisplayName'],
-                include: [{
-                    model: Course,
-                    attributes: ['CourseID', 'Name', 'Number']
-                }]
-            }]
-        }).then(function(assignments) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Assignments': assignments
-
-            });
-        }
-
-        );
-    });
+    
     //-----------------------------------------------------------------------------------------------------
 
     // endpoint to delete organization
@@ -5042,376 +5572,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
 
-    // get users in section by role
-    router.get('/sectionUsers/:sectionid/:role', function (req, res) {
-        SectionUser.findAll({
-            where: {
-                SectionID: req.params.sectionid,
-                Role: req.params.role
-            },
-            include: [{
-                model: User,
-                attributes: ['FirstName', 'LastName'],
-                include: [{
-                    model: VolunteerPool
-                }]
-            },
-            {
-                model: UserLogin,
-                attributes: ['Email']
-            }
-            ],
-            order: [
-                [User, 'LastName'],
-                [User, 'FirstName'],
-                [UserLogin, 'Email']
-            ],
-            attributes: ['SectionUserID', 'UserID', 'Active', 'Volunteer', 'Role']
-        }).then(function (SectionUsers) {
-            console.log('/sectionUsers called');
-            if (req.params.role === 'Student') {
-                SectionUsers = SectionUsers.map(user => {
-                    let newUser = {
-                        UserID: user.UserID,
-                        SectionUserID: user.SectionUserID,
-                        Active: user.Active,
-                        Role: user.Role,
-                        User: user.User,
-                        UserLogin: user.UserLogin
-                    };
-                    if (user.User.VolunteerPools.length != 0) {
-                        newUser.Volunteer = true;
-                        newUser.Status = user.User.VolunteerPools[0].status;
-
-                    } else {
-                        newUser.Volunteer = false;
-                        newUser.Status = 'Inactive';
-
-                    }
-                    return newUser;
-                });
-            }
-            return res.json({
-                'Error': false,
-                'SectionUsers': SectionUsers
-            });
-        });
-    });
-
-    //End point to add mutliple users to a section and invite any new ones
-    router.post('/sectionUsers/addMany/:sectionid', function (req, res) {
-        //expects - users
-        return sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-            .then(function () {
-                Promise.mapSeries(req.body.users, (userDetails) => {
-                    return UserLogin.find({
-                        where: {
-                            Email: userDetails.email
-                        },
-                        attributes: ['UserID']
-                    }).then(function(response) {
-                        if (response == null || response.UserID == null) {
-                            return sequelize.transaction(function(t) {
-                                return User.create({
-                                    FirstName: userDetails.firstName,
-                                    LastName: userDetails.lastName,
-                                    Instructor: userDetails.role === 'Instructor'
-                                }, {
-                                    transaction: t
-                                }).then(async function(user) {
-                                    let temp_pass = await password.generate();
-                                    return UserContact.create({
-                                        UserID: user.UserID,
-                                        FirstName: userDetails.firstName,
-                                        LastName: userDetails.lastName,
-                                        Email: userDetails.email,
-                                        Phone: '(XXX) XXX-XXXX'
-                                    }, {
-                                        transaction: t
-                                    }).then(async function(userCon) {
-                                        return UserLogin.create({
-                                            UserID: user.UserID,
-                                            Email: userDetails.email,
-                                            Password: await password.hash(temp_pass)
-                                        }, {
-                                            transaction: t
-                                        }).then(function(userLogin) {
-
-                                            return SectionUser.create({
-                                                SectionID: req.params.sectionid,
-                                                UserID: userLogin.UserID,
-                                                Active: userDetails.active,
-                                                Volunteer: userDetails.volunteer,
-                                                Role: userDetails.role
-                                            }, {
-                                                transaction: t
-                                            }).then(function(sectionUser) {
-                                                console.log('Creating user, inviting, and adding to section');
-                                                logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                    req_body: userDetails
-                                                });
-
-                                                let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', temp_pass);
-
-                                                return sectionUser;
-
-                                            });
-                                        });
-                                    });
-                                });
-                            })
-                                .catch((err) => {
-                                    console.log(err);
-                                    logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
-                                        body: userDetails,
-                                        err: err
-
-                                    });
-                                });
-
-                        } else {
-                            SectionUser.find({
-                                where: {
-                                    SectionID: req.params.sectionid,
-                                    UserID: response.UserID
-                                },
-                                attributes: ['UserID']
-                            }).then(function(sectionUser) {
-                                if (sectionUser == null || sectionUser.UserID == null) {
-                                    SectionUser.create({
-                                        SectionID: req.params.sectionid,
-                                        UserID: response.UserID,
-                                        Active: userDetails.active,
-                                        Volunteer: userDetails.volunteer,
-                                        Role: userDetails.role
-
-                                    }).then(function(result) {
-                                        console.log('User exists, adding to section');
-                                        logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
-                                            result: result
-                                        });
-                                        return result;
-                                    });
-                                } else {
-                                    console.log('User already in section');
-                                    logger.log('info', '/sectionUsers/addMany', 'user already in system', {
-                                        result: sectionUser
-                                    });
-                                    return sectionUser;
-                                }
-                            });
-                        }
-                    });
-                })
-                    .then((results) => {
-                        console.log(results);
-                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                            .then(() => {
-                                return res.status(200).end();
-                            });
-                    }).catch(function (err) {
-                        console.error(err);
-                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                            req_body: req.body,
-                            error: err
-                        });
-                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                            .then(() => {
-                                res.status(500).end();
-                            });
-                    });
-            });
-    });
-
-    // endpoint to add sectionusers, invite users not yet in system
-    router.post('/sectionUsers/:sectionid', async function (req, res) {
-
-        //expects -email
-        //        -firstName
-        //        -lastName
-        //        -email
-        //        -sectionid
-        //        -email
-        //        -active
-        //        -body
-        //        -role
-
-        UserLogin.find({
-            where: {
-                Email: req.body.email
-            },
-            attributes: ['UserID']
-        }).then(function (response) {
-            if (response == null || response.UserID == null) {
-                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-                    .then(function () {
-                        return sequelize.transaction(function (t) {
-                            return User.create({
-                                FirstName: req.body.firstName,
-                                LastName: req.body.lastName,
-                                Instructor: req.body.role === 'Instructor'
-                            }, {
-                                transaction: t
-                            })
-                                .catch(function(err) {
-                                    console.error(err);
-                                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                        req_body: req.body,
-                                        error: err
-                                    });
-                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function () {
-                                            res.status(500).end();
-                                        });
-                                })
-                                .then(async function (user) {
-                                    console.log(user.UserID);
-                                    let temp_pass = await password.generate();
-                                    return UserContact.create({
-                                        UserID: user.UserID,
-                                        FirstName: req.body.firstName,
-                                        LastName: req.body.lastName,
-                                        Email: req.body.email,
-                                        Phone: '(XXX) XXX-XXXX'
-                                    }, {
-                                        transaction: t
-                                    }).catch(function(err) {
-                                        console.error(err);
-                                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                            req_body: req.body,
-                                            error: err
-                                        });
-                                        sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                            .then(function() {
-                                                res.status(500).end();
-                                            });
-                                    })
-                                        .then(async function(userCon) {
-                                            return UserLogin.create({
-                                                UserID: user.UserID,
-                                                Email: req.body.email,
-                                                Password: await password.hash(temp_pass)
-                                            }, {
-                                                transaction: t
-                                            }).catch(function (err) {
-                                                console.error(err);
-                                                logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                    req_body: req.body,
-                                                    error: err
-                                                });
-                                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                                    .then(function () {
-                                                        res.status(500).end();
-                                                    });
-                                            }).then(function (userLogin) {
-                                                let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', temp_pass);
-                                                return SectionUser.create({
-                                                    SectionID: req.params.sectionid,
-                                                    UserID: userLogin.UserID,
-                                                    Active: req.body.active,
-                                                    Volunteer: req.body.volunteer,
-                                                    Role: req.body.role
-                                                }, {
-                                                    transaction: t
-                                                }).catch(function (err) {
-                                                    console.error(err);
-                                                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                        req_body: req.body,
-                                                        error: err
-                                                    });
-                                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                                        .then(function () {
-                                                            res.status(500).end();
-                                                        });
-                                                }).then(function (sectionUser) {
-                                                    console.log('Creating user, inviting, and adding to section');
-                                                    logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                        req_body: req.body
-                                                    });
-                                                    return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
-                                                        transaction: t
-                                                    })
-                                                        .then(function() {
-                                                            res.json({
-                                                                success: true,
-                                                                message: 'new user'
-                                                            });
-
-                                                        });
-                                                });
-                                            });
-                                        });
-                                });
-                        });
-                    });
-
-            } else {
-                SectionUser.find({
-                    where: {
-                        SectionID: req.params.sectionid,
-                        UserID: response.UserID
-                    },
-                    attributes: ['UserID']
-                }).then(function (sectionUser) {
-                    if (sectionUser == null || sectionUser.UserID == null) {
-                        SectionUser.create({
-                            SectionID: req.params.sectionid,
-                            UserID: response.UserID,
-                            Active: req.body.active,
-                            Volunteer: req.body.volunteer,
-                            Role: req.body.role
-                        }).catch(function (err) {
-                            console.log(err);
-                            res.status(500).end();
-                        }).then(function (result) {
-                            console.log('User exists, adding to section');
-                            res.json({
-                                success: true,
-                                message: 'existing user'
-                            });
-                        });
-                    } else {
-                        console.log('User already in section');
-                        res.json({
-                            success: false,
-                            error: 'already in section'
-                        });
-                    }
-                });
-            }
-        });
-    });
-
-    router.post('/sectionUsers/changeActive/:sectionUserID', (req, res) => {
-        /** TODO:  This API does a simple database update, but it may need
-         * to do some special reallocation to deal with inactive students
-         */
-        var newActiveStatus = true;
-        if (req.body.active != null) {
-            newActiveStatus = req.body.active;
-        }
-        SectionUser.update({
-            Active: newActiveStatus
-        }, {
-            where: {
-                SectionUserID: req.params.sectionUserID
-            }
-        }).then(sectionUser => {
-            res.status(201).json({
-                message: 'Success',
-                SectionUserID: sectionUser.SectionUserID
-            });
-        }).catch(err => {
-            logger.log('error', 'post: /sectionUser/changeActive/, user active status not set', {
-                error: err,
-                req_params: req.params,
-            });
-            res.status(401).end();
-        });
-    });
-
+    
 
     router.delete('/delete/user/:userID', (req, res) => {
         console.log('deleting user', req.params.userID);
@@ -5660,41 +5821,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         res.status(200).end();
     });
 
-    router.get('/getWorkflow/:ti_id', async function (req, res) {
-        var ti = await TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.ti_id
-            },
-            include: [{
-                model: WorkflowInstance,
-                attributes: ['TaskCollection'],
-                include: [{
-                    model: WorkflowActivity,
-                    attributes: ['WorkflowStructure']
-                }]
-            }]
-        });
-
-        var json = {};
-
-        await Promise.mapSeries(JSON.parse(ti.WorkflowInstance.TaskCollection), async function (ti_id) {
-            var new_ti = await TaskInstance.find({
-                where: {
-                    TaskInstanceID: ti_id
-                },
-                include: [TaskActivity]
-            });
-            json[ti_id] = new_ti;
-        });
-
-
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'Workflow': json,
-            'WorkflowTree': ti.WorkflowInstance.WorkflowActivity.WorkflowStructure
-        });
-    });
+   
     //-----------------------------------------------------------------------------------------------------
 
 
@@ -7571,93 +7698,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //     // });
     // });
 
-    router.get('/task/files/:taskId', async function (req, res) {
-
-        let result = await TaskInstance.findOne({
-            where: {
-                TaskInstanceID: req.params.taskId
-            },
-            attributes: ['Files']
-        }).catch(err => {
-            logger.log('error', 'could not get files', err, req.params);
-            return res.status(400).end();
-        });
-
-        /*if(result.Files == null){
-        return res.json({
-        Files: []
-        });
-        } else {
-        return res.json({
-        Files: result.Files
-        });
-        }*/
-
-
-        let fileArray = [];
-
-        await Promise.map(JSON.parse(result.Files), async file => {
-            var fr = await FileReference.findOne({
-                where: {
-                    FileID: file
-                },
-                attributes: ['FileID','Info']
-            });
-
-            fileArray.push(fr);
-        });
-
-
-
-        return res.json({
-            Files: fileArray
-        });
-
-    });
-
-
-    //get Section information
-    router.get('/section/info/:sectionId',async function(req,res) {
-        let sectionInfo = await Section.findOne({
-            where: {
-                SectionID: req.params.sectionId
-            },
-            include: [{
-                model: Course
-            },{
-                model:Semester
-            }]
-        });
-
-        let activeAssignments = await AssignmentInstance.findAll({
-            where: {
-                SectionID: req.params.sectionId
-            },
-            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
-            include: [{
-                model: Assignment,
-                attributes: ['DisplayName']
-            }]
-        });
-
-        let sectionUsers = await SectionUser.findAll({
-            where: {
-                SectionID: req.params.sectionId
-            },
-            attributes: ['UserID', 'Role', 'Active'],
-            include: {
-                model: User,
-                attributes: ['FirstName', 'LastName']
-            }
-        });
-
-        res.json({
-            Section: sectionInfo,
-            OngoingAssignments: activeAssignments,
-            Users: sectionUsers
-        });
-        
-    });
+    
 
 
 
