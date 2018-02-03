@@ -153,6 +153,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //     // })
     //     //});
     // });
+
+
+    ///////////////                 System Level APIs                   ///////////////////////////
+
     // endpoint for login function
     router.post('/login', function (req, res) {
         if (req.body.emailaddress == null || req.body.password == null) {
@@ -518,6 +522,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return res.status(410).end();
         }
     });
+    ////////////----------------   END System Level APIs                           ////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     //Middleware to verify token
     router.use(function(req,res,next){
@@ -555,10 +561,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         
         }
     });
+    
     //-------------------------------------------------------------------
-    //-------------------------------------------------------------------
-    //-------------------------------------------------------------------
-
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////                 Guest Level APIs 
     //Endpoint to update a User's Email
     router.put('/update/email', function (req, res) {
@@ -695,11 +700,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     ///////////////////////////
-    ////////////----------------   END Guest APIs
-
-
+    ////////////----------------   END Guest APIs                           ////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////                 Participant Level APIs                   ///////////////////////////
-    
 
     router.post('/assignment/create', function (req, res) {
 
@@ -3958,6 +3962,42 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         realloc.reallocate(req.body.taskid, req.body.users);
     });
 
+    router.post('/reallocate/task_to_user/', async(req, res) => {
+        // console.log('req.body.ti_id', req.body.ti_id);
+        // console.log('req.body.user_id,', req.body.user_id,);
+        // console.log('req.body.isExtraCredit,', req.body.isExtraCredit,);
+
+        let ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.ti_id
+            }
+        });
+
+        let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        console.log('respose back', response);
+        res.json(response);
+    });
+
+    router.post('/reallocate/tasks', async(req, res) => {
+        console.log('req.body.tasks', req.body.tasks);
+        console.log('req.body.users', req.body.users);
+        console.log('req.body.sectionID', req.body.sectionID);
+        console.log('req.body.option', req.body.option);
+        console.log('req.body.isExtraCredit', req.body.isExtraCredit);
+
+        let response = await ra.reallocate_tasks(req.body.tasks, req.body.users, req.body.sectionID, undefined, req.body.option, req.body.isExtraCredit);
+
+        res.json(response);
+    });
+
+    router.post('/createSectionUserRecord', async function (req, res) {
+        var levelTrigger = new LevelTrigger();
+
+        await levelTrigger.createSectionUserRecord(req.body.sectionUserID);
+
+        res.status(200).end();
+    });
+
     router.get('/skipDispute/:taskInstanceID', function (req, res) {
         var trigger = new TaskTrigger();
         trigger.skipDispute(req.params.taskInstanceID);
@@ -4586,879 +4626,21 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+    router.get('/sectionUserInfo/:userId/:sectionId', function (req, res) {
+        SectionUser.findOne({
+            where: {
+                SectionID: req.params.sectionId,
+                UserID: req.params.userId
+            },
+            attributes: ['SectionUserID', 'Role', 'Active']
+        }).then(user => {
+            return res.json({
+                Info: user
+            });
+        });
+    });
     //-------------------------------------------------------------------------
 
-
-    ////////////----------------   END Participant APIs
-    ////////////                 Enhanced Access Level APIs 
-     
-    //Assign a New Instructor
-    router.put('/instructor/new', function (req, res) {
-        var email = req.body.email;
-        UserLogin.find({
-            where: {
-                Email: email
-            },
-            attributes: ['UserID']
-        }).then(function (userID) {
-            if (userID == null) {
-                console.log('Email Not Found - Making Instructor ' + email);
-                User.create({
-                    FirstName: 'Temp',
-                    LastName: 'Temp',
-                    OrganizationGroup: {
-                        'OrganizationID': []
-                    },
-                    Instructor: true,
-                    Admin: false
-                })
-                    .then(function (user) {
-                        UserContact.create({
-                            Email: email,
-                            Phone: 'XXX-XXX-XXXX',
-                            FirstName: 'Temp',
-                            LastName: 'Temp',
-                            UserID: user.UserID
-                        }).then(async function (userCon) {
-                            UserLogin.create({
-                                UserID: user.UserID,
-                                Email: email,
-                                Password: await password.hash('pass123')
-                            }).then(function (userLogin) {
-                                //Email User With Password
-                                console.log('/instructor/new made');
-                                res.status(200).end();
-                            })
-                                .catch(function (err) {
-                                    console.log(err);
-                                });
-                        })
-                            .catch(function (err) {
-                                console.log('Error creating user');
-                                console.log(err);
-                            });
-                    })
-                    .catch(function (err) {
-                        console.log(err);
-                    });
-            } else {
-                User.find({
-                    where: {
-                        UserID: userID.UserID
-                    },
-                    attributes: ['Instructor', 'UserID']
-                }).then(function (makerID) {
-                    if (!makerID.Instructor) {
-                        makerID.updateAttributes({
-                            UserID: makerID.UserID,
-                            Instructor: true
-                        }).success(function () {
-                            console.log('/instructor/new : success');
-                            res.status(200).end();
-                        });
-                    } else {
-                        console.log('/instructor/new : already instructor');
-                        res.status(400).end();
-                    }
-                });
-            }
-        });
-    });
-
-    ///////////////////////////
-    ////////////----------------   END Enhanced Access APIs
-
-    ////////////                 Admin Level APIs   
-
-    router.get('/AssignmentArchive/save/:AssignmentID', function (req, res) {
-        var assignmentArray = new Array();
-        Assignment.findAll({
-            where: {
-                AssignmentID: req.params.AssignmentID
-            },
-            attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-
-            Assignment_Archive.create({
-                AssignmentID: rows[0].AssignmentID,
-                OwnerID: rows[0].OwnerID,
-                WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
-                Instructions: rows[0].Instructions,
-                Documentation: rows[0].Documentation,
-                GradeDistribution: rows[0].GradeDistribution,
-                Name: rows[0].Name,
-                Type: rows[0].Type,
-                DisplayName: rows[0].DisplayName,
-                SectionID: rows[0].SectionID,
-                CourseID: rows[0].CourseID,
-                SemesterID: rows[0].SemesterID,
-                VersionHistory: rows[0].VersionHistory
-
-            });
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log('/AssignmentArchive/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
-        });
-        //         Assignment.destroy({
-        //             where: {
-        //                  AssignmentID: req.params.AssignmentID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete workflow instance Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-    });
-
-    //Endpoint to restore assignment activity table entry by giving assignment id
-    router.get('/AssignmentRestore/save/:AssignmentID', function (req, res) {
-        var assignmentArray = new Array();
-        Assignment_Archive.findAll({
-            where: {
-                AssignmentID: req.params.AssignmentID
-            },
-            attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-
-            Assignment.create({
-                AssignmentID: rows[0].AssignmentID,
-                OwnerID: rows[0].OwnerID,
-                WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
-                Instructions: rows[0].Instructions,
-                Documentation: rows[0].Documentation,
-                GradeDistribution: rows[0].GradeDistribution,
-                Name: rows[0].Name,
-                Type: rows[0].Type,
-                DisplayName: rows[0].DisplayName,
-                SectionID: rows[0].SectionID,
-                CourseID: rows[0].CourseID,
-                SemesterID: rows[0].SemesterID,
-                VersionHistory: rows[0].VersionHistory
-
-            });
-            res.status(401).end();
-        }).catch(function (err) {
-            console.log('/AssignmentRestore/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
-        });
-        //         Assignment.destroy({
-        //             where: {
-        //                  AssignmentID: req.params.AssignmentID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete workflow instance Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-    });
-
-    //Endpoint to archive assignment instance table entry by giving AssignmentInstanceID
-    router.get('/AssignmentInstanceArchive/save/:AssignmentInstanceID', function (req, res) {
-        var assignmentArray = new Array();
-        console.log(' AssignmentInstanceArchive is called\n');
-        AssignmentInstance.findAll({
-            where: {
-                AssignmentInstanceID: req.params.AssignmentInstanceID
-            },
-            attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                AssignmentInstance_Archive.create({
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    AssignmentID: rows[x].AssignmentID,
-                    SectionID: rows[x].SectionID,
-                    StartDate: rows[x].StartDate,
-                    EndDate: rows[x].EndDate,
-                    WorkflowCollection: rows[x].WorkflowCollection,
-                    WorkflowTiming: rows[x].WorkflowTiming
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log(' /AssignmentInstanceArchive/save/:AssignmentInstanceID-------' + err.message);
-            res.status(401).end();
-        });
-        //         TaskActivity.destroy({
-        //             where: {
-        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete TaskActivityArchive Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-    });
-
-    //Endpoint to restore assignment instance table entry by giving AssignmentInstanceID
-    router.get('/AssignmentInstanceRestore/save/:AssignmentInstanceID', function (req, res) {
-        var assignmentArray = new Array();
-        console.log(' AssignmentInstanceRestore is called\n');
-        AssignmentInstance_Archive.findAll({
-            where: {
-                AssignmentInstanceID: req.params.AssignmentInstanceID
-            },
-            attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                AssignmentInstance.create({
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    AssignmentID: rows[x].AssignmentID,
-                    SectionID: rows[x].SectionID,
-                    StartDate: rows[x].StartDate,
-                    EndDate: rows[x].EndDate,
-                    WorkflowCollection: rows[x].WorkflowCollection,
-                    WorkflowTiming: rows[x].WorkflowTiming
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log(' /AssignmentInstanceRestore/save/:AssignmentInstanceID-------' + err.message);
-            res.status(401).end();
-        });
-        //         TaskActivity.destroy({
-        //             where: {
-        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete TaskActivityArchive Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-    });
-
-    //Endpoint to archive task actvity table entry by giving assignment id
-    router.get('/TaskActivityArchive/save/:AssignmentID', function (req, res) {
-        var assignmentArray = new Array();
-        console.log('TaskActivityArchive is called\n');
-        TaskActivity.findAll({
-            where: {
-                AssignmentID: req.params.AssignmentID
-            },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                TaskActivity_Archive.create({
-                    TaskActivityID: rows[x].TaskActivityID,
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentID: rows[x].AssignmentID,
-                    Name: rows[x].Name,
-                    Type: rows[x].Type,
-                    FileUpload: rows[x].FileUpload,
-                    DueType: rows[x].DueType,
-                    StartDelay: rows[x].StartDelay,
-                    AtDUrationEnd: rows[x].AtDUrationEnd,
-                    WhatIfLate: rows[x].WhatIfLate,
-                    DisplayName: rows[x].DisplayName,
-                    Documentation: rows[x].Documentation,
-                    OneOrSeparate: rows[x].OneOrSeparate,
-                    AssigneeConstraints: rows[x].AssigneeConstraints,
-                    Difficulty: rows[x].Difficulty,
-                    SimpleGrade: rows[x].SimpleGrade,
-                    IsFinalGradingTask: rows[x].IsFinalGradingTask,
-                    Instructions: rows[x].Instructions,
-                    Rubric: rows[x].Rubric,
-                    Fields: rows[x].Fields,
-                    AllowReflection: rows[x].AllowReflection,
-                    AllowAssessment: rows[x].AllowAssessment,
-                    NumberParticipants: rows[x].NumberParticipants,
-                    RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
-                    FunctionType: rows[x].FunctionType,
-                    Function: rows[x].Function,
-                    AllowDispute: rows[x].AllowDispute,
-                    LeadsToNewProblem: rows[x].LeadsToNewProblem,
-                    LeadsToNewSolution: rows[x].LeadsToNewSolution,
-                    VisualID: rows[x].VisualID,
-                    VersionHistory: rows[x].VersionHistory,
-                    RefersToWhichTask: rows[x].RefersToWhichTask,
-                    TriggerCondition: rows[x].TriggerCondition,
-                    PreviousTasks: rows[x].PreviousTasks,
-                    NextTasks: rows[x].NextTasks,
-                    MinimumDuration: rows[x].MinimumDuration,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log('/TaskActivityArchive/save/:AssignmentID ' + err.message);
-            res.status(401).end();
-        });
-
-        //         TaskActivity.destroy({
-        //             where: {
-        //                 AssignmentID: req.params.AssignmentID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete TaskActivityArchive Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-    });
-
-    //Endpoint to restore task actvity table entry by giving assignment id (Note: Could not test - should work)
-    router.get('/TaskActivityRestore/save/:AssignmentID', function (req, res) {
-        var assignmentArray = new Array();
-        console.log('TaskActivityRestore is called\n');
-        TaskActivity_Archive.findAll({
-            where: {
-                AssignmentID: req.params.AssignmentID
-            },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                TaskActivity.create({
-                    TaskActivityID: rows[x].TaskActivityID,
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentID: rows[x].AssignmentID,
-                    Name: rows[x].Name,
-                    Type: rows[x].Type,
-                    FileUpload: rows[x].FileUpload,
-                    DueType: rows[x].DueType,
-                    StartDelay: rows[x].StartDelay,
-                    AtDUrationEnd: rows[x].AtDUrationEnd,
-                    WhatIfLate: rows[x].WhatIfLate,
-                    DisplayName: rows[x].DisplayName,
-                    Documentation: rows[x].Documentation,
-                    OneOrSeparate: rows[x].OneOrSeparate,
-                    AssigneeConstraints: rows[x].AssigneeConstraints,
-                    Difficulty: rows[x].Difficulty,
-                    SimpleGrade: rows[x].SimpleGrade,
-                    IsFinalGradingTask: rows[x].IsFinalGradingTask,
-                    Instructions: rows[x].Instructions,
-                    Rubric: rows[x].Rubric,
-                    Fields: rows[x].Fields,
-                    AllowReflection: rows[x].AllowReflection,
-                    AllowAssessment: rows[x].AllowAssessment,
-                    NumberParticipants: rows[x].NumberParticipants,
-                    RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
-                    FunctionType: rows[x].FunctionType,
-                    Function: rows[x].Function,
-                    AllowDispute: rows[x].AllowDispute,
-                    LeadsToNewProblem: rows[x].LeadsToNewProblem,
-                    LeadsToNewSolution: rows[x].LeadsToNewSolution,
-                    VisualID: rows[x].VisualID,
-                    VersionHistory: rows[x].VersionHistory,
-                    RefersToWhichTask: rows[x].RefersToWhichTask,
-                    TriggerCondition: rows[x].TriggerCondition,
-                    PreviousTasks: rows[x].PreviousTasks,
-                    NextTasks: rows[x].NextTasks,
-                    MinimumDuration: rows[x].MinimumDuration,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log('/TaskActivityRestore/save/:AssignmentID ' + err.message);
-            res.status(401).end();
-        });
-
-        //         TaskActivity.destroy({
-        //             where: {
-        //                 AssignmentID: req.params.AssignmentID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete TaskActivityArchive Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-    });
-
-    //Endpoint to archive task instance table entry by giving  AssignmentInstanceID
-    router.get('/TaskInstanceArchive/save/:AssignmentInstanceID', function (req, res) {
-        var assignmentArray = new Array();
-        console.log('TaskInstanceArchive is called\n');
-        TaskInstance.findAll({
-            where: {
-                AssignmentInstanceID: req.params.AssignmentInstanceID
-            },
-            attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                TaskInstance_Archive.create({
-
-                    TaskInstanceID: rows[x].TaskInstanceID,
-                    UserID: rows[x].UserID,
-                    TaskActivityID: rows[x].TaskActivityID,
-                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    GroupID: rows[x].GroupID,
-                    Status: rows[x].Status,
-                    StartDate: rows[x].StartDate,
-                    EndDate: rows[x].EndDate,
-                    ActualEndDate: rows[x].ActualEndDate,
-                    Data: rows[x].Data,
-                    UserHistory: rows[x].UserHistory,
-                    FinalGrade: rows[x].FinalGrade,
-                    Files: rows[x].Files,
-                    ReferencedTask: rows[x].ReferencedTask,
-                    NextTask: rows[x].NextTask,
-                    PreviousTask: rows[x].PreviousTask,
-                    EmailLastSent: rows[x].EmailLastSent
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log('/TaskInstanceArchive/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
-        });
-
-        //         TaskInstance.destroy({
-        //             where: {
-        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete task instance Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-
-
-    });
-
-    //Endpoint to archive task instance table entry by giving  AssignmentInstanceID
-    router.get('/TaskInstanceRestore/save/:AssignmentInstanceID', function (req, res) {
-        var assignmentArray = new Array();
-        console.log('TaskInstanceRestore is called\n');
-        TaskInstance_Archive.findAll({
-            where: {
-                AssignmentInstanceID: req.params.AssignmentInstanceID
-            },
-            attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                TaskInstance.create({
-
-                    TaskInstanceID: rows[x].TaskInstanceID,
-                    UserID: rows[x].UserID,
-                    TaskActivityID: rows[x].TaskActivityID,
-                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    GroupID: rows[x].GroupID,
-                    Status: rows[x].Status,
-                    StartDate: rows[x].StartDate,
-                    EndDate: rows[x].EndDate,
-                    ActualEndDate: rows[x].ActualEndDate,
-                    Data: rows[x].Data,
-                    UserHistory: rows[x].UserHistory,
-                    FinalGrade: rows[x].FinalGrade,
-                    Files: rows[x].Files,
-                    ReferencedTask: rows[x].ReferencedTask,
-                    NextTask: rows[x].NextTask,
-                    PreviousTask: rows[x].PreviousTask,
-                    EmailLastSent: rows[x].EmailLastSent
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log('/TaskInstanceRestore/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
-        });
-
-        //         TaskInstance.destroy({
-        //             where: {
-        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete task instance Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-
-
-    });
-
-    //Endpoint to archive workflow instance table entry by giving AssignmentInstanceID
-    router.get('/WorkflowInstanceArchive/save/:AssignmentInstanceID', function (req, res) {
-
-
-        var assignmentArray = new Array();
-        console.log('WorkflowInstanceArchive is called\n');
-        WorkflowInstance.findAll({
-            where: {
-                AssignmentInstanceID: req.params.AssignmentInstanceID
-            },
-            attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                WorkflowInstance_Archive.create({
-                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    StartTime: rows[x].StartTime,
-                    EndTime: rows[x].EndTime,
-                    TaskCollection: rows[x].TaskCollection,
-                    Data: rows[x].Data
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log('/WorkflowInstanceArchive/save/:AssignmentInstanceID' + err.message);
-            res.status(401).end();
-        });
-        //         WorkflowInstance.destroy({
-        //             where: {
-        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete workflow instance Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-
-    });
-
-    //Endpoint to restore workflow instance table entry by giving AssignmentInstanceID
-    router.get('/WorkflowInstanceRestore/save/:AssignmentInstanceID', function (req, res) {
-
-
-        var assignmentArray = new Array();
-        console.log('WorkflowInstanceRestore is called\n');
-        WorkflowInstance_Archive.findAll({
-            where: {
-                AssignmentInstanceID: req.params.AssignmentInstanceID
-            },
-            attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                WorkflowInstance.create({
-                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    StartTime: rows[x].StartTime,
-                    EndTime: rows[x].EndTime,
-                    TaskCollection: rows[x].TaskCollection,
-                    Data: rows[x].Data
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log('/WorkflowInstanceRestore/save/:AssignmentInstanceID' + err.message);
-            res.status(401).end();
-        });
-        //         WorkflowInstance.destroy({
-        //             where: {
-        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete workflow instance Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-
-    });
-
-    //Endpoint to archive workflow actvity table entry by giving AssignmentID
-    router.get('/WorkflowActivityArchive/save/:AssignmentID', function (req, res) {
-        var assignmentArray = new Array();
-        console.log(' WorkflowActivityArchive is called\n');
-        WorkflowActivity.findAll({
-            where: {
-                AssignmentID: req.params.AssignmentID
-            },
-            attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                WorkflowActivity_Archive.create({
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentID: rows[x].AssignmentID,
-                    TaskActivityCollection: rows[x].TaskActivityCollection,
-                    Name: rows[x].Name,
-                    Type: rows[x].Type,
-                    GradeDistribution: rows[x].GradeDistribution,
-                    NumberOfSets: rows[x].NumberOfSets,
-                    Documentation: rows[x].Documentation,
-                    GroupSize: rows[x].GroupSize,
-                    StartTaskActivity: rows[x].StartTaskActivity,
-                    WorkflowStructure: rows[x].WorkflowStructure,
-                    VersionHistory: rows[x].VersionHistory
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log(' /WorkflowActivityArchive/save/:AssignmentID-------' + err.message);
-            res.status(401).end();
-        });
-        //
-        //         WorkflowActivity.destroy({
-        //             where: {
-        //                  AssignmentID: req.params.AssignmentID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete WorkflowActivityArchive Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-
-    });
-
-    //Endpoint to restore workflow actvity table entry by giving AssignmentID
-    router.get('/WorkflowActivityRestore/save/:AssignmentID', function (req, res) {
-        var assignmentArray = new Array();
-        console.log(' WorkflowActivityRestore is called\n');
-        WorkflowActivity_Archive.findAll({
-            where: {
-                AssignmentID: req.params.AssignmentID
-            },
-            attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
-        }).then(function (rows) {
-            //console.log(rows[0].OwnerID);
-            var arrayLength = rows.length;
-            for (var x = 0; x < arrayLength; x++) {
-
-                WorkflowActivity.create({
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentID: rows[x].AssignmentID,
-                    TaskActivityCollection: rows[x].TaskActivityCollection,
-                    Name: rows[x].Name,
-                    Type: rows[x].Type,
-                    GradeDistribution: rows[x].GradeDistribution,
-                    NumberOfSets: rows[x].NumberOfSets,
-                    Documentation: rows[x].Documentation,
-                    GroupSize: rows[x].GroupSize,
-                    StartTaskActivity: rows[x].StartTaskActivity,
-                    WorkflowStructure: rows[x].WorkflowStructure,
-                    VersionHistory: rows[x].VersionHistory
-
-                });
-            }
-            //200 for OK
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log(' /WorkflowActivityRestore/save/:AssignmentID-------' + err.message);
-            res.status(401).end();
-        });
-        //
-        //         WorkflowActivity.destroy({
-        //             where: {
-        //                  AssignmentID: req.params.AssignmentID
-        //             }
-        //         }).then(function(rows) {
-        //             console.log("Delete WorkflowActivityArchive Success and saved to other back up");
-        //             res.status(201).end();
-        //         });
-
-    });
-
-    //-------------------------------------------------------------------------------------------------
-
-    router.get('/findPreviousTasks/:taskInstanceId', function (req, res) {
-        var allocator = new TaskFactory();
-
-        allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function (done) {
-            console.log('done!', done);
-            previousTasks = done.sort();
-
-            res.json({
-                'previousTasks': previousTasks
-            });
-
-        }).catch(function (err) {
-            console.log(err);
-            res.status(401).end();
-        });
-    });
-
-    //Endpoint for Assignment Manager
-    router.get('/manager', function (req, res) {
-
-        var manager = new Manager();
-
-        //Manager.Manager.checkTimeoutTasks();
-        // AssignmentInstance.findById(1).then(
-        //     function(asection) {
-        //         Manager.Manager.trigger(asection);
-        //
-        //     }
-        // );
-
-        //manager.checkAssignments();
-        manager.check();
-        //Manager.Manager.check();
-    });
-
-    router.get('/manager/checkAssignments', function (req, res) {
-
-        var manager = new Manager();
-
-        //Manager.Manager.checkTimeoutTasks();
-        // AssignmentInstance.findById(1).then(
-        //     function(asection) {
-        //         Manager.Manager.trigger(asection);
-        //
-        //     }
-        // );
-
-        manager.checkAssignments();
-        //manager.check();
-        //Manager.Manager.check();
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to make a user an admin
-    router.put('/makeUserAdmin/', function (req, res) {
-
-        User.findById(req.body.UserID).then(function (user) {
-            if (user == null) {
-                console.log('/makeUserAdmin/ User not found');
-                res.status(401).end();
-            } else {
-                user.Admin = 1;
-                user.save().then(function () {
-                    console.log('/makeUserAdmin : User Updated ');
-                    res.status(200).end();
-                }).catch(function (error) {
-                    // Ooops, do some error-handling
-                    console.log('/makeUserAdmin : Error while inserting ' + error.message);
-                    res.status(401).end();
-                });
-            }
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to make a user not an admin
-    router.put('/makeUserNotAdmin/', function (req, res) {
-        UserLogin.find({
-            where: {
-                UserID: req.body.UserID
-            }
-        }).then(async function (userLogin) {
-            if (userLogin != null && await password.verify(userLogin.Password, req.body.password)) {
-                User.findById(req.body.UserID).then(function (user) {
-                    if (user == null) {
-                        console.log('/makeUserNotAdmin/ User not found');
-                        res.status(401).end();
-                    } else {
-                        user.Admin = 0;
-                        user.save().then(function () {
-                            console.log('/makeUserNotAdmin : User Updated ');
-                            res.status(200).end();
-                        }).catch(function (error) {
-                            // Ooops, do some error-handling
-                            console.log('/makeUserNoAdmin : Error while inserting ' + error.message);
-                            res.status(401).end();
-                        });
-                    }
-                });
-            } else {
-                console.log('/makeUserNoAdmin : Authentication Failed');
-                res.status(401).end();
-            }
-        });
-    });
-
-    router.get('/getSubWorkFlow/:taskInstanceID', function (req, res) {
-        var taskFactory = new TaskFactory();
-        taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function (subworkflow) {
-            res.json({
-                'Error': false,
-                'SubWorkflow': subworkflow
-            });
-        });
-    });
-
-    router.get('/getNextTask/:taskInstanceID', function (req, res) {
-        var taskFactory = new TaskFactory();
-        taskFactory.getNextTask(req.params.taskInstanceID, new Array()).then(function (NextTask) {
-            res.json({
-                'Error': false,
-                'NextTask': NextTask
-            });
-        });
-    });
-
-    // endpoint to delete organization
-    router.get('/organization/delete/:organizationid', function (req, res) {
-        Organization.destroy({
-            where: {
-                OrganizationID: req.params.organizationid
-            }
-        }).then(function (rows) {
-            console.log('Delete Organization Success');
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log('/organization/delete : ' + err.message);
-            res.status(400).end();
-        });
-    });
-
-    //Endpoint to update an organization
-    router.post('/organization/update/:organizationid', function (req, res) {
-        if (req.body.Name == null) {
-            console.log('organization/update : Name cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        Organization.update({
-            Name: req.body.Name
-        }, {
-            where: {
-                OrganizationID: req.params.organizationid
-            }
-        }).then(function (result) {
-            Organization.find({
-                where: {
-                    OrganizationID: req.body.organizationid
-                }
-            }).then(function (organizationUpdated) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'result': result,
-                    'OrganizationUpdated': organizationUpdated
-                });
-            });
-        }).catch(function (err) {
-            console.log('/organization/update : ' + err);
-            res.status(401).end();
-        });
-
-
-    });
-
-    ///////////////////////////
-    ////////////----------------   END Admin APIs
-   
-   
     //Endpoint to return VolunteerPool list of Volunteers
     router.get('/VolunteerPool/', function (req, res) {
 
@@ -5654,386 +4836,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-
-
-    //-------------------------------------------------------------------------------------------------
-
-
-
-    //Endpoint to archive assignment activity table entry by giving assignment id
-    
-    //Endpoint to Create an Assignment
-   
-
-
-    
-
-    //-----------------------------------------------------------------------------------------------------
-
-    
-
-
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint debug
-
-    router.get('/debug', function (req, res) {
-        // winston.level = 'debug'
-        logger.log('error', 'both', {
-            someKey: 'some-value'
-        });
-        logger.log('warn', 'only info');
-        logger.log('warn', 'only info', ([1, 2, {
-            k: 'v'
-        },
-        ['hi'],
-        function(test) {
-            console.log(test);
-        }
-        ]).toString());
-
-        // var manager = new Manager()
-        // manager.debug()
-        var a = new Allocator();
-        // a.reallocate_ais_of_users([1, 5], [3, 5, 8, 11, 1])
-        res.status(200).end();
-    });
-
-    // Inactivate section user
-
-    
-
-    
-    //Endpoint to Test All Models for a UserID
-    router.get('/ModelTest/:userID', function (req, res) {
-
-
-        WorkflowInstance.findById(req.params.userID).then(function (WorkflowInstance) {
-            console.log('WorkflowInstance Found');
-
-            WorkflowInstance.getWorkflowActivity().then(function (workflowActivity) {
-                console.log('WorkflowActivity Found ' + workflowActivity.Name);
-            });
-
-            WorkflowInstance.getAssignment().then(function (assignment) {
-                console.log('Assignment Found : ' + assignment.Name);
-            });
-        });
-
-        WorkflowActivity.findById(req.params.userID).then(function (workflowActivity) {
-            console.log('WorkflowActivity Found ' + workflowActivity.Name);
-
-            workflowActivity.getWorkflowInstances().then(function (workflows) {
-                console.log('workflows Found ');
-            });
-
-        });
-
-        Assignment.findById(req.params.userID).then(function (assignment) {
-            console.log('Assignment Found : ' + assignment.Name);
-
-            assignment.getWorkflowInstances().then(function (workflows) {
-                console.log('workflows Found ');
-            });
-
-        });
-
-        TaskInstance.findById(req.params.userID).then(function (taskInstance) {
-            console.log('Semester name : ' + taskInstance.TaskInstanceID);
-
-            taskInstance.getUser().then(function (User) {
-                console.log('TaskInstance User Name ' + User.FirstName);
-            });
-            taskInstance.getTaskActivity().then(function (TaskActivity) {
-                console.log('TaskActivity Name ' + TaskActivity.Name);
-            });
-
-        });
-
-        TaskActivity.findById(2).then(function (TaskActivity) {
-            console.log('TaskActivity name : ' + TaskActivity.Name);
-
-            TaskActivity.getTaskInstances().then(function (TaskInstances) {
-                console.log('Found');
-            });
-
-        });
-
-        Semester.findById(req.params.userID).then(function (Semester) {
-            console.log('Semester name : ' + Semester.Name);
-
-            Semester.getSections().then(function (Sections) {
-                console.log('Found');
-            });
-
-        });
-
-        Section.findById(req.params.userID).then(function (Section) {
-            console.log('Section name : ' + Section.Name);
-
-            Section.getSemester().then(function (Semester) {
-                console.log('Semester Name : ' + Semester.Name);
-                //res.status(200).end();
-            });
-
-            Section.getCourse().then(function (Course) {
-                console.log('Course Name : ' + Course.Name);
-                //res.status(200).end();
-            });
-            Section.getSectionUsers().then(function (Users) {
-                console.log('Found');
-                //res.status(200).end();
-            });
-
-        });
-
-        UserLogin.findById(req.params.userID).then(function (user) {
-            console.log('User Email : ' + user.Email);
-
-        });
-
-        Course.findById(req.params.userID).then(function (course) {
-            console.log('User Course : ' + course.Name);
-
-            course.getUser().then(function (Creator) {
-                console.log('Creator Name : ' + Creator.FirstName);
-                //res.status(200).end();
-            });
-
-            course.getSections().then(function (sections) {
-                console.log('Sections Found');
-            });
-        });
-        //Course.find
-        User.findById(req.params.userID).then(function (user) {
-            console.log('User name : ' + user.FirstName);
-            var UserLog = user.getUserLogin().then(function (USerLogin) {
-                console.log('User Email : ' + USerLogin.Email);
-
-            });
-            user.getUserContact().then(function (USerLogin) {
-                console.log('User Email : ' + USerLogin.Email);
-                res.status(200).end();
-            });
-            //console.Log("Email " + UserLog.Email);
-        });
-    });
-
-
-    
-    //---------------------------------------------------------------------------------------------------
-
-
-
-    //-----------------------------------------------------------------------------------------------------
-
-    
-
-    //-----------------------------------------------------------------------------------------------------
-
-    
-    
-
-    
-
-    
-
-
-
-
-    // router.post("/course/adduser", function(req, res) {
-    //
-    //     var email = new Email.Email();
-    //
-    //     if (req.body.email === null) {
-    //         console.log("course/adduser : Email cannot be null");
-    //         res.status(400).end();
-    //     }
-    //     if (req.body.courseid === null) {
-    //         console.log("course/adduser : CourseID cannot be null");
-    //         res.status(400).end();
-    //     }
-    //     if (req.body.sectionid === null) {
-    //         console.log("course/adduser : SectionID cannot be null");
-    //         res.status(400).end();
-    //     }
-    //
-    //     UserLogin.find({
-    //         where: {
-    //             Email: req.body.email
-    //         },
-    //         attributes: ['UserID']
-    //     }).then(function(userLogin) {
-    //         if (userLogin == null || userLogin.UserID == null) {
-    //             UserContact.create({
-    //                 Email: req.body.email,
-    //                 Phone: 'XXX-XXX-XXXX'
-    //             }).catch(function(err) {
-    //                 console.log(err);
-    //             }).then(function(userCon) {
-    //                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-    //                     .then(function() {
-    //                         sequelize.sync({});
-    //                         User.create({
-    //                             FirstName: 'Temp',
-    //                             LastName: 'Temp',
-    //                             OrganizationGroup: {
-    //                                 "OrganizationID": []
-    //                             },
-    //                             UserContactID: userCon.UserContactID,
-    //                             UserType: 'Student',
-    //                             Admin: 0
-    //                         }).catch(function(err) {
-    //                             console.log(err);
-    //                         }).then(async function(user) {
-    //                             UserLogin.create({
-    //                                 UserID: user.UserID,
-    //                                 Email: req.body.email,
-    //                                 Password: await password.hash('pass123')
-    //                             }).catch(function(err) {
-    //                                 console.log(err);
-    //                             }).then(function(userLogin) {
-    //                                 //Email User With Password
-    //                                 email.sendNow(userLogin.UserID, 'create user');
-    //
-    //                                 SectionUser.create({
-    //                                     SectionID: req.body.sectionid,
-    //                                     UserID: userLogin.UserID,
-    //                                     Role: 'Student',
-    //                                      Active: true
-    //                                 }).catch(function(err) {
-    //                                     console.log(err);
-    //                                 }).then(function(sectionUser) {
-    //                                     res.status(200).end();
-    //                                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-    //
-    //                                 });
-    //                             });
-    //                         });
-    //                     });
-    //             });
-    //         } else {
-    //             SectionUser.create({
-    //                 SectionID: req.body.sectionid,
-    //                 UserID: userLogin.UserID,
-    //                 Role: 'Student',
-    //                  Active: true
-    //             }).catch(function(err) {
-    //                 console.log(err);
-    //             }).then(function(sectionUser) {
-    //                 res.json({
-    //                     "UserID": sectionUser.UserID
-    //                 });
-    //             })
-    //         }
-    //     })
-    // });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    
-    //-----------------------------------------------------------------------------------------------------
-
-
-
-    
-
-    //-----------------------------------------------------------------------------------------------------
-
-    
-
-    //------------------------------------------------------------
-    //------------------------------------------------------------
-
-   
-
-    //-----------------------------------------------------------------------------------------------------
-
-    
-
-    //-----------------------------------------------------------------------------------------------------
-
-    
-    //-----------------------------------------------------------------------------------------------------
-
-    
-    //-----------------------------------------------------------------------------------------------------
-
-    //Get UserID from Email
-    
-
-    //-----------------------------------------------------------------------------------------------------
-
-    
-   
-
-
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-
-
-    
-    
-    
-
-    router.get('/getTree', function (req, res) {
-        var taskFactory = new TaskFactory();
-        var node1;
-        var node2;
-
-        Promise.all([taskFactory.getTree(1, function (tree) {
-            let ar = [];
-            tree.walk(function (node) {
-                console.log(node.model.id);
-                ar.push(node.model.id);
-            });
-            node1 = tree.first(function (node) {
-                //console.log("first :", node);
-                return node.model.id === 1;
-            });
-            node2 = tree.all(function (node) {
-                //console.log("all :", node);
-                return node.model.parent === 1;
-            });
-
-            //console.log('nodes',node1, node2);
-            // res.json({
-            //     Arra: ar,
-            //     Node1: node1,
-            //     Node2: node2
-            // });
-            //res.status(200).end();
-        })]).then(function (done) {
-            console.log('nodes', node1, node2);
-        });
-    });
-
-    
-
-
-    
-
-    
-
-    
-
-
-    
-    //-----------------------------------------------------------------------------------------------------
-
-    
-
-    
-    
-
-
-
-    
-
-    
-
-
-    
     router.get('/reallocatepools/:ai_id', function (req, res) {
         var reallocate = new Allocator();
         var ai_id = req.params.ai_id;
@@ -6077,15 +4879,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-
-
     router.post('/reallocate_ai/', async function (req, res) {
         var reallocate = new Allocator();
 
         await reallocate.reallocate_ai();
     });
-
-
 
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function (req, res) {
@@ -6941,92 +5739,195 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     });
-    //---------------------------------------------------------------------------
-    router.get('/userManagement', async function (req, res) {
-        console.log('/userManagement : was called');
-        await User.findAll({
-            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin', 'Test', 'Instructor'],
+
+    router.get('/getSectionUserRecord/:sectionUserID', async function (req, res) {
+        let record = await SectionUserRecord.find({
+            where: {
+                SectionUserID: req.params.sectionUserID
+            }
+        });
+
+        res.json({
+            'Error': false,
+            'SectionUserRecord': record
+        });
+    });
+
+    router.get('/sections/instructor/:user_id', async function (req, res) {
+        let sections = await SectionUser.findAll({
+            where: {
+                UserID: req.params.user_id,
+                Role: 'Instructor'
+            },
+            attributes: ['SectionID'],
             include: [{
-                model: UserContact,
-                attributes: ['Email', 'FirstName', 'LastName']
-            }, {
-
-                model: UserLogin,
-                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked']
-            }
-
-            ]
-        }).then(function (result) {
-            console.log('Assignments have been found!');
-            res.json({
-                'Error': false,
-                'Assignments': result
-            });
-        }).catch(function (err) {
-            console.log('/userManagement (User table)' + err.message);
-            res.status(401).end();
+                model: Section,
+                attributes: ['Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['Number']
+                }]
+            }]
         });
 
+        res.json({
+            'Error': false,
+            'Sections': sections
+        });
     });
 
-    //---------------------------------------------------------------------------
-    router.get('/userManagement/blocked/:UserID', function (req, res) {
-        console.log('/userManagement/blocked : was called');
-
-        UserLogin.update({
-            Blocked: 1
-        }, {
+    router.get('/section/assignments/:section_id', async function (req, res) {
+        let assignments = await AssignmentInstance.findAll({
             where: {
-                UserID: req.params.UserID
-            }
-        }).then(function (update) {
-            UserLogin.find({
+                SectionID: req.params.section_id
+            },
+            attributes: ['AssignmentInstanceID'],
+            include: [{
+                model: Assignment,
+                attributes: ['Name', 'DisplayName', 'Type']
+            }]
+        });
+
+        res.json({
+            'Error': false,
+            'Assignments': assignments
+        });
+    });
+
+    router.get('/assignment/structure/:assignmentInstanceID', async function (req, res) {
+
+        let structure = [];
+        let assignment = await AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            },
+            attributes: ['AssignmentID']
+        });
+
+        let was = await WorkflowActivity.findAll({
+            where: {
+                AssignmentID: assignment.AssignmentID
+            },
+            attributes: ['WorkflowActivityID', 'Name']
+        });
+
+        await Promise.mapSeries(was, async(wa) => {
+            console.log('wa id', wa.WorkflowActivityID);
+            let tas = [];
+            let ta = await TaskActivity.findAll({
                 where: {
-                    UserID: req.params.UserID
-                }
-            }).then(function (result) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Result': result
+                    WorkflowActivityID: wa.WorkflowActivityID
+                },
+                attributes: ['TaskActivityID', 'Name']
+            });
+
+            await Promise.mapSeries(ta, (task) => {
+                tas.push({
+                    Name: task.Name,
+                    TaskActivityID: task.TaskActivityID
                 });
             });
-        }).catch(function (err) {
-            console.log('/userManagement/blocked/ ' + err);
-            res.status(401).end();
-        });
-    });
-    //---------------------------------------------------------------------------
-    router.get('/userManagement/unblocked/:UserID', function (req, res) {
-        console.log('/userManagement/unblocked : was called');
 
-        UserLogin.update({
-            Blocked: 0
-        }, {
-            where: {
-                UserID: req.params.UserID
-            }
-        }).then(function (update) {
-            UserLogin.find({
-                where: {
-                    UserID: req.params.UserID
-                }
-            }).then(function (result) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Result': result
-                });
+            structure.push({
+                WorkflowActivityID: wa.WorkflowActivityID,
+                Name: wa.Name,
+                Tasks: tas
             });
-        }).catch(function (err) {
-            console.log('/userManagement/unblocked/ ' + err);
-            res.status(401).end();
         });
+
+
+
+
+        res.json({
+            Error: false,
+            Structure: structure
+        });
+
     });
-    //---------------------------------------------------------------------------
+
+    router.get('/assignment/data/:assignmentInstanceID', async function (req, res) {
+        let data = {};
+
+        let workflows = await WorkflowInstance.findAll({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        });
+
+        await Promise.mapSeries(workflows, async(workflow) => {
+            let tasks = {};
+            let tis = await TaskInstance.findAll({
+                where: {
+                    WorkflowInstanceID: workflow.WorkflowInstanceID
+                },
+                Attributes: ['TaskInstanceID', 'TaskActivityID', 'Status', 'UserID', 'WorkflowInstanceID', 'AssignmentInstanceID'],
+                include: [{
+                    model: User,
+                    Attributes: ['FirstName', 'LastName', 'Instructor']
+                }]
+            });
+
+            tasks['id'] = workflow.WorkflowInstanceID;
+
+            await Promise.mapSeries(tis, async(ti) => {
+                tasks[ti.TaskActivityID] = {
+                    TaskInstanceID: ti.TaskInstanceID,
+                    WorkflowInstanceID: ti.WorkflowInstanceID,
+                    AssignmentInstanceID: ti.AssignmentInstanceID,
+                    Status: JSON.parse(ti.Status),
+                    Name: `${ti.User.FirstName} ${ti.User.LastName}`,
+                    UserID: ti.UserID,
+                    Instructor: ti.User.Instructor
+
+                };
+            });
+
+            if (data.hasOwnProperty(workflow.WorkflowActivityID)) {
+                data[workflow.WorkflowActivityID].workflows.push({
+                    WorkflowInstanceID: workflow.WorkflowInstanceID,
+                    Tasks: tasks
+                });
+            } else {
+                data[workflow.WorkflowActivityID] = {
+                    workflows: [{
+                        WorkflowInstanceID: workflow.WorkflowInstanceID,
+                        Tasks: tasks
+                    }]
+                };
+            }
+
+        });
+
+        let assignment = await AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            },
+            attributes: ['SectionID']
+        });
+
+        let students = await SectionUser.findAll({
+            where: {
+                SectionID: assignment.SectionID,
+                Active: 1
+            },
+            attributes: ['UserID', 'Volunteer', 'Role'],
+            include: [{
+                model: User,
+                attributes: ['FirstName', 'LastName']
+            }]
+        });
+
+        res.json({
+            Error: false,
+            Students: students,
+            Data: data
+
+        });
+
+    });
 
     /***********************************************************************************************************
-     ** Amadou work starts here
+     ** GAMIFICATION APIs - Amadou work starts here
      ************************************************************************************************************/
     //Endpoints to get user's badges
     router.get('/userBadges/:userID', async function (req, res) {
@@ -7404,250 +6305,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //Just for testing
-    router.get('/testing', async function (req, res) {
+    // router.get('/testing', async function (req, res) {
 
-        // let taskFactory = new TaskFactory;
-        //taskFactory.createCategoryInstances(1, 1, 1);
-        //taskFactory.rankingSnapshot(true);
-        //taskFactory.rankingSnapshot(false, true);
-        //taskFactory.updatePointInstance('create_problem', '3', '1');
-        // let taskFactory = new TaskFactory;
-        // taskFactory.createCategoryInstances(1, 1, 1);
-        console.log('sending from testing ....');
-        let email = new Email();
-        email.sendNow(2, 'late');
+    //     // let taskFactory = new TaskFactory;
+    //     //taskFactory.createCategoryInstances(1, 1, 1);
+    //     //taskFactory.rankingSnapshot(true);
+    //     //taskFactory.rankingSnapshot(false, true);
+    //     //taskFactory.updatePointInstance('create_problem', '3', '1');
+    //     // let taskFactory = new TaskFactory;
+    //     // taskFactory.createCategoryInstances(1, 1, 1);
+    //     console.log('sending from testing ....');
+    //     let email = new Email();
+    //     email.sendNow(2, 'late');
 
-        // res.json({
-        //     'Error': false,
-        //     'SectionUserRecord': 'hello world'
-        // });
-    });
-    /***********************************************************************************************************
-     **  Amadou work ends here
-     ************************************************************************************************************/
-
-    router.get('/getSectionUserRecord/:sectionUserID', async function (req, res) {
-        let record = await SectionUserRecord.find({
-            where: {
-                SectionUserID: req.params.sectionUserID
-            }
-        });
-
-        res.json({
-            'Error': false,
-            'SectionUserRecord': record
-        });
-    });
-
-    router.get('/sections/instructor/:user_id', async function (req, res) {
-        let sections = await SectionUser.findAll({
-            where: {
-                UserID: req.params.user_id,
-                Role: 'Instructor'
-            },
-            attributes: ['SectionID'],
-            include: [{
-                model: Section,
-                attributes: ['Name'],
-                include: [{
-                    model: Course,
-                    attributes: ['Number']
-                }]
-            }]
-        });
-
-        res.json({
-            'Error': false,
-            'Sections': sections
-        });
-    });
-
-    router.get('/section/assignments/:section_id', async function (req, res) {
-        let assignments = await AssignmentInstance.findAll({
-            where: {
-                SectionID: req.params.section_id
-            },
-            attributes: ['AssignmentInstanceID'],
-            include: [{
-                model: Assignment,
-                attributes: ['Name', 'DisplayName', 'Type']
-            }]
-        });
-
-        res.json({
-            'Error': false,
-            'Assignments': assignments
-        });
-    });
-
-    router.get('/assignment/structure/:assignmentInstanceID', async function (req, res) {
-
-        let structure = [];
-        let assignment = await AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            },
-            attributes: ['AssignmentID']
-        });
-
-        let was = await WorkflowActivity.findAll({
-            where: {
-                AssignmentID: assignment.AssignmentID
-            },
-            attributes: ['WorkflowActivityID', 'Name']
-        });
-
-        await Promise.mapSeries(was, async(wa) => {
-            console.log('wa id', wa.WorkflowActivityID);
-            let tas = [];
-            let ta = await TaskActivity.findAll({
-                where: {
-                    WorkflowActivityID: wa.WorkflowActivityID
-                },
-                attributes: ['TaskActivityID', 'Name']
-            });
-
-            await Promise.mapSeries(ta, (task) => {
-                tas.push({
-                    Name: task.Name,
-                    TaskActivityID: task.TaskActivityID
-                });
-            });
-
-            structure.push({
-                WorkflowActivityID: wa.WorkflowActivityID,
-                Name: wa.Name,
-                Tasks: tas
-            });
-        });
-
-
-
-
-        res.json({
-            Error: false,
-            Structure: structure
-        });
-
-    });
-
-    router.get('/assignment/data/:assignmentInstanceID', async function (req, res) {
-        let data = {};
-
-        let workflows = await WorkflowInstance.findAll({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            }
-        });
-
-        await Promise.mapSeries(workflows, async(workflow) => {
-            let tasks = {};
-            let tis = await TaskInstance.findAll({
-                where: {
-                    WorkflowInstanceID: workflow.WorkflowInstanceID
-                },
-                Attributes: ['TaskInstanceID', 'TaskActivityID', 'Status', 'UserID', 'WorkflowInstanceID', 'AssignmentInstanceID'],
-                include: [{
-                    model: User,
-                    Attributes: ['FirstName', 'LastName', 'Instructor']
-                }]
-            });
-
-            tasks['id'] = workflow.WorkflowInstanceID;
-
-            await Promise.mapSeries(tis, async(ti) => {
-                tasks[ti.TaskActivityID] = {
-                    TaskInstanceID: ti.TaskInstanceID,
-                    WorkflowInstanceID: ti.WorkflowInstanceID,
-                    AssignmentInstanceID: ti.AssignmentInstanceID,
-                    Status: JSON.parse(ti.Status),
-                    Name: `${ti.User.FirstName} ${ti.User.LastName}`,
-                    UserID: ti.UserID,
-                    Instructor: ti.User.Instructor
-
-                };
-            });
-
-            if (data.hasOwnProperty(workflow.WorkflowActivityID)) {
-                data[workflow.WorkflowActivityID].workflows.push({
-                    WorkflowInstanceID: workflow.WorkflowInstanceID,
-                    Tasks: tasks
-                });
-            } else {
-                data[workflow.WorkflowActivityID] = {
-                    workflows: [{
-                        WorkflowInstanceID: workflow.WorkflowInstanceID,
-                        Tasks: tasks
-                    }]
-                };
-            }
-
-        });
-
-        let assignment = await AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            },
-            attributes: ['SectionID']
-        });
-
-        let students = await SectionUser.findAll({
-            where: {
-                SectionID: assignment.SectionID,
-                Active: 1
-            },
-            attributes: ['UserID', 'Volunteer', 'Role'],
-            include: [{
-                model: User,
-                attributes: ['FirstName', 'LastName']
-            }]
-        });
-
-        res.json({
-            Error: false,
-            Students: students,
-            Data: data
-
-        });
-
-    });
-
-    router.post('/reallocate/task_to_user/', async(req, res) => {
-        // console.log('req.body.ti_id', req.body.ti_id);
-        // console.log('req.body.user_id,', req.body.user_id,);
-        // console.log('req.body.isExtraCredit,', req.body.isExtraCredit,);
-
-        let ti = await TaskInstance.find({
-            where: {
-                TaskInstanceID: req.body.ti_id
-            }
-        });
-
-        let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
-        console.log('respose back', response);
-        res.json(response);
-    });
-
-    router.post('/reallocate/tasks', async(req, res) => {
-        console.log('req.body.tasks', req.body.tasks);
-        console.log('req.body.users', req.body.users);
-        console.log('req.body.sectionID', req.body.sectionID);
-        console.log('req.body.option', req.body.option);
-        console.log('req.body.isExtraCredit', req.body.isExtraCredit);
-
-        let response = await ra.reallocate_tasks(req.body.tasks, req.body.users, req.body.sectionID, undefined, req.body.option, req.body.isExtraCredit);
-
-        res.json(response);
-    });
-
-    router.post('/createSectionUserRecord', async function (req, res) {
-        var levelTrigger = new LevelTrigger();
-
-        await levelTrigger.createSectionUserRecord(req.body.sectionUserID);
-
-        res.status(200).end();
-    });
-
+    //     // res.json({
+    //     //     'Error': false,
+    //     //     'SectionUserRecord': 'hello world'
+    //     // });
+    // });
     router.post('/addExp', async function (req, res) {
         var levelTrigger = new LevelTrigger();
 
@@ -7662,19 +6337,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         await grade.claimExtraCredit(req.body.goalInstanceID, req.body.sectionUserID);
         res.status(200).end();
     });
-    router.get('/sectionUserInfo/:userId/:sectionId', function (req, res) {
-        SectionUser.findOne({
-            where: {
-                SectionID: req.params.sectionId,
-                UserID: req.params.userId
-            },
-            attributes: ['SectionUserID', 'Role', 'Active']
-        }).then(user => {
-            return res.json({
-                Info: user
-            });
-        });
-    });
+    
 
     router.get('/goals/section/:sectionId', function (req, res) {
         GoalInstance.findAll({
@@ -7688,52 +6351,1147 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         });
     });
-
-    // router.get('/task/files/:taskId', async function (req, res) {
-
-    //     let result = await TaskInstance.findOne({
-    //         where: {
-    //             TaskInstanceID: req.params.taskId
-    //         },
-    //         attributes: ['Files']
-    //     }).catch(err => {
-    //         logger.log('error', 'could not get files', err, req.params);
-    //         return res.status(400).end();
-    //     });
-
-    //     if (result.Files == null) {
-    //         return res.json({
-    //             Files: []
-    //         });
-    //     } else {
-    //         return res.json({
-    //             Files: result.Files
-    //         });
-    //     }
-
-
-    //     // let fileArray = JSON.parse(JSON.stringify(result.Files).map(file => {
-    //     //     return FileReference.findOne({
-    //     //         where: {
-    //     //             FileID: file
-    //     //         },
-    //     //         attributes: ['Info']
-    //     //     });
-    //     // });
-
-    //     // Promise.all(fileArray).then(results=>{
-    //     //     console.log(results);
-    //     //     let parsedResults = results.map(JSON.parse);
-    //     //     return res.json({
-    //     //         Files: parsedResults
-    //     //     });
-
-    //     // });
-    // });
+    /***********************************************************************************************************
+     **  Amadou work ends here
+     ************************************************************************************************************/
 
     
+    
+
+    ////////////----------------   END Participant APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////    
+    ////////////                 Enhanced Access Level APIs 
+     
+    //Assign a New Instructor
+    router.put('/instructor/new', function (req, res) {
+        var email = req.body.email;
+        UserLogin.find({
+            where: {
+                Email: email
+            },
+            attributes: ['UserID']
+        }).then(function (userID) {
+            if (userID == null) {
+                console.log('Email Not Found - Making Instructor ' + email);
+                User.create({
+                    FirstName: 'Temp',
+                    LastName: 'Temp',
+                    OrganizationGroup: {
+                        'OrganizationID': []
+                    },
+                    Instructor: true,
+                    Admin: false
+                })
+                    .then(function (user) {
+                        UserContact.create({
+                            Email: email,
+                            Phone: 'XXX-XXX-XXXX',
+                            FirstName: 'Temp',
+                            LastName: 'Temp',
+                            UserID: user.UserID
+                        }).then(async function (userCon) {
+                            UserLogin.create({
+                                UserID: user.UserID,
+                                Email: email,
+                                Password: await password.hash('pass123')
+                            }).then(function (userLogin) {
+                                //Email User With Password
+                                console.log('/instructor/new made');
+                                res.status(200).end();
+                            })
+                                .catch(function (err) {
+                                    console.log(err);
+                                });
+                        })
+                            .catch(function (err) {
+                                console.log('Error creating user');
+                                console.log(err);
+                            });
+                    })
+                    .catch(function (err) {
+                        console.log(err);
+                    });
+            } else {
+                User.find({
+                    where: {
+                        UserID: userID.UserID
+                    },
+                    attributes: ['Instructor', 'UserID']
+                }).then(function (makerID) {
+                    if (!makerID.Instructor) {
+                        makerID.updateAttributes({
+                            UserID: makerID.UserID,
+                            Instructor: true
+                        }).success(function () {
+                            console.log('/instructor/new : success');
+                            res.status(200).end();
+                        });
+                    } else {
+                        console.log('/instructor/new : already instructor');
+                        res.status(400).end();
+                    }
+                });
+            }
+        });
+    });
+
+    ///////////////////////////
+    ////////////----------------   END Enhanced Access APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////                 Admin Level APIs   
+
+    router.get('/AssignmentArchive/save/:AssignmentID', function (req, res) {
+        var assignmentArray = new Array();
+        Assignment.findAll({
+            where: {
+                AssignmentID: req.params.AssignmentID
+            },
+            attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+
+            Assignment_Archive.create({
+                AssignmentID: rows[0].AssignmentID,
+                OwnerID: rows[0].OwnerID,
+                WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
+                Instructions: rows[0].Instructions,
+                Documentation: rows[0].Documentation,
+                GradeDistribution: rows[0].GradeDistribution,
+                Name: rows[0].Name,
+                Type: rows[0].Type,
+                DisplayName: rows[0].DisplayName,
+                SectionID: rows[0].SectionID,
+                CourseID: rows[0].CourseID,
+                SemesterID: rows[0].SemesterID,
+                VersionHistory: rows[0].VersionHistory
+
+            });
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log('/AssignmentArchive/save/:AssignmentInstanceID ' + err.message);
+            res.status(401).end();
+        });
+        //         Assignment.destroy({
+        //             where: {
+        //                  AssignmentID: req.params.AssignmentID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete workflow instance Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+    });
+
+    //Endpoint to restore assignment activity table entry by giving assignment id
+    router.get('/AssignmentRestore/save/:AssignmentID', function (req, res) {
+        var assignmentArray = new Array();
+        Assignment_Archive.findAll({
+            where: {
+                AssignmentID: req.params.AssignmentID
+            },
+            attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+
+            Assignment.create({
+                AssignmentID: rows[0].AssignmentID,
+                OwnerID: rows[0].OwnerID,
+                WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
+                Instructions: rows[0].Instructions,
+                Documentation: rows[0].Documentation,
+                GradeDistribution: rows[0].GradeDistribution,
+                Name: rows[0].Name,
+                Type: rows[0].Type,
+                DisplayName: rows[0].DisplayName,
+                SectionID: rows[0].SectionID,
+                CourseID: rows[0].CourseID,
+                SemesterID: rows[0].SemesterID,
+                VersionHistory: rows[0].VersionHistory
+
+            });
+            res.status(401).end();
+        }).catch(function (err) {
+            console.log('/AssignmentRestore/save/:AssignmentInstanceID ' + err.message);
+            res.status(401).end();
+        });
+        //         Assignment.destroy({
+        //             where: {
+        //                  AssignmentID: req.params.AssignmentID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete workflow instance Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+    });
+
+    //Endpoint to archive assignment instance table entry by giving AssignmentInstanceID
+    router.get('/AssignmentInstanceArchive/save/:AssignmentInstanceID', function (req, res) {
+        var assignmentArray = new Array();
+        console.log(' AssignmentInstanceArchive is called\n');
+        AssignmentInstance.findAll({
+            where: {
+                AssignmentInstanceID: req.params.AssignmentInstanceID
+            },
+            attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                AssignmentInstance_Archive.create({
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    AssignmentID: rows[x].AssignmentID,
+                    SectionID: rows[x].SectionID,
+                    StartDate: rows[x].StartDate,
+                    EndDate: rows[x].EndDate,
+                    WorkflowCollection: rows[x].WorkflowCollection,
+                    WorkflowTiming: rows[x].WorkflowTiming
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log(' /AssignmentInstanceArchive/save/:AssignmentInstanceID-------' + err.message);
+            res.status(401).end();
+        });
+        //         TaskActivity.destroy({
+        //             where: {
+        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete TaskActivityArchive Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+    });
+
+    //Endpoint to restore assignment instance table entry by giving AssignmentInstanceID
+    router.get('/AssignmentInstanceRestore/save/:AssignmentInstanceID', function (req, res) {
+        var assignmentArray = new Array();
+        console.log(' AssignmentInstanceRestore is called\n');
+        AssignmentInstance_Archive.findAll({
+            where: {
+                AssignmentInstanceID: req.params.AssignmentInstanceID
+            },
+            attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                AssignmentInstance.create({
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    AssignmentID: rows[x].AssignmentID,
+                    SectionID: rows[x].SectionID,
+                    StartDate: rows[x].StartDate,
+                    EndDate: rows[x].EndDate,
+                    WorkflowCollection: rows[x].WorkflowCollection,
+                    WorkflowTiming: rows[x].WorkflowTiming
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log(' /AssignmentInstanceRestore/save/:AssignmentInstanceID-------' + err.message);
+            res.status(401).end();
+        });
+        //         TaskActivity.destroy({
+        //             where: {
+        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete TaskActivityArchive Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+    });
+
+    //Endpoint to archive task actvity table entry by giving assignment id
+    router.get('/TaskActivityArchive/save/:AssignmentID', function (req, res) {
+        var assignmentArray = new Array();
+        console.log('TaskActivityArchive is called\n');
+        TaskActivity.findAll({
+            where: {
+                AssignmentID: req.params.AssignmentID
+            },
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                TaskActivity_Archive.create({
+                    TaskActivityID: rows[x].TaskActivityID,
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentID: rows[x].AssignmentID,
+                    Name: rows[x].Name,
+                    Type: rows[x].Type,
+                    FileUpload: rows[x].FileUpload,
+                    DueType: rows[x].DueType,
+                    StartDelay: rows[x].StartDelay,
+                    AtDUrationEnd: rows[x].AtDUrationEnd,
+                    WhatIfLate: rows[x].WhatIfLate,
+                    DisplayName: rows[x].DisplayName,
+                    Documentation: rows[x].Documentation,
+                    OneOrSeparate: rows[x].OneOrSeparate,
+                    AssigneeConstraints: rows[x].AssigneeConstraints,
+                    Difficulty: rows[x].Difficulty,
+                    SimpleGrade: rows[x].SimpleGrade,
+                    IsFinalGradingTask: rows[x].IsFinalGradingTask,
+                    Instructions: rows[x].Instructions,
+                    Rubric: rows[x].Rubric,
+                    Fields: rows[x].Fields,
+                    AllowReflection: rows[x].AllowReflection,
+                    AllowAssessment: rows[x].AllowAssessment,
+                    NumberParticipants: rows[x].NumberParticipants,
+                    RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
+                    FunctionType: rows[x].FunctionType,
+                    Function: rows[x].Function,
+                    AllowDispute: rows[x].AllowDispute,
+                    LeadsToNewProblem: rows[x].LeadsToNewProblem,
+                    LeadsToNewSolution: rows[x].LeadsToNewSolution,
+                    VisualID: rows[x].VisualID,
+                    VersionHistory: rows[x].VersionHistory,
+                    RefersToWhichTask: rows[x].RefersToWhichTask,
+                    TriggerCondition: rows[x].TriggerCondition,
+                    PreviousTasks: rows[x].PreviousTasks,
+                    NextTasks: rows[x].NextTasks,
+                    MinimumDuration: rows[x].MinimumDuration,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log('/TaskActivityArchive/save/:AssignmentID ' + err.message);
+            res.status(401).end();
+        });
+
+        //         TaskActivity.destroy({
+        //             where: {
+        //                 AssignmentID: req.params.AssignmentID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete TaskActivityArchive Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+    });
+
+    //Endpoint to restore task actvity table entry by giving assignment id (Note: Could not test - should work)
+    router.get('/TaskActivityRestore/save/:AssignmentID', function (req, res) {
+        var assignmentArray = new Array();
+        console.log('TaskActivityRestore is called\n');
+        TaskActivity_Archive.findAll({
+            where: {
+                AssignmentID: req.params.AssignmentID
+            },
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                TaskActivity.create({
+                    TaskActivityID: rows[x].TaskActivityID,
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentID: rows[x].AssignmentID,
+                    Name: rows[x].Name,
+                    Type: rows[x].Type,
+                    FileUpload: rows[x].FileUpload,
+                    DueType: rows[x].DueType,
+                    StartDelay: rows[x].StartDelay,
+                    AtDUrationEnd: rows[x].AtDUrationEnd,
+                    WhatIfLate: rows[x].WhatIfLate,
+                    DisplayName: rows[x].DisplayName,
+                    Documentation: rows[x].Documentation,
+                    OneOrSeparate: rows[x].OneOrSeparate,
+                    AssigneeConstraints: rows[x].AssigneeConstraints,
+                    Difficulty: rows[x].Difficulty,
+                    SimpleGrade: rows[x].SimpleGrade,
+                    IsFinalGradingTask: rows[x].IsFinalGradingTask,
+                    Instructions: rows[x].Instructions,
+                    Rubric: rows[x].Rubric,
+                    Fields: rows[x].Fields,
+                    AllowReflection: rows[x].AllowReflection,
+                    AllowAssessment: rows[x].AllowAssessment,
+                    NumberParticipants: rows[x].NumberParticipants,
+                    RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
+                    FunctionType: rows[x].FunctionType,
+                    Function: rows[x].Function,
+                    AllowDispute: rows[x].AllowDispute,
+                    LeadsToNewProblem: rows[x].LeadsToNewProblem,
+                    LeadsToNewSolution: rows[x].LeadsToNewSolution,
+                    VisualID: rows[x].VisualID,
+                    VersionHistory: rows[x].VersionHistory,
+                    RefersToWhichTask: rows[x].RefersToWhichTask,
+                    TriggerCondition: rows[x].TriggerCondition,
+                    PreviousTasks: rows[x].PreviousTasks,
+                    NextTasks: rows[x].NextTasks,
+                    MinimumDuration: rows[x].MinimumDuration,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log('/TaskActivityRestore/save/:AssignmentID ' + err.message);
+            res.status(401).end();
+        });
+
+        //         TaskActivity.destroy({
+        //             where: {
+        //                 AssignmentID: req.params.AssignmentID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete TaskActivityArchive Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+    });
+
+    //Endpoint to archive task instance table entry by giving  AssignmentInstanceID
+    router.get('/TaskInstanceArchive/save/:AssignmentInstanceID', function (req, res) {
+        var assignmentArray = new Array();
+        console.log('TaskInstanceArchive is called\n');
+        TaskInstance.findAll({
+            where: {
+                AssignmentInstanceID: req.params.AssignmentInstanceID
+            },
+            attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                TaskInstance_Archive.create({
+
+                    TaskInstanceID: rows[x].TaskInstanceID,
+                    UserID: rows[x].UserID,
+                    TaskActivityID: rows[x].TaskActivityID,
+                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    GroupID: rows[x].GroupID,
+                    Status: rows[x].Status,
+                    StartDate: rows[x].StartDate,
+                    EndDate: rows[x].EndDate,
+                    ActualEndDate: rows[x].ActualEndDate,
+                    Data: rows[x].Data,
+                    UserHistory: rows[x].UserHistory,
+                    FinalGrade: rows[x].FinalGrade,
+                    Files: rows[x].Files,
+                    ReferencedTask: rows[x].ReferencedTask,
+                    NextTask: rows[x].NextTask,
+                    PreviousTask: rows[x].PreviousTask,
+                    EmailLastSent: rows[x].EmailLastSent
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log('/TaskInstanceArchive/save/:AssignmentInstanceID ' + err.message);
+            res.status(401).end();
+        });
+
+        //         TaskInstance.destroy({
+        //             where: {
+        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete task instance Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
 
 
+    });
+
+    //Endpoint to archive task instance table entry by giving  AssignmentInstanceID
+    router.get('/TaskInstanceRestore/save/:AssignmentInstanceID', function (req, res) {
+        var assignmentArray = new Array();
+        console.log('TaskInstanceRestore is called\n');
+        TaskInstance_Archive.findAll({
+            where: {
+                AssignmentInstanceID: req.params.AssignmentInstanceID
+            },
+            attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                TaskInstance.create({
+
+                    TaskInstanceID: rows[x].TaskInstanceID,
+                    UserID: rows[x].UserID,
+                    TaskActivityID: rows[x].TaskActivityID,
+                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    GroupID: rows[x].GroupID,
+                    Status: rows[x].Status,
+                    StartDate: rows[x].StartDate,
+                    EndDate: rows[x].EndDate,
+                    ActualEndDate: rows[x].ActualEndDate,
+                    Data: rows[x].Data,
+                    UserHistory: rows[x].UserHistory,
+                    FinalGrade: rows[x].FinalGrade,
+                    Files: rows[x].Files,
+                    ReferencedTask: rows[x].ReferencedTask,
+                    NextTask: rows[x].NextTask,
+                    PreviousTask: rows[x].PreviousTask,
+                    EmailLastSent: rows[x].EmailLastSent
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log('/TaskInstanceRestore/save/:AssignmentInstanceID ' + err.message);
+            res.status(401).end();
+        });
+
+        //         TaskInstance.destroy({
+        //             where: {
+        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete task instance Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+
+
+    });
+
+    //Endpoint to archive workflow instance table entry by giving AssignmentInstanceID
+    router.get('/WorkflowInstanceArchive/save/:AssignmentInstanceID', function (req, res) {
+
+
+        var assignmentArray = new Array();
+        console.log('WorkflowInstanceArchive is called\n');
+        WorkflowInstance.findAll({
+            where: {
+                AssignmentInstanceID: req.params.AssignmentInstanceID
+            },
+            attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                WorkflowInstance_Archive.create({
+                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    StartTime: rows[x].StartTime,
+                    EndTime: rows[x].EndTime,
+                    TaskCollection: rows[x].TaskCollection,
+                    Data: rows[x].Data
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log('/WorkflowInstanceArchive/save/:AssignmentInstanceID' + err.message);
+            res.status(401).end();
+        });
+        //         WorkflowInstance.destroy({
+        //             where: {
+        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete workflow instance Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+
+    });
+
+    //Endpoint to restore workflow instance table entry by giving AssignmentInstanceID
+    router.get('/WorkflowInstanceRestore/save/:AssignmentInstanceID', function (req, res) {
+
+
+        var assignmentArray = new Array();
+        console.log('WorkflowInstanceRestore is called\n');
+        WorkflowInstance_Archive.findAll({
+            where: {
+                AssignmentInstanceID: req.params.AssignmentInstanceID
+            },
+            attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                WorkflowInstance.create({
+                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    StartTime: rows[x].StartTime,
+                    EndTime: rows[x].EndTime,
+                    TaskCollection: rows[x].TaskCollection,
+                    Data: rows[x].Data
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log('/WorkflowInstanceRestore/save/:AssignmentInstanceID' + err.message);
+            res.status(401).end();
+        });
+        //         WorkflowInstance.destroy({
+        //             where: {
+        //                 AssignmentInstanceID: req.params.AssignmentInstanceID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete workflow instance Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+
+    });
+
+    //Endpoint to archive workflow actvity table entry by giving AssignmentID
+    router.get('/WorkflowActivityArchive/save/:AssignmentID', function (req, res) {
+        var assignmentArray = new Array();
+        console.log(' WorkflowActivityArchive is called\n');
+        WorkflowActivity.findAll({
+            where: {
+                AssignmentID: req.params.AssignmentID
+            },
+            attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                WorkflowActivity_Archive.create({
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentID: rows[x].AssignmentID,
+                    TaskActivityCollection: rows[x].TaskActivityCollection,
+                    Name: rows[x].Name,
+                    Type: rows[x].Type,
+                    GradeDistribution: rows[x].GradeDistribution,
+                    NumberOfSets: rows[x].NumberOfSets,
+                    Documentation: rows[x].Documentation,
+                    GroupSize: rows[x].GroupSize,
+                    StartTaskActivity: rows[x].StartTaskActivity,
+                    WorkflowStructure: rows[x].WorkflowStructure,
+                    VersionHistory: rows[x].VersionHistory
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log(' /WorkflowActivityArchive/save/:AssignmentID-------' + err.message);
+            res.status(401).end();
+        });
+        //
+        //         WorkflowActivity.destroy({
+        //             where: {
+        //                  AssignmentID: req.params.AssignmentID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete WorkflowActivityArchive Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+
+    });
+
+    //Endpoint to restore workflow actvity table entry by giving AssignmentID
+    router.get('/WorkflowActivityRestore/save/:AssignmentID', function (req, res) {
+        var assignmentArray = new Array();
+        console.log(' WorkflowActivityRestore is called\n');
+        WorkflowActivity_Archive.findAll({
+            where: {
+                AssignmentID: req.params.AssignmentID
+            },
+            attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
+        }).then(function (rows) {
+            //console.log(rows[0].OwnerID);
+            var arrayLength = rows.length;
+            for (var x = 0; x < arrayLength; x++) {
+
+                WorkflowActivity.create({
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentID: rows[x].AssignmentID,
+                    TaskActivityCollection: rows[x].TaskActivityCollection,
+                    Name: rows[x].Name,
+                    Type: rows[x].Type,
+                    GradeDistribution: rows[x].GradeDistribution,
+                    NumberOfSets: rows[x].NumberOfSets,
+                    Documentation: rows[x].Documentation,
+                    GroupSize: rows[x].GroupSize,
+                    StartTaskActivity: rows[x].StartTaskActivity,
+                    WorkflowStructure: rows[x].WorkflowStructure,
+                    VersionHistory: rows[x].VersionHistory
+
+                });
+            }
+            //200 for OK
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log(' /WorkflowActivityRestore/save/:AssignmentID-------' + err.message);
+            res.status(401).end();
+        });
+        //
+        //         WorkflowActivity.destroy({
+        //             where: {
+        //                  AssignmentID: req.params.AssignmentID
+        //             }
+        //         }).then(function(rows) {
+        //             console.log("Delete WorkflowActivityArchive Success and saved to other back up");
+        //             res.status(201).end();
+        //         });
+
+    });
+
+    //-------------------------------------------------------------------------------------------------
+
+    router.get('/findPreviousTasks/:taskInstanceId', function (req, res) {
+        var allocator = new TaskFactory();
+
+        allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(function (done) {
+            console.log('done!', done);
+            previousTasks = done.sort();
+
+            res.json({
+                'previousTasks': previousTasks
+            });
+
+        }).catch(function (err) {
+            console.log(err);
+            res.status(401).end();
+        });
+    });
+
+    //Endpoint for Assignment Manager
+    router.get('/manager', function (req, res) {
+
+        var manager = new Manager();
+
+        //Manager.Manager.checkTimeoutTasks();
+        // AssignmentInstance.findById(1).then(
+        //     function(asection) {
+        //         Manager.Manager.trigger(asection);
+        //
+        //     }
+        // );
+
+        //manager.checkAssignments();
+        manager.check();
+        //Manager.Manager.check();
+    });
+
+    router.get('/manager/checkAssignments', function (req, res) {
+
+        var manager = new Manager();
+
+        //Manager.Manager.checkTimeoutTasks();
+        // AssignmentInstance.findById(1).then(
+        //     function(asection) {
+        //         Manager.Manager.trigger(asection);
+        //
+        //     }
+        // );
+
+        manager.checkAssignments();
+        //manager.check();
+        //Manager.Manager.check();
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to make a user an admin
+    router.put('/makeUserAdmin/', function (req, res) {
+
+        User.findById(req.body.UserID).then(function (user) {
+            if (user == null) {
+                console.log('/makeUserAdmin/ User not found');
+                res.status(401).end();
+            } else {
+                user.Admin = 1;
+                user.save().then(function () {
+                    console.log('/makeUserAdmin : User Updated ');
+                    res.status(200).end();
+                }).catch(function (error) {
+                    // Ooops, do some error-handling
+                    console.log('/makeUserAdmin : Error while inserting ' + error.message);
+                    res.status(401).end();
+                });
+            }
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to make a user not an admin
+    router.put('/makeUserNotAdmin/', function (req, res) {
+        UserLogin.find({
+            where: {
+                UserID: req.body.UserID
+            }
+        }).then(async function (userLogin) {
+            if (userLogin != null && await password.verify(userLogin.Password, req.body.password)) {
+                User.findById(req.body.UserID).then(function (user) {
+                    if (user == null) {
+                        console.log('/makeUserNotAdmin/ User not found');
+                        res.status(401).end();
+                    } else {
+                        user.Admin = 0;
+                        user.save().then(function () {
+                            console.log('/makeUserNotAdmin : User Updated ');
+                            res.status(200).end();
+                        }).catch(function (error) {
+                            // Ooops, do some error-handling
+                            console.log('/makeUserNoAdmin : Error while inserting ' + error.message);
+                            res.status(401).end();
+                        });
+                    }
+                });
+            } else {
+                console.log('/makeUserNoAdmin : Authentication Failed');
+                res.status(401).end();
+            }
+        });
+    });
+
+    router.get('/getSubWorkFlow/:taskInstanceID', function (req, res) {
+        var taskFactory = new TaskFactory();
+        taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function (subworkflow) {
+            res.json({
+                'Error': false,
+                'SubWorkflow': subworkflow
+            });
+        });
+    });
+
+    router.get('/getNextTask/:taskInstanceID', function (req, res) {
+        var taskFactory = new TaskFactory();
+        taskFactory.getNextTask(req.params.taskInstanceID, new Array()).then(function (NextTask) {
+            res.json({
+                'Error': false,
+                'NextTask': NextTask
+            });
+        });
+    });
+
+    // endpoint to delete organization
+    router.get('/organization/delete/:organizationid', function (req, res) {
+        Organization.destroy({
+            where: {
+                OrganizationID: req.params.organizationid
+            }
+        }).then(function (rows) {
+            console.log('Delete Organization Success');
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log('/organization/delete : ' + err.message);
+            res.status(400).end();
+        });
+    });
+
+    //Endpoint to update an organization
+    router.post('/organization/update/:organizationid', function (req, res) {
+        if (req.body.Name == null) {
+            console.log('organization/update : Name cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        Organization.update({
+            Name: req.body.Name
+        }, {
+            where: {
+                OrganizationID: req.params.organizationid
+            }
+        }).then(function (result) {
+            Organization.find({
+                where: {
+                    OrganizationID: req.body.organizationid
+                }
+            }).then(function (organizationUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'OrganizationUpdated': organizationUpdated
+                });
+            });
+        }).catch(function (err) {
+            console.log('/organization/update : ' + err);
+            res.status(401).end();
+        });
+
+
+    });
+
+    //---------------------------------------------------------------------------
+    router.get('/userManagement', async function (req, res) {
+        console.log('/userManagement : was called');
+        await User.findAll({
+            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin', 'Test', 'Instructor'],
+            include: [{
+                model: UserContact,
+                attributes: ['Email', 'FirstName', 'LastName']
+            }, {
+
+                model: UserLogin,
+                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked']
+            }
+
+            ]
+        }).then(function (result) {
+            console.log('Assignments have been found!');
+            res.json({
+                'Error': false,
+                'Assignments': result
+            });
+        }).catch(function (err) {
+            console.log('/userManagement (User table)' + err.message);
+            res.status(401).end();
+        });
+
+    });
+
+    //---------------------------------------------------------------------------
+    router.get('/userManagement/blocked/:UserID', function (req, res) {
+        console.log('/userManagement/blocked : was called');
+
+        UserLogin.update({
+            Blocked: 1
+        }, {
+            where: {
+                UserID: req.params.UserID
+            }
+        }).then(function (update) {
+            UserLogin.find({
+                where: {
+                    UserID: req.params.UserID
+                }
+            }).then(function (result) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result
+                });
+            });
+        }).catch(function (err) {
+            console.log('/userManagement/blocked/ ' + err);
+            res.status(401).end();
+        });
+    });
+    //---------------------------------------------------------------------------
+    router.get('/userManagement/unblocked/:UserID', function (req, res) {
+        console.log('/userManagement/unblocked : was called');
+
+        UserLogin.update({
+            Blocked: 0
+        }, {
+            where: {
+                UserID: req.params.UserID
+            }
+        }).then(function (update) {
+            UserLogin.find({
+                where: {
+                    UserID: req.params.UserID
+                }
+            }).then(function (result) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Result': result
+                });
+            });
+        }).catch(function (err) {
+            console.log('/userManagement/unblocked/ ' + err);
+            res.status(401).end();
+        });
+    });
+    //---------------------------------------------------------------------------
+
+
+    ///////////////////////////
+    ////////////----------------   END Admin APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+   
+   
+    
+    //Endpoint debug
+
+    router.get('/debug', function (req, res) {
+        // winston.level = 'debug'
+        logger.log('error', 'both', {
+            someKey: 'some-value'
+        });
+        logger.log('warn', 'only info');
+        logger.log('warn', 'only info', ([1, 2, {
+            k: 'v'
+        },
+        ['hi'],
+        function(test) {
+            console.log(test);
+        }
+        ]).toString());
+
+        // var manager = new Manager()
+        // manager.debug()
+        var a = new Allocator();
+        // a.reallocate_ais_of_users([1, 5], [3, 5, 8, 11, 1])
+        res.status(200).end();
+    });
+
+    //Endpoint to Test All Models for a UserID
+    router.get('/ModelTest/:userID', function (req, res) {
+
+
+        WorkflowInstance.findById(req.params.userID).then(function (WorkflowInstance) {
+            console.log('WorkflowInstance Found');
+
+            WorkflowInstance.getWorkflowActivity().then(function (workflowActivity) {
+                console.log('WorkflowActivity Found ' + workflowActivity.Name);
+            });
+
+            WorkflowInstance.getAssignment().then(function (assignment) {
+                console.log('Assignment Found : ' + assignment.Name);
+            });
+        });
+
+        WorkflowActivity.findById(req.params.userID).then(function (workflowActivity) {
+            console.log('WorkflowActivity Found ' + workflowActivity.Name);
+
+            workflowActivity.getWorkflowInstances().then(function (workflows) {
+                console.log('workflows Found ');
+            });
+
+        });
+
+        Assignment.findById(req.params.userID).then(function (assignment) {
+            console.log('Assignment Found : ' + assignment.Name);
+
+            assignment.getWorkflowInstances().then(function (workflows) {
+                console.log('workflows Found ');
+            });
+
+        });
+
+        TaskInstance.findById(req.params.userID).then(function (taskInstance) {
+            console.log('Semester name : ' + taskInstance.TaskInstanceID);
+
+            taskInstance.getUser().then(function (User) {
+                console.log('TaskInstance User Name ' + User.FirstName);
+            });
+            taskInstance.getTaskActivity().then(function (TaskActivity) {
+                console.log('TaskActivity Name ' + TaskActivity.Name);
+            });
+
+        });
+
+        TaskActivity.findById(2).then(function (TaskActivity) {
+            console.log('TaskActivity name : ' + TaskActivity.Name);
+
+            TaskActivity.getTaskInstances().then(function (TaskInstances) {
+                console.log('Found');
+            });
+
+        });
+
+        Semester.findById(req.params.userID).then(function (Semester) {
+            console.log('Semester name : ' + Semester.Name);
+
+            Semester.getSections().then(function (Sections) {
+                console.log('Found');
+            });
+
+        });
+
+        Section.findById(req.params.userID).then(function (Section) {
+            console.log('Section name : ' + Section.Name);
+
+            Section.getSemester().then(function (Semester) {
+                console.log('Semester Name : ' + Semester.Name);
+                //res.status(200).end();
+            });
+
+            Section.getCourse().then(function (Course) {
+                console.log('Course Name : ' + Course.Name);
+                //res.status(200).end();
+            });
+            Section.getSectionUsers().then(function (Users) {
+                console.log('Found');
+                //res.status(200).end();
+            });
+
+        });
+
+        UserLogin.findById(req.params.userID).then(function (user) {
+            console.log('User Email : ' + user.Email);
+
+        });
+
+        Course.findById(req.params.userID).then(function (course) {
+            console.log('User Course : ' + course.Name);
+
+            course.getUser().then(function (Creator) {
+                console.log('Creator Name : ' + Creator.FirstName);
+                //res.status(200).end();
+            });
+
+            course.getSections().then(function (sections) {
+                console.log('Sections Found');
+            });
+        });
+        //Course.find
+        User.findById(req.params.userID).then(function (user) {
+            console.log('User name : ' + user.FirstName);
+            var UserLog = user.getUserLogin().then(function (USerLogin) {
+                console.log('User Email : ' + USerLogin.Email);
+
+            });
+            user.getUserContact().then(function (USerLogin) {
+                console.log('User Email : ' + USerLogin.Email);
+                res.status(200).end();
+            });
+            //console.Log("Email " + UserLog.Email);
+        });
+    });
+
+
+    router.get('/getTree', function (req, res) {
+        var taskFactory = new TaskFactory();
+        var node1;
+        var node2;
+
+        Promise.all([taskFactory.getTree(1, function (tree) {
+            let ar = [];
+            tree.walk(function (node) {
+                console.log(node.model.id);
+                ar.push(node.model.id);
+            });
+            node1 = tree.first(function (node) {
+                //console.log("first :", node);
+                return node.model.id === 1;
+            });
+            node2 = tree.all(function (node) {
+                //console.log("all :", node);
+                return node.model.parent === 1;
+            });
+
+            //console.log('nodes',node1, node2);
+            // res.json({
+            //     Arra: ar,
+            //     Node1: node1,
+            //     Node2: node2
+            // });
+            //res.status(200).end();
+        })]).then(function (done) {
+            console.log('nodes', node1, node2);
+        });
+    });
 
 };
 module.exports = REST_ROUTER;
