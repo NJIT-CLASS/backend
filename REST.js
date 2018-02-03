@@ -2024,7 +2024,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         console.log("sectionid: ");
         console.log(req.body.sectionID);
 
-
         return SectionUser.findAll({
             where: {
                 UserID:req.body.userID,
@@ -2039,7 +2038,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 if(!sectionIDs) return;
 
                 var userSectionIDs=sectionIDs.toJSON();
-                //console.log(userSectionIDs.SectionUserID);
 
                 return AssignmentGrade.find({
                     where:{
@@ -2047,11 +2045,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     },
                     attributes:['Grade','AssignmentGradeID','AssignmentInstanceID','Comments']
                 }).then(function (grades){
-                    console.log("grades: ");
-                    console.log(grades);
                     if(!grades) return;
                     var gradesJSON = grades.toJSON();
+                    gradesJSON["AssignmentDetails"]={};
                     json.grades.push(gradesJSON);
+
+                    return AssignmentInstance.find({
+                        where:{
+                            AssignmentInstanceID:gradesJSON.AssignmentInstanceID
+                        },
+                        attributes:['AssignmentID']
+                    }).then(function (params){
+                        if(!params) return;
+
+                        return Assignment.find({
+                            where:{AssignmentID:params.AssignmentID}
+                        }).then(function (params){
+                            if(!params) return;
+                            gradesJSON.AssignmentDetails=params;
+                        });
+                    });
                     return grades;
                 });
             });
