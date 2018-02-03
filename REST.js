@@ -559,7 +559,142 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------
     //-------------------------------------------------------------------
 
-    ////////////////                 Guest Level APIs                   ///////////////////////////
+    ////////////////                 Guest Level APIs 
+    //Endpoint to update a User's Email
+    router.put('/update/email', function (req, res) {
+        if (req.body.password == null || req.body.email == null || req.body.userid == null) {
+            console.log('/update/email : Bad Input');
+            res.status(400).end();
+        }
+
+        UserLogin.find({
+            where: {
+                UserID: req.body.userid
+            }
+        }).then(async function (user) {
+            if (user != null && await password.verify(user.Password, req.body.password)) {
+                user.Email = req.body.email;
+                user.save().then(function (used) {
+                    res.status(200).end();
+                }).catch(function (err) {
+                    res.json({
+                        'Email': used.Email
+                    });
+                });
+            } else {
+                console.log('/update/email : Bad Input');
+                res.status(401).end();
+            }
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to update a User's Name
+    router.put('/update/name', function (req, res) {
+        User.find({
+            where: {
+                UserID: req.body.userid
+            }
+        }).then(function (user) {
+            if (user == null) {
+                console.log('/update/name : UserID not Found');
+                res.status(401).end();
+            } else {
+                if (req.body.firstname != '') {
+                    user.FirstName = req.body.firstname;
+                }
+                if (req.body.lastname != '') {
+                    user.LastName = req.body.lastname;
+                }
+                user.save().then(function (used) {
+                    res.json({
+                        'FirstName': user.FirstName,
+                        'LastName': user.LastName
+                    });
+                }).catch(function (err) {
+                    console.log('/update/name : ' + err);
+                    res.status(401).end();
+                });
+            }
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to return general user data
+    router.get('/generalUser/:userid', function (req, res) {
+        User.find({
+            where: {
+                UserID: req.params.userid
+            },
+            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
+            include: [{
+                model: UserLogin,
+                attributes: ['Email']
+            },
+            {
+                model: UserContact,
+                attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
+            }
+            ]
+        }).then(function (user) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'User': user
+            });
+        }).catch(function (err) {
+            console.log('/generalUser : ' + err.message);
+            res.status(401).end();
+        });
+
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    router.post('/update/password', function (req, res) {
+        let email = new Email();
+        if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
+            console.log('/update/password : Missing attributes');
+            res.status(400).end();
+        } else if (req.body.oldPasswd == req.body.newPasswd) {
+            console.log('/update/password : Same password');
+            res.status(400).end();
+        } else {
+            UserLogin.find({
+                where: {
+                    UserID: req.body.userId
+                }
+            }).then(async function (userLogin) {
+                if (await password.verify(userLogin.Password, req.body.oldPasswd)) {
+                    console.log('/user/create : Password matched');
+                    UserLogin.update({
+                        Password: await password.hash(req.body.newPasswd),
+                        Pending: false
+                    }, {
+                        where: {
+                            UserID: req.body.userId
+                        }
+                    }).then(function (done) {
+                        console.log('/update/password: Password updated successfully');
+                        email.sendNow(userLogin.UserID, 'new password');
+                        res.status(200).end();
+                    }).catch(function (err) {
+                        console.log(err);
+                        res.status(400).end();
+                    });
+
+                } else {
+                    console.log('/update/password: Password not match');
+                    res.status(401).end();
+                }
+            });
+        }
+
+    });
+
+    ///////////////////////////
     ////////////----------------   END Guest APIs
 
 
@@ -2379,105 +2514,859 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
         
     });
-    ////////////----------------   END Participant APIs
 
-    ////////////                 Enhanced Access Level APIs                   ///////////////////////////
-    ////////////----------------   END Enhanced Access APIs
+    //Endpoint to allocate students
+    router.get('/allocate', function (req, res) {
 
-    ////////////                 Admin Level APIs                   ///////////////////////////
-    ////////////----------------   END Admin APIs
-   
-   
-    //Endpoint to return VolunteerPool list of Volunteers
-    router.get('/VolunteerPool/', function (req, res) {
+        // var taskFactory = new TaskFactory();
+        // //allocator.createInstances(1, 16);
+        // taskFactory.createInstances(3, 13).then(function(done) {
+        //     console.log('/getAssignToSection/allocate   All Done!');
+        //     res.status(200).end();
+        // }).catch(function(err) {
+        //     console.log(err);
+        //     res.status(404).end();
+        // });
+        //allocator.createInstances(3, 14);
+        //allocator.updatePreviousAndNextTasks(13);
+        var allocat
 
-        VolunteerPool.findAll({
-            attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
-        }).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Volunteers': rows
+        = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
+        Promise.all([allocator.getUser(1)]).then(function (done) {
+            console.log(done[0]);
+        }).then(function () {
+            Promise.all([allocator.getUser(2)]).then(function (done) {
+                console.log(done[0]);
+            }).then(function () {
+                Promise.all([allocator.getUser(3)]).then(function (done) {
+                    console.log(done[0]);
+                }).then(function () {
+                    Promise.all([allocator.getUser(4)]).then(function (done) {
+                        console.log(done[0]);
+                    }).then(function () {
+                        Promise.all([allocator.getUser(5)]).then(function (done) {
+                            console.log(done[0]);
+                        }).then(function () {
+                            Promise.all([allocator.getUser(6)]).then(function (done) {
+                                console.log(done[0]);
+                            }).then(function () {
+                                Promise.all([allocator.getUser(7)]).then(function (done) {
+                                    console.log(done[0]);
+                                }).then(function () {
+                                    Promise.all([allocator.getUser(8)]).then(function (done) {
+                                        console.log(done[0]);
+                                    }).then(function () {
+                                        Promise.all([allocator.getUser(5)]).then(function (done) {
+                                            console.log(done[0]);
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                });
             });
-        }).catch(function (err) {
-            console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
         });
-
-
     });
 
-    //Endpoint to return count total of Volunteers
-    router.get('/VolunteerPool/countOfUsers', function (req, res) {
-        console.log('VolunteerPool/count was called');
-        VolunteerPool.findAll({}).then(function (rows) {
-            res.json({
-                'Error_': false,
-                'Message': 'Success',
-                'Number of Volunteers': rows.length
-            });
-        }).catch(function (err) {
-            console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
-        });
+    
+
+    router.get('/sendEmailNotification/:taskInstanceId', function (req, res) {
+        var email = new Email();
 
 
+        //email.sendNow(req.body.opts);
+        var opts = {
+            from: 'njitplamaster@gmail.com',
+            replyTo: 'njitplamaster@gmail.com',
+            to: 'qxl2@njit.edu',
+            subject: 'Test',
+            html: 'Test'
+        };
+
+        email.send(opts);
     });
 
-    //Endpoint to return list of volunteers in a section
-    router.get('/VolunteerPool/VolunteersInSection/:SectionID', function (req, res) {
-        console.log('/VolunteerPool/VolunteersInSection was called');
-        VolunteerPool.findAll({
+    router.post('/sectionUser/inactivate/:section_user_id', function (req, res) {
+
+        logger.log('info', 'post: /sectionUser/inactivate/, inactivate section user', {
+            req_body: req.body,
+            req_params: req.params
+        });
+        var section_user_id = req.body.section_user_id || req.params.section_user_id;
+
+        if (section_user_id == null) {
+            logger.log('info', 'section_user_id is required but not specified');
+            return res.status(400).end();
+        }
+        return SectionUser.find({
             where: {
-                SectionID: req.params.SectionID
+                SectionUserID: section_user_id
+            }
+        }).then(function (section_user) {
+            if (!section_user) {
+                logger.log('error', 'section user not found');
+                return res.status(400).end();
+            }
+            logger.log('info', 'updating section user', {
+                section_user: section_user.toJSON()
+            });
+            section_user.UserStatus = 'Inactive';
+
+            return section_user.save().then(function (section_user) {
+                logger.log('info', 'section user updated', {
+                    section_user: section_user.toJSON()
+                });
+                return res.status(200).end();
+            });
+        });
+    });
+
+    //Endpoint for Assignment Manager
+    router.post('/getAssignmentGrades/:ai_id', function (req, res) {
+
+        if (req.params.ai_id == null) {
+            console.log('/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        return AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.params.ai_id
             },
-            attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
-        }).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Volunteers': rows
-            });
-        }).catch(function (err) {
-            console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
-        });
-
-
-    });
-
-
-    //Endpoint to return VolunteerPool Information for the student
-    router.get('/VolunteerPool/UserInPool/:UserID', function (req, res) {
-        console.log('/VolunteerPool/:UserID was called');
-        VolunteerPool.findAll({
-            where: {
-                UserID: req.params.UserID
+            attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID'],
+            include: [{
+                model: Assignment,
+                // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                /*include: [{
+                     model: Section,
+                     }],*/
             },
-            attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
+            {
+                model: Section,
+                include: [{
+                    model: Course,
+                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                    /*include: [{
+                         model: Section,
+                         attributes: ["SectionID"],
+                         }],*/
+                }, ],
+            },
+                /*{
+                 model: AssignmentGrade,
+                 }*/
+            ],
+        }).then(function (response) {
+            // console.log('res: ', response)
+            if (response == null) {
+                return res.json({
+                    Error: true
+                });
+            }
+            var json = {
+                Error: false,
+                AssignmentInstance: response,
+                SectionUsers: [],
+            };
+            return response.Section.getSectionUsers().then(function (sectionUsers) {
+                if (!sectionUsers) return;
+
+                // json.SectionUsers = sectionUsers
+                return Promise.map(sectionUsers, function (sectionUser) {
+                    console.log('ww');
+                    var su = sectionUser.toJSON();
+                    json.SectionUsers.push(su);
+
+                    User.find({
+                        where: {
+                            UserID: sectionUser.UserID
+                        },
+                        include: [{
+                            model: UserContact
+                        }]
+                    }).then(function (user) {
+                        if (!user) return;
+
+                        console.log('ww22');
+                        var u = user.toJSON();
+                        su.User = u;
+                    });
+                    return AssignmentGrade.find({
+                        where: {
+                            SectionUserID: sectionUser.SectionUserID,
+                            AssignmentInstanceID: req.params.ai_id,
+                        },
+                        /*include: [
+                         {
+                         model: AssignmentInstance,
+                         // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                         /!*include: [{
+                         model: Section,
+                         }],*!/
+                         },
+                         ],*/
+                    }).then(function (assignmentGrade) {
+                        if (!assignmentGrade) return;
+
+                        console.log('ww11');
+                        var ag = assignmentGrade.toJSON();
+                        su.assignmentGrade = ag;
+                        // console.log(assignmentGrade)
+
+                        return WorkflowGrade.findAll({
+                            where: {
+                                SectionUserID: sectionUser.SectionUserID,
+                                AssignmentInstanceID: req.params.ai_id,
+                            },
+                            include: [{
+                                model: WorkflowActivity,
+                                // attributes: ["AssignmentInstanceID", "AssignmentID"],
+                                /*include: [{
+                                 model: TaskActivity,
+                                 }],*/
+                            }, ],
+                        }).then(function (workflowGrades) {
+                            if (!workflowGrades) return;
+
+                            console.log('ww1.5');
+                            ag.WorkflowActivityGrades = [];
+
+                            return Promise.map(workflowGrades, function (workflowGrade) {
+                                if (!workflowGrade) return;
+
+                                console.log('ww11.5', workflowGrade);
+                                var wg = workflowGrade.toJSON();
+                                ag.WorkflowActivityGrades.push(wg);
+                                if (!wg.WorkflowActivity) return;
+
+                                return TaskGrade.findAll({
+                                    where: {
+                                        SectionUserID: sectionUser.SectionUserID,
+                                        WorkflowActivityID: workflowGrade.WorkflowActivityID,
+                                    },
+                                    include: [{
+                                        model: TaskInstance,
+                                        include: [{
+                                            model: TaskActivity,
+                                        }, ],
+                                    }, ],
+                                }).then(function (taskGrades) {
+                                    if (!taskGrades) return;
+
+                                    console.log('ww1.75');
+                                    wg.WorkflowActivity.users_WA_Tasks = [];
+
+                                    return Promise.map(taskGrades, function (taskGrade) {
+                                        if (!taskGrade) return;
+
+                                        var tg = taskGrade.toJSON();
+                                        tg.taskGrade = taskGrade;
+                                        tg.taskActivity = taskGrade.TaskInstance.TaskActivity;
+                                        wg.WorkflowActivity.users_WA_Tasks.push(tg);
+
+                                        return TaskSimpleGrade.find({
+                                            where: {
+                                                SectionUserID: sectionUser.SectionUserID,
+                                                TaskInstanceID: taskGrade.TaskInstanceID
+                                            },
+                                        }).then(function (taskSimpleGrade) {
+                                            if (!taskSimpleGrade) return;
+
+                                            tg.taskSimpleGrade = taskSimpleGrade;
+                                        });
+                                    });
+                                });
+                            });
+                        });
+                    });
+                }).then(function (done) {
+                    console.log('then', 'json');
+                    res.json(json);
+                });
+            });
+        });
+    });
+
+    //Endpoint to create a semester
+    // JV - contructing the /createSemester where it allows user to create a non existance. return false when new semester already exist
+    router.post('/createSemester', function (req, res) {
+        var startDate = dateFormat(req.body.start_sem, 'yyyy-mm-dd');
+        var endDate = dateFormat(req.body.end_sem, 'yyyy-mm-dd');
+        console.log(req.body.start_sem + ' ' + req.body.end_sem);
+        if (req.body.end_sem == null || req.body.start_sem == null) {
+            console.log('/createSemester : Dates must be defined');
+            res.status(400).end();
+        } else if (startDate > endDate) {
+            console.log('/createSemester : StartDate cannot be grater than EndDate');
+            res.status(400).end();
+        } else {
+            Semester.find({
+                where: {
+                    OrganizationID: req.body.organizationID,
+                    Name: req.body.semesterName //new
+                },
+                attributes: ['SemesterID']
+            }).then(function (response) {
+                if (response == null || response.SemesterID == null) {
+                    Semester.create({
+                        OrganizationID: req.body.organizationID, //organization ID
+                        Name: req.body.semesterName,
+                        StartDate: req.body.start_sem,
+                        EndDate: req.body.end_sem
+                    }).catch(function (err) {
+                        console.log(err);
+                    }).then(function (result) {
+                        res.json({
+                            'newsemester': result,
+                            'sem_feedback': true
+                        });
+                    });
+
+                } else {
+                    console.log('Semester Name and Organization Exist');
+                    res.json({
+                        'newsemester': null,
+                        'sem_feedback': false
+                    });
+                }
+            });
+        }
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to return Semester Information
+    router.get('/semester/:semesterid', function (req, res) {
+
+        Semester.find({
+            where: {
+                SemesterID: req.params.semesterid
+            },
+            attributes: ['SemesterID', 'Name', 'StartDate', 'EndDate', 'OrganizationID']
         }).then(function (rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success',
-                'Volunteers': rows
+                'Semester': rows
             });
         }).catch(function (err) {
-            console.log('/VolunteerPool/ ' + err.message);
+            console.log('/semester/email : ' + err.message);
             res.status(401).end();
         });
 
 
     });
 
+    //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to remove from VolunteerPool
-    router.post('/VolunteerPool/deleteVolunteer', function (req, res) {
+    //Endpoint to get All Semester Information
+    router.get('/semester', function (req, res) {
 
-        VolunteerPool.destroy({
+        Semester.findAll({}).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Semesters': rows
+            });
+        }).catch(function (err) {
+            console.log('/semester: ' + err.message);
+            res.status(401).end();
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to create course
+    router.post('/course/create', function (req, res) {
+        console.log('/course/create: called');
+        if (req.body.userid == null) {
+            console.log('/course/create : UserID cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.Name == null) {
+            console.log('/course/create : Name cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.number == null) {
+            console.log('/course/create : Number cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.organizationid == null) {
+            console.log('/course/create : OrganizationID cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        Course.find({
             where: {
-                UserID: req.body.UserID,
+                CreatorID: req.body.userid,
+                Number: req.body.number,
+                Name: req.body.Name,
+                OrganizationID: req.body.organizationid //new
+            },
+            attributes: ['CourseID']
+        }).then(function (response) {
+            if (response == null || response.CourseID == null) {
+                Course.create({
+                    CreatorID: req.body.userid,
+                    Number: req.body.number,
+                    Name: req.body.Name,
+                    OrganizationID: req.body.organizationid
+                }).catch(function (err) {
+                    console.log(err);
+                }).then(function (result) {
+                    res.json({
+                        'NewCourse': result,
+                        'Message': true
+                    });
+
+                });
+            } else {
+                res.json({
+                    'Message': false
+                });
+            }
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //End point to create section for course
+    router.post('/course/createsection', function (req, res) {
+
+
+        if (req.body.semesterid == null) {
+            console.log('course/createsection : SemesterID cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.courseid == null) {
+            console.log('course/createsection : CourseID cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.name == null) {
+            console.log('course/createsection : Name cannot be null');
+            res.status(400).end();
+            return;
+        }
+        // if (req.body.description == null) {
+        //     console.log("course/createsection : Description cannot be null");
+        //     res.status(400).end();
+        //     return;
+        // }
+        // if (req.body.organizationid == null) {
+        //     console.log("course/createsection : OrganizationID cannot be null");
+        //     res.status(400).end();
+        //     return;
+        // }
+
+        //-----------------------------------------------------------------------------------------------------
+        Semester.find({
+            where: {
+                SemesterID: req.body.semesterid
+            }
+        }).then(function (results) {
+            var section = Section.build({
+                SemesterID: req.body.semesterid,
+                CourseID: req.body.courseid,
+                StartDate: results.StartDate,
+                EndDate: results.EndDate,
+                Name: req.body.name,
+
+            }).save().then(function (response) {
+
+                //Update Categories as new section is being created
+                let taskFactory = new TaskFactory;
+                taskFactory.createCategoryInstances(response.SemesterID, response.CourseID, response.SectionID);
+
+                res.json({
+                    'result': response
+                });
+            }).catch(function (err) {
+                console.log('/course/createsection : ' + err.message);
+
+                res.status(401).end();
+            });
+        });
+
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to add a user to a course
+    router.post('/user/create', function (req, res) {
+        var email = new Email();
+
+        if (req.body.email === null || req.body.phone === null || req.body.passwd === null || req.body.phone === null || req.body.firstName === null || req.body.lastName === null) {
+            console.log('/user/create : Missing attributes');
+            res.status(400).end();
+        }
+
+        UserContact.create({
+            Email: req.body.email,
+            Phone: req.body.phone
+        }).then(function (userContact) {
+            sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+            User.create({
+                UserContactID: userContact.UserContactID,
+                FirstName: req.body.firstName,
+                LastName: req.body.lastName,
+                OrganizationGroup: req.body.organization,
+                Instructor: false,
+                Admin: false
+            }).then(async function (user) {
+                UserLogin.create({
+                    UserID: user.UserID,
+                    Email: req.body.email,
+                    Password: await password.hash(req.body.passwd)
+                }).then(function (userLogin) {
+                    console.log('/user/create: New user added to the system');
+                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+                    email.sendNow(user.UserID, 'create user');
+                    res.status(200).end();
+                }).catch(function (err) {
+                    console.log(err);
+                    res.status(400).end();
+                });
+            });
+        });
+    });
+
+    // adding the user, called on add user page
+    router.post('/adduser', function (req, res) {
+        console.log('/adduser:called');
+        var email = new Email();
+        if (req.body.email === null) {
+            console.log('/adduser : Email cannot be null');
+            res.status(400).end();
+        }
+
+        UserLogin.find({
+            where: {
+                Email: req.body.email
+            },
+            attributes: ['UserID']
+        }).then(function (response) {
+            if (response == null || response.UserID == null) {
+                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+
+                    .then(function() {
+                        User.create({
+                            FirstName: req.body.firstname,
+                            LastName: req.body.lastname,
+                            Instructor: req.body.instructor,
+                            Admin: req.body.admin
+                        }).catch(function(err) {
+                            console.log(err);
+                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                .then(function () {
+                                    res.status(500).end();
+                                });
+                        }).then(async function(user) {
+                            UserContact.create({
+                                UserID: user.UserID,
+                                FirstName: req.body.firstname,
+                                LastName: req.body.lastname,
+                                Email: req.body.email,
+                                Phone: '(XXX) XXX-XXXX'
+                            }).catch(function(err) {
+                                console.log(err);
+                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                    .then(function () {
+                                        res.status(500).end();
+                                    });
+                            }).then(async function(userCon) {
+                                console.log('trustpass', req.body.trustpassword);
+                                UserLogin.create({
+                                    UserID: user.UserID,
+                                    Email: req.body.email,
+                                    Password: await password.hash(req.body.password),
+                                    Pending: req.body.trustpassword ? false : true
+                                }).catch(function(err) {
+                                    console.log(err);
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.status(500).end();
+                                        });
+                                }).then(function(userLogin) {
+                                    let email = new Email();
+                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
+                                        .then(function() {
+                                            res.json({
+                                                'Message': 'User has succesfully added'
+                                            });
+                                        });
+
+                                });
+                            });
+                        });
+                    });
+            } else {
+                res.json({
+                    'Message': 'User is currently exist'
+                });
+            }
+        });
+    });
+
+    router.post('/course/adduser', function (req, res) {
+        //console.log("role "+req.body.role);
+        var email = new Email();
+        if (req.body.email === null) {
+            console.log('course/adduser : Email cannot be null');
+            res.status(400).end();
+        }
+        if (req.body.courseid === null) {
+            console.log('course/adduser : CourseID cannot be null');
+            res.status(400).end();
+        }
+        if (req.body.sectionid === null) {
+            console.log('course/adduser : SectionID cannot be null');
+            res.status(400).end();
+        }
+
+        UserLogin.find({
+            where: {
+                Email: req.body.email
+            },
+            attributes: ['UserID']
+        }).then(function (userLogin) {
+            if (userLogin == null || userLogin.UserID == null) {
+                UserContact.create({
+                    Email: req.body.email,
+                    Phone: 'XXX-XXX-XXXX'
+                }).catch(function (err) {
+                    console.log(err);
+                }).then(function (userCon) {
+                    sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
+                        .then(function () {
+                            sequelize.sync({});
+                            console.log(userCon.UserContactID);
+                            User.create({
+                                FirstName: 'Temp',
+                                LastName: 'Temp',
+                                OrganizationGroup: {
+                                    'OrganizationID': []
+                                },
+                                UserContactID: userCon.UserContactID,
+                                Instructor: req.body.role == 'Instructor' ? true : false,
+                                Admin: false,
+                            }).catch(function (err) {
+                                console.log(err);
+                            }).then(async function (user) {
+                                UserLogin.create({
+                                    UserID: user.UserID,
+                                    Email: req.body.email,
+                                    Password: await password.hash('pass123')
+                                }).catch(function (err) {
+                                    console.log(err);
+                                }).then(function (userLogin) {
+                                    //Email User With Password
+                                    email.sendNow(userLogin.UserID, 'create user', req.body.password);
+                                    SectionUser.create({
+                                        SectionID: req.body.sectionid,
+                                        UserID: userLogin.UserID,
+                                        Role: req.body.role,
+                                        Active: true
+                                    }).catch(function (err) {
+                                        console.log(err);
+                                    }).then(function (sectionUser) {
+                                        res.status(200).end();
+                                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
+
+                                    });
+                                });
+                            });
+                        });
+                });
+            } else {
+                SectionUser.create({
+                    SectionID: req.body.sectionid,
+                    UserID: userLogin.UserID,
+                    Role: req.body.role,
+                    Active: true
+                }).catch(function (err) {
+                    console.log(err);
+                }).then(function (sectionUser) {
+                    res.json({
+                        'UserID': sectionUser.UserID,
+                        'Message': 'Success'
+                    });
+                });
+            }
+        });
+    });
+
+    //Endpoint to find course
+    router.get('/course/:courseId', function (req, res) {
+        Course.find({
+            where: {
+                CourseID: req.params.courseId
+            },
+            attributes: ['CourseID', 'Number', 'Name', 'Description']
+        }).then(function (result) {
+            Section.findAll({
+                where: {
+                    CourseID: req.params.courseId
+                },
+                include: [{
+                    model: Semester,
+                    attributes: ['Name']
+                }]
+            }).then(function (sections) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Course': result,
+                    'Sections': sections
+                });
+            });
+
+        }).catch(function (err) {
+            console.log('/course ERROR_WJE : ' + err.message);
+            res.status(400).end();
+        });
+
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Need to translate getsectionUsers function
+    router.get('/course/getsection/:sectionId', function (req, res) {
+
+        Section.find({
+            where: {
+                SectionID: req.params.sectionId
+            },
+            attributes: ['Name']
+        }).then(function (rows) {
+            SectionUser.findAll({
+                where: {
+                    SectionID: req.params.sectionId
+                },
+                attributes: ['UserID', 'Role', 'Active'],
+                include: {
+                    model: User,
+                    attributes: ['FirstName', 'LastName']
+                }
+            }).then(function (users) {
+                res.json({
+                    'result': rows,
+                    'UserSection': users
+                });
+            });
+        }).catch(function (err) {
+            console.log('/course : ' + err.message);
+            res.status(400).end();
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+    
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to update a course
+    router.put('/course/update', function (req, res) {
+
+        if (req.body.Name == null) {
+            console.log('course/create : Name cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.courseid == null) {
+            console.log('course/create : CourseID cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        Course.update({
+            Name: req.body.Name,
+            Number: req.body.Number
+        }, {
+            where: {
+                CourseID: req.body.courseid
+            }
+        }).then(function (result) {
+            Course.find({
+                where: {
+                    CourseID: req.body.courseid
+                }
+            }).then(function (courseUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'CourseUpdated': courseUpdated
+                });
+            });
+        }).catch(function (err) {
+            console.log('/course/update : ' + err);
+            res.status(401).end();
+        });
+
+
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to update a section
+    router.post('/course/updatesection', function (req, res) {
+
+        if (req.body.sectionid == null) {
+            console.log('course/updatesection : sectionid cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        if (req.body.name == null) {
+            console.log('course/updatesection : name cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        Section.update({
+            Name: req.body.name,
+        }, {
+            where: {
+                SectionID: req.body.sectionid
+            }
+        }).then(function (result) {
+            Section.find({
+                where: {
+                    SectionID: req.body.sectionid
+                }
+            }).then(function (sectionUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'CourseUpdated': sectionUpdated
+                });
+            }).catch(function (err) {
+                console.log('/course/update : ' + err);
+                res.status(401).end();
+            });
+        });
+
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to delete user
+    router.delete('/course/deleteuser', function (req, res) {
+
+        SectionUser.destroy({
+            where: {
+                UserID: req.body.userID,
                 SectionID: req.body.SectionID
-                //AssignmentInstanceID: req.body.AssignmentInstanceID
             }
         }).then(function (rows) {
             console.log('Delete User Success');
@@ -2491,105 +3380,1296 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    //Create another call saying "This student is volunteered for all assignments in section";
-    //check approval required status
+    //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to add a user to a course
-    router.post('/VolunteerPool/add', function (req, res) {
-        console.log('/VolunteerPool/add : was called');
+    //Endpoint to get a user's courses
+    router.get('/course/getCourses/:userid', async function (req, res) {
+        var courses = [];
+        let addedCourseIDs = [];
 
-        if (req.body.UserID === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/ ) {
-            console.log('/VolunteerPool/add : Missing attributes');
-            res.status(400).end();
+        var sections = await SectionUser.findAll({
+            where: {
+                UserID: req.params.userid
+            },
+            attributes: ['SectionUserID', 'SectionID', 'Role', 'Active'],
+            include: [{
+                model: Section,
+                attributes: ['CourseID'],
+                include: [{
+                    model: Course,
+                    attributes: ['CourseID', 'Number', 'Name']
+                }]
+            }]
+        }).catch(function (err) {
+            logger.log('error', 'failed getting section information', {
+                error: err
+            });
+            res.status(401).end();
+        });
+
+        function checkForDuplicateIDs(a) {
+            var seen = {};
+            var out = [];
+            var len = a.length;
+            var j = 0;
+            for (var i = 0; i < len; i++) {
+                var item = a[i];
+                if (seen[item.CourseID] !== 1) {
+                    seen[item.CourseID] = 1;
+                    out[j++] = item;
+                }
+            }
+            return out;
         }
 
-        console.log('got to create part');
-        //console.log("UserID: " + req.params.UserID);
-        VolunteerPool.create({
-            UserID: req.body.UserID,
-            SectionID: req.body.SectionID,
-            Status: 'Inactive'
-            // AssignmentInstanceID: req.body.AssignmentInstanceID
+        await sections.forEach(function (section) {
+            //console.log(section.Section);
+            if (section.Section !== null) {
+                courses.push({
+                    'CourseID': section.Section.Course.CourseID,
+                    'Number': section.Section.Course.Number,
+                    'Name': section.Section.Course.Name
+                });
+            }
+        });
+
+        let createdCourses = await Course.findAll({
+            where: {
+                CreatorID: req.params.userid
+            }
+        }).catch(function (err) {
+            logger.log('error', 'failed getting courses created information', {
+                error: err
+            });
+            res.status(401).end();
+        });
+
+        await createdCourses.forEach(function (course) {
+
+
+            courses.push({
+                'CourseID': course.CourseID,
+                'Number': course.Number,
+                'Name': course.Name
+            });
+
+        });
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'Courses': checkForDuplicateIDs(courses)
+        });
+    });
+    //-----------------------------------------------------------------------------------------------------
+
+    
+
+    //Get All Instructors
+    router.get('/instructor/all', function (req, res) {
+        User.findAll({
+            where: {
+                Instructor: true
+            },
+            attributes: ['UserID', 'FirstName', 'LastName', 'Admin']
+        }).then(function (instructors) {
+            console.log('/instructors called');
+            res.json({
+                'Instructors': instructors
+            });
+        });
+    });
+
+    router.get('/organization', function (req, res) {
+        console.log('/organization: called');
+        Organization.findAll({
+            order: [
+                ['Name']
+            ]
         }).then(function (rows) {
-            console.log('add User Success, new ID=', rows.VolunteerPoolID);
-            res.status(200).json({
-                VolunteerPoolID: rows.VolunteerPoolID
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Organization': rows
             });
         }).catch(function (err) {
-            console.log(err);
+            console.log('/organization: ' + err.message);
+            res.status(401).end();
+        });
+    });
+
+
+    //creates organization
+    router.post('/createorganization', function (req, res) {
+        console.log('/createorganization');
+        Organization.find({
+            where: {
+                Name: req.body.organizationname //new
+            },
+            attributes: ['OrganizationID']
+        }).then(function (response) {
+            if (response == null || response.OrganizationID == null) {
+                Organization.create({
+                    Name: req.body.organizationname
+                }).catch(function (err) {
+                    console.log(err);
+                }).then(function (result) {
+                    res.json({
+                        'neworganization': result,
+                        'org_feedback': true
+                    });
+                });
+
+            } else {
+                console.log('User and Organization Exist');
+                res.json({
+                    'neworganization': null,
+                    'org_feedback': false
+                });
+            }
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to Get Pending Tasks
+    router.get('/taskInstance/:userid', function (req, res) {
+        TaskInstance.findAll({
+            where: {
+                UserID: req.params.userid
+            }
+        }).then(function (taskInstance) {
+            res.json({
+                'TaskInstances': taskInstance
+            });
+        }).catch(function (e) {
+            console.log('/taskInstanceInstance/:userid ' + e);
+            res.json({
+                'TaskInstances': -1
+            });
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+    //Endpoint to create an assignment instance based on assignment and section
+    router.post('assignment/section', function (req, res) {
+
+        AssignmentInstance.create({
+            AssignmentID: req.body.assignmentid,
+            SectionID: req.body.sectionid
+
+        }).save().then(function () {
+
+            console.log('/assignment/section success');
+            res.status(200).end();
+
+        }).catch(function (e) {
+            console.log('/assignment/section ' + e);
             res.status(400).end();
         });
-        //             });
-        // });
     });
 
+    //---------------------------------------------------------------------------------------------------------------------------------------------
 
-    //Endpoint to change status of volunteer individually
-    router.post('/VolunteerPool/individualStatusUpdate/', function (req, res) {
-        console.log('Volunteerpool id rec: ' + req.body.VolunteerPoolID);
-        VolunteerPool.update({
-            status: req.body.status
+    //Endpoint for all current task data and previous task data and put it in an array
+    router.get('/superCall/:taskInstanceId', async function (req, res) {
+        logger.log('info', 'get: /superCall/:taskInstanceId', {
+            req_query: req.query,
+            req_params: req.params
+        });
+        var view_constraint;
+        var allocator = new TaskFactory();
+
+        let taskActivityAttributes = ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName', 'AllowRevision'];
+
+        await allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(async function (pre_tis) {
+
+        //console.log('pre_tis!', pre_tis);
+            var ar = new Array();
+            if (pre_tis == null) {
+
+                var ti = await TaskInstance.find({
+                    where: {
+                        TaskInstanceID: req.params.taskInstanceId
+                    },
+                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: taskActivityAttributes
+                    }]
+                });
+
+                //console.log(result);
+                ar.push(ti);
+                res.json({
+                    'previousTasksList': pre_tis,
+                    'superTask': ar
+                });
+            } else {
+
+
+                await Promise.mapSeries(pre_tis, async function (task) {
+                    await TaskInstance.find({
+                        where: {
+                            TaskInstanceID: task
+                        },
+                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                        include: [{
+                            model: TaskActivity,
+                        }]
+                    }).then(async(result) => {
+                    //console.log(result);
+                    // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
+                        ar.push(result);
+
+                        view_constraint = await allocator.applyViewContstraints(res, req.query.userID, result);
+                    });
+                });
+
+                if (view_constraint === false || view_constraint === undefined) {
+                    var ti = await TaskInstance.find({
+                        where: {
+                            TaskInstanceID: req.params.taskInstanceId
+                        },
+                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                        include: [{
+                            model: TaskActivity,
+                        }]
+                    });
+                    //console.log(ti);
+                    //ar.push(ti);
+                    // res.json({
+                    //     error: false,
+                    //     previousTasksList: pre_tis,
+                    //     superTask: ar,
+                    // });
+                    //logger.log('debug', 'done collecting previous tasks');
+                    //check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
+                    view_constraint = await allocator.applyViewContstraints(res, req.query.userID, ti);
+                    if (view_constraint === false || view_constraint === undefined) {
+                        if (res._headerSent) { // if already responded (response sent)
+                            return;
+                        }
+                        // update data field of all tasks with the appropriate allowed version
+                        ar = await allocator.applyVersionContstraints(ar, ti, req.query.userID);
+                        ar.push(ti);
+                        res.json({
+                            error: false,
+                            previousTasksList: pre_tis,
+                            superTask: ar,
+                        });
+
+                    } else {
+                        res.json(view_constraint);
+                    }
+
+
+                } else {
+                    res.json(view_constraint);
+                }
+            }
+
+        }).catch(function (err) {
+            console.log(err);
+            res.status(401).end();
+        });
+
+
+        await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.taskInstanceId
+            }
+        }).then(async function (ti) {
+            var newStatus = JSON.parse(ti.Status);
+            if (newStatus[4] === 'not_opened') {
+                newStatus[4] = 'viewed';
+                logger.log('info', 'task opened for the first time, updating status...');
+                await TaskInstance.update({
+                    Status: JSON.stringify(newStatus)
+                }, {
+                    where: {
+                        TaskInstanceID: req.params.taskInstanceId
+                    }
+                });
+            }
+        });
+
+
+
+
+    });
+
+    //Endpoint to get all the sections assoicate with course and all the task activities within the workflow activities
+    router.get('/getAssignToSection/', function (req, res) {
+
+        console.log('/getAssignToSection: Initiating... ');
+
+        var sectionIDs = [];
+        var taskCollection = {};
+        var isDone = false;
+        var DisplayName;
+        var workflowNames = {};
+
+        console.log('req.query.assignmentid', req.query.assignmentid);
+        console.log('req.query.courseid', req.query.courseid);
+
+        Assignment.find({
+            where: {
+                AssignmentID: req.query.assignmentid
+            },
+            attributes: ['DisplayName']
+        }).then(function (AI_Result) {
+            DisplayName = AI_Result;
+        });
+
+        //Find all WorkflowActivities associate with assignmentid
+        var workflowActivity = WorkflowActivity.findAll({
+            where: {
+
+                AssignmentID: req.query.assignmentid
+            }
+        });
+
+        //Find all Sections associate with courseid
+        var sections = Section.findAll({
+            where: {
+                CourseID: req.query.courseid
+            }
+        });
+
+        //Promise sections has all the data returned
+        Promise.all(sections).then(function (result) {
+            console.log('Finding all sections associate with course... ');
+
+            //Create an array of all the sections associate with courseid
+            result.forEach(function (section) {
+                sectionIDs.push({
+                    value: section.SectionID,
+                    label: section.Name
+                });
+            });
+
+            isDone = true;
+
+            console.log('sectionIDs', sectionIDs);
+        }).catch(function (err) {
+            console.log('/getAssignToSection: ', err);
+            res.status(404).end();
+        });
+
+        //Promise workflowActivity has all the data returned
+        Promise.all(workflowActivity).then(function (result) {
+
+        //Check if result is empty
+            if (result !== null || typeof result !== undefined) {
+            //WorkflowActivityID -- key
+                result.forEach(function (workflow) {
+                    taskCollection[workflow.WorkflowActivityID] = [];
+                    workflowNames[workflow.WorkflowActivityID] = workflow.Name;
+                });
+            }
+
+            return [taskCollection, result];
+
+        }).then(function (resultArray) {
+            console.log('Finding all workflows and its task collection...');
+            //promise all instances in resultArray have returned
+            return Promise.map(resultArray[1], function (workflow) {
+
+                console.log('WorkflowActivityID: ', workflow.WorkflowActivityID);
+
+                //Loop through TaskActivityCollection in each workflowActivity
+                console.log('workflow.TaskActivityCollection', workflow.TaskActivityCollection);
+                return Promise.map(JSON.parse(workflow.TaskActivityCollection), function (taskActivityID) {
+
+                    console.log('TaskActivityID:', taskActivityID);
+
+                    //Find TaskActivity object and return
+                    return TaskActivity.find({
+                        where: {
+                            TaskActivityID: taskActivityID
+                        }
+                    }).then(function (taskActivity) {
+
+                    //Push the resulting name and TaskActivityID on to javascript object
+                        taskCollection[workflow.WorkflowActivityID].push({
+                            'taskActivityID': taskActivity.TaskActivityID,
+                            'name': taskActivity.Name,
+                            'displayName': taskActivity.DisplayName,
+                            'type': taskActivity.Type,
+                            'defaults': taskActivity.DueType
+                        });
+                        taskCollection[workflow.WorkflowActivityID].sort(function (a, b) {
+                            var x = a.taskActivityID < b.taskActivityID ? -1 : 1;
+                            return x;
+                        });
+
+                    }).catch(function (err) {
+                        console.log('/getAssignToSection: ', err);
+                        res.status(404).end();
+                    });;
+                });
+            });
+
+        }).then(function (done) {
+        //if sectionIDs are set then return
+
+            if (isDone === true) {
+                res.json({
+                    'assignment': DisplayName,
+                    'workflowNames': workflowNames,
+                    'sectionIDs': sectionIDs,
+                    'taskActivityCollection': taskCollection //returns workflow id follows by task act
+                });
+            }
+        }).catch(function (err) {
+            console.log('/getAssignToSection: ', err);
+            res.status(404).end();
+        });
+
+
+    });
+
+    //Endopint to assign an assignment to a section
+    router.post('/getAssignToSection/submit/', async function (req, res) {
+    //creates new allocator object
+        var taskFactory = new TaskFactory();
+        var manager = new Manager();
+        var make = new Make();
+
+        console.log('/getAssignToSection/submit/  Creating Assignment Instance...');
+        logger.log('info', 'Assing TO Section submit', req.body);
+
+        //create assignment instance
+        await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
+            console.log('/getAssignToSection/submit/   All Done!');
+            console.log(typeof req.body.wf_timing.startDate, req.body.wf_timing.startDate);
+            if (moment(req.body.wf_timing.startDate) <= new Date()) {
+                await Promise.mapSeries(req.body.sectionIDs, async function (secId) {
+                    await make.allocateUsers(secId, req.body.assignmentid);
+                });
+            };
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log(err);
+            res.status(404).end();
+        });
+
+    });
+
+    router.get('/openRevision/:taskInstanceID', function (res, req) {
+
+        if (req.params.taskInstanceID == null) {
+            console.log('/openRevision/:taskInstanceID TaskInstanceID cannot be empty!');
+            res.stats(404).end();
+        }
+
+        TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.taskInstanceID
+            }
+        }).then(function (ti_result) {
+            TaskActivity.find({
+                where: {
+                    TaskActivityID: ti_result.TaskActivityID
+                }
+            }).then(function (ta_result) {
+                if (ta_result.AllowRevision === 0) {
+                    console.log('Allow revision is false');
+                    res.stats(404).end();
+                } else {
+                    ti_result.Status = 'pending';
+                }
+            }).catch(function (err) {
+                console.log(err);
+                res.status(404).end();
+            });
+        });
+    });
+
+    router.get('/openRevision/save', function (res, req) {
+        if (req.body.data == null) {
+            console.log('/openRevision/save: data is missing');
+            res.status(404).end();
+        }
+        if (req.body.taskInstanceID == null) {
+            console.log('/openRevision/save TaskInstanceID cannot be empty!');
+            res.stats(404).end();
+        }
+
+        //append second status
+        TaskInstance.update({
+            Data: req.body.data
         }, {
             where: {
-                VolunteerPoolID: req.body.VolunteerPoolID
+                TaskInstanceID: req.body.taskInstanceID
             }
-        }).then(function () {
-            console.log('update success');
-            res.status(201).end();
         }).catch(function (err) {
-            console.log('/VolunteerPool/individualStatusUpdate ' + err.message);
+            console.log(err);
+            res.stats(400).end();
+        });
+
+    });
+
+    router.get('/openRevision/submit', function (res, req) {
+        if (req.body.data == null) {
+            console.log('/openRevision/save: data is missing');
+            res.status(404).end();
+        }
+        if (req.body.taskInstanceID == null) {
+            console.log('/openRevision/save TaskInstanceID cannot be empty!');
+            res.stats(404).end();
+        }
+
+        //append second status
+        TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.taskInstanceID
+            }
+        }).then(function (ti) {
+            var newStatus = JSON.parse(ti.Status);
+            newStatus[0] = 'complete';
+            TaskInstance.update({
+                Data: req.body.data,
+                Status: JSON.stringify(newStatus)
+            }, {
+                where: {
+                    TaskInstanceID: req.body.taskInstanceID
+                }
+            }).catch(function (err) {
+                console.log(err);
+                res.stats(400).end();
+            });
+        });
+
+    });
+
+    //Backend router to reallocate students
+    router.post('/reallocate', function (req, res) {
+
+        if (req.body.taskid == null || req.body.users == null) {
+            console.log('/reallocate: missing required fields.');
+            res.status(401).end();
+            return;
+        }
+
+        var realloc = new Allocator([], 0);
+
+        realloc.reallocate(req.body.taskid, req.body.users);
+    });
+
+    router.get('/skipDispute/:taskInstanceID', function (req, res) {
+        var trigger = new TaskTrigger();
+        trigger.skipDispute(req.params.taskInstanceID);
+    });
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to return Semester Information
+    router.get('/getOrganizationSemesters/:organizationID', function (req, res) {
+
+        Semester.findAll({
+            where: {
+                OrganizationID: req.params.organizationID
+            },
+            order: [
+                ['StartDate', 'DESC']
+            ],
+            attributes: ['SemesterID', 'Name', 'StartDate', 'EndDate', 'OrganizationID']
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Semesters': rows
+            });
+        }).catch(function (err) {
+            console.log('/semester/email : ' + err.message);
             res.status(401).end();
         });
 
 
     });
 
-    //Endpoint to change status of volunteer update all in section
-    router.post('/VolunteerPool/sectionlStatusUpdate/', function (req, res) {
+    //-----------------------------------------------------------------------------------------------------
 
-        VolunteerPool.update({
-            status: req.body.status
-        }, {
+    // endpoint to return organization
+    router.get('/organization/:organizationid', function (req, res) {
+
+        Organization.find({
             where: {
-                SectionID: req.body.SectionID
-            }
-        }).then(function () {
-            console.log('update success');
-            res.status(401).end();
+                OrganizationID: req.params.organizationid
+            },
+            attributes: ['OrganizationID', 'Name']
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Organization': rows
+            });
         }).catch(function (err) {
-            console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
-            res.status(401).end();
-        });
-
-    });
-
-    //Endpoint to change status of volunteer update all in assignment instance
-    router.post('/VolunteerPool/assignmentInstanceStatusUpdate/', function (req, res) {
-
-        VolunteerPool.update({
-            status: req.body.status
-        }, {
-            where: {
-                AssignmentInstanceID: req.body.AssignmentInstanceID
-            }
-        }).then(function () {
-            console.log('update success');
-            res.status(401).end();
-        }).catch(function (err) {
-            console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
+            console.log('/organization: ' + err.message);
             res.status(401).end();
         });
 
 
     });
 
+    // endpoint to return section
+    router.get('/section/:sectionid', function (req, res) {
+
+        Section.find({
+            where: {
+                SectionID: req.params.sectionid
+            },
+            attributes: ['SectionID', 'Name', 'CourseID', 'SemesterID']
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Section': rows
+            });
+        }).catch(function (err) {
+            console.log('/section: ' + err.message);
+            res.status(401).end();
+        });
+    });
+
+    // endpoint to delete course
+    router.get('/course/delete/:courseid', function (req, res) {
+        Course.destroy({
+            where: {
+                CourseID: req.params.courseid
+            }
+        }).then(function (rows) {
+            console.log('Delete Course Success');
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log('/course/delete : ' + err.message);
+            res.status(400).end();
+        });
+    });
+
+    // endpoint to delete semester
+    router.get('/semester/delete/:semesterid', function (req, res) {
+        Semester.destroy({
+            where: {
+                SemesterID: req.params.semesterid
+            }
+        }).then(function (rows) {
+            console.log('Delete Semester Success');
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log('/semester/delete : ' + err.message);
+            res.status(400).end();
+        });
+    });
+
+    // endpoint to delete secction
+    router.get('/section/delete/:sectionid', function (req, res) {
+        Section.destroy({
+            where: {
+                SectionID: req.params.sectionid
+            }
+        }).then(function (rows) {
+            console.log('Delete Section Success');
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log('/section/delete : ' + err.message);
+            res.status(400).end();
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
 
 
-    //-------------------------------------------------------------------------------------------------
+    //Endpoint to update a course
+    router.post('/course/update/:courseid', function (req, res) {
+        if (req.body.Number == null) {
+            console.log('course/update : Number cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.Name == null) {
+            console.log('course/update : Name cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        Course.update({
+            Name: req.body.Name,
+            Number: req.body.Number
+        }, {
+            where: {
+                CourseID: req.params.courseid
+            }
+        }).then(function (result) {
+            Course.find({
+                where: {
+                    CourseID: req.body.courseid
+                }
+            }).then(function (courseUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'CourseUpdated': courseUpdated
+                });
+            });
+        }).catch(function (err) {
+            console.log('/course/update : ' + err);
+            res.status(401).end();
+        });
+
+
+    });
+
+    //Endpoint to update a semester
+    router.post('/semester/update/:semesterid', function (req, res) {
+        if (req.body.Name == null) {
+            console.log('semester/update : Name cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.Start == null) {
+            console.log('semester/update : Start cannot be null');
+            res.status(400).end();
+            return;
+        }
+        if (req.body.End == null) {
+            console.log('semester/update : End cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        Semester.update({
+            Name: req.body.Name,
+            StartDate: req.body.Start,
+            EndDate: req.body.End
+        }, {
+            where: {
+                SemesterID: req.params.semesterid
+            }
+        }).then(function (result) {
+            Semester.find({
+                where: {
+                    SemesterID: req.body.semesterid
+                }
+            }).then(function (courseUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'CourseUpdated': courseUpdated
+                });
+            });
+        }).catch(function (err) {
+            console.log('/semester/update : ' + err);
+            res.status(401).end();
+        });
+    });
+
+    router.delete('/delete/user/:userID', (req, res) => {
+        console.log('deleting user', req.params.userID);
+
+        return sequelize.transaction(function(t) {
+            return UserLogin.destroy({
+                where: {
+                    UserID: req.params.userID
+                }
+            }, {
+                transaction: t
+            })
+                .then((loginRowsDeleted) => {
+                    return UserContact.destroy({
+                        where: {
+                            UserID: req.params.userID
+                        }
+                    }, {
+                        transaction: t
+                    })
+                        .then((contactRowsDeleted) => {
+                            return SectionUser.destroy({
+                                where: {
+                                    UserID: req.params.userID
+                                }
+                            }, {
+                                transaction: t
+                            })
+                                .then((sectionUsersDeleted) => {
+                                    return User.destroy({
+                                        where: {
+                                            UserID: req.params.userID
+                                        }
+                                    }, {
+                                        transaction: t
+                                    });
+                                });
+                        });
+
+                });
+        })
+            .then((result) => {
+                logger.log('info', 'post: /delete/user, user deleted from system', {
+                    req_params: req.params,
+                });
+                res.status(200).end();
+            })
+            .catch((err) => {
+                logger.log('error', 'post: /delete/user, user deleted from system', {
+                    error: err,
+                    req_params: req.params,
+                });
+                console.error(err);
+                res.status(500).end();
+            });
 
 
 
-    //Endpoint to archive assignment activity table entry by giving assignment id
+    });
+
+    // endpoint to insert or update a user's contact information
+    router.post('/userContact', function (req, res) {
+        if (req.body.UserID == null) {
+            console.log('userContact: UserID cannot be null');
+            res.status(400).end();
+            return;
+        }
+        else{
+            var va2 = va[0];
+        }
+        UserContact.upsert(
+            req.body, {
+                where: {
+                    UserID: req.body.UserID
+                }
+            }
+        ).then(function (result) {
+            sequelize.options.omitNull = true;
+            res.json({
+                success: true
+            });
+        }).catch(function (err) {
+            sequelize.options.omitNull = true;
+            console.log('/userContact: ' + err);
+            res.status(401).end();
+        });
+    });
+
+    router.get('/EveryonesWork/:assignmentInstanceID', async function (req, res) {
+        var everyones_work = {};
+        var ai = await AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        });
+        await Promise.map(JSON.parse(ai.WorkflowCollection), async function (wi) {
+            var wi = await WorkflowInstance.find({
+                where: {
+                    assignmentInstanceID: req.params.assignmentInstanceID
+                }
+            });
+            await Promise.map(JSON.parse(wi.TaskCollection), async function (ti) {
+                var ti = await TaskInstance.findAll({
+                    where: {
+                        Status: {
+                            $like: '%"complete"%'
+                        }
+                    }
+                });
+                for (var i = 0; i < ti.length; i++) {
+                    if (!everyones_work.hasOwnProperty(ti[i].UserID)) {
+                        everyones_work[ti[i].UserID] = [ti[i].TaskInstanceID];
+                    } else {
+                        everyones_work[ti[i].UserID].push(ti[i].TaskInstanceID);
+                        everyones_work[ti[i].UserID] = everyones_work[ti[i].UserID].filter(function (item, index, inputArray) {
+                            return inputArray.indexOf(item) == index;
+                        });
+                    }
+                }
+            });
+        });
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'AssignmentInfo': everyones_work
+        });
+    });
+    //---------------------------------------------------------------------------
+    router.get('/EveryonesWork/AssignmentInstanceID/:assignmentInstanceID', async function (req, res) {
+        console.log('/EveryonesWork/AssignmentInstanceID/:assignmentInstanceID: was called');
+
+        var everyones_work = {};
+
+
+        var ai = await AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        });
+        var aa = await Assignment.findOne({
+            where: {
+                AssignmentID: ai.AssignmentID
+            }
+        });
+
+        var sec = await Section.find({
+            where: {
+                SectionID: ai.SectionID
+            },
+            attributes: ['SemesterID', 'CourseID', 'Name']
+        });
+
+        var ses = await Semester.find({
+            where: {
+                SemesterID: sec.SemesterID
+            },
+            attributes: ['Name']
+        });
+
+        var cou = await Course.find({
+            where: {
+                CourseID: sec.CourseID
+            },
+            attributes: ['Number']
+        });
+        var wa = await WorkflowActivity.findAll({
+            where: {
+                AssignmentID: ai.AssignmentID
+            }
+        });
+
+
+        Promise.map(wa, async workflowAct => {
+            let wA = workflowAct.WorkflowActivityID;
+            everyones_work[wA] = {
+                Name: workflowAct.Name
+            };
+
+            var wI = await WorkflowInstance.findAll({
+                where: {
+                    AssignmentInstanceID: req.params.assignmentInstanceID,
+                    WorkflowActivityID: wA
+                }
+            });
+
+            var workflowInstances = wI.map(async wI => {
+                let taskCollection = JSON.parse(wI.TaskCollection);
+                var lastTask = await TaskInstance.max('TaskInstanceID', {
+                    where: {
+                        AssignmentInstanceID: req.params.assignmentInstanceID,
+                        WorkflowInstanceID: wI.WorkflowInstanceID,
+                        Status: {
+                            $like: '%"complete"%'
+                        },
+                    }
+                });
+                var firstTask = await TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskCollection[0]
+                    },
+                    attributes: ['TaskInstanceID', 'Data']
+                });
+
+                return {
+                    FirstTask: firstTask,
+                    LatestTask: lastTask
+                };
+            });
+
+            return Promise.all(workflowInstances).then(wIs => {
+                everyones_work[wA].Tasks = wIs;
+                return wIs;
+            });
+
+        }).then(done => {
+            return res.json({
+                'AssignmentInfo': {
+                    'Course': cou.Number,
+                    'Section': sec.Name,
+                    'Semester': ses.Name,
+                },
+                'Workflows': everyones_work
+            });
+        });
+
+    });
+
+    router.post('/revise', async function (req, res) {
+        var trigger = new TaskTrigger();
+        console.log('revise');
+        await trigger.revise(req.body.ti_id, req.body.data);
+        res.status(200).end();
+
+    });
+
+    router.post('/approved', async function (req, res) {
+        var trigger = new TaskTrigger();
+
+        await trigger.approved(req.body.ti_id, req.body.data);
+        res.status(200).end();
+    });
+
+   
+    //-----------------------------------------------------------------------------------------------------
+
+
+
+    // Endpoint to get assignment instance report
+    router.get('/getAssignmentReport/:assignmentInstanceID', function (req, res) {
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject) {
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
+                        include: {
+                            model: WorkflowActivity,
+                            attributes: ['WorkflowStructure']
+                        }
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
+                        include: [{
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
+                })
+                    .catch(err => reject(err))
+                    .then(task => resolve(task));
+            });
+        };
+
+        let fetchTasks = (tasksArray) => {
+            return tasksArray.map((individualTask) => {
+                return fetchTask(individualTask);
+            });
+        };
+
+        let fetchWorkflow = (workflowArray) => {
+            return workflowArray.map((workflow) => {
+                return WorkflowInstance.find({
+                    where: {
+                        WorkflowInstanceID: workflow
+                    }
+                })
+                    .then((result) => {
+                        let mappedTasks = JSON.parse(result.TaskCollection);
+                        return mappedTasks.map(fetchTask);
+                    });
+            });
+        };
+
+
+        AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        }).then((aiResult) => {
+            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
+            let finalResults = fetchWorkflow(workflowsList);
+
+            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+                return res.json({
+                    'Result': arrArr
+                });
+            });
+        });
+
+
+
+    });
+
+    router.get('/getAssignmentReport/alternate/:assignmentInstanceID', (req, res) => {
+        let assignmentObject = {};
+
+        let fetchTask = (taskInstanceID) => {
+            return new Promise(function (resolve, reject) {
+                TaskInstance.findOne({
+                    where: {
+                        TaskInstanceID: taskInstanceID
+                    },
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    include: [{
+                        model: TaskActivity,
+                        attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
+                    },
+                    {
+                        model: WorkflowInstance,
+                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
+                    },
+                    {
+                        model: User,
+                        attributes: ['UserID', 'FirstName', 'LastName'],
+                        include: [{
+                            model: UserContact,
+                            attributes: ['Email', 'Alias']
+                        }]
+                    }
+                    ]
+                })
+                    .catch(err => reject(err))
+                    .then(tiData => {
+                        const waID = tiData.WorkflowInstance.WorkflowActivityID;
+                        const wiID = tiData.WorkflowInstance.WorkflowInstanceID;
+                        const taID = tiData.TaskActivity.TaskActivityID;
+
+                        if (!assignmentObject[waID].WorkflowInstances[wiID]) {
+                            assignmentObject[waID].WorkflowInstances[wiID] = {};
+                        }
+
+                        if (assignmentObject[waID].WorkflowInstances[wiID][taID]) {
+                            assignmentObject[waID].WorkflowInstances[wiID][taID].push(tiData);
+                        } else {
+                            assignmentObject[waID].WorkflowInstances[wiID][taID] = [tiData];
+                        }
+                        resolve(tiData);
+                    });
+            });
+        };
+
+        // let fetchTasks = (tasksArray) => {
+        //     return tasksArray.map((individualTask) => {
+        //         return fetchTask(individualTask);
+        //     });
+        // };
+
+        let fetchWorkflow = (workflowArray) => {
+            return workflowArray.map((workflow) => {
+                return WorkflowInstance.find({
+                    where: {
+                        WorkflowInstanceID: workflow
+                    },
+                    include: [WorkflowActivity]
+                })
+                    .then((result) => {
+                        assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
+                            WorkflowInstances: {},
+                            Structure: result.WorkflowActivity.WorkflowStructure
+                        };
+
+                        let mappedTasks = JSON.parse(result.TaskCollection);
+                        return mappedTasks.map(fetchTask);
+                    })
+                    .catch(err => {
+                        console.log(err);
+                    });
+            });
+        };
+
+
+        AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        }).then(async(aiResult) => {
+            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
+            let finalResults = fetchWorkflow(workflowsList);
+            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+                return res.json({
+                    'Result': assignmentObject
+                });
+            }).catch(err => {
+                console.log(err);
+            });
+        });
+
+
+    });
+
+    //-------------------------------------------------------------------------
+
+
+    ////////////----------------   END Participant APIs
+    ////////////                 Enhanced Access Level APIs 
+     
+    //Assign a New Instructor
+    router.put('/instructor/new', function (req, res) {
+        var email = req.body.email;
+        UserLogin.find({
+            where: {
+                Email: email
+            },
+            attributes: ['UserID']
+        }).then(function (userID) {
+            if (userID == null) {
+                console.log('Email Not Found - Making Instructor ' + email);
+                User.create({
+                    FirstName: 'Temp',
+                    LastName: 'Temp',
+                    OrganizationGroup: {
+                        'OrganizationID': []
+                    },
+                    Instructor: true,
+                    Admin: false
+                })
+                    .then(function (user) {
+                        UserContact.create({
+                            Email: email,
+                            Phone: 'XXX-XXX-XXXX',
+                            FirstName: 'Temp',
+                            LastName: 'Temp',
+                            UserID: user.UserID
+                        }).then(async function (userCon) {
+                            UserLogin.create({
+                                UserID: user.UserID,
+                                Email: email,
+                                Password: await password.hash('pass123')
+                            }).then(function (userLogin) {
+                                //Email User With Password
+                                console.log('/instructor/new made');
+                                res.status(200).end();
+                            })
+                                .catch(function (err) {
+                                    console.log(err);
+                                });
+                        })
+                            .catch(function (err) {
+                                console.log('Error creating user');
+                                console.log(err);
+                            });
+                    })
+                    .catch(function (err) {
+                        console.log(err);
+                    });
+            } else {
+                User.find({
+                    where: {
+                        UserID: userID.UserID
+                    },
+                    attributes: ['Instructor', 'UserID']
+                }).then(function (makerID) {
+                    if (!makerID.Instructor) {
+                        makerID.updateAttributes({
+                            UserID: makerID.UserID,
+                            Instructor: true
+                        }).success(function () {
+                            console.log('/instructor/new : success');
+                            res.status(200).end();
+                        });
+                    } else {
+                        console.log('/instructor/new : already instructor');
+                        res.status(400).end();
+                    }
+                });
+            }
+        });
+    });
+
+    ///////////////////////////
+    ////////////----------------   END Enhanced Access APIs
+
+    ////////////                 Admin Level APIs   
+
     router.get('/AssignmentArchive/save/:AssignmentID', function (req, res) {
         var assignmentArray = new Array();
         Assignment.findAll({
@@ -3197,68 +5277,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-------------------------------------------------------------------------------------------------
 
-    //Endpoint to Create an Assignment
-   
-
-
-    
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to allocate students
-    router.get('/allocate', function (req, res) {
-
-        // var taskFactory = new TaskFactory();
-        // //allocator.createInstances(1, 16);
-        // taskFactory.createInstances(3, 13).then(function(done) {
-        //     console.log('/getAssignToSection/allocate   All Done!');
-        //     res.status(200).end();
-        // }).catch(function(err) {
-        //     console.log(err);
-        //     res.status(404).end();
-        // });
-        //allocator.createInstances(3, 14);
-        //allocator.updatePreviousAndNextTasks(13);
-        var allocat
-
-        = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
-        Promise.all([allocator.getUser(1)]).then(function (done) {
-            console.log(done[0]);
-        }).then(function () {
-            Promise.all([allocator.getUser(2)]).then(function (done) {
-                console.log(done[0]);
-            }).then(function () {
-                Promise.all([allocator.getUser(3)]).then(function (done) {
-                    console.log(done[0]);
-                }).then(function () {
-                    Promise.all([allocator.getUser(4)]).then(function (done) {
-                        console.log(done[0]);
-                    }).then(function () {
-                        Promise.all([allocator.getUser(5)]).then(function (done) {
-                            console.log(done[0]);
-                        }).then(function () {
-                            Promise.all([allocator.getUser(6)]).then(function (done) {
-                                console.log(done[0]);
-                            }).then(function () {
-                                Promise.all([allocator.getUser(7)]).then(function (done) {
-                                    console.log(done[0]);
-                                }).then(function () {
-                                    Promise.all([allocator.getUser(8)]).then(function (done) {
-                                        console.log(done[0]);
-                                    }).then(function () {
-                                        Promise.all([allocator.getUser(5)]).then(function (done) {
-                                            console.log(done[0]);
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                });
-            });
-        });
-    });
-
     router.get('/findPreviousTasks/:taskInstanceId', function (req, res) {
         var allocator = new TaskFactory();
 
@@ -3273,259 +5291,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
             console.log(err);
             res.status(401).end();
-        });
-    });
-
-    router.get('/sendEmailNotification/:taskInstanceId', function (req, res) {
-        var email = new Email();
-
-
-        //email.sendNow(req.body.opts);
-        var opts = {
-            from: 'njitplamaster@gmail.com',
-            replyTo: 'njitplamaster@gmail.com',
-            to: 'qxl2@njit.edu',
-            subject: 'Test',
-            html: 'Test'
-        };
-
-        email.send(opts);
-
-
-    });
-
-
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint debug
-
-    router.get('/debug', function (req, res) {
-        // winston.level = 'debug'
-        logger.log('error', 'both', {
-            someKey: 'some-value'
-        });
-        logger.log('warn', 'only info');
-        logger.log('warn', 'only info', ([1, 2, {
-            k: 'v'
-        },
-        ['hi'],
-        function(test) {
-            console.log(test);
-        }
-        ]).toString());
-
-        // var manager = new Manager()
-        // manager.debug()
-        var a = new Allocator();
-        // a.reallocate_ais_of_users([1, 5], [3, 5, 8, 11, 1])
-        res.status(200).end();
-    });
-
-    // Inactivate section user
-
-    router.post('/sectionUser/inactivate/:section_user_id', function (req, res) {
-
-        logger.log('info', 'post: /sectionUser/inactivate/, inactivate section user', {
-            req_body: req.body,
-            req_params: req.params
-        });
-        var section_user_id = req.body.section_user_id || req.params.section_user_id;
-
-        if (section_user_id == null) {
-            logger.log('info', 'section_user_id is required but not specified');
-            return res.status(400).end();
-        }
-        return SectionUser.find({
-            where: {
-                SectionUserID: section_user_id
-            }
-        }).then(function (section_user) {
-            if (!section_user) {
-                logger.log('error', 'section user not found');
-                return res.status(400).end();
-            }
-            logger.log('info', 'updating section user', {
-                section_user: section_user.toJSON()
-            });
-            section_user.UserStatus = 'Inactive';
-
-            return section_user.save().then(function (section_user) {
-                logger.log('info', 'section user updated', {
-                    section_user: section_user.toJSON()
-                });
-                return res.status(200).end();
-            });
-        });
-    });
-
-   
-
-
-    //Endpoint for Assignment Manager
-    router.post('/getAssignmentGrades/:ai_id', function (req, res) {
-
-        if (req.params.ai_id == null) {
-            console.log('/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        return AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: req.params.ai_id
-            },
-            attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID'],
-            include: [{
-                model: Assignment,
-                // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                /*include: [{
-                     model: Section,
-                     }],*/
-            },
-            {
-                model: Section,
-                include: [{
-                    model: Course,
-                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                    /*include: [{
-                         model: Section,
-                         attributes: ["SectionID"],
-                         }],*/
-                }, ],
-            },
-                /*{
-                 model: AssignmentGrade,
-                 }*/
-            ],
-        }).then(function (response) {
-            // console.log('res: ', response)
-            if (response == null) {
-                return res.json({
-                    Error: true
-                });
-            }
-            var json = {
-                Error: false,
-                AssignmentInstance: response,
-                SectionUsers: [],
-            };
-            return response.Section.getSectionUsers().then(function (sectionUsers) {
-                if (!sectionUsers) return;
-
-                // json.SectionUsers = sectionUsers
-                return Promise.map(sectionUsers, function (sectionUser) {
-                    console.log('ww');
-                    var su = sectionUser.toJSON();
-                    json.SectionUsers.push(su);
-
-                    User.find({
-                        where: {
-                            UserID: sectionUser.UserID
-                        },
-                        include: [{
-                            model: UserContact
-                        }]
-                    }).then(function (user) {
-                        if (!user) return;
-
-                        console.log('ww22');
-                        var u = user.toJSON();
-                        su.User = u;
-                    });
-                    return AssignmentGrade.find({
-                        where: {
-                            SectionUserID: sectionUser.SectionUserID,
-                            AssignmentInstanceID: req.params.ai_id,
-                        },
-                        /*include: [
-                         {
-                         model: AssignmentInstance,
-                         // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                         /!*include: [{
-                         model: Section,
-                         }],*!/
-                         },
-                         ],*/
-                    }).then(function (assignmentGrade) {
-                        if (!assignmentGrade) return;
-
-                        console.log('ww11');
-                        var ag = assignmentGrade.toJSON();
-                        su.assignmentGrade = ag;
-                        // console.log(assignmentGrade)
-
-                        return WorkflowGrade.findAll({
-                            where: {
-                                SectionUserID: sectionUser.SectionUserID,
-                                AssignmentInstanceID: req.params.ai_id,
-                            },
-                            include: [{
-                                model: WorkflowActivity,
-                                // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                                /*include: [{
-                                 model: TaskActivity,
-                                 }],*/
-                            }, ],
-                        }).then(function (workflowGrades) {
-                            if (!workflowGrades) return;
-
-                            console.log('ww1.5');
-                            ag.WorkflowActivityGrades = [];
-
-                            return Promise.map(workflowGrades, function (workflowGrade) {
-                                if (!workflowGrade) return;
-
-                                console.log('ww11.5', workflowGrade);
-                                var wg = workflowGrade.toJSON();
-                                ag.WorkflowActivityGrades.push(wg);
-                                if (!wg.WorkflowActivity) return;
-
-                                return TaskGrade.findAll({
-                                    where: {
-                                        SectionUserID: sectionUser.SectionUserID,
-                                        WorkflowActivityID: workflowGrade.WorkflowActivityID,
-                                    },
-                                    include: [{
-                                        model: TaskInstance,
-                                        include: [{
-                                            model: TaskActivity,
-                                        }, ],
-                                    }, ],
-                                }).then(function (taskGrades) {
-                                    if (!taskGrades) return;
-
-                                    console.log('ww1.75');
-                                    wg.WorkflowActivity.users_WA_Tasks = [];
-
-                                    return Promise.map(taskGrades, function (taskGrade) {
-                                        if (!taskGrade) return;
-
-                                        var tg = taskGrade.toJSON();
-                                        tg.taskGrade = taskGrade;
-                                        tg.taskActivity = taskGrade.TaskInstance.TaskActivity;
-                                        wg.WorkflowActivity.users_WA_Tasks.push(tg);
-
-                                        return TaskSimpleGrade.find({
-                                            where: {
-                                                SectionUserID: sectionUser.SectionUserID,
-                                                TaskInstanceID: taskGrade.TaskInstanceID
-                                            },
-                                        }).then(function (taskSimpleGrade) {
-                                            if (!taskSimpleGrade) return;
-
-                                            tg.taskSimpleGrade = taskSimpleGrade;
-                                        });
-                                    });
-                                });
-                            });
-                        });
-                    });
-                }).then(function (done) {
-                    console.log('then', 'json');
-                    res.json(json);
-                });
-            });
         });
     });
 
@@ -3566,6 +5331,380 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    //Endpoint to make a user an admin
+    router.put('/makeUserAdmin/', function (req, res) {
+
+        User.findById(req.body.UserID).then(function (user) {
+            if (user == null) {
+                console.log('/makeUserAdmin/ User not found');
+                res.status(401).end();
+            } else {
+                user.Admin = 1;
+                user.save().then(function () {
+                    console.log('/makeUserAdmin : User Updated ');
+                    res.status(200).end();
+                }).catch(function (error) {
+                    // Ooops, do some error-handling
+                    console.log('/makeUserAdmin : Error while inserting ' + error.message);
+                    res.status(401).end();
+                });
+            }
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint to make a user not an admin
+    router.put('/makeUserNotAdmin/', function (req, res) {
+        UserLogin.find({
+            where: {
+                UserID: req.body.UserID
+            }
+        }).then(async function (userLogin) {
+            if (userLogin != null && await password.verify(userLogin.Password, req.body.password)) {
+                User.findById(req.body.UserID).then(function (user) {
+                    if (user == null) {
+                        console.log('/makeUserNotAdmin/ User not found');
+                        res.status(401).end();
+                    } else {
+                        user.Admin = 0;
+                        user.save().then(function () {
+                            console.log('/makeUserNotAdmin : User Updated ');
+                            res.status(200).end();
+                        }).catch(function (error) {
+                            // Ooops, do some error-handling
+                            console.log('/makeUserNoAdmin : Error while inserting ' + error.message);
+                            res.status(401).end();
+                        });
+                    }
+                });
+            } else {
+                console.log('/makeUserNoAdmin : Authentication Failed');
+                res.status(401).end();
+            }
+        });
+    });
+
+    router.get('/getSubWorkFlow/:taskInstanceID', function (req, res) {
+        var taskFactory = new TaskFactory();
+        taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function (subworkflow) {
+            res.json({
+                'Error': false,
+                'SubWorkflow': subworkflow
+            });
+        });
+    });
+
+    router.get('/getNextTask/:taskInstanceID', function (req, res) {
+        var taskFactory = new TaskFactory();
+        taskFactory.getNextTask(req.params.taskInstanceID, new Array()).then(function (NextTask) {
+            res.json({
+                'Error': false,
+                'NextTask': NextTask
+            });
+        });
+    });
+
+    // endpoint to delete organization
+    router.get('/organization/delete/:organizationid', function (req, res) {
+        Organization.destroy({
+            where: {
+                OrganizationID: req.params.organizationid
+            }
+        }).then(function (rows) {
+            console.log('Delete Organization Success');
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log('/organization/delete : ' + err.message);
+            res.status(400).end();
+        });
+    });
+
+    //Endpoint to update an organization
+    router.post('/organization/update/:organizationid', function (req, res) {
+        if (req.body.Name == null) {
+            console.log('organization/update : Name cannot be null');
+            res.status(400).end();
+            return;
+        }
+
+        Organization.update({
+            Name: req.body.Name
+        }, {
+            where: {
+                OrganizationID: req.params.organizationid
+            }
+        }).then(function (result) {
+            Organization.find({
+                where: {
+                    OrganizationID: req.body.organizationid
+                }
+            }).then(function (organizationUpdated) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'result': result,
+                    'OrganizationUpdated': organizationUpdated
+                });
+            });
+        }).catch(function (err) {
+            console.log('/organization/update : ' + err);
+            res.status(401).end();
+        });
+
+
+    });
+
+    ///////////////////////////
+    ////////////----------------   END Admin APIs
+   
+   
+    //Endpoint to return VolunteerPool list of Volunteers
+    router.get('/VolunteerPool/', function (req, res) {
+
+        VolunteerPool.findAll({
+            attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
+            });
+        }).catch(function (err) {
+            console.log('/VolunteerPool/ ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+    //Endpoint to return count total of Volunteers
+    router.get('/VolunteerPool/countOfUsers', function (req, res) {
+        console.log('VolunteerPool/count was called');
+        VolunteerPool.findAll({}).then(function (rows) {
+            res.json({
+                'Error_': false,
+                'Message': 'Success',
+                'Number of Volunteers': rows.length
+            });
+        }).catch(function (err) {
+            console.log('/VolunteerPool/ ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+    //Endpoint to return list of volunteers in a section
+    router.get('/VolunteerPool/VolunteersInSection/:SectionID', function (req, res) {
+        console.log('/VolunteerPool/VolunteersInSection was called');
+        VolunteerPool.findAll({
+            where: {
+                SectionID: req.params.SectionID
+            },
+            attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
+            });
+        }).catch(function (err) {
+            console.log('/VolunteerPool/ ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+
+    //Endpoint to return VolunteerPool Information for the student
+    router.get('/VolunteerPool/UserInPool/:UserID', function (req, res) {
+        console.log('/VolunteerPool/:UserID was called');
+        VolunteerPool.findAll({
+            where: {
+                UserID: req.params.UserID
+            },
+            attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': rows
+            });
+        }).catch(function (err) {
+            console.log('/VolunteerPool/ ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+
+    //Endpoint to remove from VolunteerPool
+    router.post('/VolunteerPool/deleteVolunteer', function (req, res) {
+
+        VolunteerPool.destroy({
+            where: {
+                UserID: req.body.UserID,
+                SectionID: req.body.SectionID
+                //AssignmentInstanceID: req.body.AssignmentInstanceID
+            }
+        }).then(function (rows) {
+            console.log('Delete User Success');
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log('/course/deleteuser : ' + err.message);
+
+            res.status(400).end();
+        });
+
+
+    });
+
+    //Create another call saying "This student is volunteered for all assignments in section";
+    //check approval required status
+
+    //Endpoint to add a user to a course
+    router.post('/VolunteerPool/add', function (req, res) {
+        console.log('/VolunteerPool/add : was called');
+
+        if (req.body.UserID === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/ ) {
+            console.log('/VolunteerPool/add : Missing attributes');
+            res.status(400).end();
+        }
+
+        console.log('got to create part');
+        //console.log("UserID: " + req.params.UserID);
+        VolunteerPool.create({
+            UserID: req.body.UserID,
+            SectionID: req.body.SectionID,
+            Status: 'Inactive'
+            // AssignmentInstanceID: req.body.AssignmentInstanceID
+        }).then(function (rows) {
+            console.log('add User Success, new ID=', rows.VolunteerPoolID);
+            res.status(200).json({
+                VolunteerPoolID: rows.VolunteerPoolID
+            });
+        }).catch(function (err) {
+            console.log(err);
+            res.status(400).end();
+        });
+        //             });
+        // });
+    });
+
+
+    //Endpoint to change status of volunteer individually
+    router.post('/VolunteerPool/individualStatusUpdate/', function (req, res) {
+        console.log('Volunteerpool id rec: ' + req.body.VolunteerPoolID);
+        VolunteerPool.update({
+            status: req.body.status
+        }, {
+            where: {
+                VolunteerPoolID: req.body.VolunteerPoolID
+            }
+        }).then(function () {
+            console.log('update success');
+            res.status(201).end();
+        }).catch(function (err) {
+            console.log('/VolunteerPool/individualStatusUpdate ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+    //Endpoint to change status of volunteer update all in section
+    router.post('/VolunteerPool/sectionlStatusUpdate/', function (req, res) {
+
+        VolunteerPool.update({
+            status: req.body.status
+        }, {
+            where: {
+                SectionID: req.body.SectionID
+            }
+        }).then(function () {
+            console.log('update success');
+            res.status(401).end();
+        }).catch(function (err) {
+            console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
+            res.status(401).end();
+        });
+
+    });
+
+    //Endpoint to change status of volunteer update all in assignment instance
+    router.post('/VolunteerPool/assignmentInstanceStatusUpdate/', function (req, res) {
+
+        VolunteerPool.update({
+            status: req.body.status
+        }, {
+            where: {
+                AssignmentInstanceID: req.body.AssignmentInstanceID
+            }
+        }).then(function () {
+            console.log('update success');
+            res.status(401).end();
+        }).catch(function (err) {
+            console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
+            res.status(401).end();
+        });
+
+
+    });
+
+
+
+    //-------------------------------------------------------------------------------------------------
+
+
+
+    //Endpoint to archive assignment activity table entry by giving assignment id
+    
+    //Endpoint to Create an Assignment
+   
+
+
+    
+
+    //-----------------------------------------------------------------------------------------------------
+
+    
+
+
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //Endpoint debug
+
+    router.get('/debug', function (req, res) {
+        // winston.level = 'debug'
+        logger.log('error', 'both', {
+            someKey: 'some-value'
+        });
+        logger.log('warn', 'only info');
+        logger.log('warn', 'only info', ([1, 2, {
+            k: 'v'
+        },
+        ['hi'],
+        function(test) {
+            console.log(test);
+        }
+        ]).toString());
+
+        // var manager = new Manager()
+        // manager.debug()
+        var a = new Allocator();
+        // a.reallocate_ais_of_users([1, 5], [3, 5, 8, 11, 1])
+        res.status(200).end();
+    });
+
+    // Inactivate section user
+
+    
+
+    
     //Endpoint to Test All Models for a UserID
     router.get('/ModelTest/:userID', function (req, res) {
 
@@ -3693,554 +5832,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to update a User's Email
-    router.put('/update/email', function (req, res) {
-        if (req.body.password == null || req.body.email == null || req.body.userid == null) {
-            console.log('/update/email : Bad Input');
-            res.status(400).end();
-        }
+    
+    
 
-        UserLogin.find({
-            where: {
-                UserID: req.body.userid
-            }
-        }).then(async function (user) {
-            if (user != null && await password.verify(user.Password, req.body.password)) {
-                user.Email = req.body.email;
-                user.save().then(function (used) {
-                    res.status(200).end();
-                }).catch(function (err) {
-                    res.json({
-                        'Email': used.Email
-                    });
-                });
-            } else {
-                console.log('/update/email : Bad Input');
-                res.status(401).end();
-            }
-        });
-    });
+    
 
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to update a User's Name
-    router.put('/update/name', function (req, res) {
-        User.find({
-            where: {
-                UserID: req.body.userid
-            }
-        }).then(function (user) {
-            if (user == null) {
-                console.log('/update/name : UserID not Found');
-                res.status(401).end();
-            } else {
-                if (req.body.firstname != '') {
-                    user.FirstName = req.body.firstname;
-                }
-                if (req.body.lastname != '') {
-                    user.LastName = req.body.lastname;
-                }
-                user.save().then(function (used) {
-                    res.json({
-                        'FirstName': user.FirstName,
-                        'LastName': user.LastName
-                    });
-                }).catch(function (err) {
-                    console.log('/update/name : ' + err);
-                    res.status(401).end();
-                });
-            }
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to return general user data
-    router.get('/generalUser/:userid', function (req, res) {
-        User.find({
-            where: {
-                UserID: req.params.userid
-            },
-            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
-            include: [{
-                model: UserLogin,
-                attributes: ['Email']
-            },
-            {
-                model: UserContact,
-                attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
-            }
-            ]
-        }).then(function (user) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'User': user
-            });
-        }).catch(function (err) {
-            console.log('/generalUser : ' + err.message);
-            res.status(401).end();
-        });
-
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to create a semester
-    // JV - contructing the /createSemester where it allows user to create a non existance. return false when new semester already exist
-    router.post('/createSemester', function (req, res) {
-        var startDate = dateFormat(req.body.start_sem, 'yyyy-mm-dd');
-        var endDate = dateFormat(req.body.end_sem, 'yyyy-mm-dd');
-        console.log(req.body.start_sem + ' ' + req.body.end_sem);
-        if (req.body.end_sem == null || req.body.start_sem == null) {
-            console.log('/createSemester : Dates must be defined');
-            res.status(400).end();
-        } else if (startDate > endDate) {
-            console.log('/createSemester : StartDate cannot be grater than EndDate');
-            res.status(400).end();
-        } else {
-            Semester.find({
-                where: {
-                    OrganizationID: req.body.organizationID,
-                    Name: req.body.semesterName //new
-                },
-                attributes: ['SemesterID']
-            }).then(function (response) {
-                if (response == null || response.SemesterID == null) {
-                    Semester.create({
-                        OrganizationID: req.body.organizationID, //organization ID
-                        Name: req.body.semesterName,
-                        StartDate: req.body.start_sem,
-                        EndDate: req.body.end_sem
-                    }).catch(function (err) {
-                        console.log(err);
-                    }).then(function (result) {
-                        res.json({
-                            'newsemester': result,
-                            'sem_feedback': true
-                        });
-                    });
-
-                } else {
-                    console.log('Semester Name and Organization Exist');
-                    res.json({
-                        'newsemester': null,
-                        'sem_feedback': false
-                    });
-                }
-            });
-        }
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to return Semester Information
-    router.get('/semester/:semesterid', function (req, res) {
-
-        Semester.find({
-            where: {
-                SemesterID: req.params.semesterid
-            },
-            attributes: ['SemesterID', 'Name', 'StartDate', 'EndDate', 'OrganizationID']
-        }).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Semester': rows
-            });
-        }).catch(function (err) {
-            console.log('/semester/email : ' + err.message);
-            res.status(401).end();
-        });
-
-
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to get All Semester Information
-    router.get('/semester', function (req, res) {
-
-        Semester.findAll({}).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Semesters': rows
-            });
-        }).catch(function (err) {
-            console.log('/semester: ' + err.message);
-            res.status(401).end();
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to create course
-    router.post('/course/create', function (req, res) {
-        console.log('/course/create: called');
-        if (req.body.userid == null) {
-            console.log('/course/create : UserID cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.Name == null) {
-            console.log('/course/create : Name cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.number == null) {
-            console.log('/course/create : Number cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.organizationid == null) {
-            console.log('/course/create : OrganizationID cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        Course.find({
-            where: {
-                CreatorID: req.body.userid,
-                Number: req.body.number,
-                Name: req.body.Name,
-                OrganizationID: req.body.organizationid //new
-            },
-            attributes: ['CourseID']
-        }).then(function (response) {
-            if (response == null || response.CourseID == null) {
-                Course.create({
-                    CreatorID: req.body.userid,
-                    Number: req.body.number,
-                    Name: req.body.Name,
-                    OrganizationID: req.body.organizationid
-                }).catch(function (err) {
-                    console.log(err);
-                }).then(function (result) {
-                    res.json({
-                        'NewCourse': result,
-                        'Message': true
-                    });
-
-                });
-            } else {
-                res.json({
-                    'Message': false
-                });
-            }
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //End point to create section for course
-    router.post('/course/createsection', function (req, res) {
-
-
-        if (req.body.semesterid == null) {
-            console.log('course/createsection : SemesterID cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.courseid == null) {
-            console.log('course/createsection : CourseID cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.name == null) {
-            console.log('course/createsection : Name cannot be null');
-            res.status(400).end();
-            return;
-        }
-        // if (req.body.description == null) {
-        //     console.log("course/createsection : Description cannot be null");
-        //     res.status(400).end();
-        //     return;
-        // }
-        // if (req.body.organizationid == null) {
-        //     console.log("course/createsection : OrganizationID cannot be null");
-        //     res.status(400).end();
-        //     return;
-        // }
-
-        //-----------------------------------------------------------------------------------------------------
-        Semester.find({
-            where: {
-                SemesterID: req.body.semesterid
-            }
-        }).then(function (results) {
-            var section = Section.build({
-                SemesterID: req.body.semesterid,
-                CourseID: req.body.courseid,
-                StartDate: results.StartDate,
-                EndDate: results.EndDate,
-                Name: req.body.name,
-
-            }).save().then(function (response) {
-
-                //Update Categories as new section is being created
-                let taskFactory = new TaskFactory;
-                taskFactory.createCategoryInstances(response.SemesterID, response.CourseID, response.SectionID);
-
-                res.json({
-                    'result': response
-                });
-            }).catch(function (err) {
-                console.log('/course/createsection : ' + err.message);
-
-                res.status(401).end();
-            });
-        });
-
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to add a user to a course
-    router.post('/user/create', function (req, res) {
-        var email = new Email();
-
-        if (req.body.email === null || req.body.phone === null || req.body.passwd === null || req.body.phone === null || req.body.firstName === null || req.body.lastName === null) {
-            console.log('/user/create : Missing attributes');
-            res.status(400).end();
-        }
-
-        UserContact.create({
-            Email: req.body.email,
-            Phone: req.body.phone
-        }).then(function (userContact) {
-            sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-            User.create({
-                UserContactID: userContact.UserContactID,
-                FirstName: req.body.firstName,
-                LastName: req.body.lastName,
-                OrganizationGroup: req.body.organization,
-                Instructor: false,
-                Admin: false
-            }).then(async function (user) {
-                UserLogin.create({
-                    UserID: user.UserID,
-                    Email: req.body.email,
-                    Password: await password.hash(req.body.passwd)
-                }).then(function (userLogin) {
-                    console.log('/user/create: New user added to the system');
-                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-                    email.sendNow(user.UserID, 'create user');
-                    res.status(200).end();
-                }).catch(function (err) {
-                    console.log(err);
-                    res.status(400).end();
-                });
-            });
-        });
-    });
-
-    router.post('/update/password', function (req, res) {
-        let email = new Email();
-        if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
-            console.log('/update/password : Missing attributes');
-            res.status(400).end();
-        } else if (req.body.oldPasswd == req.body.newPasswd) {
-            console.log('/update/password : Same password');
-            res.status(400).end();
-        } else {
-            UserLogin.find({
-                where: {
-                    UserID: req.body.userId
-                }
-            }).then(async function (userLogin) {
-                if (await password.verify(userLogin.Password, req.body.oldPasswd)) {
-                    console.log('/user/create : Password matched');
-                    UserLogin.update({
-                        Password: await password.hash(req.body.newPasswd),
-                        Pending: false
-                    }, {
-                        where: {
-                            UserID: req.body.userId
-                        }
-                    }).then(function (done) {
-                        console.log('/update/password: Password updated successfully');
-                        email.sendNow(userLogin.UserID, 'new password');
-                        res.status(200).end();
-                    }).catch(function (err) {
-                        console.log(err);
-                        res.status(400).end();
-                    });
-
-                } else {
-                    console.log('/update/password: Password not match');
-                    res.status(401).end();
-                }
-            });
-        }
-
-    });
-
-    // adding the user, called on add user page
-    router.post('/adduser', function (req, res) {
-        console.log('/adduser:called');
-        var email = new Email();
-        if (req.body.email === null) {
-            console.log('/adduser : Email cannot be null');
-            res.status(400).end();
-        }
-
-        UserLogin.find({
-            where: {
-                Email: req.body.email
-            },
-            attributes: ['UserID']
-        }).then(function (response) {
-            if (response == null || response.UserID == null) {
-                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-
-                    .then(function() {
-                        User.create({
-                            FirstName: req.body.firstname,
-                            LastName: req.body.lastname,
-                            Instructor: req.body.instructor,
-                            Admin: req.body.admin
-                        }).catch(function(err) {
-                            console.log(err);
-                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                .then(function () {
-                                    res.status(500).end();
-                                });
-                        }).then(async function(user) {
-                            UserContact.create({
-                                UserID: user.UserID,
-                                FirstName: req.body.firstname,
-                                LastName: req.body.lastname,
-                                Email: req.body.email,
-                                Phone: '(XXX) XXX-XXXX'
-                            }).catch(function(err) {
-                                console.log(err);
-                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                    .then(function () {
-                                        res.status(500).end();
-                                    });
-                            }).then(async function(userCon) {
-                                console.log('trustpass', req.body.trustpassword);
-                                UserLogin.create({
-                                    UserID: user.UserID,
-                                    Email: req.body.email,
-                                    Password: await password.hash(req.body.password),
-                                    Pending: req.body.trustpassword ? false : true
-                                }).catch(function(err) {
-                                    console.log(err);
-                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function() {
-                                            res.status(500).end();
-                                        });
-                                }).then(function(userLogin) {
-                                    let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
-                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function() {
-                                            res.json({
-                                                'Message': 'User has succesfully added'
-                                            });
-                                        });
-
-                                });
-                            });
-                        });
-                    });
-            } else {
-                res.json({
-                    'Message': 'User is currently exist'
-                });
-            }
-        });
-    });
-
-    router.post('/course/adduser', function (req, res) {
-        //console.log("role "+req.body.role);
-        var email = new Email();
-        if (req.body.email === null) {
-            console.log('course/adduser : Email cannot be null');
-            res.status(400).end();
-        }
-        if (req.body.courseid === null) {
-            console.log('course/adduser : CourseID cannot be null');
-            res.status(400).end();
-        }
-        if (req.body.sectionid === null) {
-            console.log('course/adduser : SectionID cannot be null');
-            res.status(400).end();
-        }
-
-        UserLogin.find({
-            where: {
-                Email: req.body.email
-            },
-            attributes: ['UserID']
-        }).then(function (userLogin) {
-            if (userLogin == null || userLogin.UserID == null) {
-                UserContact.create({
-                    Email: req.body.email,
-                    Phone: 'XXX-XXX-XXXX'
-                }).catch(function (err) {
-                    console.log(err);
-                }).then(function (userCon) {
-                    sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-                        .then(function () {
-                            sequelize.sync({});
-                            console.log(userCon.UserContactID);
-                            User.create({
-                                FirstName: 'Temp',
-                                LastName: 'Temp',
-                                OrganizationGroup: {
-                                    'OrganizationID': []
-                                },
-                                UserContactID: userCon.UserContactID,
-                                Instructor: req.body.role == 'Instructor' ? true : false,
-                                Admin: false,
-                            }).catch(function (err) {
-                                console.log(err);
-                            }).then(async function (user) {
-                                UserLogin.create({
-                                    UserID: user.UserID,
-                                    Email: req.body.email,
-                                    Password: await password.hash('pass123')
-                                }).catch(function (err) {
-                                    console.log(err);
-                                }).then(function (userLogin) {
-                                    //Email User With Password
-                                    email.sendNow(userLogin.UserID, 'create user', req.body.password);
-                                    SectionUser.create({
-                                        SectionID: req.body.sectionid,
-                                        UserID: userLogin.UserID,
-                                        Role: req.body.role,
-                                        Active: true
-                                    }).catch(function (err) {
-                                        console.log(err);
-                                    }).then(function (sectionUser) {
-                                        res.status(200).end();
-                                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-
-                                    });
-                                });
-                            });
-                        });
-                });
-            } else {
-                SectionUser.create({
-                    SectionID: req.body.sectionid,
-                    UserID: userLogin.UserID,
-                    Role: req.body.role,
-                    Active: true
-                }).catch(function (err) {
-                    console.log(err);
-                }).then(function (sectionUser) {
-                    res.json({
-                        'UserID': sectionUser.UserID,
-                        'Message': 'Success'
-                    });
-                });
-            }
-        });
-    });
+    
 
 
 
@@ -4335,265 +5932,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to find course
-    router.get('/course/:courseId', function (req, res) {
-        Course.find({
-            where: {
-                CourseID: req.params.courseId
-            },
-            attributes: ['CourseID', 'Number', 'Name', 'Description']
-        }).then(function (result) {
-            Section.findAll({
-                where: {
-                    CourseID: req.params.courseId
-                },
-                include: [{
-                    model: Semester,
-                    attributes: ['Name']
-                }]
-            }).then(function (sections) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Course': result,
-                    'Sections': sections
-                });
-            });
-
-        }).catch(function (err) {
-            console.log('/course ERROR_WJE : ' + err.message);
-            res.status(400).end();
-        });
-
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Need to translate getsectionUsers function
-    router.get('/course/getsection/:sectionId', function (req, res) {
-
-        Section.find({
-            where: {
-                SectionID: req.params.sectionId
-            },
-            attributes: ['Name']
-        }).then(function (rows) {
-            SectionUser.findAll({
-                where: {
-                    SectionID: req.params.sectionId
-                },
-                attributes: ['UserID', 'Role', 'Active'],
-                include: {
-                    model: User,
-                    attributes: ['FirstName', 'LastName']
-                }
-            }).then(function (users) {
-                res.json({
-                    'result': rows,
-                    'UserSection': users
-                });
-            });
-        }).catch(function (err) {
-            console.log('/course : ' + err.message);
-            res.status(400).end();
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
     
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to update a course
-    router.put('/course/update', function (req, res) {
-
-        if (req.body.Name == null) {
-            console.log('course/create : Name cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.courseid == null) {
-            console.log('course/create : CourseID cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        Course.update({
-            Name: req.body.Name,
-            Number: req.body.Number
-        }, {
-            where: {
-                CourseID: req.body.courseid
-            }
-        }).then(function (result) {
-            Course.find({
-                where: {
-                    CourseID: req.body.courseid
-                }
-            }).then(function (courseUpdated) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'result': result,
-                    'CourseUpdated': courseUpdated
-                });
-            });
-        }).catch(function (err) {
-            console.log('/course/update : ' + err);
-            res.status(401).end();
-        });
-
-
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to update a section
-    router.post('/course/updatesection', function (req, res) {
-
-        if (req.body.sectionid == null) {
-            console.log('course/updatesection : sectionid cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        if (req.body.name == null) {
-            console.log('course/updatesection : name cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        Section.update({
-            Name: req.body.name,
-        }, {
-            where: {
-                SectionID: req.body.sectionid
-            }
-        }).then(function (result) {
-            Section.find({
-                where: {
-                    SectionID: req.body.sectionid
-                }
-            }).then(function (sectionUpdated) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'result': result,
-                    'CourseUpdated': sectionUpdated
-                });
-            }).catch(function (err) {
-                console.log('/course/update : ' + err);
-                res.status(401).end();
-            });
-        });
-
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to delete user
-    router.delete('/course/deleteuser', function (req, res) {
-
-        SectionUser.destroy({
-            where: {
-                UserID: req.body.userID,
-                SectionID: req.body.SectionID
-            }
-        }).then(function (rows) {
-            console.log('Delete User Success');
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log('/course/deleteuser : ' + err.message);
-
-            res.status(400).end();
-        });
-
-
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to get a user's courses
-    router.get('/course/getCourses/:userid', async function (req, res) {
-        var courses = [];
-        let addedCourseIDs = [];
-
-        var sections = await SectionUser.findAll({
-            where: {
-                UserID: req.params.userid
-            },
-            attributes: ['SectionUserID', 'SectionID', 'Role', 'Active'],
-            include: [{
-                model: Section,
-                attributes: ['CourseID'],
-                include: [{
-                    model: Course,
-                    attributes: ['CourseID', 'Number', 'Name']
-                }]
-            }]
-        }).catch(function (err) {
-            logger.log('error', 'failed getting section information', {
-                error: err
-            });
-            res.status(401).end();
-        });
-
-        function checkForDuplicateIDs(a) {
-            var seen = {};
-            var out = [];
-            var len = a.length;
-            var j = 0;
-            for (var i = 0; i < len; i++) {
-                var item = a[i];
-                if (seen[item.CourseID] !== 1) {
-                    seen[item.CourseID] = 1;
-                    out[j++] = item;
-                }
-            }
-            return out;
-        }
-
-        await sections.forEach(function (section) {
-            //console.log(section.Section);
-            if (section.Section !== null) {
-                courses.push({
-                    'CourseID': section.Section.Course.CourseID,
-                    'Number': section.Section.Course.Number,
-                    'Name': section.Section.Course.Name
-                });
-            }
-        });
-
-        let createdCourses = await Course.findAll({
-            where: {
-                CreatorID: req.params.userid
-            }
-        }).catch(function (err) {
-            logger.log('error', 'failed getting courses created information', {
-                error: err
-            });
-            res.status(401).end();
-        });
-
-        await createdCourses.forEach(function (course) {
-
-
-            courses.push({
-                'CourseID': course.CourseID,
-                'Number': course.Number,
-                'Name': course.Name
-            });
-
-        });
-
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'Courses': checkForDuplicateIDs(courses)
-        });
-    });
-    //-----------------------------------------------------------------------------------------------------
-
     //-----------------------------------------------------------------------------------------------------
 
 
@@ -4615,203 +5954,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to make a user an admin
-    router.put('/makeUserAdmin/', function (req, res) {
-
-        User.findById(req.body.UserID).then(function (user) {
-            if (user == null) {
-                console.log('/makeUserAdmin/ User not found');
-                res.status(401).end();
-            } else {
-                user.Admin = 1;
-                user.save().then(function () {
-                    console.log('/makeUserAdmin : User Updated ');
-                    res.status(200).end();
-                }).catch(function (error) {
-                    // Ooops, do some error-handling
-                    console.log('/makeUserAdmin : Error while inserting ' + error.message);
-                    res.status(401).end();
-                });
-            }
-        });
-    });
-
+    
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to make a user not an admin
-    router.put('/makeUserNotAdmin/', function (req, res) {
-        UserLogin.find({
-            where: {
-                UserID: req.body.UserID
-            }
-        }).then(async function (userLogin) {
-            if (userLogin != null && await password.verify(userLogin.Password, req.body.password)) {
-                User.findById(req.body.UserID).then(function (user) {
-                    if (user == null) {
-                        console.log('/makeUserNotAdmin/ User not found');
-                        res.status(401).end();
-                    } else {
-                        user.Admin = 0;
-                        user.save().then(function () {
-                            console.log('/makeUserNotAdmin : User Updated ');
-                            res.status(200).end();
-                        }).catch(function (error) {
-                            // Ooops, do some error-handling
-                            console.log('/makeUserNoAdmin : Error while inserting ' + error.message);
-                            res.status(401).end();
-                        });
-                    }
-                });
-            } else {
-                console.log('/makeUserNoAdmin : Authentication Failed');
-                res.status(401).end();
-            }
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Assign a New Instructor
-    router.put('/instructor/new', function (req, res) {
-        var email = req.body.email;
-        UserLogin.find({
-            where: {
-                Email: email
-            },
-            attributes: ['UserID']
-        }).then(function (userID) {
-            if (userID == null) {
-                console.log('Email Not Found - Making Instructor ' + email);
-                User.create({
-                    FirstName: 'Temp',
-                    LastName: 'Temp',
-                    OrganizationGroup: {
-                        'OrganizationID': []
-                    },
-                    Instructor: true,
-                    Admin: false
-                })
-                    .then(function (user) {
-                        UserContact.create({
-                            Email: email,
-                            Phone: 'XXX-XXX-XXXX',
-                            FirstName: 'Temp',
-                            LastName: 'Temp',
-                            UserID: user.UserID
-                        }).then(async function (userCon) {
-                            UserLogin.create({
-                                UserID: user.UserID,
-                                Email: email,
-                                Password: await password.hash('pass123')
-                            }).then(function (userLogin) {
-                                //Email User With Password
-                                console.log('/instructor/new made');
-                                res.status(200).end();
-                            })
-                                .catch(function (err) {
-                                    console.log(err);
-                                });
-                        })
-                            .catch(function (err) {
-                                console.log('Error creating user');
-                                console.log(err);
-                            });
-                    })
-                    .catch(function (err) {
-                        console.log(err);
-                    });
-            } else {
-                User.find({
-                    where: {
-                        UserID: userID.UserID
-                    },
-                    attributes: ['Instructor', 'UserID']
-                }).then(function (makerID) {
-                    if (!makerID.Instructor) {
-                        makerID.updateAttributes({
-                            UserID: makerID.UserID,
-                            Instructor: true
-                        }).success(function () {
-                            console.log('/instructor/new : success');
-                            res.status(200).end();
-                        });
-                    } else {
-                        console.log('/instructor/new : already instructor');
-                        res.status(400).end();
-                    }
-                });
-            }
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-
-    //Get All Instructors
-    router.get('/instructor/all', function (req, res) {
-        User.findAll({
-            where: {
-                Instructor: true
-            },
-            attributes: ['UserID', 'FirstName', 'LastName', 'Admin']
-        }).then(function (instructors) {
-            console.log('/instructors called');
-            res.json({
-                'Instructors': instructors
-            });
-        });
-    });
-
-    router.get('/organization', function (req, res) {
-        console.log('/organization: called');
-        Organization.findAll({
-            order: [
-                ['Name']
-            ]
-        }).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Organization': rows
-            });
-        }).catch(function (err) {
-            console.log('/organization: ' + err.message);
-            res.status(401).end();
-        });
-    });
-
-
-    //creates organization
-    router.post('/createorganization', function (req, res) {
-        console.log('/createorganization');
-        Organization.find({
-            where: {
-                Name: req.body.organizationname //new
-            },
-            attributes: ['OrganizationID']
-        }).then(function (response) {
-            if (response == null || response.OrganizationID == null) {
-                Organization.create({
-                    Name: req.body.organizationname
-                }).catch(function (err) {
-                    console.log(err);
-                }).then(function (result) {
-                    res.json({
-                        'neworganization': result,
-                        'org_feedback': true
-                    });
-                });
-
-            } else {
-                console.log('User and Organization Exist');
-                res.json({
-                    'neworganization': null,
-                    'org_feedback': false
-                });
-            }
-        });
-    });
-
+    
     //-----------------------------------------------------------------------------------------------------
 
     //Get UserID from Email
@@ -4819,45 +5965,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
-    //Endpoint to Get Pending Tasks
-    router.get('/taskInstance/:userid', function (req, res) {
-        TaskInstance.findAll({
-            where: {
-                UserID: req.params.userid
-            }
-        }).then(function (taskInstance) {
-            res.json({
-                'TaskInstances': taskInstance
-            });
-        }).catch(function (e) {
-            console.log('/taskInstanceInstance/:userid ' + e);
-            res.json({
-                'TaskInstances': -1
-            });
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-    //Endpoint to create an assignment instance based on assignment and section
-    router.post('assignment/section', function (req, res) {
-
-        AssignmentInstance.create({
-            AssignmentID: req.body.assignmentid,
-            SectionID: req.body.sectionid
-
-        }).save().then(function () {
-
-            console.log('/assignment/section success');
-            res.status(200).end();
-
-        }).catch(function (e) {
-            console.log('/assignment/section ' + e);
-            res.status(400).end();
-        });
-    });
-
-    //---------------------------------------------------------------------------------------------------------------------------------------------
-
+    
    
 
 
@@ -4866,291 +5974,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     
     
-    //Endpoint for all current task data and previous task data and put it in an array
-    router.get('/superCall/:taskInstanceId', async function (req, res) {
-        logger.log('info', 'get: /superCall/:taskInstanceId', {
-            req_query: req.query,
-            req_params: req.params
-        });
-        var view_constraint;
-        var allocator = new TaskFactory();
-
-        let taskActivityAttributes = ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName', 'AllowRevision'];
-
-        await allocator.findPreviousTasks(req.params.taskInstanceId, new Array()).then(async function (pre_tis) {
-
-            //console.log('pre_tis!', pre_tis);
-            var ar = new Array();
-            if (pre_tis == null) {
-
-                var ti = await TaskInstance.find({
-                    where: {
-                        TaskInstanceID: req.params.taskInstanceId
-                    },
-                    attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: taskActivityAttributes
-                    }]
-                });
-
-                //console.log(result);
-                ar.push(ti);
-                res.json({
-                    'previousTasksList': pre_tis,
-                    'superTask': ar
-                });
-            } else {
-
-
-                await Promise.mapSeries(pre_tis, async function (task) {
-                    await TaskInstance.find({
-                        where: {
-                            TaskInstanceID: task
-                        },
-                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
-                        include: [{
-                            model: TaskActivity,
-                        }]
-                    }).then(async(result) => {
-                        //console.log(result);
-                        // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
-                        ar.push(result);
-
-                        view_constraint = await allocator.applyViewContstraints(res, req.query.userID, result);
-                    });
-                });
-
-                if (view_constraint === false || view_constraint === undefined) {
-                    var ti = await TaskInstance.find({
-                        where: {
-                            TaskInstanceID: req.params.taskInstanceId
-                        },
-                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
-                        include: [{
-                            model: TaskActivity,
-                        }]
-                    });
-                    //console.log(ti);
-                    //ar.push(ti);
-                    // res.json({
-                    //     error: false,
-                    //     previousTasksList: pre_tis,
-                    //     superTask: ar,
-                    // });
-                    //logger.log('debug', 'done collecting previous tasks');
-                    //check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
-                    view_constraint = await allocator.applyViewContstraints(res, req.query.userID, ti);
-                    if (view_constraint === false || view_constraint === undefined) {
-                        if (res._headerSent) { // if already responded (response sent)
-                            return;
-                        }
-                        // update data field of all tasks with the appropriate allowed version
-                        ar = await allocator.applyVersionContstraints(ar, ti, req.query.userID);
-                        ar.push(ti);
-                        res.json({
-                            error: false,
-                            previousTasksList: pre_tis,
-                            superTask: ar,
-                        });
-
-                    } else {
-                        res.json(view_constraint);
-                    }
-
-
-                } else {
-                    res.json(view_constraint);
-                }
-            }
-
-        }).catch(function (err) {
-            console.log(err);
-            res.status(401).end();
-        });
-
-
-        await TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceId
-            }
-        }).then(async function (ti) {
-            var newStatus = JSON.parse(ti.Status);
-            if (newStatus[4] === 'not_opened') {
-                newStatus[4] = 'viewed';
-                logger.log('info', 'task opened for the first time, updating status...');
-                await TaskInstance.update({
-                    Status: JSON.stringify(newStatus)
-                }, {
-                    where: {
-                        TaskInstanceID: req.params.taskInstanceId
-                    }
-                });
-            }
-        });
-
-
-
-
-    });
-
-    //Endpoint to get all the sections assoicate with course and all the task activities within the workflow activities
-    router.get('/getAssignToSection/', function (req, res) {
-
-        console.log('/getAssignToSection: Initiating... ');
-
-        var sectionIDs = [];
-        var taskCollection = {};
-        var isDone = false;
-        var DisplayName;
-        var workflowNames = {};
-
-        console.log('req.query.assignmentid', req.query.assignmentid);
-        console.log('req.query.courseid', req.query.courseid);
-
-        Assignment.find({
-            where: {
-                AssignmentID: req.query.assignmentid
-            },
-            attributes: ['DisplayName']
-        }).then(function (AI_Result) {
-            DisplayName = AI_Result;
-        });
-
-        //Find all WorkflowActivities associate with assignmentid
-        var workflowActivity = WorkflowActivity.findAll({
-            where: {
-
-                AssignmentID: req.query.assignmentid
-            }
-        });
-
-        //Find all Sections associate with courseid
-        var sections = Section.findAll({
-            where: {
-                CourseID: req.query.courseid
-            }
-        });
-
-        //Promise sections has all the data returned
-        Promise.all(sections).then(function (result) {
-            console.log('Finding all sections associate with course... ');
-
-            //Create an array of all the sections associate with courseid
-            result.forEach(function (section) {
-                sectionIDs.push({
-                    value: section.SectionID,
-                    label: section.Name
-                });
-            });
-
-            isDone = true;
-
-            console.log('sectionIDs', sectionIDs);
-        }).catch(function (err) {
-            console.log('/getAssignToSection: ', err);
-            res.status(404).end();
-        });
-
-        //Promise workflowActivity has all the data returned
-        Promise.all(workflowActivity).then(function (result) {
-
-            //Check if result is empty
-            if (result !== null || typeof result !== undefined) {
-                //WorkflowActivityID -- key
-                result.forEach(function (workflow) {
-                    taskCollection[workflow.WorkflowActivityID] = [];
-                    workflowNames[workflow.WorkflowActivityID] = workflow.Name;
-                });
-            }
-
-            return [taskCollection, result];
-
-        }).then(function (resultArray) {
-            console.log('Finding all workflows and its task collection...');
-            //promise all instances in resultArray have returned
-            return Promise.map(resultArray[1], function (workflow) {
-
-                console.log('WorkflowActivityID: ', workflow.WorkflowActivityID);
-
-                //Loop through TaskActivityCollection in each workflowActivity
-                console.log('workflow.TaskActivityCollection', workflow.TaskActivityCollection);
-                return Promise.map(JSON.parse(workflow.TaskActivityCollection), function (taskActivityID) {
-
-                    console.log('TaskActivityID:', taskActivityID);
-
-                    //Find TaskActivity object and return
-                    return TaskActivity.find({
-                        where: {
-                            TaskActivityID: taskActivityID
-                        }
-                    }).then(function (taskActivity) {
-
-                        //Push the resulting name and TaskActivityID on to javascript object
-                        taskCollection[workflow.WorkflowActivityID].push({
-                            'taskActivityID': taskActivity.TaskActivityID,
-                            'name': taskActivity.Name,
-                            'displayName': taskActivity.DisplayName,
-                            'type': taskActivity.Type,
-                            'defaults': taskActivity.DueType
-                        });
-                        taskCollection[workflow.WorkflowActivityID].sort(function (a, b) {
-                            var x = a.taskActivityID < b.taskActivityID ? -1 : 1;
-                            return x;
-                        });
-
-                    }).catch(function (err) {
-                        console.log('/getAssignToSection: ', err);
-                        res.status(404).end();
-                    });;
-                });
-            });
-
-        }).then(function (done) {
-            //if sectionIDs are set then return
-
-            if (isDone === true) {
-                res.json({
-                    'assignment': DisplayName,
-                    'workflowNames': workflowNames,
-                    'sectionIDs': sectionIDs,
-                    'taskActivityCollection': taskCollection //returns workflow id follows by task act
-                });
-            }
-        }).catch(function (err) {
-            console.log('/getAssignToSection: ', err);
-            res.status(404).end();
-        });
-
-
-    });
-
-    //Endopint to assign an assignment to a section
-    router.post('/getAssignToSection/submit/', async function (req, res) {
-        //creates new allocator object
-        var taskFactory = new TaskFactory();
-        var manager = new Manager();
-        var make = new Make();
-
-        console.log('/getAssignToSection/submit/  Creating Assignment Instance...');
-        logger.log('info', 'Assing TO Section submit', req.body);
-
-        //create assignment instance
-        await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
-            console.log('/getAssignToSection/submit/   All Done!');
-            console.log(typeof req.body.wf_timing.startDate, req.body.wf_timing.startDate);
-            if (moment(req.body.wf_timing.startDate) <= new Date()) {
-                await Promise.mapSeries(req.body.sectionIDs, async function (secId) {
-                    await make.allocateUsers(secId, req.body.assignmentid);
-                });
-            };
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log(err);
-            res.status(404).end();
-        });
-
-    });
+    
 
     router.get('/getTree', function (req, res) {
         var taskFactory = new TaskFactory();
@@ -5184,202 +6008,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.get('/openRevision/:taskInstanceID', function (res, req) {
-
-        if (req.params.taskInstanceID == null) {
-            console.log('/openRevision/:taskInstanceID TaskInstanceID cannot be empty!');
-            res.stats(404).end();
-        }
-
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.params.taskInstanceID
-            }
-        }).then(function (ti_result) {
-            TaskActivity.find({
-                where: {
-                    TaskActivityID: ti_result.TaskActivityID
-                }
-            }).then(function (ta_result) {
-                if (ta_result.AllowRevision === 0) {
-                    console.log('Allow revision is false');
-                    res.stats(404).end();
-                } else {
-                    ti_result.Status = 'pending';
-                }
-            }).catch(function (err) {
-                console.log(err);
-                res.status(404).end();
-            });
-        });
-    });
-
-    router.get('/openRevision/save', function (res, req) {
-        if (req.body.data == null) {
-            console.log('/openRevision/save: data is missing');
-            res.status(404).end();
-        }
-        if (req.body.taskInstanceID == null) {
-            console.log('/openRevision/save TaskInstanceID cannot be empty!');
-            res.stats(404).end();
-        }
-
-        //append second status
-        TaskInstance.update({
-            Data: req.body.data
-        }, {
-            where: {
-                TaskInstanceID: req.body.taskInstanceID
-            }
-        }).catch(function (err) {
-            console.log(err);
-            res.stats(400).end();
-        });
-
-    });
-
-    router.get('/openRevision/submit', function (res, req) {
-        if (req.body.data == null) {
-            console.log('/openRevision/save: data is missing');
-            res.status(404).end();
-        }
-        if (req.body.taskInstanceID == null) {
-            console.log('/openRevision/save TaskInstanceID cannot be empty!');
-            res.stats(404).end();
-        }
-
-        //append second status
-        TaskInstance.find({
-            where: {
-                TaskInstanceID: req.body.taskInstanceID
-            }
-        }).then(function (ti) {
-            var newStatus = JSON.parse(ti.Status);
-            newStatus[0] = 'complete';
-            TaskInstance.update({
-                Data: req.body.data,
-                Status: JSON.stringify(newStatus)
-            }, {
-                where: {
-                    TaskInstanceID: req.body.taskInstanceID
-                }
-            }).catch(function (err) {
-                console.log(err);
-                res.stats(400).end();
-            });
-        });
-
-    });
-
-    //Backend router to reallocate students
-    router.post('/reallocate', function (req, res) {
-
-        if (req.body.taskid == null || req.body.users == null) {
-            console.log('/reallocate: missing required fields.');
-            res.status(401).end();
-            return;
-        }
-
-        var realloc = new Allocator([], 0);
-
-        realloc.reallocate(req.body.taskid, req.body.users);
-    });
+    
 
 
-    router.get('/getSubWorkFlow/:taskInstanceID', function (req, res) {
-        var taskFactory = new TaskFactory();
-        taskFactory.getSubWorkflow(req.params.taskInstanceID, new Array()).then(function (subworkflow) {
-            res.json({
-                'Error': false,
-                'SubWorkflow': subworkflow
-            });
-        });
-    });
+    
 
-    router.get('/getNextTask/:taskInstanceID', function (req, res) {
-        var taskFactory = new TaskFactory();
-        taskFactory.getNextTask(req.params.taskInstanceID, new Array()).then(function (NextTask) {
-            res.json({
-                'Error': false,
-                'NextTask': NextTask
-            });
-        });
-    });
-
-    router.get('/skipDispute/:taskInstanceID', function (req, res) {
-        var trigger = new TaskTrigger();
-        trigger.skipDispute(req.params.taskInstanceID);
-    });
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to return Semester Information
-    router.get('/getOrganizationSemesters/:organizationID', function (req, res) {
-
-        Semester.findAll({
-            where: {
-                OrganizationID: req.params.organizationID
-            },
-            order: [
-                ['StartDate', 'DESC']
-            ],
-            attributes: ['SemesterID', 'Name', 'StartDate', 'EndDate', 'OrganizationID']
-        }).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Semesters': rows
-            });
-        }).catch(function (err) {
-            console.log('/semester/email : ' + err.message);
-            res.status(401).end();
-        });
-
-
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    // endpoint to return organization
-    router.get('/organization/:organizationid', function (req, res) {
-
-        Organization.find({
-            where: {
-                OrganizationID: req.params.organizationid
-            },
-            attributes: ['OrganizationID', 'Name']
-        }).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Organization': rows
-            });
-        }).catch(function (err) {
-            console.log('/organization: ' + err.message);
-            res.status(401).end();
-        });
-
-
-    });
-
-    // endpoint to return section
-    router.get('/section/:sectionid', function (req, res) {
-
-        Section.find({
-            where: {
-                SectionID: req.params.sectionid
-            },
-            attributes: ['SectionID', 'Name', 'CourseID', 'SemesterID']
-        }).then(function (rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Section': rows
-            });
-        }).catch(function (err) {
-            console.log('/section: ' + err.message);
-            res.status(401).end();
-        });
-    });
+    
 
     
 
@@ -5387,620 +6021,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     
     //-----------------------------------------------------------------------------------------------------
 
-    // endpoint to delete organization
-    router.get('/organization/delete/:organizationid', function (req, res) {
-        Organization.destroy({
-            where: {
-                OrganizationID: req.params.organizationid
-            }
-        }).then(function (rows) {
-            console.log('Delete Organization Success');
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log('/organization/delete : ' + err.message);
-            res.status(400).end();
-        });
-    });
+    
 
-    // endpoint to delete course
-    router.get('/course/delete/:courseid', function (req, res) {
-        Course.destroy({
-            where: {
-                CourseID: req.params.courseid
-            }
-        }).then(function (rows) {
-            console.log('Delete Course Success');
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log('/course/delete : ' + err.message);
-            res.status(400).end();
-        });
-    });
+    
+    
 
-    // endpoint to delete semester
-    router.get('/semester/delete/:semesterid', function (req, res) {
-        Semester.destroy({
-            where: {
-                SemesterID: req.params.semesterid
-            }
-        }).then(function (rows) {
-            console.log('Delete Semester Success');
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log('/semester/delete : ' + err.message);
-            res.status(400).end();
-        });
-    });
-
-    // endpoint to delete secction
-    router.get('/section/delete/:sectionid', function (req, res) {
-        Section.destroy({
-            where: {
-                SectionID: req.params.sectionid
-            }
-        }).then(function (rows) {
-            console.log('Delete Section Success');
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log('/section/delete : ' + err.message);
-            res.status(400).end();
-        });
-    });
-
-    //-----------------------------------------------------------------------------------------------------
-
-    //Endpoint to update an organization
-    router.post('/organization/update/:organizationid', function (req, res) {
-        if (req.body.Name == null) {
-            console.log('organization/update : Name cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        Organization.update({
-            Name: req.body.Name
-        }, {
-            where: {
-                OrganizationID: req.params.organizationid
-            }
-        }).then(function (result) {
-            Organization.find({
-                where: {
-                    OrganizationID: req.body.organizationid
-                }
-            }).then(function (organizationUpdated) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'result': result,
-                    'OrganizationUpdated': organizationUpdated
-                });
-            });
-        }).catch(function (err) {
-            console.log('/organization/update : ' + err);
-            res.status(401).end();
-        });
-
-
-    });
-
-
-    //Endpoint to update a course
-    router.post('/course/update/:courseid', function (req, res) {
-        if (req.body.Number == null) {
-            console.log('course/update : Number cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.Name == null) {
-            console.log('course/update : Name cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        Course.update({
-            Name: req.body.Name,
-            Number: req.body.Number
-        }, {
-            where: {
-                CourseID: req.params.courseid
-            }
-        }).then(function (result) {
-            Course.find({
-                where: {
-                    CourseID: req.body.courseid
-                }
-            }).then(function (courseUpdated) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'result': result,
-                    'CourseUpdated': courseUpdated
-                });
-            });
-        }).catch(function (err) {
-            console.log('/course/update : ' + err);
-            res.status(401).end();
-        });
-
-
-    });
-
-    //Endpoint to update a semester
-    router.post('/semester/update/:semesterid', function (req, res) {
-        if (req.body.Name == null) {
-            console.log('semester/update : Name cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.Start == null) {
-            console.log('semester/update : Start cannot be null');
-            res.status(400).end();
-            return;
-        }
-        if (req.body.End == null) {
-            console.log('semester/update : End cannot be null');
-            res.status(400).end();
-            return;
-        }
-
-        Semester.update({
-            Name: req.body.Name,
-            StartDate: req.body.Start,
-            EndDate: req.body.End
-        }, {
-            where: {
-                SemesterID: req.params.semesterid
-            }
-        }).then(function (result) {
-            Semester.find({
-                where: {
-                    SemesterID: req.body.semesterid
-                }
-            }).then(function (courseUpdated) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'result': result,
-                    'CourseUpdated': courseUpdated
-                });
-            });
-        }).catch(function (err) {
-            console.log('/semester/update : ' + err);
-            res.status(401).end();
-        });
-    });
 
 
     
 
-    router.delete('/delete/user/:userID', (req, res) => {
-        console.log('deleting user', req.params.userID);
-
-        return sequelize.transaction(function(t) {
-            return UserLogin.destroy({
-                where: {
-                    UserID: req.params.userID
-                }
-            }, {
-                transaction: t
-            })
-                .then((loginRowsDeleted) => {
-                    return UserContact.destroy({
-                        where: {
-                            UserID: req.params.userID
-                        }
-                    }, {
-                        transaction: t
-                    })
-                        .then((contactRowsDeleted) => {
-                            return SectionUser.destroy({
-                                where: {
-                                    UserID: req.params.userID
-                                }
-                            }, {
-                                transaction: t
-                            })
-                                .then((sectionUsersDeleted) => {
-                                    return User.destroy({
-                                        where: {
-                                            UserID: req.params.userID
-                                        }
-                                    }, {
-                                        transaction: t
-                                    });
-                                });
-                        });
-
-                });
-        })
-            .then((result) => {
-                logger.log('info', 'post: /delete/user, user deleted from system', {
-                    req_params: req.params,
-                });
-                res.status(200).end();
-            })
-            .catch((err) => {
-                logger.log('error', 'post: /delete/user, user deleted from system', {
-                    error: err,
-                    req_params: req.params,
-                });
-                console.error(err);
-                res.status(500).end();
-            });
+    
 
 
-
-    });
-
-
-
-    // endpoint to insert or update a user's contact information
-
-    router.post('/userContact', function (req, res) {
-        if (req.body.UserID == null) {
-            console.log('userContact: UserID cannot be null');
-            res.status(400).end();
-            return;
-        }
-        else{
-            var va2 = va[0];
-        }
-        UserContact.upsert(
-            req.body, {
-                where: {
-                    UserID: req.body.UserID
-                }
-            }
-        ).then(function (result) {
-            sequelize.options.omitNull = true;
-            res.json({
-                success: true
-            });
-        }).catch(function (err) {
-            sequelize.options.omitNull = true;
-            console.log('/userContact: ' + err);
-            res.status(401).end();
-        });
-    });
-
-
-
-
-    router.get('/EveryonesWork/:assignmentInstanceID', async function (req, res) {
-        var everyones_work = {};
-        var ai = await AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            }
-        });
-        await Promise.map(JSON.parse(ai.WorkflowCollection), async function (wi) {
-            var wi = await WorkflowInstance.find({
-                where: {
-                    assignmentInstanceID: req.params.assignmentInstanceID
-                }
-            });
-            await Promise.map(JSON.parse(wi.TaskCollection), async function (ti) {
-                var ti = await TaskInstance.findAll({
-                    where: {
-                        Status: {
-                            $like: '%"complete"%'
-                        }
-                    }
-                });
-                for (var i = 0; i < ti.length; i++) {
-                    if (!everyones_work.hasOwnProperty(ti[i].UserID)) {
-                        everyones_work[ti[i].UserID] = [ti[i].TaskInstanceID];
-                    } else {
-                        everyones_work[ti[i].UserID].push(ti[i].TaskInstanceID);
-                        everyones_work[ti[i].UserID] = everyones_work[ti[i].UserID].filter(function (item, index, inputArray) {
-                            return inputArray.indexOf(item) == index;
-                        });
-                    }
-                }
-            });
-        });
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'AssignmentInfo': everyones_work
-        });
-    });
-    //---------------------------------------------------------------------------
-    router.get('/EveryonesWork/AssignmentInstanceID/:assignmentInstanceID', async function (req, res) {
-        console.log('/EveryonesWork/AssignmentInstanceID/:assignmentInstanceID: was called');
-
-        var everyones_work = {};
-
-
-        var ai = await AssignmentInstance.findOne({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            }
-        });
-        var aa = await Assignment.findOne({
-            where: {
-                AssignmentID: ai.AssignmentID
-            }
-        });
-
-        var sec = await Section.find({
-            where: {
-                SectionID: ai.SectionID
-            },
-            attributes: ['SemesterID', 'CourseID', 'Name']
-        });
-
-        var ses = await Semester.find({
-            where: {
-                SemesterID: sec.SemesterID
-            },
-            attributes: ['Name']
-        });
-
-        var cou = await Course.find({
-            where: {
-                CourseID: sec.CourseID
-            },
-            attributes: ['Number']
-        });
-        var wa = await WorkflowActivity.findAll({
-            where: {
-                AssignmentID: ai.AssignmentID
-            }
-        });
-
-
-        Promise.map(wa, async workflowAct => {
-            let wA = workflowAct.WorkflowActivityID;
-            everyones_work[wA] = {
-                Name: workflowAct.Name
-            };
-
-            var wI = await WorkflowInstance.findAll({
-                where: {
-                    AssignmentInstanceID: req.params.assignmentInstanceID,
-                    WorkflowActivityID: wA
-                }
-            });
-
-            var workflowInstances = wI.map(async wI => {
-                let taskCollection = JSON.parse(wI.TaskCollection);
-                var lastTask = await TaskInstance.max('TaskInstanceID', {
-                    where: {
-                        AssignmentInstanceID: req.params.assignmentInstanceID,
-                        WorkflowInstanceID: wI.WorkflowInstanceID,
-                        Status: {
-                            $like: '%"complete"%'
-                        },
-                    }
-                });
-                var firstTask = await TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskCollection[0]
-                    },
-                    attributes: ['TaskInstanceID', 'Data']
-                });
-
-                return {
-                    FirstTask: firstTask,
-                    LatestTask: lastTask
-                };
-            });
-
-            return Promise.all(workflowInstances).then(wIs => {
-                everyones_work[wA].Tasks = wIs;
-                return wIs;
-            });
-
-        }).then(done => {
-            return res.json({
-                'AssignmentInfo': {
-                    'Course': cou.Number,
-                    'Section': sec.Name,
-                    'Semester': ses.Name,
-                },
-                'Workflows': everyones_work
-            });
-        });
-
-    });
-
-    router.post('/revise', async function (req, res) {
-        var trigger = new TaskTrigger();
-        console.log('revise');
-        await trigger.revise(req.body.ti_id, req.body.data);
-        res.status(200).end();
-
-    });
-
-    router.post('/approved', async function (req, res) {
-        var trigger = new TaskTrigger();
-
-        await trigger.approved(req.body.ti_id, req.body.data);
-        res.status(200).end();
-    });
-
-   
-    //-----------------------------------------------------------------------------------------------------
-
-
-
-    // Endpoint to get assignment instance report
-    router.get('/getAssignmentReport/:assignmentInstanceID', function (req, res) {
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject) {
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
-                    },
-                    {
-                        model: WorkflowInstance,
-                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
-                        include: {
-                            model: WorkflowActivity,
-                            attributes: ['WorkflowStructure']
-                        }
-                    },
-                    {
-                        model: User,
-                        attributes: ['UserID', 'FirstName', 'LastName'],
-                        include: [{
-                            model: UserContact,
-                            attributes: ['Email', 'Alias']
-                        }]
-                    }
-                    ]
-                })
-                    .catch(err => reject(err))
-                    .then(task => resolve(task));
-            });
-        };
-
-        let fetchTasks = (tasksArray) => {
-            return tasksArray.map((individualTask) => {
-                return fetchTask(individualTask);
-            });
-        };
-
-        let fetchWorkflow = (workflowArray) => {
-            return workflowArray.map((workflow) => {
-                return WorkflowInstance.find({
-                    where: {
-                        WorkflowInstanceID: workflow
-                    }
-                })
-                    .then((result) => {
-                        let mappedTasks = JSON.parse(result.TaskCollection);
-                        return mappedTasks.map(fetchTask);
-                    });
-            });
-        };
-
-
-        AssignmentInstance.findOne({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            }
-        }).then((aiResult) => {
-            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
-
-            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
-                return res.json({
-                    'Result': arrArr
-                });
-            });
-        });
-
-
-
-    });
-
-    router.get('/getAssignmentReport/alternate/:assignmentInstanceID', (req, res) => {
-        let assignmentObject = {};
-
-        let fetchTask = (taskInstanceID) => {
-            return new Promise(function (resolve, reject) {
-                TaskInstance.findOne({
-                    where: {
-                        TaskInstanceID: taskInstanceID
-                    },
-                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                    include: [{
-                        model: TaskActivity,
-                        attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
-                    },
-                    {
-                        model: WorkflowInstance,
-                        attributes: ['WorkflowInstanceID', 'WorkflowActivityID']
-                    },
-                    {
-                        model: User,
-                        attributes: ['UserID', 'FirstName', 'LastName'],
-                        include: [{
-                            model: UserContact,
-                            attributes: ['Email', 'Alias']
-                        }]
-                    }
-                    ]
-                })
-                    .catch(err => reject(err))
-                    .then(tiData => {
-                        const waID = tiData.WorkflowInstance.WorkflowActivityID;
-                        const wiID = tiData.WorkflowInstance.WorkflowInstanceID;
-                        const taID = tiData.TaskActivity.TaskActivityID;
-
-                        if (!assignmentObject[waID].WorkflowInstances[wiID]) {
-                            assignmentObject[waID].WorkflowInstances[wiID] = {};
-                        }
-
-                        if (assignmentObject[waID].WorkflowInstances[wiID][taID]) {
-                            assignmentObject[waID].WorkflowInstances[wiID][taID].push(tiData);
-                        } else {
-                            assignmentObject[waID].WorkflowInstances[wiID][taID] = [tiData];
-                        }
-                        resolve(tiData);
-                    });
-            });
-        };
-
-        // let fetchTasks = (tasksArray) => {
-        //     return tasksArray.map((individualTask) => {
-        //         return fetchTask(individualTask);
-        //     });
-        // };
-
-        let fetchWorkflow = (workflowArray) => {
-            return workflowArray.map((workflow) => {
-                return WorkflowInstance.find({
-                    where: {
-                        WorkflowInstanceID: workflow
-                    },
-                    include: [WorkflowActivity]
-                })
-                    .then((result) => {
-                        assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
-                            WorkflowInstances: {},
-                            Structure: result.WorkflowActivity.WorkflowStructure
-                        };
-
-                        let mappedTasks = JSON.parse(result.TaskCollection);
-                        return mappedTasks.map(fetchTask);
-                    })
-                    .catch(err => {
-                        console.log(err);
-                    });
-            });
-        };
-
-
-        AssignmentInstance.findOne({
-            where: {
-                AssignmentInstanceID: req.params.assignmentInstanceID
-            }
-        }).then(async(aiResult) => {
-            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
-            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
-                return res.json({
-                    'Result': assignmentObject
-                });
-            }).catch(err => {
-                console.log(err);
-            });
-        });
-
-
-    });
-
-    //-------------------------------------------------------------------------
-
+    
     router.get('/reallocatepools/:ai_id', function (req, res) {
         var reallocate = new Allocator();
         var ai_id = req.params.ai_id;
