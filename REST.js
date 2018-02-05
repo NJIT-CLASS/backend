@@ -163,7 +163,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/login', function (req, res) {
         if (req.body.emailaddress == null || req.body.password == null) {
             console.log('/login : invalid credentials');
-            res.status(401).end();
+            res.status(400).end();
         }
         UserLogin.find({
             where: {
@@ -178,7 +178,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             let current_timestamp = new Date(); // get current time of login
             if (user == null) { // deny if user doesn't exist
                 console.log('/login: invalid credentials');
-                return res.status(401).end();
+                return res.status(400).end();
             } else if (user.Blocked) { // deny if user is manually blocked
                 console.log('/login: blocked login of ' + user.Email);
                 return res.status(401).json({
@@ -240,7 +240,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }).catch(function (err) {
                         sequelize.options.omitNull = true;
                         console.log('/login: ' + err);
-                        res.status(401).end();
+                        res.status(400).end();
                     });
 
 
@@ -301,20 +301,20 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         });
                     }).catch(function (err) {
                         console.log('/login: ' + err);
-                        res.status(401).end();
+                        res.status(400).end();
                     });
                 }
             }
         }).catch(function (err) {
             console.log('/login: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-----------------------------------------------------------------------------------------------------
 
     router.post('/password/reset', function (req, res) {
         if (req.body.email === null || req.body.email === '') {
-            return res.status(401).end();
+            return res.status(400).end();
         }
 
         return UserLogin.findOne({
@@ -325,7 +325,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             .then(async(user) => {
                 console.log('found user', user);
                 if (user == null) {
-                    return res.status(401).end();
+                    return res.status(400).end();
                 }
                 let temp_pass = await password.generate();
                 user.Password = await password.hash(temp_pass);
@@ -483,7 +483,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                     console.log('Expired  refresh Token');
                     delete refreshTokens[refreshToken];
-                    return res.status(410).end();
+                    return res.status(400).end();
                 }
 
                 let decodedToken = jwt.decode(token, TOKEN_KEY);
@@ -511,17 +511,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     });
                 } else {
 
-                    return res.status(410).end();
+                    return res.status(400).end();
                 }
 
                 //});
 
             } else {
-                return res.status(410).end();
+                return res.status(400).end();
 
             }
         } else {
-            return res.status(410).end();
+            return res.status(400).end();
         }
     });
     ////////////----------------   END System Level APIs                           ////////////////////////////
@@ -590,7 +590,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 });
             } else {
                 console.log('/update/email : Bad Input');
-                res.status(401).end();
+                res.status(400).end();
             }
         });
     });
@@ -606,7 +606,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function (user) {
             if (user == null) {
                 console.log('/update/name : UserID not Found');
-                res.status(401).end();
+                res.status(400).end();
             } else {
                 if (req.body.firstname != '') {
                     user.FirstName = req.body.firstname;
@@ -621,7 +621,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     });
                 }).catch(function (err) {
                     console.log('/update/name : ' + err);
-                    res.status(401).end();
+                    res.status(400).end();
                 });
             }
         });
@@ -653,7 +653,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/generalUser : ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -694,7 +694,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 } else {
                     console.log('/update/password: Password not match');
-                    res.status(401).end();
+                    res.status(400).end();
                 }
             });
         }
@@ -953,7 +953,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/getActiveAssignments/' + req.params.courseId + ': ' + err);
-            res.status(404).end();
+            res.status(400).end();
         });
     });
 
@@ -1138,7 +1138,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var userId = req.body.userId;
         if(userId === null || userId === ''){
             logger.log('error', '/file/delete User Not Authorized');
-            return res.status(401).end();
+            return res.status(400).end();
         }
         logger.log('info', 'deleting file info from database with FileID: ',req.params.fileId, req.body);
         FileReference.findOne({
@@ -1460,7 +1460,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         if (JSON.parse(ti.Status)[0] === 'complete') {
             logger.log('error', 'The task has been complted already');
-            return res.status(403).end();
+            return res.status(400).end();
         }
 
         //Update points for student as they submit tasks
@@ -1786,7 +1786,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
 
             console.log('/getPendingTaskInstances: ' + err);
-            res.status(404).end();
+            res.status(400).end();
 
         });
 
@@ -1843,7 +1843,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
 
             console.log('/getCompletedTaskInstances: ' + err);
-            res.status(404).end();
+            res.status(400).end();
 
         });
     });
@@ -1967,7 +1967,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }).catch(function (err) {
 
                 console.log('/getAssignmentRecord: ' + err);
-                res.status(404).end();
+                res.status(400).end();
             });
         });
     });
@@ -2023,7 +2023,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/section: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -2393,7 +2393,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 error: err,
                 req_params: req.params,
             });
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -2531,7 +2531,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     res.status(200).end();
         // }).catch(function(err) {
         //     console.log(err);
-        //     res.status(404).end();
+        //     res.status(400).end();
         // });
         //allocator.createInstances(3, 14);
         //allocator.updatePreviousAndNextTasks(13);
@@ -2859,7 +2859,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/semester/email : ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -2878,7 +2878,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/semester: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -2997,7 +2997,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }).catch(function (err) {
                 console.log('/course/createsection : ' + err.message);
 
-                res.status(401).end();
+                res.status(400).end();
             });
         });
 
@@ -3315,7 +3315,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/course/update : ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -3358,7 +3358,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 });
             }).catch(function (err) {
                 console.log('/course/update : ' + err);
-                res.status(401).end();
+                res.status(400).end();
             });
         });
 
@@ -3410,7 +3410,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('error', 'failed getting section information', {
                 error: err
             });
-            res.status(401).end();
+            res.status(400).end();
         });
 
         function checkForDuplicateIDs(a) {
@@ -3447,7 +3447,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('error', 'failed getting courses created information', {
                 error: err
             });
-            res.status(401).end();
+            res.status(400).end();
         });
 
         await createdCourses.forEach(function (course) {
@@ -3500,7 +3500,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/organization: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -3677,7 +3677,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch(function (err) {
             console.log(err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -3760,7 +3760,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log('sectionIDs', sectionIDs);
         }).catch(function (err) {
             console.log('/getAssignToSection: ', err);
-            res.status(404).end();
+            res.status(400).end();
         });
 
         //Promise workflowActivity has all the data returned
@@ -3812,7 +3812,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                     }).catch(function (err) {
                         console.log('/getAssignToSection: ', err);
-                        res.status(404).end();
+                        res.status(400).end();
                     });;
                 });
             });
@@ -3830,7 +3830,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).catch(function (err) {
             console.log('/getAssignToSection: ', err);
-            res.status(404).end();
+            res.status(400).end();
         });
 
 
@@ -3858,7 +3858,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(200).end();
         }).catch(function (err) {
             console.log(err);
-            res.status(404).end();
+            res.status(400).end();
         });
 
     });
@@ -3888,7 +3888,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }).catch(function (err) {
                 console.log(err);
-                res.status(404).end();
+                res.status(400).end();
             });
         });
     });
@@ -3896,7 +3896,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/openRevision/save', function (res, req) {
         if (req.body.data == null) {
             console.log('/openRevision/save: data is missing');
-            res.status(404).end();
+            res.status(400).end();
         }
         if (req.body.taskInstanceID == null) {
             console.log('/openRevision/save TaskInstanceID cannot be empty!');
@@ -3920,7 +3920,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/openRevision/submit', function (res, req) {
         if (req.body.data == null) {
             console.log('/openRevision/save: data is missing');
-            res.status(404).end();
+            res.status(400).end();
         }
         if (req.body.taskInstanceID == null) {
             console.log('/openRevision/save TaskInstanceID cannot be empty!');
@@ -3955,7 +3955,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         if (req.body.taskid == null || req.body.users == null) {
             console.log('/reallocate: missing required fields.');
-            res.status(401).end();
+            res.status(400).end();
             return;
         }
 
@@ -4025,7 +4025,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/semester/email : ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4049,7 +4049,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/organization: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4071,7 +4071,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/section: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -4158,7 +4158,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/course/update : ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4205,7 +4205,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/semester/update : ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -4292,7 +4292,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
             sequelize.options.omitNull = true;
             console.log('/userContact: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -4656,7 +4656,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4673,7 +4673,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4695,7 +4695,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4718,7 +4718,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4793,7 +4793,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/VolunteerPool/individualStatusUpdate ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4810,10 +4810,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function () {
             console.log('update success');
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -4829,10 +4829,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function () {
             console.log('update success');
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4968,7 +4968,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log('/comments/edit : Comments archived');
         }).catch(function (err) {
             console.log('/comments/edit (CommentsArchive): ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4995,7 +4995,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/edit: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -5030,7 +5030,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/delete: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5085,7 +5085,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/setFlag: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5119,7 +5119,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/removeFlag: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5154,7 +5154,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/flag: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5176,7 +5176,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/countOfComments/' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5198,7 +5198,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/countOfComments/' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5217,7 +5217,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/count ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5239,7 +5239,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/count ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -5260,7 +5260,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             total += c.Rating;
         }).catch(function (err) {
             console.log('/comments/count ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
             var ave = total / c.length;
             res.json({
                 'Error': false,
@@ -5320,7 +5320,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             total += c.Rating;
         }).catch(function (err) {
             console.log('/comments/count ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
             var ave = total / c.length;
             res.json({
                 'Error': false,
@@ -5348,7 +5348,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('comments/ai ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -5365,7 +5365,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).catch(function (err) {
             console.log('comments/ti ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         var children = await Comments.findAll({
             where: {
@@ -5378,7 +5378,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).catch(function (err) {
             console.log('comments/ti ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         for (var j = 0; j < children.length; j++) {
@@ -5423,7 +5423,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('comments/CommentsID/:CommentsID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5443,7 +5443,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/IDData/:TaskInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5462,7 +5462,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/TaskIDData/:WorkflowInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5483,7 +5483,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('comments/userID/:UserID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5497,7 +5497,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['SectionID']
         }).catch(function (err) {
             console.log('comments/courseData/:assignmentInstanceID AI' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         var Section_Result = await Section.findOne({
@@ -5507,7 +5507,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['Name', 'CourseID', 'SemesterID']
         }).catch(function (err) {
             console.log('comments/courseData/:assignmentInstanceID Section' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         var Course_Result = await Course.findOne({
@@ -5517,7 +5517,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['Name']
         }).catch(function (err) {
             console.log('comments/courseData/:assignmentInstanceID Course' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         var Semester_Result = await Semester.findOne({
@@ -5527,7 +5527,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['Name']
         }).catch(function (err) {
             console.log('comments/courseData/:assignmentInstanceID Semester' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         res.json({
@@ -5568,7 +5568,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/hide: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5601,7 +5601,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/unhide: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //------------------------Contact APIs-------------------------------------
@@ -5620,10 +5620,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 LastName: rows[0].LastName,
                 OrganizationGroup: rows[0].OrganizationGroup
             });
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/contact/add/:UserID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         UserLogin.findAll({
             where: {
@@ -5639,10 +5639,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     UserID: req.params.UserID
                 },
             });
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/contact/add/:UserID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -5678,7 +5678,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/contact: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -5697,7 +5697,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/contact: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -5716,7 +5716,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/contact: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -5736,7 +5736,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/:UserID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -5957,7 +5957,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch((err) => {
             console.info(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6012,7 +6012,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch((err) => {
             console.info(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6042,7 +6042,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 'courses': result
             });
         }).catch(() => {
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6094,7 +6094,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }, 1000);
         })
             .catch(() => {
-                res.status(401).end();
+                res.status(400).end();
             });
     });
 
@@ -6179,7 +6179,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch((err) => {
             console.info(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6215,7 +6215,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch((err) => {
             console.info(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6473,7 +6473,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(200).end();
         }).catch(function (err) {
             console.log('/AssignmentArchive/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         Assignment.destroy({
         //             where: {
@@ -6512,10 +6512,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 VersionHistory: rows[0].VersionHistory
 
             });
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/AssignmentRestore/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         Assignment.destroy({
         //             where: {
@@ -6556,7 +6556,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log(' /AssignmentInstanceArchive/save/:AssignmentInstanceID-------' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         TaskActivity.destroy({
         //             where: {
@@ -6597,7 +6597,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log(' /AssignmentInstanceRestore/save/:AssignmentInstanceID-------' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         TaskActivity.destroy({
         //             where: {
@@ -6668,7 +6668,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/TaskActivityArchive/save/:AssignmentID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         //         TaskActivity.destroy({
@@ -6740,7 +6740,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/TaskActivityRestore/save/:AssignmentID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         //         TaskActivity.destroy({
@@ -6794,7 +6794,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/TaskInstanceArchive/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         //         TaskInstance.destroy({
@@ -6850,7 +6850,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/TaskInstanceRestore/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         //         TaskInstance.destroy({
@@ -6896,7 +6896,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/WorkflowInstanceArchive/save/:AssignmentInstanceID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         WorkflowInstance.destroy({
         //             where: {
@@ -6940,7 +6940,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/WorkflowInstanceRestore/save/:AssignmentInstanceID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         WorkflowInstance.destroy({
         //             where: {
@@ -6987,7 +6987,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log(' /WorkflowActivityArchive/save/:AssignmentID-------' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //
         //         WorkflowActivity.destroy({
@@ -7035,7 +7035,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log(' /WorkflowActivityRestore/save/:AssignmentID-------' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //
         //         WorkflowActivity.destroy({
@@ -7064,7 +7064,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch(function (err) {
             console.log(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -7111,7 +7111,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         User.findById(req.body.UserID).then(function (user) {
             if (user == null) {
                 console.log('/makeUserAdmin/ User not found');
-                res.status(401).end();
+                res.status(400).end();
             } else {
                 user.Admin = 1;
                 user.save().then(function () {
@@ -7120,7 +7120,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }).catch(function (error) {
                     // Ooops, do some error-handling
                     console.log('/makeUserAdmin : Error while inserting ' + error.message);
-                    res.status(401).end();
+                    res.status(400).end();
                 });
             }
         });
@@ -7139,7 +7139,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 User.findById(req.body.UserID).then(function (user) {
                     if (user == null) {
                         console.log('/makeUserNotAdmin/ User not found');
-                        res.status(401).end();
+                        res.status(400).end();
                     } else {
                         user.Admin = 0;
                         user.save().then(function () {
@@ -7148,13 +7148,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         }).catch(function (error) {
                             // Ooops, do some error-handling
                             console.log('/makeUserNoAdmin : Error while inserting ' + error.message);
-                            res.status(401).end();
+                            res.status(400).end();
                         });
                     }
                 });
             } else {
                 console.log('/makeUserNoAdmin : Authentication Failed');
-                res.status(401).end();
+                res.status(400).end();
             }
         });
     });
@@ -7223,7 +7223,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/organization/update : ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -7252,7 +7252,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/userManagement (User table)' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -7281,7 +7281,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/userManagement/blocked/ ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -7308,7 +7308,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/userManagement/unblocked/ ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -7514,7 +7514,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
             }).catch(function(err) {
                 console.log('/notifications/load/:UserID + volunteerpool ' + err);
-                res.status(401).end();
+                res.status(400).end();
             });
 
         var f = await Comments.findAll({
@@ -7533,7 +7533,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
                 }).catch(function(err) {
                     console.log('/notifications/load/:UserID + volunteerpool ' + err);
-                    res.status(401).end();
+                    res.status(400).end();
                 });
 
 
@@ -7562,7 +7562,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function(err) {
             console.log('/notifications/all ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -7583,7 +7583,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function(err) {
             console.log('/notifications/user/:UserID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -7604,7 +7604,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function(err) {
             console.log('/notifications/dismiss/:notificationsID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -7648,7 +7648,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
               });
           }).catch(function(err) {
               console.log('/status/section/:sectionID ' + err.message);
-              res.status(401).end();
+              res.status(400).end();
           });
 
       });
@@ -7669,7 +7669,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
               });
           }).catch(function(err) {
               console.log('/usermanagement/testuser/add' + err.message);
-              res.status(401).end();
+              res.status(400).end();
           });
 
       });
@@ -7690,7 +7690,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
               });
           }).catch(function(err) {
               console.log('/usermanagement/testuser/remove' + err.message);
-              res.status(401).end();
+              res.status(400).end();
           });
 
       });
@@ -7711,7 +7711,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
               });
           }).catch(function(err) {
               console.log('/usermanagement/role' + err.message);
-              res.status(401).end();
+              res.status(400).end();
           });
 
       });
@@ -7724,13 +7724,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
           Test: true
           }).catch(function(err) {
               console.log('TestUser.create ' + err.message);
-              res.status(401).end();
+              res.status(400).end();
           });
 
          var f = await TestUser.findAll({
             }).catch(function(err) {
                 console.log('TestUser.findAll ' + err.message);
-                res.status(401).end();
+                res.status(400).end();
             });
 
             var n = f[f.length-1].X;
