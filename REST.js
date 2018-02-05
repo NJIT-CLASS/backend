@@ -181,7 +181,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 return res.status(400).end();
             } else if (user.Blocked) { // deny if user is manually blocked
                 console.log('/login: blocked login of ' + user.Email);
-                return res.status(401).json({
+                return res.status(400).json({
                     'Error': true,
                     'Message': 'Timeout',
                     'Timeout': 60
@@ -191,7 +191,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 let timeOut = new Date(user.Timeout) - new Date();
                 timeOut = Math.ceil(timeOut / 1000 / 60);
                 console.log(timeOut);
-                return res.status(401).json({
+                return res.status(400).json({
                     'Error': true,
                     'Message': 'Timeout',
                     'Timeout': timeOut
@@ -294,7 +294,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         console.log('/login: invalid credentials');
 
                         console.log('minutes', minutes);
-                        res.status(401).json({
+                        res.status(400).json({
                             'Error': true,
                             'Message': 'Timeout',
                             'Timeout': minutes,
@@ -541,9 +541,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 if (err) {
                     if(err.name == 'TokenExpiredError'){
                         console.log('Expired Token');
-                        return res.status(409).end();
+                        return res.status(400).end();
                     } else {
-                        return res.status(401).json({
+                        return res.status(400).json({
                             success: false,
                             message: 'Failed to authenticate token.'
                         });
@@ -556,7 +556,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }
         else {
-            return res.status(403).json({
+            return res.status(400).json({
                 success: false,
                 message: 'No token provided.'
             });
@@ -898,7 +898,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
 
             console.log('/getCompletedTaskInstances: ' + err);
-            res.status(404).json({
+            res.status(400).json({
                 Error: true
             });
 
@@ -925,7 +925,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
-            res.status(404).json({
+            res.status(400).json({
                 Error: true
             });
         });
@@ -3867,7 +3867,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         if (req.params.taskInstanceID == null) {
             console.log('/openRevision/:taskInstanceID TaskInstanceID cannot be empty!');
-            res.stats(404).end();
+            res.stats(400).end();
         }
 
         TaskInstance.find({
@@ -3882,7 +3882,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }).then(function (ta_result) {
                 if (ta_result.AllowRevision === 0) {
                     console.log('Allow revision is false');
-                    res.stats(404).end();
+                    res.stats(400).end();
                 } else {
                     ti_result.Status = 'pending';
                 }
@@ -3900,7 +3900,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
         if (req.body.taskInstanceID == null) {
             console.log('/openRevision/save TaskInstanceID cannot be empty!');
-            res.stats(404).end();
+            res.stats(400).end();
         }
 
         //append second status
@@ -3924,7 +3924,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
         if (req.body.taskInstanceID == null) {
             console.log('/openRevision/save TaskInstanceID cannot be empty!');
-            res.stats(404).end();
+            res.stats(400).end();
         }
 
         //append second status
