@@ -21,6 +21,7 @@ import {
     GoalInstance,
     Level,
     LevelInstance,
+    Notifications,
     Organization,
     PartialAssignments,
     ResetPasswordRequest,
@@ -36,6 +37,7 @@ import {
     TaskInstance,
     TaskInstance_Archive,
     TaskSimpleGrade,
+    TestUser,
     User,
     UserContact,
     UserLogin,
@@ -79,7 +81,7 @@ var jwt = require('jsonwebtoken');
 const multer = require('multer'); //TODO: we may need to limit the file upload size
 const randtoken = require('rand-token');
 
-//In-memory object to store refresh tokens 
+//In-memory object to store refresh tokens
 const refreshTokens = {};
 
 var storage = multer({
@@ -97,7 +99,7 @@ Date.prototype.addDays = function(days) {
     dat.setDate(dat.getDate() + days);
     return dat;
 };
-  
+
 //-----------------------------------------------------------------------------------------------------
 
 
@@ -161,7 +163,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/login', function (req, res) {
         if (req.body.emailaddress == null || req.body.password == null) {
             console.log('/login : invalid credentials');
-            res.status(401).end();
+            res.status(400).end();
         }
         UserLogin.find({
             where: {
@@ -176,10 +178,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             let current_timestamp = new Date(); // get current time of login
             if (user == null) { // deny if user doesn't exist
                 console.log('/login: invalid credentials');
-                return res.status(401).end();
+                return res.status(400).end();
             } else if (user.Blocked) { // deny if user is manually blocked
                 console.log('/login: blocked login of ' + user.Email);
-                return res.status(401).json({
+                return res.status(400).json({
                     'Error': true,
                     'Message': 'Timeout',
                     'Timeout': 60
@@ -189,7 +191,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 let timeOut = new Date(user.Timeout) - new Date();
                 timeOut = Math.ceil(timeOut / 1000 / 60);
                 console.log(timeOut);
-                return res.status(401).json({
+                return res.status(400).json({
                     'Error': true,
                     'Message': 'Timeout',
                     'Timeout': timeOut
@@ -214,7 +216,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         const payload = {
                             admin: user.User.Admin,
                             instructor: user.User.Instructor,
-                            id: user.UserID 
+                            id: user.UserID
                         };
                         let token = jwt.sign(payload, TOKEN_KEY, {
                             expiresIn: TOKEN_LIFE
@@ -223,7 +225,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         //     expiresIn: REFRESH_TOKEN_LIFE
                         // });
 
-                        let refreshToken = randtoken.uid(256); 
+                        let refreshToken = randtoken.uid(256);
                         refreshTokens[refreshToken] = [new Date().addDays(REFRESH_TOKEN_LIFE), user.UserID];
                         //refreshTokens[refreshToken] = [new Date(new Date().getTime() + 2*60000), user.UserID];
                         res.status(201).json({
@@ -234,14 +236,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             'Token':token,
                             'RefreshToken': refreshToken
                         });
-                            
+
                     }).catch(function (err) {
                         sequelize.options.omitNull = true;
                         console.log('/login: ' + err);
-                        res.status(401).end();
+                        res.status(400).end();
                     });
-                        
-                    
+
+
                 } else {
                     // incorrect password, increment attempt count
                     let attempts = user.Attempts + 1;
@@ -292,27 +294,27 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         console.log('/login: invalid credentials');
 
                         console.log('minutes', minutes);
-                        res.status(401).json({
+                        res.status(400).json({
                             'Error': true,
                             'Message': 'Timeout',
                             'Timeout': minutes,
                         });
                     }).catch(function (err) {
                         console.log('/login: ' + err);
-                        res.status(401).end();
+                        res.status(400).end();
                     });
                 }
             }
         }).catch(function (err) {
             console.log('/login: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-----------------------------------------------------------------------------------------------------
 
     router.post('/password/reset', function (req, res) {
         if (req.body.email === null || req.body.email === '') {
-            return res.status(401).end();
+            return res.status(400).end();
         }
 
         return UserLogin.findOne({
@@ -323,7 +325,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             .then(async(user) => {
                 console.log('found user', user);
                 if (user == null) {
-                    return res.status(401).end();
+                    return res.status(400).end();
                 }
                 let temp_pass = await password.generate();
                 user.Password = await password.hash(temp_pass);
@@ -472,16 +474,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let refreshToken = req.body.refreshToken;
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         let userId = req.body.userId;
-        
+
         if(refreshToken){
             if(refreshToken in refreshTokens){
-                // jwt.verify(refreshToken,TOKEN_KEY, async function(err, decoded) {    
+                // jwt.verify(refreshToken,TOKEN_KEY, async function(err, decoded) {
                 //let expDate = refreshTokens[refreshToken][0];
                 if (Date.now() >= refreshTokens[refreshToken][0]) {
-                    
+
                     console.log('Expired  refresh Token');
                     delete refreshTokens[refreshToken];
-                    return res.status(410).end();
+                    return res.status(400).end();
                 }
 
                 let decodedToken = jwt.decode(token, TOKEN_KEY);
@@ -494,32 +496,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         },
                         attributes: ['UserID','Admin', 'Instructor']
                     });
-    
+
                     const payload = {
                         admin: user.Admin,
                         instructor: user.Instructor,
-                        id: user.UserID 
+                        id: user.UserID
                     };
                     let token = jwt.sign(payload, TOKEN_KEY, {
                         expiresIn: TOKEN_LIFE
                     });
-                    
+
                     return res.status(200).json({
                         Token: token
                     });
                 } else {
-                    
-                    return res.status(410).end();
+
+                    return res.status(400).end();
                 }
-                    
+
                 //});
-                
+
             } else {
-                return res.status(410).end();
+                return res.status(400).end();
 
             }
         } else {
-            return res.status(410).end();
+            return res.status(400).end();
         }
     });
     ////////////----------------   END System Level APIs                           ////////////////////////////
@@ -535,36 +537,36 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         console.log(token);
         if (token) {
-            jwt.verify(token,TOKEN_KEY, function(err, decoded) {      
+            jwt.verify(token,TOKEN_KEY, function(err, decoded) {
                 if (err) {
                     if(err.name == 'TokenExpiredError'){
                         console.log('Expired Token');
-                        return res.status(409).end();
+                        return res.status(400).end();
                     } else {
-                        return res.status(401).json({ 
-                            success: false, 
-                            message: 'Failed to authenticate token.' 
-                        });  
+                        return res.status(400).json({
+                            success: false,
+                            message: 'Failed to authenticate token.'
+                        });
                     }
-                      
+
                 } else {
-                    req.user = decoded;    
+                    req.user = decoded;
                     next();
                 }
             });
         }
         else {
-            return res.status(403).json({ 
-                success: false, 
-                message: 'No token provided.' 
+            return res.status(400).json({
+                success: false,
+                message: 'No token provided.'
             });
-        
+
         }
     });
-    
+
     //-------------------------------------------------------------------
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////                 Guest Level APIs 
+    ////////////////                 Guest Level APIs
     //Endpoint to update a User's Email
     router.put('/update/email', function (req, res) {
         if (req.body.password == null || req.body.email == null || req.body.userid == null) {
@@ -588,7 +590,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 });
             } else {
                 console.log('/update/email : Bad Input');
-                res.status(401).end();
+                res.status(400).end();
             }
         });
     });
@@ -604,7 +606,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function (user) {
             if (user == null) {
                 console.log('/update/name : UserID not Found');
-                res.status(401).end();
+                res.status(400).end();
             } else {
                 if (req.body.firstname != '') {
                     user.FirstName = req.body.firstname;
@@ -619,7 +621,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     });
                 }).catch(function (err) {
                     console.log('/update/name : ' + err);
-                    res.status(401).end();
+                    res.status(400).end();
                 });
             }
         });
@@ -651,7 +653,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/generalUser : ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -692,7 +694,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 } else {
                     console.log('/update/password: Password not match');
-                    res.status(401).end();
+                    res.status(400).end();
                 }
             });
         }
@@ -896,7 +898,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
 
             console.log('/getCompletedTaskInstances: ' + err);
-            res.status(404).json({
+            res.status(400).json({
                 Error: true
             });
 
@@ -923,7 +925,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
-            res.status(404).json({
+            res.status(400).json({
                 Error: true
             });
         });
@@ -951,7 +953,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/getActiveAssignments/' + req.params.courseId + ': ' + err);
-            res.status(404).end();
+            res.status(400).end();
         });
     });
 
@@ -1136,7 +1138,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var userId = req.body.userId;
         if(userId === null || userId === ''){
             logger.log('error', '/file/delete User Not Authorized');
-            return res.status(401).end();
+            return res.status(400).end();
         }
         logger.log('info', 'deleting file info from database with FileID: ',req.params.fileId, req.body);
         FileReference.findOne({
@@ -1458,7 +1460,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         if (JSON.parse(ti.Status)[0] === 'complete') {
             logger.log('error', 'The task has been complted already');
-            return res.status(403).end();
+            return res.status(400).end();
         }
 
         //Update points for student as they submit tasks
@@ -1784,7 +1786,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
 
             console.log('/getPendingTaskInstances: ' + err);
-            res.status(404).end();
+            res.status(400).end();
 
         });
 
@@ -1841,7 +1843,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
 
             console.log('/getCompletedTaskInstances: ' + err);
-            res.status(404).end();
+            res.status(400).end();
 
         });
     });
@@ -1965,7 +1967,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }).catch(function (err) {
 
                 console.log('/getAssignmentRecord: ' + err);
-                res.status(404).end();
+                res.status(400).end();
             });
         });
     });
@@ -2021,7 +2023,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/section: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -2391,7 +2393,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 error: err,
                 req_params: req.params,
             });
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -2516,7 +2518,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             OngoingAssignments: activeAssignments,
             Users: sectionUsers
         });
-        
+
     });
 
     //Endpoint to allocate students
@@ -2529,7 +2531,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     res.status(200).end();
         // }).catch(function(err) {
         //     console.log(err);
-        //     res.status(404).end();
+        //     res.status(400).end();
         // });
         //allocator.createInstances(3, 14);
         //allocator.updatePreviousAndNextTasks(13);
@@ -2573,7 +2575,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    
+
 
     router.get('/sendEmailNotification/:taskInstanceId', function (req, res) {
         var email = new Email();
@@ -2857,7 +2859,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/semester/email : ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -2876,7 +2878,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/semester: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -2995,7 +2997,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }).catch(function (err) {
                 console.log('/course/createsection : ' + err.message);
 
-                res.status(401).end();
+                res.status(400).end();
             });
         });
 
@@ -3273,7 +3275,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //-----------------------------------------------------------------------------------------------------
-    
+
 
     //-----------------------------------------------------------------------------------------------------
 
@@ -3313,7 +3315,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/course/update : ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -3356,7 +3358,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 });
             }).catch(function (err) {
                 console.log('/course/update : ' + err);
-                res.status(401).end();
+                res.status(400).end();
             });
         });
 
@@ -3408,7 +3410,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('error', 'failed getting section information', {
                 error: err
             });
-            res.status(401).end();
+            res.status(400).end();
         });
 
         function checkForDuplicateIDs(a) {
@@ -3445,7 +3447,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('error', 'failed getting courses created information', {
                 error: err
             });
-            res.status(401).end();
+            res.status(400).end();
         });
 
         await createdCourses.forEach(function (course) {
@@ -3467,7 +3469,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //-----------------------------------------------------------------------------------------------------
 
-    
+
 
     //Get All Instructors
     router.get('/instructor/all', function (req, res) {
@@ -3498,7 +3500,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/organization: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -3675,7 +3677,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch(function (err) {
             console.log(err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -3758,7 +3760,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log('sectionIDs', sectionIDs);
         }).catch(function (err) {
             console.log('/getAssignToSection: ', err);
-            res.status(404).end();
+            res.status(400).end();
         });
 
         //Promise workflowActivity has all the data returned
@@ -3810,7 +3812,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                     }).catch(function (err) {
                         console.log('/getAssignToSection: ', err);
-                        res.status(404).end();
+                        res.status(400).end();
                     });;
                 });
             });
@@ -3828,7 +3830,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).catch(function (err) {
             console.log('/getAssignToSection: ', err);
-            res.status(404).end();
+            res.status(400).end();
         });
 
 
@@ -3856,7 +3858,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(200).end();
         }).catch(function (err) {
             console.log(err);
-            res.status(404).end();
+            res.status(400).end();
         });
 
     });
@@ -3865,7 +3867,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         if (req.params.taskInstanceID == null) {
             console.log('/openRevision/:taskInstanceID TaskInstanceID cannot be empty!');
-            res.stats(404).end();
+            res.stats(400).end();
         }
 
         TaskInstance.find({
@@ -3880,13 +3882,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }).then(function (ta_result) {
                 if (ta_result.AllowRevision === 0) {
                     console.log('Allow revision is false');
-                    res.stats(404).end();
+                    res.stats(400).end();
                 } else {
                     ti_result.Status = 'pending';
                 }
             }).catch(function (err) {
                 console.log(err);
-                res.status(404).end();
+                res.status(400).end();
             });
         });
     });
@@ -3894,11 +3896,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/openRevision/save', function (res, req) {
         if (req.body.data == null) {
             console.log('/openRevision/save: data is missing');
-            res.status(404).end();
+            res.status(400).end();
         }
         if (req.body.taskInstanceID == null) {
             console.log('/openRevision/save TaskInstanceID cannot be empty!');
-            res.stats(404).end();
+            res.stats(400).end();
         }
 
         //append second status
@@ -3918,11 +3920,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/openRevision/submit', function (res, req) {
         if (req.body.data == null) {
             console.log('/openRevision/save: data is missing');
-            res.status(404).end();
+            res.status(400).end();
         }
         if (req.body.taskInstanceID == null) {
             console.log('/openRevision/save TaskInstanceID cannot be empty!');
-            res.stats(404).end();
+            res.stats(400).end();
         }
 
         //append second status
@@ -3953,7 +3955,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         if (req.body.taskid == null || req.body.users == null) {
             console.log('/reallocate: missing required fields.');
-            res.status(401).end();
+            res.status(400).end();
             return;
         }
 
@@ -4023,7 +4025,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/semester/email : ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4047,7 +4049,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/organization: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4069,7 +4071,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/section: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -4156,7 +4158,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/course/update : ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4203,7 +4205,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/semester/update : ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -4290,7 +4292,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).catch(function (err) {
             sequelize.options.omitNull = true;
             console.log('/userContact: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -4448,7 +4450,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         res.status(200).end();
     });
 
-   
+
     //-----------------------------------------------------------------------------------------------------
 
 
@@ -4654,7 +4656,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4671,7 +4673,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4693,7 +4695,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4716,7 +4718,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/ ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4791,7 +4793,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/VolunteerPool/individualStatusUpdate ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4808,10 +4810,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function () {
             console.log('update success');
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -4827,10 +4829,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(function () {
             console.log('update success');
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/VolunteerPool/sectionlStatusUpdate ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4966,7 +4968,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log('/comments/edit : Comments archived');
         }).catch(function (err) {
             console.log('/comments/edit (CommentsArchive): ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -4993,7 +4995,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/edit: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -5028,7 +5030,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/delete: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5083,7 +5085,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/setFlag: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5117,7 +5119,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/removeFlag: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5152,7 +5154,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/flag: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5174,7 +5176,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/countOfComments/' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5196,7 +5198,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/countOfComments/' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5215,7 +5217,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/count ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5237,7 +5239,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/count ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -5258,7 +5260,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             total += c.Rating;
         }).catch(function (err) {
             console.log('/comments/count ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
             var ave = total / c.length;
             res.json({
                 'Error': false,
@@ -5318,7 +5320,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             total += c.Rating;
         }).catch(function (err) {
             console.log('/comments/count ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
             var ave = total / c.length;
             res.json({
                 'Error': false,
@@ -5346,7 +5348,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('comments/ai ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -5363,7 +5365,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).catch(function (err) {
             console.log('comments/ti ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         var children = await Comments.findAll({
             where: {
@@ -5376,7 +5378,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).catch(function (err) {
             console.log('comments/ti ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         for (var j = 0; j < children.length; j++) {
@@ -5421,7 +5423,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('comments/CommentsID/:CommentsID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5441,7 +5443,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/IDData/:TaskInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5460,7 +5462,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comments/TaskIDData/:WorkflowInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5481,7 +5483,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('comments/userID/:UserID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5495,7 +5497,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['SectionID']
         }).catch(function (err) {
             console.log('comments/courseData/:assignmentInstanceID AI' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         var Section_Result = await Section.findOne({
@@ -5505,7 +5507,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['Name', 'CourseID', 'SemesterID']
         }).catch(function (err) {
             console.log('comments/courseData/:assignmentInstanceID Section' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         var Course_Result = await Course.findOne({
@@ -5515,7 +5517,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['Name']
         }).catch(function (err) {
             console.log('comments/courseData/:assignmentInstanceID Course' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         var Semester_Result = await Semester.findOne({
@@ -5525,7 +5527,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['Name']
         }).catch(function (err) {
             console.log('comments/courseData/:assignmentInstanceID Semester' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         res.json({
@@ -5566,7 +5568,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/hide: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -5599,7 +5601,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/comment/unhide: ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //------------------------Contact APIs-------------------------------------
@@ -5618,10 +5620,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 LastName: rows[0].LastName,
                 OrganizationGroup: rows[0].OrganizationGroup
             });
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/contact/add/:UserID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         UserLogin.findAll({
             where: {
@@ -5637,10 +5639,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     UserID: req.params.UserID
                 },
             });
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/contact/add/:UserID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -5676,7 +5678,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/contact: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -5695,7 +5697,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/contact: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -5714,7 +5716,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/contact: ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -5734,7 +5736,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/VolunteerPool/:UserID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -5955,7 +5957,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch((err) => {
             console.info(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6010,7 +6012,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch((err) => {
             console.info(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6040,7 +6042,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 'courses': result
             });
         }).catch(() => {
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6092,7 +6094,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }, 1000);
         })
             .catch(() => {
-                res.status(401).end();
+                res.status(400).end();
             });
     });
 
@@ -6177,7 +6179,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch((err) => {
             console.info(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6213,7 +6215,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch((err) => {
             console.info(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -6337,7 +6339,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         await grade.claimExtraCredit(req.body.goalInstanceID, req.body.sectionUserID);
         res.status(200).end();
     });
-    
+
 
     router.get('/goals/section/:sectionId', function (req, res) {
         GoalInstance.findAll({
@@ -6355,14 +6357,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
      **  Amadou work ends here
      ************************************************************************************************************/
 
-    
-    
+
+
 
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////    
-    ////////////                 Enhanced Access Level APIs 
-     
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////                 Enhanced Access Level APIs
+
     //Assign a New Instructor
     router.put('/instructor/new', function (req, res) {
         var email = req.body.email;
@@ -6440,7 +6442,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////----------------   END Enhanced Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////                 Admin Level APIs   
+    ////////////                 Admin Level APIs
 
     router.get('/AssignmentArchive/save/:AssignmentID', function (req, res) {
         var assignmentArray = new Array();
@@ -6471,7 +6473,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(200).end();
         }).catch(function (err) {
             console.log('/AssignmentArchive/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         Assignment.destroy({
         //             where: {
@@ -6510,10 +6512,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 VersionHistory: rows[0].VersionHistory
 
             });
-            res.status(401).end();
+            res.status(400).end();
         }).catch(function (err) {
             console.log('/AssignmentRestore/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         Assignment.destroy({
         //             where: {
@@ -6554,7 +6556,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log(' /AssignmentInstanceArchive/save/:AssignmentInstanceID-------' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         TaskActivity.destroy({
         //             where: {
@@ -6595,7 +6597,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log(' /AssignmentInstanceRestore/save/:AssignmentInstanceID-------' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         TaskActivity.destroy({
         //             where: {
@@ -6666,7 +6668,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/TaskActivityArchive/save/:AssignmentID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         //         TaskActivity.destroy({
@@ -6738,7 +6740,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/TaskActivityRestore/save/:AssignmentID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         //         TaskActivity.destroy({
@@ -6792,7 +6794,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/TaskInstanceArchive/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         //         TaskInstance.destroy({
@@ -6848,7 +6850,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/TaskInstanceRestore/save/:AssignmentInstanceID ' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
         //         TaskInstance.destroy({
@@ -6894,7 +6896,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/WorkflowInstanceArchive/save/:AssignmentInstanceID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         WorkflowInstance.destroy({
         //             where: {
@@ -6938,7 +6940,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log('/WorkflowInstanceRestore/save/:AssignmentInstanceID' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //         WorkflowInstance.destroy({
         //             where: {
@@ -6985,7 +6987,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log(' /WorkflowActivityArchive/save/:AssignmentID-------' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //
         //         WorkflowActivity.destroy({
@@ -7033,7 +7035,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(201).end();
         }).catch(function (err) {
             console.log(' /WorkflowActivityRestore/save/:AssignmentID-------' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
         //
         //         WorkflowActivity.destroy({
@@ -7062,7 +7064,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         }).catch(function (err) {
             console.log(err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
 
@@ -7109,7 +7111,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         User.findById(req.body.UserID).then(function (user) {
             if (user == null) {
                 console.log('/makeUserAdmin/ User not found');
-                res.status(401).end();
+                res.status(400).end();
             } else {
                 user.Admin = 1;
                 user.save().then(function () {
@@ -7118,7 +7120,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }).catch(function (error) {
                     // Ooops, do some error-handling
                     console.log('/makeUserAdmin : Error while inserting ' + error.message);
-                    res.status(401).end();
+                    res.status(400).end();
                 });
             }
         });
@@ -7137,7 +7139,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 User.findById(req.body.UserID).then(function (user) {
                     if (user == null) {
                         console.log('/makeUserNotAdmin/ User not found');
-                        res.status(401).end();
+                        res.status(400).end();
                     } else {
                         user.Admin = 0;
                         user.save().then(function () {
@@ -7146,13 +7148,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         }).catch(function (error) {
                             // Ooops, do some error-handling
                             console.log('/makeUserNoAdmin : Error while inserting ' + error.message);
-                            res.status(401).end();
+                            res.status(400).end();
                         });
                     }
                 });
             } else {
                 console.log('/makeUserNoAdmin : Authentication Failed');
-                res.status(401).end();
+                res.status(400).end();
             }
         });
     });
@@ -7221,7 +7223,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/organization/update : ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
 
 
@@ -7231,7 +7233,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/userManagement', async function (req, res) {
         console.log('/userManagement : was called');
         await User.findAll({
-            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin', 'Test', 'Instructor'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin'/*, 'Test'*/, 'Instructor'],
             include: [{
                 model: UserContact,
                 attributes: ['Email', 'FirstName', 'LastName']
@@ -7250,7 +7252,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/userManagement (User table)' + err.message);
-            res.status(401).end();
+            res.status(400).end();
         });
 
     });
@@ -7279,7 +7281,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/userManagement/blocked/ ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -7306,7 +7308,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         }).catch(function (err) {
             console.log('/userManagement/unblocked/ ' + err);
-            res.status(401).end();
+            res.status(400).end();
         });
     });
     //---------------------------------------------------------------------------
@@ -7318,9 +7320,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-   
-   
-    
+
+
+
     //Endpoint debug
 
     router.get('/debug', function (req, res) {
@@ -7460,6 +7462,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+    //----------------------------------------------------------------
 
     router.get('/getTree', function (req, res) {
         var taskFactory = new TaskFactory();
@@ -7492,6 +7495,260 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log('nodes', node1, node2);
         });
     });
+
+    //---------------------------------------------------------------------------
+    router.get('/notifications/load',async function(req, res) {
+        console.log('/notifications/load : was called');
+
+        var v = await VolunteerPool.findAll({
+            where: {
+                status: 'pending'
+            },
+            attributes: ['volunteerpoolID']
+        }).then(function(rows) {
+            var arrayLength = rows.length;
+            for (var i = 0; i < arrayLength; x++) {
+                Notifications.create({
+                    VolunteerpoolID: rows[i].volunteerpoolID
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
+
+        var f = await Comments.findAll({
+            where: {
+                Flag: 1
+            },
+            attributes: ['commentsID','UserID']
+        }).then(function(rows2) {
+            var arrayLength = rows2.length;
+            for (var j = 0; j < arrayLength; j++) {
+                Notifications.create({
+                    CommentsID: rows[j].CommentsID,
+                    UserID: rows[j].UserID,
+                    Flag: 1
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
+
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'volunteer': v,
+            'comments-flag': f,
+
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/all', function(req, res) {
+        console.log('/notifications/all: was called');
+
+        Notifications.findAll({
+            where: {
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/all ' + err.message);
+            res.status(400).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/user/:UserID', function(req, res) {
+        console.log('/notifications/user/:UserID was called');
+
+        Notifications.findAll({
+            where: {
+                UserID: req.params.UserID,
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/user/:UserID' + err.message);
+            res.status(400).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/dismiss/:notificationsID', function(req, res) {
+        console.log('/notifications/dismiss/:notificationsID was called');
+
+        Notifications.update({
+            Dismiss:1
+        },{
+            where: {
+                NotificationsID: req.params.notificationsID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/notifications/dismiss/:notificationsID' + err.message);
+            res.status(400).end();
+        });
+
+    });
+    //-------inactive a user from a section---------------------------------
+    router.post('/inactiveuser/section', function(req, res) {
+
+        if (req.body.UserID  == null) {
+            console.log('/inactiveuser/section : UserID cannot be null');
+            res.status(400).end();
+            return;
+        };
+        if (req.body.SectionID == null) {
+            console.log('/inactiveuser/section : SectionID cannot be null');
+            res.status(400).end();
+            return;
+        };
+        SectionUser.update({
+            Active:0
+        },{
+            where: {
+                UserID: req.body.UserID,
+                SectionID: req.body.SectionID
+
+            }
+        });
+
+    });
+
+    //---------Section status---------------------------------------------------
+    router.post('/status/section/:sectionID', function(req, res) {
+
+        Section.find({
+            where: {
+                SectionID: req.params.sectionID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Semester': rows
+            });
+        }).catch(function(err) {
+            console.log('/status/section/:sectionID ' + err.message);
+            res.status(400).end();
+        });
+
+    });
+
+    //-----------user management------------------------------------
+    router.post('/usermanagement/testuser/add', function(req, res) {
+
+        User.update({
+            Test: 1
+        }, {
+            where: {
+                UserID: req.body.UserID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/usermanagement/testuser/add' + err.message);
+            res.status(400).end();
+        });
+
+    });
+
+    //----------------------------------------------------------------
+    router.post('/usermanagement/testuser/remove', function(req, res) {
+
+        User.update({
+            Test: 0
+        }, {
+            where: {
+                UserID: req.body.UserID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/usermanagement/testuser/remove' + err.message);
+            res.status(400).end();
+        });
+
+    });
+
+    //----------------------------------------------------------------
+    router.post('/usermanagement/role', function(req, res) {
+
+        User.update({
+            Role: req.body.Role
+        }, {
+            where: {
+                UserID: req.body.UserID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/usermanagement/role' + err.message);
+            res.status(400).end();
+        });
+
+    });
+
+    //----------------------------------------------------------------
+    router.post('/testuser/create',async function(req, res) {
+        console.log('/testuser/create : was called');
+
+        await TestUser.create({
+            Test: true
+        }).catch(function(err) {
+            console.log('TestUser.create ' + err.message);
+            res.status(400).end();
+        });
+
+        var f = await TestUser.findAll({
+        }).catch(function(err) {
+            console.log('TestUser.findAll ' + err.message);
+            res.status(400).end();
+        });
+
+        var n = f[f.length-1].X;
+
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'FirstName': 'Test' + n,
+            'LastName': 'User' + n,
+            'Email': 'testuser' + n + '@dummysite.tst'
+        });
+
+    });
+
+    //----------------------------------------------------------------
+
+
 
 };
 module.exports = REST_ROUTER;
