@@ -10,7 +10,6 @@ var settings = require('../backend_settings');
 var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
     host: settings.DB_HOST,
     dialect: 'mysql',
-    port: settings.DB_PORT,
     omitNull: true,
     pool: {
         max: 5,
@@ -22,13 +21,13 @@ var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_P
 
 var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification', 'Group',
     'GroupUser', 'Organization', 'ResetPasswordRequest', 'Section',
-    'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
+    'SectionUser', 'Semester', 'TaskActivity','User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference', 'Comments', 'CommentsArchive', 'CommentsViewed', 'Contact', 'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
-    'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
-    'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit'
+    'FileReference','TaskInstance','Comments','CommentsArchive', 'CommentsViewed', 'Contact','Notifications'
 ];
+
+
 
 
 
@@ -41,60 +40,17 @@ models.forEach(function(model) {
 (function(m) {
     //Belongs To Relations
     //Sorted By Foreign Key
-    m.ExtraCredit.belongsTo(m.SectionUser, {
-        foreignKey: 'SectionUserID'
-    });
-    m.SectionUserRecord.belongsTo(m.SectionUser, {
-        foreignKey: 'SectionUserID'
-    });
-    m.SectionUserRecord.belongsTo(m.LevelInstance, {
-        foreignKey: 'LevelInstanceID'
-    });
-
-    m.UserBadgeInstances.belongsTo(m.User, {
-        foreignKey: 'UserID'
-    });
-
-    m.UserBadgeInstances.belongsTo(m.BadgeInstance, {
-        foreignKey: 'BadgeInstanceID'
-    });
-
-    m.User.belongsToMany(m.BadgeInstance, {
-        through: m.UserBadgeInstances,
-        foreignKey: 'UserID',
-        otherKey: 'BadgeInstanceID'
-    });
-
-    m.UserPointInstances.belongsTo(m.User, {
-        foreignKey: 'UserID'
-    });
-
-    // m.CategoryInstance.belongsTo(m.CategoryIntance, {
-    //     foreignKey: 'CategoryInstanceID'
-    // });
-
-    m.BadgeInstance.belongsTo(m.Badge, {
-        foreignKey: 'BadgeID'
-    });
 
     m.Course.belongsTo(m.User, {
         foreignKey: 'CreatorID'
     });
-    m.Contact.belongsTo(m.User, {
-        foreignKey: 'UserID'
-    });
+
     m.User.hasOne(m.UserLogin, {
         foreignKey: 'UserID'
     });
-
-    m.UserLogin.hasOne(m.UserContact, {
-        foreignKey: 'UserID'
-    });
-
     m.User.hasOne(m.UserContact, {
         foreignKey: 'UserID'
     });
-
     m.UserLogin.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
@@ -102,10 +58,9 @@ models.forEach(function(model) {
         foreignKey: 'UserID'
     });
 
-    m.UserContact.belongsTo(m.UserLogin, {
+    m.Contact.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
-
     m.SectionUser.belongsTo(m.UserLogin, {
         foreignKey: 'UserID'
     });
@@ -137,10 +92,12 @@ models.forEach(function(model) {
         foreignKey: 'CourseID'
     });
 
-
-    // m.VolunteerPool.belongsTo(m.AssignmentInstance, {
-    //     foreignKey: 'AssignmentInstanceID'
-    // });
+    m.VolunteerPool.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
+    m.VolunteerPool.belongsTo(m.AssignmentInstance, {
+        foreignKey: 'AssignmentInstanceID'
+    });
     m.VolunteerPool.belongsTo(m.Section, {
         foreignKey: 'SectionID'
     });
@@ -175,11 +132,6 @@ models.forEach(function(model) {
     m.TaskSimpleGrade.belongsTo(m.TaskInstance, {
         foreignKey: 'TaskInstanceID'
     });
-
-    // m.TaskInstance.belongsTo(m.TaskSimpleGrade, {
-    //     foreignKey: 'TaskInstanceID'
-    // });
-
     m.TaskSimpleGrade.belongsTo(m.WorkflowActivity, {
         foreignKey: 'WorkflowActivityID'
     });
@@ -237,46 +189,9 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
-    m.Assignment.belongsTo(m.Course, { foreignKey: 'CourseID' });
+
 
     //has Many Relations
-    m.CategoryInstance.hasMany(m.BadgeInstance, {
-        foreignKey: 'CategoryInstanceID',
-        constraints: false
-    });
-
-    m.BadgeInstance.belongsTo(m.CategoryInstance, {
-        foreignKey: 'CategoryInstanceID',
-        constraints: false
-    });
-
-    //has Many Relations
-    m.CategoryInstance.hasMany(m.UserPointInstances, {
-        foreignKey: 'CategoryInstanceID',
-        as: 'UserPoints',
-        constraints: false
-    });
-
-    m.UserPointInstances.belongsTo(m.CategoryInstance, {
-        foreignKey: 'CategoryInstanceID',
-        constraints: false
-    });
-    m.GoalInstance.belongsTo(m.Goal, {
-        foreignKey: 'GoalID'
-    });
-    m.Goal.hasMany(m.GoalInstance, {
-        foreignKey: 'GoalID'
-    });
-
-    m.Category.hasMany(m.CategoryInstance, {
-        as: 'Categories',
-        foreignKey: 'CategoryInstanceID'
-    });
-
-    m.Badge.hasMany(m.BadgeInstance, {
-        as: 'Badges',
-        foreignKey: 'BadgeID'
-    });
 
     m.Assignment.hasMany(m.AssignmentInstance, {
         as: 'AssignmentInstances',
@@ -334,11 +249,6 @@ models.forEach(function(model) {
         foreignKey: 'WorkflowActivityID'
     });
 
-    m.WorkflowActivity.hasMany(m.TaskActivity, {
-        as: 'TaskActivities',
-        foreignKey: 'WorkflowActivityID'
-    });
-
     m.User.hasMany(m.SectionUser, {
         as: 'Users',
         foreignKey: 'UserID'
@@ -351,10 +261,6 @@ models.forEach(function(model) {
         as: 'TaskInstances',
         foreignKey: 'UserID'
     });
-    m.User.hasMany(m.VolunteerPool, {
-        foreignKey: 'UserID'
-    });
-
     m.User.hasMany(m.Comments, {
         as: 'Comments',
         foreignKey: 'UserID'
@@ -370,6 +276,12 @@ models.forEach(function(model) {
 
 
 })(module.exports);
+
+
+// const transaction = (task) => {
+//     return cls.getNamespace(NAMESPACE).get('transaction') ? task() : sequelize.transaction(task);
+// };
+
 
 
 module.exports.sequelize = sequelize;
