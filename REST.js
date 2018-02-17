@@ -544,6 +544,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         console.log('Expired Token');
                         return res.status(400).end();
                     } else {
+                        console.log(err);
                         return res.status(400).json({
                             success: false,
                             message: 'Failed to authenticate token.'
@@ -2006,7 +2007,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 UserID: req.params.userId
             },
-            attributes: ['SectionID'],
+            attributes: ['SectionID','Role'],
             include: [{
                 model: Section,
                 attributes: ['Name'],
@@ -2643,10 +2644,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             error:false,
             grades:[]
         };
-        console.log("userid: ");
-        console.log(req.body.userID);
-        console.log("sectionid: ");
-        console.log(req.body.sectionID);
 
         return SectionUser.findAll({
             where: {
@@ -2692,13 +2689,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     return grades;
                 });
             });
-          
-
         }).then(function(done){
-            //console.log(done.toJSON());
             res.json(json);
+        }).catch(function(error){
+            res.status(400).end();
         });
-
     });
 
     // Grade reporting ==========================================================================
@@ -7796,7 +7791,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //----------------------------------------------------------------
     router.post('/testuser/create',async function(req, res) {
         console.log('/testuser/create : was called');
-
+        console.log(TestUser);
         await TestUser.create({
             Test: true
         }).catch(function(err) {

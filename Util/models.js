@@ -36,6 +36,7 @@ export let TaskGrade = models.TaskGrade;
 export let TaskInstance = models.TaskInstance;
 export let TaskInstance_Archive = models.TaskInstance_Archive;
 export let TaskSimpleGrade = models.TaskSimpleGrade;
+export let TestUser = models.TestUser;
 export let User = models.User;
 export let UserContact = models.UserContact;
 export let UserLogin = models.UserLogin;

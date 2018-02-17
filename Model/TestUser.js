@@ -5,7 +5,7 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'X',
             allowNull: false,
-            autoIncrement: true
+            //autoIncrement: true
         },
         FirstName: {
             //Official first name of the user
@@ -47,7 +47,7 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'TestUser',
+        tableName: 'testuser',
 
 
     });
