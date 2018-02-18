@@ -61,9 +61,9 @@ import {
 
 const logger = require('./Logger.js');
 
-// var email = 'njitplamaster@gmail.com';
+var email = 'njitplamaster@gmail.com';
 // var email = 'participatory-learning@njit.edu';
-var email = 'qxl2@njit.edu';
+//var email = 'qxl2@njit.edu';
 var active = EMAIL_SERVER_STATUS;
 
 if (active) {
@@ -75,9 +75,10 @@ if (active) {
 console.log('/Email: Creating Transport');
 
 var transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    /*host: 'smtp.gmail.com',
     secure: true,
-    port: 465,
+    port: 465,*/
+    service: 'gmail',
     auth: {
         user: MASTER_EMAIL,
         pass: MASTER_PASSWORD
@@ -155,7 +156,7 @@ class Email {
             if (error) {
                 console.log(error);
             } else {
-                console.log('Message sent: ' + response.message);
+                console.log('Message sent: ', response);
             }
             // console.log('Closing Transport');
             // transporter.close();
@@ -181,7 +182,7 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
-                send = 'qxl2@njit.edu';
+                //send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
