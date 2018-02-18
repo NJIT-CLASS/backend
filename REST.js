@@ -345,6 +345,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //Endpoint to check if initial user in system
     router.get('/initial', function (req, res) {
+        console.log('/initial called');
         return User.findOne()
             .then(result => {
                 if (result === null) {
@@ -732,6 +733,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //         console.error(err);
         //     });
         // }
+        console.log('Calling assignment create');
         var taskFactory = new TaskFactory();
         if (req.body.partialAssignmentId == null) {
             PartialAssignments.create({
@@ -2105,6 +2107,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     transaction: t
                                 }).then(async function(user) {
                                     let temp_pass = await password.generate();
+                                    console.log(temp_pass);
                                     return UserContact.create({
                                         UserID: user.UserID,
                                         FirstName: userDetails.firstName,
@@ -2114,10 +2117,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     }, {
                                         transaction: t
                                     }).then(async function(userCon) {
+                                        let testHash = await password.hash(temp_pass);
+                                        console.log('Test Hash', testHash);
                                         return UserLogin.create({
                                             UserID: user.UserID,
                                             Email: userDetails.email,
-                                            Password: await password.hash(temp_pass)
+                                            Password: testHash
                                         }, {
                                             transaction: t
                                         }).then(function(userLogin) {
