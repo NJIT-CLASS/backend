@@ -10,7 +10,6 @@ var settings = require('../backend_settings');
 var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
     host: settings.DB_HOST,
     dialect: 'mysql',
-    port: settings.DB_PORT,
     omitNull: true,
     pool: {
         max: 5,
@@ -22,13 +21,16 @@ var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_P
 
 var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification', 'Group',
     'GroupUser', 'Organization', 'ResetPasswordRequest', 'Section',
-    'SectionUser', 'Semester', 'TaskActivity', 'TaskInstance', 'User',
+    'SectionUser', 'Semester', 'TaskActivity','User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference', 'Comments', 'CommentsArchive', 'CommentsViewed', 'Contact', 'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
+    'FileReference','TaskInstance','Comments','CommentsArchive', 'CommentsViewed', 'Contact','Notifications',
+    'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
     'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
     'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit'
 ];
+
+
 
 
 
@@ -41,6 +43,7 @@ models.forEach(function(model) {
 (function(m) {
     //Belongs To Relations
     //Sorted By Foreign Key
+
     m.ExtraCredit.belongsTo(m.SectionUser, {
         foreignKey: 'SectionUserID'
     });
@@ -80,32 +83,33 @@ models.forEach(function(model) {
     m.Course.belongsTo(m.User, {
         foreignKey: 'CreatorID'
     });
-    m.Contact.belongsTo(m.User, {
+
+
+    m.User.hasOne(m.UserLogin, {
         foreignKey: 'UserID'
     });
-    m.User.hasOne(m.UserLogin, {
+    m.User.hasOne(m.UserContact, {
+        foreignKey: 'UserID'
+    });
+    m.UserLogin.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
 
     m.UserLogin.hasOne(m.UserContact, {
         foreignKey: 'UserID'
     });
-
-    m.User.hasOne(m.UserContact, {
-        foreignKey: 'UserID'
-    });
-
-    m.UserLogin.belongsTo(m.User, {
-        foreignKey: 'UserID'
-    });
     m.UserContact.belongsTo(m.User, {
         foreignKey: 'UserID'
     });
-
     m.UserContact.belongsTo(m.UserLogin, {
         foreignKey: 'UserID'
     });
 
+    
+
+    m.Contact.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
     m.SectionUser.belongsTo(m.UserLogin, {
         foreignKey: 'UserID'
     });
@@ -140,7 +144,9 @@ models.forEach(function(model) {
         foreignKey: 'UserID'
     });
 
-
+    m.VolunteerPool.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
     // m.VolunteerPool.belongsTo(m.AssignmentInstance, {
     //     foreignKey: 'AssignmentInstanceID'
     // });
@@ -178,11 +184,6 @@ models.forEach(function(model) {
     m.TaskSimpleGrade.belongsTo(m.TaskInstance, {
         foreignKey: 'TaskInstanceID'
     });
-
-    // m.TaskInstance.belongsTo(m.TaskSimpleGrade, {
-    //     foreignKey: 'TaskInstanceID'
-    // });
-
     m.TaskSimpleGrade.belongsTo(m.WorkflowActivity, {
         foreignKey: 'WorkflowActivityID'
     });
@@ -240,7 +241,7 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
-    m.Assignment.belongsTo(m.Course, { foreignKey: 'CourseID' });
+
 
     //has Many Relations
     m.CategoryInstance.hasMany(m.BadgeInstance, {
@@ -337,11 +338,6 @@ models.forEach(function(model) {
         foreignKey: 'WorkflowActivityID'
     });
 
-    m.WorkflowActivity.hasMany(m.TaskActivity, {
-        as: 'TaskActivities',
-        foreignKey: 'WorkflowActivityID'
-    });
-
     m.User.hasMany(m.SectionUser, {
         as: 'Users',
         foreignKey: 'UserID'
@@ -357,7 +353,7 @@ models.forEach(function(model) {
     m.User.hasMany(m.VolunteerPool, {
         foreignKey: 'UserID'
     });
-
+    
     m.User.hasMany(m.Comments, {
         as: 'Comments',
         foreignKey: 'UserID'
@@ -373,6 +369,12 @@ models.forEach(function(model) {
 
 
 })(module.exports);
+
+
+// const transaction = (task) => {
+//     return cls.getNamespace(NAMESPACE).get('transaction') ? task() : sequelize.transaction(task);
+// };
+
 
 
 module.exports.sequelize = sequelize;
