@@ -79,10 +79,12 @@ var transporter = nodemailer.createTransport({
     secure: true,
     port: 465,*/
     service: 'gmail',
+    secure: true,
     auth: {
         user: MASTER_EMAIL,
         pass: MASTER_PASSWORD
-    }
+    },
+    tls: { rejectUnauthorized: false }
 });
 
 // verify connection configuration
