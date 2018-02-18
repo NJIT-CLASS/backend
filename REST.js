@@ -3055,11 +3055,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 let data = {
                     'pass': temp_pass
                 };
+                console.log(data);
                 user.save().then((result) => {
                     let email = new Email();
                     email.sendNow(result.UserID, 'reset password', data);
                     res.status(200).end();
-
                 });
             })
             .catch((err) => {

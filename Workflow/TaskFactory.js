@@ -94,6 +94,7 @@ class TaskFactory {
 
     async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
         var x = this;
+        var ais = [];
 
         console.log('Creating assignment instance...');
         //Iterate through all sectionIDs passed in and promise each is returned before next execution
@@ -108,11 +109,12 @@ class TaskFactory {
 
             });
 
+            ais.push(ai.AssignmentInstanceID);
             await x.updateWorkflowTiming(wf_timing);
 
-
-
         });
+
+        return ais;
 
         logger.log('info', '/Workflow/TaskFactory/createAssignmentInstances: Done!');
     }
@@ -239,6 +241,7 @@ class TaskFactory {
                     // });
             }
         }
+        
         logger.log('debug', 'done applying view constraints');
         // // find all non-completed task instances allocated to the user
         // return TaskInstance.findAll({
