@@ -3853,13 +3853,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         //create assignment instance
         await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
-            console.log('/getAssignToSection/submit/   All Done!');
+            console.log('/getAssignToSection/submit/ All Done!');
+            console.log('Done value:', done);
             console.log(typeof req.body.wf_timing.startDate, req.body.wf_timing.startDate);
             if (moment(req.body.wf_timing.startDate) <= new Date()) {
                 await Promise.mapSeries(req.body.sectionIDs, async function (secId) {
-                    await make.allocateUsers(secId, req.body.assignmentid);
+                    await Promise.mapSeries(done, async function(assignmentInstanceId){
+                        console.log('Assignment Instance ID?:', assignmentInstanceId);
+                        await make.allocateUsers(secId, assignmentInstanceId);
+                    });
                 });
-            };
+            }
             res.status(200).end();
         }).catch(function (err) {
             console.log(err);

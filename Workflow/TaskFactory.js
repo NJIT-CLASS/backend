@@ -94,30 +94,28 @@ class TaskFactory {
 
     async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
         var x = this;
-        var ais = [];
-
+        var assingmentInstancesCreated = [];
         console.log('Creating assignment instance...');
         //Iterate through all sectionIDs passed in and promise each is returned before next execution
-        await Promise.mapSeries(sectionIDs, async function(sectionid) {
-            //creates new AssignmentInstance
+        
+        return await Promise.mapSeries(sectionIDs, async function(sectionid) {
+        //creates new AssignmentInstance
             var ai = await AssignmentInstance.create({
                 //creates attributes
                 AssignmentID: a_id,
                 SectionID: sectionid,
                 StartDate: startDate,
                 WorkflowTiming: wf_timing
-
             });
-
-            ais.push(ai.AssignmentInstanceID);
+            assingmentInstancesCreated.push(ai.AssignmentInstanceID);
             await x.updateWorkflowTiming(wf_timing);
-
+            logger.log('info', '/Workflow/TaskFactory/createAssignmentInstances: Done!');
+            
+            return assingmentInstancesCreated;
+        
         });
-
-        return ais;
-
-        logger.log('info', '/Workflow/TaskFactory/createAssignmentInstances: Done!');
     }
+        
 
     async updateWorkflowTiming(wf_timing) {
         await Promise.mapSeries(wf_timing.workflows, async function(workflow, index) {
@@ -164,24 +162,24 @@ class TaskFactory {
         if (JSON.parse(ti.Status)[0] === 'not_yet_started') {
             logger.log('debug', ' not_yet_started, return res');
             return res._headerSent || {
-                    'error': true,
-                    'message': 'Task not even started yet',
-                }
-                // || res.json({
-                //     'error': true,
-                //     'message': 'Task not even started yet',
-                // });
+                'error': true,
+                'message': 'Task not even started yet',
+            };
+            // || res.json({
+            //     'error': true,
+            //     'message': 'Task not even started yet',
+            // });
         }
         if (ti.UserID == user_id) {
-            logger.log('debug', 'UserID don\'t match, return res')
+            logger.log('debug', 'UserID don\'t match, return res');
             return;
         }
         if (JSON.parse(ti.Status)[0] != 'complete') {
-            logger.log('debug', 'current task not completed, return res')
+            logger.log('debug', 'current task not completed, return res');
             return;
         }
         if (ti.TaskActivity.SeeSibblings && ti.TaskActivity.SeeSameActivity) {
-            logger.log('debug', 'SeeSiblings & SeeSameActivity')
+            logger.log('debug', 'SeeSiblings & SeeSameActivity');
             return;
         }
 
@@ -202,13 +200,13 @@ class TaskFactory {
                 if (sibling_ti.PreviousTask == ti.PreviousTask) {
                     logger.log('debug', 'sibling task not completed, return res');
                     return res._headerSent || {
-                            'error': true,
-                            'message': 'Sibling task not completed yet',
-                        }
-                        // || res.json({
-                        //     'error': true,
-                        //     'message': 'Sibling task not completed yet',
-                        // });
+                        'error': true,
+                        'message': 'Sibling task not completed yet',
+                    };
+                    // || res.json({
+                    //     'error': true,
+                    //     'message': 'Sibling task not completed yet',
+                    // });
                 }
             }
         });
@@ -225,20 +223,20 @@ class TaskFactory {
 
         logger.log('debug', 'same act check apply view constraints to task instance');
         console.log('!ti.TaskActivity.SeeSameActivity', !ti.TaskActivity.SeeSameActivity);
-        console.log('ti.TaskActivity.SeeSameActivity', ti.TaskActivity.SeeSameActivity)
+        console.log('ti.TaskActivity.SeeSameActivity', ti.TaskActivity.SeeSameActivity);
         if (!ti.TaskActivity.SeeSameActivity) {
-            console.log('!!same_ta_tis', !!same_ta_tis)
+            console.log('!!same_ta_tis', !!same_ta_tis);
             if (!!same_ta_tis) {
                 logger.log('debug', 'same task activity task instance not completed, return res');
                 logger.log('debug', res._headerSent);
                 return res._headerSent || {
-                        'error': true,
-                        'message': 'Same type of task not completed yet',
-                    }
-                    // || res.json({
-                    //     'error': true,
-                    //     'message': 'Same type of task not completed yet',
-                    // });
+                    'error': true,
+                    'message': 'Same type of task not completed yet',
+                };
+                // || res.json({
+                //     'error': true,
+                //     'message': 'Same type of task not completed yet',
+                // });
             }
         }
         

@@ -69,28 +69,31 @@ if (active) {
     logger.log('info', '/Email: email server currently not activated');
 }
 
-// console.log('/Email: Creating Transport');
+console.log('/Email: Creating Transport');
 
-// var transporter = nodemailer.createTransport({
-//     host: 'smtp.gmail.com',
-//     secure: true,
-//     port: 465,
-//     auth: {
-//         user: MASTER_EMAIL,
-//         pass: MASTER_PASSWORD
-//     }
-// });
+var transporter = nodemailer.createTransport({
+    /*host: 'smtp.gmail.com',
+    secure: true,
+    port: 465,*/
+    service: 'gmail',
+    secure: true,
+    auth: {
+        user: MASTER_EMAIL,
+        pass: MASTER_PASSWORD
+    },
+    tls: { rejectUnauthorized: false }
+});
 
-// // verify connection configuration
-// transporter.verify(function (error, success) {
-//     if (error) {
-//         console.log(error);
-//     } else {
-//         console.log('Server is ready to take our messages');
-//     }
-// });
+// verify connection configuration
+transporter.verify(function (error, success) {
+    if (error) {
+        console.log(error);
+    } else {
+        console.log('Server is ready to take our messages');
+    }
+});
 
-// console.log('/Email: Transport Created');
+console.log('/Email: Transport Created');
 
 /*
   Constructor
@@ -152,7 +155,7 @@ class Email {
             if (error) {
                 console.log(error);
             } else {
-                console.log('Message sent: ' + response.message);
+                console.log('Message sent: ', response);
             }
             // console.log('Closing Transport');
             // transporter.close();
@@ -178,7 +181,7 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
-                send = 'qxl2@njit.edu';
+                //send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
