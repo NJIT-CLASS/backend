@@ -61,9 +61,6 @@ import {
 
 const logger = require('./Logger.js');
 
-// var email = 'njitplamaster@gmail.com';
-// var email = 'participatory-learning@njit.edu';
-var email = 'qxl2@njit.edu';
 var active = EMAIL_SERVER_STATUS;
 
 if (active) {
@@ -72,28 +69,28 @@ if (active) {
     logger.log('info', '/Email: email server currently not activated');
 }
 
-console.log('/Email: Creating Transport');
+// console.log('/Email: Creating Transport');
 
-var transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    secure: true,
-    port: 465,
-    auth: {
-        user: MASTER_EMAIL,
-        pass: MASTER_PASSWORD
-    }
-});
+// var transporter = nodemailer.createTransport({
+//     host: 'smtp.gmail.com',
+//     secure: true,
+//     port: 465,
+//     auth: {
+//         user: MASTER_EMAIL,
+//         pass: MASTER_PASSWORD
+//     }
+// });
 
-// verify connection configuration
-transporter.verify(function (error, success) {
-    if (error) {
-        console.log(error);
-    } else {
-        console.log('Server is ready to take our messages');
-    }
-});
+// // verify connection configuration
+// transporter.verify(function (error, success) {
+//     if (error) {
+//         console.log(error);
+//     } else {
+//         console.log('Server is ready to take our messages');
+//     }
+// });
 
-console.log('/Email: Transport Created');
+// console.log('/Email: Transport Created');
 
 /*
   Constructor
