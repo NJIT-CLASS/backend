@@ -971,7 +971,41 @@ class Allocator {
     }
 
 
-    async reallocate_user_to_assginment() {}
+        // reallocate users of one or all assigment Instances with volunteers
+        async reallocate_user_to_assignment(ai_id, user_ids, replace_all_assigmnets, user_pool, is_extra_credit) {
+            var x = this;
+            logger.log('info', 'reallocate new users to assigment instance ', {
+                ai_id: ai_id,
+                user_ids: user_ids,
+                replace_all_assigmnets: replace_all_assigmnets,
+                user_pool: user_pool,
+                is_extra_credit: is_extra_credit,
+            });
+            var ai = await AssignmentInstance.findOne({ // get section
+                where: { 
+                    AssignmentInstanceID: ai_id
+                }
+            });
+    
+            var sec_id = ai.SectionID;
+            logger.log('debug', {
+                sec_id: sec_id
+            });
+            await Promise.map(user_ids, async(user_id)  => {
+                // remove users from volunteer pool
+                await x.delete_volunteer(sec_id,user_id); // need to check if it actually deletes
+            }) 
+    
+            if(replace_all_assigmnets){ // replace all Task Instances of the user in all Assigments in the Section
+    
+                return await x.reallocate_section(sec_id,user_ids, user_pool, is_extra_credit);
+    
+            }else{ // replace All Tasks of given Assigment instance and user
+                return await x.reallocate_ai(ai_id, user_ids, user_pool, is_extra_credit);
+    
+            }
+    
+        }
 
     // reallocate all tasks of a given users & ai_id with volutneers
     // wrap around the above api (get all assignments)
