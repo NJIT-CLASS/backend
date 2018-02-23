@@ -258,8 +258,8 @@ class Email {
                         replyTo: email,
                         to: send,
                         subject: 'Your password has been reset - PLA',
-                        text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + data.pass,
-                        html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + data.pass + '</p>'
+                        text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + data,
+                        html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + data + '</p>'
 
                     });
                     break;
