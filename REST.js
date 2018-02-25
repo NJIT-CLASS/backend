@@ -530,11 +530,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Middleware to verify token
     router.use(function(req,res,next){
-        // if(process.env.NODE_ENV != 'production'){
-        //     req.user = {};
-        //     next();
-        //     return;
-        // }
+         if(process.env.NODE_ENV != 'production'){
+             req.user = {};
+             next();
+             return;
+         }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         console.log(token);
         if (token) {
@@ -2373,11 +2373,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         });
     });
-
+/* replaced with updated by MS 2-24-28
     router.post('/sectionUsers/changeActive/:sectionUserID', (req, res) => {
-        /** TODO:  This API does a simple database update, but it may need
-         * to do some special reallocation to deal with inactive students
-         */
+        // TODO:  This API does a simple database update, but it may need
+         // to do some special reallocation to deal with inactive students
+         //
         var newActiveStatus = true;
         if (req.body.active != null) {
             newActiveStatus = req.body.active;
@@ -2400,6 +2400,46 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
             res.status(400).end();
         });
+    });
+    */
+    router.post('/sectionUsers/changeActive/:sectionUserID',async (req, res) => {
+        /** 
+         * When students is made Inactive, Its Assigment's get reallocated to voluenteers/instructor
+         */
+        var newActiveStatus = true;
+        if (req.body.active != null) {
+            newActiveStatus = req.body.active;
+        }
+        try{
+            var sectionUser = await SectionUser.update(
+                {
+                    Active: newActiveStatus
+                }, 
+                {
+                    where: {
+                        SectionUserID: req.params.sectionUserID
+                    }
+                });
+                if(newActiveStatus==false){ // reallocate the student with voluenteers or lastly instructor
+                        try{
+                            var alloc = new Allocator([],0);
+                            alloc.reallocate_all_ai_of_user(req.params.sectionUserID);
+                        }catch(e){
+                            logger.log('error','post: /sectionUser/changeActive/  failed to reallocate student',e);
+                            res.status(500).end();
+                        }
+                    }
+                res.status(201).json({
+                    message: 'Success',
+                    SectionUserID: sectionUser.SectionUserID
+                });
+            }catch (e) {
+                logger.log('error', 'post: /sectionUser/changeActive/, user active status not set', {
+                    error: e,
+                    req_params: req.params,
+                });
+                res.status(400).end();
+            }
     });
 
     router.get('/getWorkflow/:ti_id', async function (req, res) {
@@ -7329,6 +7369,35 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    router.post('/reallocate/assigment', async function (req, res){
+        if(req.body.ai_id == null || req.body.replace_all_ai== null  || req.body.user_ids == null || req.body.is_extra_credit == null ){
+            console.log('/reallocate/assigment: fields cannot be null');
+            res.status(400).end();
+            return;
+        };
+        console.log("reallocate assigment called");
+        var allocate = new Allocator([],0);
+        try{
+            var ai = await AssignmentInstance.findOne({ // get section
+                where: { 
+                    AssignmentInstanceID: req.body.ai_id
+                }
+            });
+        }catch(e){
+            logger.log('error','reallocate_user_to_assigment, failed to find one ai instance',e);
+        }
+        var sec_id = ai.SectionID;
+        await Promise.mapSeries(req.body.user_ids, async (user_id) => {
+            await allocate.inactivate_section_user(sec_id, user_id);
+        });
+        var result = await allocate.reallocate_user_to_assignment(req.body.ai_id, req.body.user_ids,sec_id,  req.body.replace_all_ai, req.body.is_extra_credit);
+        res.json({
+            'result': result,
+            'error':false,
+            'message':"none"
+        });
+    });
 
 
 

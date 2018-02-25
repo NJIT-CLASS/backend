@@ -717,7 +717,7 @@ class Allocator {
             })
         })
     }*/
-
+ 
     // reallocate new users to all tasks of a user in an assignment with volunteers
     reallocate_ai(ai_id, user_id, volunteer_u_ids) {
         logger.log('info', 'reallocate new users to all tasks of a user in an assignment with volunteers', {
@@ -745,7 +745,7 @@ class Allocator {
             });
         });
     }
-
+ 
     // reallocate given users to given tasks respectively
     reallocate_users_to_tasks(tis, u_ids) {
         logger.log('debug', {
@@ -959,6 +959,8 @@ class Allocator {
                 WorkflowInstanceID: ti.WorkflowInstanceID,
                 Status: {
                     $notLike: '%"complete"%',
+                    // also bypassed?
+                    // also abondoned?
                 }
             }
         });
@@ -969,10 +971,147 @@ class Allocator {
             }
         });
     }
+        // reallocate all active assigments of user, called when user is made "inactive"
+        async reallocate_all_ai_of_user(section_user_id){
+            var x = this;
+            try{
+                var sectionuser = await SectionUser.findOne({
+                    where:{
+                        SectionUserID: section_user_id,
+                    }
+                });
+                var user_id=sectionuser.UserID;
+                var section_id = sectionuser.SectionID;
+                return await x.reallocate_user_to_assignment(null,[user_id],section_id,true,true);
+            }catch(e){
+                logger.log('error','realocate_all_ai_of_user',e);
+            }
+        }
+        // reallocate users of one or all assigment Instances with volunteers
+        async reallocate_user_to_assignment(ai_id, user_ids, sec_id, replace_all_assigmnets, is_extra_credit) {
+            var x = this;
+            logger.log('info', 'reallocate new users to assigment instance ', {
+                ai_id: ai_id,
+                user_ids: user_ids,
+                replace_all_assigmnets: replace_all_assigmnets,
+                is_extra_credit: is_extra_credit,
+                sec_id:sec_id,
+            });
 
+            var voluenteers = await x.get_volunteers_ids(sec_id); // get voluenteer pool
+            var sec_instructors = await x.get_section_users_ids(sec_id, 'instructor');
+            var instructor_id = sec_instructors[0];            
+            await Promise.map(user_ids, async(user_id)  => {     // remove users from volunteer pool
+                await x.delete_volunteer(sec_id,user_id);   
+            }) 
+            voluenteers =voluenteers.filter(function (user_id) { // remove users from voluenteers
+                return !_.contains(user_ids, user_id);
+            });
 
-    async reallocate_user_to_assginment() {}
-
+            if(replace_all_assigmnets){ // replace all Task Instances of the users in all Assigments in the Section
+                try{
+                    var ais= await AssignmentInstance.findAll({
+                        where: {
+                            SectionID: sec_id,
+                        }
+                    });
+                }catch(e){
+                    logger.log('error', 'failed to find ais inside reallocate_user_to_assigment inside if statement',e);
+                }
+                await Promise.map(ais, async (ai) => { // for each Assigment Instance
+                    var tis= await x.get_uncomplete_tis_of_users(ai.AssignmentInstanceID, user_ids);
+                    await Promise.mapSeries(tis, async (ti) => { // for each Task Instance
+                        await x.reallocate_ti(ti,voluenteers,is_extra_credit,false,instructor_id);
+                    });
+                });
+                //return await x.reallocate_section(sec_id,user_ids, user_pool, is_extra_credit, );
+            }else{ // replace All Tasks of given Assigment instance and users
+                //return await x.reallocate_ai(ai_id, user_ids, voluenteers, is_extra_credit);
+                var tis= await x.get_uncomplete_tis_of_users(ai_id, user_ids);
+                await Promise.mapSeries(tis, async (ti) => { // for each Task Instance
+                    await x.reallocate_ti(ti,voluenteers,is_extra_credit,false,instructor_id);
+                });
+                return {'test':'test'};
+            }
+        }
+        
+        // get tis of users, in assigment instance
+        async get_uncomplete_tis_of_users(ai_id, user_ids){
+            try{
+                var tis= await TaskInstance.findAll({
+                    where: {
+                        UserID: {
+                            $in: user_ids,
+                        },
+                        AssignmentInstanceID: ai_id,
+                        $and: {  // make sure status in not complete and not bypassed, and not abondoned
+                            Status: {
+                                $notLike: '%"complete"%',
+                            },
+                            Status: {
+                                $notLike: '%"bypassed"%',
+                            },
+                            Status: {
+                                $notLike: '%"abandoned"%',
+                            }
+                        }
+                    }
+                });
+                return tis;
+            }catch(e){
+                logger.log('error', 'get_uncomplete_tis_of_users',e);
+            }
+        }
+        // return volunteers userIds for section
+        async get_volunteers_ids(section_id){
+            var volunteers=[];
+            try{
+                var vols = await VolunteerPool.findAll({
+                    where:{
+                        SectionID: section_id,
+                    },
+                    attributes:['UserID']
+                });
+                await Promise.map(vols, function(vol){
+                    volunteers.push(vol.UserID);
+                });
+            }catch(e){
+                logger.log('error','get_volunteers_ids',e);
+            }
+            return volunteers;
+        }
+        // return user for section
+        async get_section_users_ids(section_id, option){
+            var users;
+            var user_ids=[];
+            try{
+                if(option === 'students'){
+                    users = await SectionUser.findAll({
+                        where:{
+                            SectionID: section_id,
+                            Role: 'Student',
+                            Active: 1
+                        },
+                        attributes:['UserID']
+                    });
+                } else if(option === 'instructor') {
+                    users = await SectionUser.findAll({
+                        where:{
+                            SectionID: section_id,
+                            Role: 'Instructor',
+                            Active: 1
+                        },
+                        attributes:['UserID']
+                    });
+                }
+                await Promise.map(users, function(user){
+                    user_ids.push(user.UserID);
+                });
+            }catch(e){
+                logger.log('error','get_section_users_ids',e);
+            }
+            return user_ids;
+        }
     // reallocate all tasks of a given users & ai_id with volutneers
     // wrap around the above api (get all assignments)
 
@@ -1128,7 +1267,58 @@ class Allocator {
             // })
         });
     }
+    // Updated version of realocate with instructor parameter, so far only used for reallocate_assigment
+    async reallocate_ti(ti, u_ids, is_extra_credit,option, instructor_id) {
+        logger.log('info', 'reallocate new user to a given task instance', {
+            task_instance: ti.toJSON(),
+            user_ids: u_ids,
+            is_extra_credit: is_extra_credit,
+            option: option,
+            instructor_id: instructor_id
+        });
 
+        var ti_id = ti.TaskInstanceID;
+        var x = this;
+        var [lateUser,vol_u_ids,wi_ids] = await Promise.all([x.getLateUser(ti_id), x.get_ai_volunteers(ti.AssignmentInstanceID), x.getWorkflowInstanceID(ti_id)])
+        vol_u_ids = vol_u_ids || [];
+        await Promise.map(wi_ids, async function (wi_id) {
+            var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
+            var new_u_id    = await x.find_new_user(u_ids, vol_u_ids, avoid_u_ids);
+            if(new_u_id == null){          // dont proceed if no user is available, return error
+                if(instructor_id == null){ // unless instructor was provided to use as last resource
+                    return {
+                        Error: true,
+                        message: "No Replacement User was Available"
+                    }
+                }else{
+                    new_u_id = instructor_id;  // use instructor if no user available
+                }
+            }
+            logger.log('debug', 'update assignment instance volunteers', {
+                    assignment_instance_id: ti.AssignmentInstanceID,
+                    volunteer_user_ids: vol_u_ids,
+                    });
+            return AssignmentInstance.update({
+                Volunteers: vol_u_ids
+                }, {
+                    where: {
+                        AssignmentInstanceID: ti.AssignmentInstanceID
+                    }
+            }).then(async function (res) {
+                logger.log('info', 'assignment instance volunteers updated', {
+                    res: res
+                });
+                try { 
+                    await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
+                } catch(e) { 
+                    console.log('there was an error'); console.log(e); 
+                }
+            }).catch(function (err) {
+                logger.log('error', 'assignment instance volunteers update failed', err);
+                return err;
+            });              
+        });  
+    }
 
     //finds the students from the same section
     findSectionUsers(ai_id, callback) {
