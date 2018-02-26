@@ -28,13 +28,13 @@ module.exports = function(sequelize, DataTypes) {
             field: 'AssignmentInstanceID',
             allowNull: true
         },
-        TaskInstanceID: {
-            //Unique identifier for assignment instance
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskInstanceID',
-            allowNull: true
-        },
+        // TaskInstanceID: {
+        //     //Unique identifier for assignment instance
+        //     //Foreign Key
+        //     type: DataTypes.INTEGER.UNSIGNED,
+        //     field: 'TaskInstanceID',
+        //     allowNull: true
+        // },
         Type: {
             type: DataTypes.STRING,
             field: 'Type',
@@ -133,6 +133,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'Comments'
+        tableName: 'comments'
     });
 };

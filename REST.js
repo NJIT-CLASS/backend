@@ -530,11 +530,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Middleware to verify token
     router.use(function(req,res,next){
-        // if(process.env.NODE_ENV != 'production'){
-        //     req.user = {};
-        //     next();
-        //     return;
-        // }
+        if(process.env.NODE_ENV != 'production'){
+            req.user = {};
+            next();
+            return;
+        }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         console.log(token);
         if (token) {
