@@ -7746,7 +7746,49 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
       });
 
-    //----------------------------------------------------------------
+    //-----------------------------------------------------------------------------------------------------
+
+    router.get("/reallocatepools/:ai_id", function(req, res) {
+           var reallocate = new Allocator();
+           var ai_id = req.params.ai_id;
+           //var manually_chosen = {};
+           var pools = reallocate.get_ai_volunteers(ai_id);
+           var volunteer_pool, section_students, section_instructors;
+
+           if (pools[volunteer_pool] == null){
+                 volunteer_pool = false;
+
+             if (pools[section_students] == null){
+                   section_students = false;
+
+                 return Promise.each(pools[section_instructors], function (si) {
+                     return reallocate.reallocate(si, pools[section_instructors])
+                 })
+                       section_instructors = true;
+             }
+             else{
+               return Promise.each(pools[section_students], function (ss) {
+                   return reallocate.reallocate(ss, pools[section_students])
+               })
+                     section_students = true;
+               }
+           }
+           else {
+             return Promise.each(pools[volunteer_pool], function (vo) {
+                 return reallocate.reallocate(vo, pools[volunteer_pool])
+             })
+                   volunteer_pool = true;
+           }
+            res.json({
+                "volunteer_pool": volunteer_pool,
+                "section_students": section_students,
+                "section_instructors": section_instructors,
+                "reallocate": pools
+            });
+
+    });
+
+        //----------------------------------------------------------------
 
 
 
