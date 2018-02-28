@@ -794,12 +794,24 @@ class Allocator {
             is_extra_credit = true;
         }
 
+        var reallocation_status = 'reallocated_no_extra_credit';
+        if(is_extra_credit){
+            reallocation_status = 'reallocated_extra_credit';
+        }
+        //
+        // TODO: figure out extension time and update
+        //
         // logger.log('debug', {
         //     call: 'reallocate_user_to_task'
         // });
 
         var task_id = ti.TaskInstanceID;
         var ti_u_hist = JSON.parse(ti.UserHistory) || [];
+        var ti_status = JSON.parse(ti.Status);
+
+        ti_status[5] = reallocation_status;  // change reallocation status
+        ti_status[4] = 'not_opened'; // change view back to deafult
+        //ti_status[3] = 'before_end_time';
 
         ti_u_hist.push({
             time: new Date(),
@@ -810,12 +822,14 @@ class Allocator {
         logger.log('info', 'update a task instance with a new user and user history', {
             task_instance: ti.toJSON(),
             new_user_id: new_u_id,
-            user_history: ti_u_hist
+            user_history: ti_u_hist,
+            new_status: ti_status
         });
 
         return TaskInstance.update({
             UserID: new_u_id,
             UserHistory: ti_u_hist,
+            Status: JSON.stringify(ti_status),
         }, {
             where: {
                 TaskInstanceID: task_id
@@ -953,16 +967,24 @@ class Allocator {
 
         // await email.sendNow(old_ti.UserID, 'remove_reallocated');
         // await email.sendNow(new_u_id, 'new_reallocated');
-
+        // ignore if complete, bypassed, or cancelled.
         var tis = await TaskInstance.findAll({
             where:{
                 WorkflowInstanceID: ti.WorkflowInstanceID,
                 Status: {
-                    $notLike: '%"complete"%',
-                    // also bypassed?
-                    // also abondoned?
+                     $notLike: '%"complete"%',
+                    },
+                $and: {
+                    Status: {
+                        $notLike: '%"bypassed"%',  //TODO: doesnt work
+                    }
+                },
+                $and: {
+                    Status: {
+                        $notLike: '%"cancelled"%',
+                    }
                 }
-            }
+            }       
         });
 
         await Promise.mapSeries(tis, async (new_ti) => {
@@ -971,6 +993,7 @@ class Allocator {
             }
         });
     }
+    /* will remove this soon mss86
         // reallocate all active assigments of user, called when user is made "inactive"
         async reallocate_all_ai_of_user(section_user_id){
             var x = this;
@@ -1062,6 +1085,7 @@ class Allocator {
                 logger.log('error', 'get_uncomplete_tis_of_users',e);
             }
         }
+        */
         // return volunteers userIds for section
         async get_volunteers_ids(section_id){
             var volunteers=[];
@@ -1267,6 +1291,7 @@ class Allocator {
             // })
         });
     }
+    /* Will remove this soon mss86
     // Updated version of realocate with instructor parameter, so far only used for reallocate_assigment
     async reallocate_ti(ti, u_ids, is_extra_credit,option, instructor_id) {
         logger.log('info', 'reallocate new user to a given task instance', {
@@ -1318,7 +1343,119 @@ class Allocator {
                 return err;
             });              
         });  
+    } */
+
+    // Updated converted version of realocate created 2-27-18 mss86
+    //@ ais: AssigmentInstace
+    //@ old_user_ids: [] ids to replace
+    //@ user_pool_wc: [ [],..] ids to use with constrains
+    //@ user_pool_woc: [] ids to use without constrains
+    //@ is_extra_credit: boolean
+    async reallocate_users(section_id, ais, old_user_ids, user_pool_wc, user_pool_woc, is_extra_credit) {
+        logger.log('info', 'reallocate_users was called',{
+            section_id: section_id, 
+            //ais: ais, 
+            old_user_ids: old_user_ids,
+            user_pool_wc: user_pool_wc, 
+            user_pool_woc: user_pool_woc, 
+            is_extra_credit: is_extra_credit,
+        });
+        await Promise.mapSeries(ais , async(ai) =>{   // for each Assigment Instance
+
+            var wi_ids = JSON.parse(ai.WorkflowCollection);  // array of workflowIDS
+
+            var x = this;
+            var vol_u_ids = await x.get_ai_volunteers(ai.AssignmentInstanceID); // get used valuenteers for assigment
+            vol_u_ids = vol_u_ids || [];
+            await Promise.mapSeries(wi_ids, async function (wi_id) {  // for each workflow 
+
+                var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
+                avoid_u_ids = _.union(avoid_u_ids, old_user_ids);  // add old user ids to avoid list
+                    
+                await Promise.mapSeries(old_user_ids,async (old_user_id) => { 
+                    var new_u_id = await x.find_new_user_from_pool(user_pool_wc, user_pool_woc, vol_u_ids, avoid_u_ids); 
+                    var ti = await TaskInstance.findOne({
+                        where:{
+                            WorkflowInstanceID: wi_id,
+                            UserID: old_user_id
+                        }
+                    })
+                    console.log(ti);
+                    if(ti != null){
+                        await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
+                    }
+                });
+
+            }) ; 
+            logger.log('info','Assigment Voluenteers updated to: ', vol_u_ids);
+            await AssignmentInstance.update({
+                Volunteers: vol_u_ids
+                }, {
+                    where: {
+                        AssignmentInstanceID: ai.AssignmentInstanceID
+                    }
+            })
+        });
+        return {'error': false};
     }
+    // Finds new user from lists of lists. created 2-27-18 mss86
+    //@   u_ids_wc: [ [],..]  list of lists with constrains
+    //@   u_ids_woc   [ ] list of users without constrains
+    //@   avoid_u_ids [ ] list of users to avoid
+    async find_new_user_from_pool(u_ids_wc, u_ids_woc, vol_u_ids, avoid_u_ids) {
+        vol_u_ids = vol_u_ids || [];
+        var idx = null;
+        var new_user_id=null;
+        logger.log('info','find_new_user_from_pool was called',{
+            u_ids_wc: u_ids_wc, 
+            u_ids_woc: u_ids_woc, 
+            vol_u_ids: vol_u_ids, 
+            avoid_u_ids: avoid_u_ids,
+        });
+        // loop through each users array without Constrains
+        await Promise.mapSeries(u_ids_wc, async(u_ids) =>{
+            if(!new_user_id){
+                // check if there is a user that has not been part of voluenteers so far and fits
+                if(!new_user_id){    
+                    await Promise.mapSeries(u_ids, function (u_id) {
+                        if (new_user_id == null && !_.contains(avoid_u_ids, u_id) && !_.contains(vol_u_ids, u_id)) {
+                            new_user_id = u_id;
+                            logger.log('debug','new user not yet in voluenteers found from users with constrains :',new_user_id);
+                        }
+                    });
+                }
+                // find user that has been part of voluenteers and least recently used
+                if(!new_user_id){
+                    await Promise.mapSeries(vol_u_ids, function (u_id, i) {
+                        if (idx == null && _.contains(u_ids, u_id) && !_.contains(avoid_u_ids, u_id)) {
+                            idx = i;
+                            new_user_id = u_id;
+                            logger.log('debug','new user that is part of voluenteers found users with constrains :',new_user_id);
+                        }
+                    });
+                }
+            }      
+        });
+        // if not found a user yet, pick first user from Users without Contrains that was least used
+        if(!new_user_id){
+            new_user_id = u_ids_woc[0];  
+            // find a user  that didnt voluenteer yet
+            Promise.mapSeries(u_ids_woc, async (user_id)=>{
+                if(!_.contains(vol_u_ids,user_id)){
+                    new_user_id = user_id;
+                }
+            });
+            logger.log('debug','user without constrains used :',new_user_id);
+            idx = vol_u_ids.indexOf(new_user_id); // 
+        }
+        // reorder the volunteers used so far for this assignment
+        if(idx != null && idx > -1){
+            vol_u_ids.splice(idx, 1); // remove user
+        }
+        vol_u_ids.push(new_user_id);  // add user to end of list
+        return new_user_id; 
+    }
+
 
     //finds the students from the same section
     findSectionUsers(ai_id, callback) {

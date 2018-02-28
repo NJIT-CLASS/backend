@@ -2373,7 +2373,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         });
     });
-/* replaced with updated by MS 2-24-28
+    
     router.post('/sectionUsers/changeActive/:sectionUserID', (req, res) => {
         // TODO:  This API does a simple database update, but it may need
          // to do some special reallocation to deal with inactive students
@@ -2401,11 +2401,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         });
     });
-    */
+/* not currently working  mss86   
     router.post('/sectionUsers/changeActive/:sectionUserID',async (req, res) => {
-        /** 
-         * When students is made Inactive, Its Assigment's get reallocated to voluenteers/instructor
-         */
+        //
+         //When students is made Inactive, Its Assigment's get reallocated to voluenteers/instructor
+         //
         var newActiveStatus = true;
         if (req.body.active != null) {
             newActiveStatus = req.body.active;
@@ -2441,7 +2441,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 res.status(400).end();
             }
     });
-
+*/
     router.get('/getWorkflow/:ti_id', async function (req, res) {
         var ti = await TaskInstance.find({
             where: {
@@ -7365,29 +7365,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-
+// testing realocation API // mss86
     router.post('/reallocate/assigment', async function (req, res){
-        if(req.body.ai_id == null || req.body.replace_all_ai== null  || req.body.user_ids == null || req.body.is_extra_credit == null ){
+        if(req.body.ai_id == null || req.body.old_user_ids == null || req.body.is_extra_credit == null ){
             console.log('/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
         console.log("reallocate assigment called");
         var allocate = new Allocator([],0);
-        try{
+
             var ai = await AssignmentInstance.findOne({ // get section
                 where: { 
                     AssignmentInstanceID: req.body.ai_id
                 }
             });
-        }catch(e){
-            logger.log('error','reallocate_user_to_assigment, failed to find one ai instance',e);
-        }
         var sec_id = ai.SectionID;
-        await Promise.mapSeries(req.body.user_ids, async (user_id) => {
-            await allocate.inactivate_section_user(sec_id, user_id);
-        });
-        var result = await allocate.reallocate_user_to_assignment(req.body.ai_id, req.body.user_ids,sec_id,  req.body.replace_all_ai, req.body.is_extra_credit);
+        var result = await allocate.reallocate_users(sec_id, [ai], req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit)
         res.json({
             'result': result,
             'error':false,
