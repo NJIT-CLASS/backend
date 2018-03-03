@@ -4321,7 +4321,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return;
         }
         else{
-            var va2 = va[0];
+           // var va2 = va[0];
         }
         UserContact.upsert(
             req.body, {
@@ -7365,7 +7365,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-// testing realocation API // mss86
+// debug testing realocation API // mss86
     router.post('/reallocate/assigment', async function (req, res){
         if(req.body.ai_id == null || req.body.old_user_ids == null || req.body.is_extra_credit == null ){
             console.log('/reallocate/assigment: fields cannot be null');
@@ -7374,7 +7374,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         };
         console.log("reallocate assigment called");
         var allocate = new Allocator([],0);
-
             var ai = await AssignmentInstance.findOne({ // get section
                 where: { 
                     AssignmentInstanceID: req.body.ai_id
@@ -7388,6 +7387,22 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             'message':"none"
         });
     });
+// debug testing realocation API // mss86
+router.post('/reallocate/assigment_task_based', async function (req, res){
+    if(req.body.ai_id == null || req.body.is_extra_credit == null ){
+        console.log('/reallocate/assigment: fields cannot be null');
+        res.status(400).end();
+        return;
+    };
+    console.log("reallocate assigment called");
+    var allocate = new Allocator([],0);
+    var result = await allocate.reallocate_tasks_based(req.body.ai_id, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit)
+    res.json({
+        'result': result,
+        'error':false,
+        'message':"none"
+    });
+});
 
 
 
