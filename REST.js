@@ -172,7 +172,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['UserID', 'Email', 'Password', 'Pending', 'Attempts', 'Timeout', 'Blocked'],
             include: [{
                 model: User,
-                attributes: ['Admin', 'Instructor']
+                attributes: ['Admin', 'Instructor', 'Role']
             }]
         }).then(async function (user) {
             let current_timestamp = new Date(); // get current time of login
@@ -216,6 +216,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         const payload = {
                             admin: user.User.Admin,
                             instructor: user.User.Instructor,
+                            role: user.User.Role,
                             id: user.UserID
                         };
                         let token = jwt.sign(payload, TOKEN_KEY, {
@@ -4285,7 +4286,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return;
         }
         else{
-            var va2 = va[0];
+            //var va2 = va[0];
         }
         UserContact.upsert(
             req.body, {
