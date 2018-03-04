@@ -4024,7 +4024,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         });
 
-        let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        //let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        var a = new Allocator([],0);  // use updated version
+        let response = await a.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
         console.log('respose back', response);
         res.json(response);
     });
@@ -7369,41 +7371,54 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // debug testing realocation API // mss86
-    router.post('/reallocate/assigment', async function (req, res){
-        if(req.body.ai_id == null || req.body.old_user_ids == null || req.body.is_extra_credit == null ){
-            console.log('/reallocate/assigment: fields cannot be null');
+    
+    // API to reallocate users in assigments instances created 3-4-18 mss86
+    //@ sec_id: section ID
+    //@ ai_ids: [] assigment instance ids
+    //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
+    //@ user_pool_woc: [#,..] array of users without constrains
+    //@ is_extra_credit: boolean
+    router.post('/reallocate/user_based', async function (req, res){
+        if(req.body.ai_ids == null || req.body.old_user_ids == null || req.body.is_extra_credit == null || req.body.sec_id == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null ){
+            logger.log('error','/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
-        console.log('reallocate assigment called');
+        logger.log('info','/reallocate/user_based called');
         var allocate = new Allocator([],0);
-        var ai = await AssignmentInstance.findOne({ // get section
-            where: { 
-                AssignmentInstanceID: req.body.ai_id
-            }
+        var ais = []
+        await Promise.map(req.body.ai_ids, async(ai_id) => {
+            var ai = await AssignmentInstance.findOne({ 
+                where: { 
+                    AssignmentInstanceID: ai_id
+                }
+            });
+            ais.push(ai);
         });
-        var sec_id = ai.SectionID;
-        var result = await allocate.reallocate_users(sec_id, [ai], req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
+        var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json({
             'result': result,
-            'error':false,
+            'Error':false,
             'message':'none'
         });
     });
-    // debug testing realocation API // mss86
-    router.post('/reallocate/assigment_task_based', async function (req, res){
-        if(req.body.ai_id == null || req.body.is_extra_credit == null ){
-            console.log('/reallocate/assigment: fields cannot be null');
+    // API to reallocate Tasks  created 3-4-18 mss86
+    //@ taskarray: [ 'ti' [#,..]] or [ 'wi' [#,..]] or [ 'ai' [#,..]] 
+    //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
+    //@ user_pool_woc: [#,..] array of users without constrains
+    //@ is_extra_credit: boolean
+    router.post('/reallocate/task_based', async function (req, res){
+        if(req.body.taskarray == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null || req.body.is_extra_credit == null){
+            logger.log('error','/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
-        console.log('reallocate assigment called');
+        logger.log('info','/reallocate/task_based called');
         var allocate = new Allocator([],0);
-        var result = await allocate.reallocate_tasks_based(req.body.ai_id, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
+        var result = await allocate.reallocate_tasks_based(req.body.taskarray, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json({
             'result': result,
-            'error':false,
+            'Error':false,
             'message':'none'
         });
     });
