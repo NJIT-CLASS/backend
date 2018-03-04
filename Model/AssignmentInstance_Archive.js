@@ -65,6 +65,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'AssignmentInstance_Archive'
+        tableName: 'assignmentinstance_archive'
     });
 };

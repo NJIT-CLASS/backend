@@ -61,9 +61,9 @@ import {
 
 const logger = require('./Logger.js');
 
-// var email = 'njitplamaster@gmail.com';
+var email = 'njitplamaster@gmail.com';
 // var email = 'participatory-learning@njit.edu';
-var email = 'qxl2@njit.edu';
+//var email = 'qxl2@njit.edu';
 var active = EMAIL_SERVER_STATUS;
 
 if (active) {
@@ -75,13 +75,16 @@ if (active) {
 console.log('/Email: Creating Transport');
 
 var transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    /*host: 'smtp.gmail.com',
     secure: true,
-    port: 465,
+    port: 465,*/
+    service: 'gmail',
+    secure: true,
     auth: {
         user: MASTER_EMAIL,
         pass: MASTER_PASSWORD
-    }
+    },
+    tls: { rejectUnauthorized: false }
 });
 
 // verify connection configuration
@@ -155,7 +158,7 @@ class Email {
             if (error) {
                 console.log(error);
             } else {
-                console.log('Message sent: ' + response.message);
+                console.log('Message sent: ', response);
             }
             // console.log('Closing Transport');
             // transporter.close();
@@ -181,7 +184,7 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
-                send = 'qxl2@njit.edu';
+                //send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
@@ -255,8 +258,8 @@ class Email {
                         replyTo: email,
                         to: send,
                         subject: 'Your password has been reset - PLA',
-                        text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + data.pass,
-                        html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + data.pass + '</p>'
+                        text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + data,
+                        html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + data + '</p>'
 
                     });
                     break;

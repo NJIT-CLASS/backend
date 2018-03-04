@@ -172,7 +172,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['UserID', 'Email', 'Password', 'Pending', 'Attempts', 'Timeout', 'Blocked'],
             include: [{
                 model: User,
-                attributes: ['Admin', 'Instructor']
+                attributes: ['Admin', 'Instructor', 'Role']
             }]
         }).then(async function (user) {
             let current_timestamp = new Date(); // get current time of login
@@ -216,6 +216,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         const payload = {
                             admin: user.User.Admin,
                             instructor: user.User.Instructor,
+                            role: user.User.Role,
                             id: user.UserID
                         };
                         let token = jwt.sign(payload, TOKEN_KEY, {
@@ -530,11 +531,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Middleware to verify token
     router.use(function(req,res,next){
-         if(process.env.NODE_ENV != 'production'){
-             req.user = {};
-             next();
-             return;
-         }
+        if(process.env.NODE_ENV != 'production'){
+            req.user = {};
+            next();
+            return;
+        }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         console.log(token);
         if (token) {
@@ -2376,8 +2377,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     
     router.post('/sectionUsers/changeActive/:sectionUserID', (req, res) => {
         // TODO:  This API does a simple database update, but it may need
-         // to do some special reallocation to deal with inactive students
-         //
+        // to do some special reallocation to deal with inactive students
+        //
         var newActiveStatus = true;
         if (req.body.active != null) {
             newActiveStatus = req.body.active;
@@ -2401,7 +2402,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         });
     });
-/* not currently working  mss86   
+    /* not currently working  mss86   
     router.post('/sectionUsers/changeActive/:sectionUserID',async (req, res) => {
         //
          //When students is made Inactive, Its Assigment's get reallocated to voluenteers/instructor
@@ -3893,13 +3894,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         //create assignment instance
         await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
-            console.log('/getAssignToSection/submit/   All Done!');
+            console.log('/getAssignToSection/submit/ All Done!');
+            console.log('Done value:', done);
             console.log(typeof req.body.wf_timing.startDate, req.body.wf_timing.startDate);
             if (moment(req.body.wf_timing.startDate) <= new Date()) {
                 await Promise.mapSeries(req.body.sectionIDs, async function (secId) {
-                    await make.allocateUsers(secId, req.body.assignmentid);
+                    await Promise.mapSeries(done, async function(assignmentInstanceId){
+                        console.log('Assignment Instance ID?:', assignmentInstanceId);
+                        await make.allocateUsers(secId, assignmentInstanceId);
+                    });
                 });
-            };
+            }
             res.status(200).end();
         }).catch(function (err) {
             console.log(err);
@@ -4321,7 +4326,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return;
         }
         else{
-           // var va2 = va[0];
+            // var va2 = va[0];
         }
         UserContact.upsert(
             req.body, {
@@ -7365,44 +7370,44 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-// debug testing realocation API // mss86
+    // debug testing realocation API // mss86
     router.post('/reallocate/assigment', async function (req, res){
         if(req.body.ai_id == null || req.body.old_user_ids == null || req.body.is_extra_credit == null ){
             console.log('/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
-        console.log("reallocate assigment called");
+        console.log('reallocate assigment called');
         var allocate = new Allocator([],0);
-            var ai = await AssignmentInstance.findOne({ // get section
-                where: { 
-                    AssignmentInstanceID: req.body.ai_id
-                }
-            });
+        var ai = await AssignmentInstance.findOne({ // get section
+            where: { 
+                AssignmentInstanceID: req.body.ai_id
+            }
+        });
         var sec_id = ai.SectionID;
-        var result = await allocate.reallocate_users(sec_id, [ai], req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit)
+        var result = await allocate.reallocate_users(sec_id, [ai], req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json({
             'result': result,
             'error':false,
-            'message':"none"
+            'message':'none'
         });
     });
-// debug testing realocation API // mss86
-router.post('/reallocate/assigment_task_based', async function (req, res){
-    if(req.body.ai_id == null || req.body.is_extra_credit == null ){
-        console.log('/reallocate/assigment: fields cannot be null');
-        res.status(400).end();
-        return;
-    };
-    console.log("reallocate assigment called");
-    var allocate = new Allocator([],0);
-    var result = await allocate.reallocate_tasks_based(req.body.ai_id, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit)
-    res.json({
-        'result': result,
-        'error':false,
-        'message':"none"
+    // debug testing realocation API // mss86
+    router.post('/reallocate/assigment_task_based', async function (req, res){
+        if(req.body.ai_id == null || req.body.is_extra_credit == null ){
+            console.log('/reallocate/assigment: fields cannot be null');
+            res.status(400).end();
+            return;
+        };
+        console.log('reallocate assigment called');
+        var allocate = new Allocator([],0);
+        var result = await allocate.reallocate_tasks_based(req.body.ai_id, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
+        res.json({
+            'result': result,
+            'error':false,
+            'message':'none'
+        });
     });
-});
 
 
 

@@ -21,6 +21,7 @@ export let Goal = models.Goal;
 export let GoalInstance = models.GoalInstance;
 export let Level = models.Level;
 export let LevelInstance = models.LevelInstance;
+export let Notifications = models.Notifications;
 export let Organization = models.Organization;
 export let PartialAssignments = models.PartialAssignments;
 export let ResetPasswordRequest = models.ResetPasswordRequest;

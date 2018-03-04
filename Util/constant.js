@@ -1,5 +1,7 @@
-export const MASTER_EMAIL = 'njitplamaster@gmail.com';
-export const MASTER_PASSWORD = 'plamaster123';
+import {SERVER_EMAIL, EMAIL_PASSWORD} from '../backend_settings';
+
+export const MASTER_EMAIL = SERVER_EMAIL;
+export const MASTER_PASSWORD = EMAIL_PASSWORD;
 export const EMAIL_SERVER_STATUS = true;
 export const FILE_SIZE = 52428800;
 export const MAX_NUM_FILES = 3;
