@@ -803,6 +803,12 @@ class Allocator {
         // logger.log('debug', {
         //     call: 'reallocate_user_to_task'
         // });
+        if(JSON.parse(ti.Status)[0] === 'complete'){
+            return {
+                Error: true,
+                Message: 'Task already completed'
+            };
+        }
 
         var task_id = ti.TaskInstanceID;
         var ti_u_hist = JSON.parse(ti.UserHistory) || [];
