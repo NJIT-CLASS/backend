@@ -790,7 +790,7 @@ class Allocator {
     //         user_history: ti_u_hist
     //     });
 
-    reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
+    async reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
         if (is_extra_credit == null) {
             is_extra_credit = true;
         }
@@ -799,9 +799,7 @@ class Allocator {
         if(is_extra_credit){
             reallocation_status = 'reallocated_extra_credit';
         }
-        //
-        // TODO: figure out extension time and update
-        //
+
         // logger.log('debug', {
         //     call: 'reallocate_user_to_task'
         // });
@@ -814,6 +812,8 @@ class Allocator {
         ti_status[4] = 'not_opened';         // change view back to deafult
         ti_status[3] = 'before_end_time';   // change from late to not late
 
+        var new_end_date= await this.get_new_date(ti); // get time extension
+
         ti_u_hist.push({
             time: new Date(),
             user_id: new_u_id,
@@ -824,13 +824,15 @@ class Allocator {
             task_instance: ti.toJSON(),
             new_user_id: new_u_id,
             user_history: ti_u_hist,
-            new_status: ti_status
+            new_status: ti_status,
+            new_end_date: new_end_date
         });
 
         return TaskInstance.update({
             UserID: new_u_id,
             UserHistory: ti_u_hist,
             Status: JSON.stringify(ti_status),
+            EndDate: new_end_date,
         }, {
             where: {
                 TaskInstanceID: task_id
@@ -840,9 +842,16 @@ class Allocator {
             //     res: res
             // });
             //return res;
+            return {
+                Error: false,
+                Message: null
+            };
         }).catch(function (err) {
             logger.log('error', 'task instance update failed', err);
-            return err;
+            return {
+                Error: true,
+                Message: 'Failed reallocate user to another task'
+            };
         });
     }
 
@@ -1296,59 +1305,7 @@ class Allocator {
             // })
         });
     }
-    /* Will remove this soon mss86
-    // Updated version of realocate with instructor parameter, so far only used for reallocate_assigment
-    async reallocate_ti(ti, u_ids, is_extra_credit,option, instructor_id) {
-        logger.log('info', 'reallocate new user to a given task instance', {
-            task_instance: ti.toJSON(),
-            user_ids: u_ids,
-            is_extra_credit: is_extra_credit,
-            option: option,
-            instructor_id: instructor_id
-        });
-
-        var ti_id = ti.TaskInstanceID;
-        var x = this;
-        var [lateUser,vol_u_ids,wi_ids] = await Promise.all([x.getLateUser(ti_id), x.get_ai_volunteers(ti.AssignmentInstanceID), x.getWorkflowInstanceID(ti_id)])
-        vol_u_ids = vol_u_ids || [];
-        await Promise.map(wi_ids, async function (wi_id) {
-            var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
-            var new_u_id    = await x.find_new_user(u_ids, vol_u_ids, avoid_u_ids);
-            if(new_u_id == null){          // dont proceed if no user is available, return error
-                if(instructor_id == null){ // unless instructor was provided to use as last resource
-                    return {
-                        Error: true,
-                        message: "No Replacement User was Available"
-                    }
-                }else{
-                    new_u_id = instructor_id;  // use instructor if no user available
-                }
-            }
-            logger.log('debug', 'update assignment instance volunteers', {
-                    assignment_instance_id: ti.AssignmentInstanceID,
-                    volunteer_user_ids: vol_u_ids,
-                    });
-            return AssignmentInstance.update({
-                Volunteers: vol_u_ids
-                }, {
-                    where: {
-                        AssignmentInstanceID: ti.AssignmentInstanceID
-                    }
-            }).then(async function (res) {
-                logger.log('info', 'assignment instance volunteers updated', {
-                    res: res
-                });
-                try { 
-                    await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
-                } catch(e) { 
-                    console.log('there was an error'); console.log(e); 
-                }
-            }).catch(function (err) {
-                logger.log('error', 'assignment instance volunteers update failed', err);
-                return err;
-            });              
-        });  
-    } */
+    
 
     // Task based reallocation created 2-28-18 mss86
     //@ tasks: array of type and ids [ 'ti',[#,...]] 
@@ -1450,7 +1407,7 @@ class Allocator {
         });
         await Promise.mapSeries(ais , async(ai) =>{   // for each Assigment Instance
 
-            var wi_ids = JSON.parse(ai.WorkflowCollection);  // array of workflowIDS
+            var wi_ids = JSON.parse(ai.WorkflowCollection);  // array of workflowIDS 
             if(wi_ids == null){
                 logger.log('error','workflow ids cannot be null',wi_ids);
                 return;
@@ -1472,7 +1429,6 @@ class Allocator {
                             UserID: old_user_id
                         }
                     })
-                    console.log(ti);
                     if(ti != null){
                         await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
                     }   
@@ -1545,6 +1501,11 @@ class Allocator {
     //@ u_ids : array of ids
     //@ ai_id : assigment instance id
     async update_ai_volunteers(vol_u_ids, ai_id){
+        logger.log('info',{
+            call:"update_ai_volunteers",
+            vol_u_ids: vol_u_ids,
+            ai_id: ai_id,
+        });
         var vol_user_ids = vol_u_ids || [];
         await AssignmentInstance.update({
             Volunteers: vol_user_ids
@@ -1559,6 +1520,10 @@ class Allocator {
     // Get TaskInstance from ti_id  created 3-2-18 mss86
     //@ ti_id: taskinstanceID
     async get_ti_from_ti_id(ti_id){
+        logger.log('info',{
+            call:"get_ti_from_ti_i",
+            ti_id: ti_id,
+        });
         var result = await TaskInstance.findOne({
             where: {
                 TaskInstanceID: ti_id
@@ -1573,6 +1538,10 @@ class Allocator {
     // Get TaskInstance from wi_id  created 3-2-18 mss86
     //@ wi_id: WorkFlowInstanceID
     async get_ti_from_wi_id(wi_id){
+        logger.log('info',{
+            call:"get_ti_from_wi_id",
+            wi_id: wi_id,
+        });
         var result = await TaskInstance.findOne({
             where: {
                 WorkflowInstanceID: wi_id
@@ -1587,6 +1556,10 @@ class Allocator {
     // Get AssigmentInstance from ai_id  created 3-2-18 mss86
     //@ ai_id: AssignmentInstanceID
     async get_ai_from_ai_id(ai_id){
+        logger.log('info',{
+            call:"get_ai_from_ai_id",
+            ai_id: ai_id,
+        });
         var result = await AssignmentInstance.findOne({
             where: {
                 AssignmentInstanceID: ai_id
@@ -1601,19 +1574,57 @@ class Allocator {
     // Get All late task within workflow created 3-2-18 mss86
     //@ wi_id: WorkFlowInstanceID
     async get_late_tis(wi_id){
+        logger.log('info',{
+            call:"get_late_tis",
+            wi_id: wi_id,
+        });
         var late_tasks=[];
         var tis = await TaskInstance.findAll({
-            where: {
-                Status:{
-                    $like: '%"late"%'
-                },
-                WorkFlowInstanceID: wi_id
-            },
+            where:{
+                WorkFlowInstanceID: wi_id,
+                $and: [
+                    { 
+                        Status: {
+                            $like: '%"late"%',
+                        }
+                    },    
+                    { 
+                        Status: {
+                            $notLike: '%"complete"%',
+                        }
+                    },
+                    {
+                        Status: {
+                            $notLike: '%"bypassed"%', 
+                        }
+                    },
+                    {
+                        Status: {
+                            $notLike: '%"cancelled"%', 
+                        }
+                    }
+                ]
+            }
         });
         await Promise.map(tis, async(ti) => {
             late_tasks.push(ti);
         });
         return late_tasks;
+    }
+    // Get new due date for task created 3-3-18 mss86
+    //@ ti: taskinstance
+    async get_new_date(ti){
+        var extension = 1440; // TODO: change this default 1 day to 1/2 of orginal
+        //var date = new Date (ti.EndDate); 
+        if(ti.EndDate != null){ // keep the date null if it was null
+            var date = new Date ();  // from current time, since realocation can happen few days after
+            var newdate = new Date ( date );
+            newdate.setMinutes ( date.getMinutes() + extension );
+            logger.log('debug','get_new_date: ',date);
+            return newdate;
+        }else{
+            return null;
+        }
     }
     //finds the students from the same section
     findSectionUsers(ai_id, callback) {
