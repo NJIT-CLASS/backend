@@ -19,13 +19,13 @@ var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_P
     logging: false
 });
 
-var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification', 'Group',
+var models = ['Assignment', 'ArchivedAssignment', 'AssignmentInstance', 'Course', 'EmailNotification', 'Group',
     'GroupUser', 'Organization', 'ResetPasswordRequest', 'Section',
     'SectionUser', 'Semester', 'TaskActivity','User',
     'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
     'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
     'FileReference','TaskInstance','Comments','CommentsArchive', 'CommentsViewed', 'Contact','Notifications',
-    'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
+    'BadgeInstance', 'Badge', 'CategoryInstance', 'Category', 'UserBadgeInstances', 'UserPointInstances',
     'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
     'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit'
 ];

@@ -1,9 +1,9 @@
 import {
     Assignment,
-    AssignmentGrade,
-    AssignmentInstance,
-    AssignmentInstance_Archive,
-    Assignment_Archive,
+    //AssignmentGrade,
+    //AssignmentInstance,
+    //AssignmentInstance_Archive,
+	ArchivedAssignment,
     Badge,
     BadgeInstance,
     Category,
@@ -6493,6 +6493,229 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Admin Level APIs
 
+	/**
+     * Drops existing archived and removed tables.
+     * and then create a new ones.
+	 */
+	router.get('/clear', function (req, res) {
+		//DROP exisiting table if exist to start fresh
+		return sequelize.query("DROP TABLE IF EXISTS `archivedassignmentinstance`;")
+			.spread((results, metadata) => {
+				// Results will be an empty array and metadata will contain the number of affected rows.
+				console.log(results);
+			}).then(sequelize.query(              //CREATE new archivedassignment instance table
+				"   CREATE TABLE `archivedassignmentinstance` (\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL,\n" +
+				"  `SectionID` int(10) unsigned NOT NULL,\n" +
+				"  `StartDate` datetime DEFAULT NULL,\n" +
+				"  `EndDate` datetime DEFAULT NULL,\n" +
+				"  `WorkflowCollection` json DEFAULT NULL,\n" +
+				"  `WorkflowTiming` json DEFAULT NULL,\n" +
+				"  `Volunteers` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`AssignmentInstanceID`),\n" +
+				"  UNIQUE KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  UNIQUE KEY `assignmentinstance_AssignmentInstanceID_unique` (`AssignmentInstanceID`),\n" +
+				"  KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  KEY `SectionID` (`SectionID`),\n" +
+				"  CONSTRAINT `archivedassignmentinstance_ibfk_1` FOREIGN KEY (`AssignmentID`) REFERENCES `assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedassignmentinstance_ibfk_2` FOREIGN KEY (`SectionID`) REFERENCES `section` (`SectionID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedworkflowinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `archivedworkflowinstance` (\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `StartTime` datetime DEFAULT NULL,\n" +
+				"  `EndTime` datetime DEFAULT NULL,\n" +
+				"  `TaskCollection` json DEFAULT NULL,\n" +
+				"  `Data` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`WorkflowInstanceID`),\n" +
+				"  UNIQUE KEY `WorkflowInstanceID` (`WorkflowInstanceID`),\n" +
+				"  UNIQUE KEY `workflowinstance_WorkflowInstanceID_unique` (`WorkflowInstanceID`),\n" +
+				"  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `archivedworkflowinstance_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedworkflowinstance_ibfk_2` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=256 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedtaskinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `archivedtaskinstance` (\n" +
+				"  `TaskInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `UserID` int(10) unsigned NOT NULL,\n" +
+				"  `TaskActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `GroupID` int(10) unsigned DEFAULT NULL,\n" +
+				"  `Status` varchar(255) DEFAULT NULL,\n" +
+				"  `StartDate` datetime DEFAULT NULL,\n" +
+				"  `EndDate` datetime DEFAULT NULL,\n" +
+				"  `ActualEndDate` datetime DEFAULT NULL,\n" +
+				"  `Data` json DEFAULT NULL,\n" +
+				"  `UserHistory` json DEFAULT NULL,\n" +
+				"  `FinalGrade` float unsigned DEFAULT NULL,\n" +
+				"  `Files` json DEFAULT NULL,\n" +
+				"  `ReferencedTask` int(10) unsigned DEFAULT NULL,\n" +
+				"  `IsSubworkflow` int(11) DEFAULT NULL,\n" +
+				"  `NextTask` json DEFAULT NULL,\n" +
+				"  `PreviousTask` json DEFAULT NULL,\n" +
+				"  `EmailLastSent` datetime NOT NULL DEFAULT '1999-01-01 00:00:00',\n" +
+				"  PRIMARY KEY (`TaskInstanceID`),\n" +
+				"  UNIQUE KEY `TaskInstanceID` (`TaskInstanceID`),\n" +
+				"  UNIQUE KEY `taskinstance_TaskInstanceID_unique` (`TaskInstanceID`),\n" +
+				"  KEY `UserID` (`UserID`),\n" +
+				"  KEY `TaskActivityID` (`TaskActivityID`),\n" +
+				"  KEY `WorkflowInstanceID` (`WorkflowInstanceID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `archivedtaskinstance_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `user` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedtaskinstance_ibfk_2` FOREIGN KEY (`TaskActivityID`) REFERENCES `taskactivity` (`TaskActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedtaskinstance_ibfk_3` FOREIGN KEY (`WorkflowInstanceID`) REFERENCES `workflowinstance` (`WorkflowInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedtaskinstance_ibfk_4` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=2066 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedassignmentinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query(              //CREATE new removedassignment instance table
+				"   CREATE TABLE `removedassignmentinstance` (\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL,\n" +
+				"  `SectionID` int(10) unsigned NOT NULL,\n" +
+				"  `StartDate` datetime DEFAULT NULL,\n" +
+				"  `EndDate` datetime DEFAULT NULL,\n" +
+				"  `WorkflowCollection` json DEFAULT NULL,\n" +
+				"  `WorkflowTiming` json DEFAULT NULL,\n" +
+				"  `Volunteers` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`AssignmentInstanceID`),\n" +
+				"  UNIQUE KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  UNIQUE KEY `assignmentinstance_AssignmentInstanceID_unique` (`AssignmentInstanceID`),\n" +
+				"  KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  KEY `SectionID` (`SectionID`),\n" +
+				"  CONSTRAINT `removedassignmentinstance_ibfk_1` FOREIGN KEY (`AssignmentID`) REFERENCES `assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedassignmentinstance_ibfk_2` FOREIGN KEY (`SectionID`) REFERENCES `section` (`SectionID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedworkflowinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedworkflowinstance` (\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `StartTime` datetime DEFAULT NULL,\n" +
+				"  `EndTime` datetime DEFAULT NULL,\n" +
+				"  `TaskCollection` json DEFAULT NULL,\n" +
+				"  `Data` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`WorkflowInstanceID`),\n" +
+				"  UNIQUE KEY `WorkflowInstanceID` (`WorkflowInstanceID`),\n" +
+				"  UNIQUE KEY `workflowinstance_WorkflowInstanceID_unique` (`WorkflowInstanceID`),\n" +
+				"  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `removedworkflowinstance_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedworkflowinstance_ibfk_2` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=256 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedtaskinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedtaskinstance` (\n" +
+				"  `TaskInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `UserID` int(10) unsigned NOT NULL,\n" +
+				"  `TaskActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `GroupID` int(10) unsigned DEFAULT NULL,\n" +
+				"  `Status` varchar(255) DEFAULT NULL,\n" +
+				"  `StartDate` datetime DEFAULT NULL,\n" +
+				"  `EndDate` datetime DEFAULT NULL,\n" +
+				"  `ActualEndDate` datetime DEFAULT NULL,\n" +
+				"  `Data` json DEFAULT NULL,\n" +
+				"  `UserHistory` json DEFAULT NULL,\n" +
+				"  `FinalGrade` float unsigned DEFAULT NULL,\n" +
+				"  `Files` json DEFAULT NULL,\n" +
+				"  `ReferencedTask` int(10) unsigned DEFAULT NULL,\n" +
+				"  `IsSubworkflow` int(11) DEFAULT NULL,\n" +
+				"  `NextTask` json DEFAULT NULL,\n" +
+				"  `PreviousTask` json DEFAULT NULL,\n" +
+				"  `EmailLastSent` datetime NOT NULL DEFAULT '1999-01-01 00:00:00',\n" +
+				"  PRIMARY KEY (`TaskInstanceID`),\n" +
+				"  UNIQUE KEY `TaskInstanceID` (`TaskInstanceID`),\n" +
+				"  UNIQUE KEY `taskinstance_TaskInstanceID_unique` (`TaskInstanceID`),\n" +
+				"  KEY `UserID` (`UserID`),\n" +
+				"  KEY `TaskActivityID` (`TaskActivityID`),\n" +
+				"  KEY `WorkflowInstanceID` (`WorkflowInstanceID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `removedtaskinstance_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `user` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskinstance_ibfk_2` FOREIGN KEY (`TaskActivityID`) REFERENCES `taskactivity` (`TaskActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskinstance_ibfk_3` FOREIGN KEY (`WorkflowInstanceID`) REFERENCES `workflowinstance` (`WorkflowInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskinstance_ibfk_4` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=2066 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedassignment`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `archivedassignment` (\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `OwnerID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowActivityIDs` json DEFAULT NULL,\n" +
+				"  `Instructions` text,\n" +
+				"  `Documentation` text,\n" +
+				"  `GradeDistribution` json DEFAULT NULL,\n" +
+				"  `Name` varchar(255) DEFAULT NULL,\n" +
+				"  `Type` varchar(255) DEFAULT NULL,\n" +
+				"  `DisplayName` varchar(255) DEFAULT NULL,\n" +
+				"  `SectionID` blob,\n" +
+				"  `CourseID` int(10) unsigned NOT NULL,\n" +
+				"  `SemesterID` int(10) unsigned DEFAULT NULL,\n" +
+				"  `VersionHistory` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`AssignmentID`),\n" +
+				"  UNIQUE KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  UNIQUE KEY `assignment_AssignmentID_unique` (`AssignmentID`),\n" +
+				"  KEY `CourseID` (`CourseID`),\n" +
+				"  CONSTRAINT `archivedassignment_ibfk_1` FOREIGN KEY (`CourseID`) REFERENCES `course` (`CourseID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					console.log(results);
+				}))
+            .then(res.status(200).end());
+	});
+
     router.get('/AssignmentArchive/save/:AssignmentID', function (req, res) {
         var assignmentArray = new Array();
         Assignment.findAll({
@@ -6503,7 +6726,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function (rows) {
             //console.log(rows[0].OwnerID);
 
-            Assignment_Archive.create({
+	        ArchivedAssignment.create({
                 AssignmentID: rows[0].AssignmentID,
                 OwnerID: rows[0].OwnerID,
                 WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
@@ -6513,7 +6736,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Name: rows[0].Name,
                 Type: rows[0].Type,
                 DisplayName: rows[0].DisplayName,
-                SectionID: rows[0].SectionID,
+
+
                 CourseID: rows[0].CourseID,
                 SemesterID: rows[0].SemesterID,
                 VersionHistory: rows[0].VersionHistory
