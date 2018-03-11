@@ -53,7 +53,9 @@ import {
 
 import {
     FILE_SIZE as file_size,
-    MAX_NUM_FILES as max_files
+    MAX_NUM_FILES as max_files,
+    ROLES,
+    canRoleAccess
 } from './Util/constant';
 import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE} from './backend_settings';
 
@@ -532,7 +534,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Middleware to verify token
     router.use(function(req,res,next){
         if(process.env.NODE_ENV != 'production'){
-            req.user = {};
+            req.user = {
+                role: ROLES.ADMIN
+            };
             next();
             return;
         }
@@ -565,6 +569,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
     });
 
+
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.GUEST)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     //-------------------------------------------------------------------
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////                 Guest Level APIs
@@ -705,6 +717,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ///////////////////////////
     ////////////----------------   END Guest APIs                           ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.PARTICIPANT)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////                 Participant Level APIs                   ///////////////////////////
 
@@ -6404,15 +6423,34 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         });
     });
+
     /***********************************************************************************************************
      **  Amadou work ends here
      ************************************************************************************************************/
-
-
-
-
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.TEACHER)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////----------------   Teacher APIs
+    ///////////////////////////
+
+
+    ///////////////////////////
+    ////////////----------------   END Teacher Access APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Enhanced Access Level APIs
 
@@ -6492,6 +6530,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ///////////////////////////
     ////////////----------------   END Enhanced Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.ADMIN)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Admin Level APIs
 
@@ -7386,7 +7431,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         };
         logger.log('info','/reallocate/user_based called');
         var allocate = new Allocator([],0);
-        var ais = []
+        var ais = [];
         await Promise.map(req.body.ai_ids, async(ai_id) => {
             var ai = await AssignmentInstance.findOne({ 
                 where: { 

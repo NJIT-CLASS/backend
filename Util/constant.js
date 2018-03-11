@@ -5,6 +5,29 @@ export const MASTER_PASSWORD = EMAIL_PASSWORD;
 export const EMAIL_SERVER_STATUS = true;
 export const FILE_SIZE = 52428800;
 export const MAX_NUM_FILES = 3;
+export const ROLES = {
+    GUEST: 'Guest',
+    PARTICIPANT: 'Participant',
+    TEACHER: 'Teacher',
+    ENHANCED: 'Enhanced',
+    ADMIN: 'Admin',
+    SYSTEM: 'System Role',
+    'Guest': 1,
+    'Participant': 2,
+    'Teacher': 3,
+    'Enhanced': 4,
+    'Admin': 5
+
+};
+
+export const canRoleAccess = function(userRole, requiredRole){
+    console.log(ROLES[userRole], ROLES[requiredRole]);
+    if(ROLES[userRole] >= ROLES[requiredRole]){
+        return true;
+    } else {
+        return false;
+    }
+};
 
 exports.EXECUTION_STATUS ={
     NOT_YET_STARTED: 'not_yet_started', //default
