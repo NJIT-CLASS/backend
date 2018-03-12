@@ -450,12 +450,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // var tf = new TaskFactory();
         // var make = new Make();
         //var users = await make.allocateUsers(1, 3);
-        var alloc = new Allocator();
+        // var alloc = new Allocator();
 
 
-        var grade = new Grade();
-        var instructor = await alloc.findInstructor(3);
-        console.log(instructor);
+        // var grade = new Grade();
+        // var instructor = await alloc.findInstructor(3);
+        // console.log(instructor);
 
         // var grades = await grade.getStudentSimpleGrade(1, 1);
 
@@ -463,6 +463,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     error: false,
         //     grades: grades
         // });
+
+        let email = new Email();
+        let data = {
+            pass: '1234567'
+        }
+        email.sendNow(70, 'create user');
+        email.sendNow(70, 'invite user', data);
+        email.sendNow(70, 'new task');
+        email.sendNow(70, 'late');
+        email.sendNow(70, 'reset password', data);
 
         //grade.addSimpleGrade(1);
         // grade.addTaskGrade(1, 99, 100);
