@@ -348,7 +348,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //Endpoint to check if initial user in system
     router.get('/initial', function (req, res) {
-        console.log('/initial called');
         return User.findOne()
             .then(result => {
                 if (result === null) {
@@ -543,6 +542,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         if (token) {
             jwt.verify(token,TOKEN_KEY, function(err, decoded) {
+                
                 if (err) {
                     if(err.name == 'TokenExpiredError'){
                         console.log('Expired Token');
@@ -648,7 +648,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin', 'Role'],
             include: [{
                 model: UserLogin,
                 attributes: ['Email']
@@ -3130,8 +3130,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         User.create({
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
-                            Instructor: req.body.instructor,
-                            Admin: req.body.admin
+                            Role: req.body.role
                         }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
