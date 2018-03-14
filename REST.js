@@ -53,7 +53,9 @@ import {
 
 import {
     FILE_SIZE as file_size,
-    MAX_NUM_FILES as max_files
+    MAX_NUM_FILES as max_files,
+    ROLES,
+    canRoleAccess
 } from './Util/constant';
 import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE} from './backend_settings';
 
@@ -346,7 +348,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //Endpoint to check if initial user in system
     router.get('/initial', function (req, res) {
-        console.log('/initial called');
         return User.findOne()
             .then(result => {
                 if (result === null) {
@@ -532,13 +533,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Middleware to verify token
     router.use(function(req,res,next){
         if(process.env.NODE_ENV != 'production'){
-            req.user = {};
+            req.user = {
+                role: ROLES.ADMIN
+            };
             next();
             return;
         }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         if (token) {
             jwt.verify(token,TOKEN_KEY, function(err, decoded) {
+                
                 if (err) {
                     if(err.name == 'TokenExpiredError'){
                         console.log('Expired Token');
@@ -565,6 +569,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
     });
 
+
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.GUEST)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     //-------------------------------------------------------------------
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////                 Guest Level APIs
@@ -636,7 +648,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin', 'Role'],
             include: [{
                 model: UserLogin,
                 attributes: ['Email']
@@ -705,6 +717,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ///////////////////////////
     ////////////----------------   END Guest APIs                           ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.PARTICIPANT)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////                 Participant Level APIs                   ///////////////////////////
 
@@ -3111,8 +3130,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         User.create({
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
-                            Instructor: req.body.instructor,
-                            Admin: req.body.admin
+                            Role: req.body.role
                         }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -4024,7 +4042,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         });
 
-        let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        //let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        var a = new Allocator([],0);  // use updated version
+        let response = await a.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
         console.log('respose back', response);
         res.json(response);
     });
@@ -6402,15 +6422,34 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         });
     });
+
     /***********************************************************************************************************
      **  Amadou work ends here
      ************************************************************************************************************/
-
-
-
-
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.TEACHER)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////----------------   Teacher APIs
+    ///////////////////////////
+
+
+    ///////////////////////////
+    ////////////----------------   END Teacher Access APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Enhanced Access Level APIs
 
@@ -6490,6 +6529,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ///////////////////////////
     ////////////----------------   END Enhanced Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.ADMIN)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Admin Level APIs
 
@@ -7369,46 +7415,60 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    // debug testing realocation API // mss86
-    router.post('/reallocate/assigment', async function (req, res){
-        if(req.body.ai_id == null || req.body.old_user_ids == null || req.body.is_extra_credit == null ){
-            console.log('/reallocate/assigment: fields cannot be null');
+    
+    // API to reallocate users in assigments instances created 3-4-18 mss86
+    //@ sec_id: section ID
+    //@ ai_ids: [] assigment instance ids
+    //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
+    //@ user_pool_woc: [#,..] array of users without constrains
+    //@ is_extra_credit: boolean
+    router.post('/reallocate/user_based', async function (req, res){
+        if(req.body.ai_ids == null || req.body.old_user_ids == null || req.body.is_extra_credit == null || req.body.sec_id == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null ){
+            logger.log('error','/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
-        console.log('reallocate assigment called');
+        logger.log('info','/reallocate/user_based called');
         var allocate = new Allocator([],0);
-        var ai = await AssignmentInstance.findOne({ // get section
-            where: { 
-                AssignmentInstanceID: req.body.ai_id
-            }
+        var ais = [];
+        await Promise.map(req.body.ai_ids, async(ai_id) => {
+            var ai = await AssignmentInstance.findOne({ 
+                where: { 
+                    AssignmentInstanceID: ai_id
+                }
+            });
+            ais.push(ai);
         });
-        var sec_id = ai.SectionID;
-        var result = await allocate.reallocate_users(sec_id, [ai], req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
+        var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json({
             'result': result,
-            'error':false,
+            'Error':false,
             'message':'none'
         });
     });
-    // debug testing realocation API // mss86
-    router.post('/reallocate/assigment_task_based', async function (req, res){
-        if(req.body.ai_id == null || req.body.is_extra_credit == null ){
-            console.log('/reallocate/assigment: fields cannot be null');
+    // API to reallocate Tasks  created 3-4-18 mss86
+    //@ taskarray: [ 'ti' [#,..]] or [ 'wi' [#,..]] or [ 'ai' [#,..]] 
+    //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
+    //@ user_pool_woc: [#,..] array of users without constrains
+    //@ is_extra_credit: boolean
+    router.post('/reallocate/task_based', async function (req, res){
+        if(req.body.taskarray == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null || req.body.is_extra_credit == null){
+            logger.log('error','/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
-        console.log('reallocate assigment called');
+        logger.log('info','/reallocate/task_based called');
         var allocate = new Allocator([],0);
-        var result = await allocate.reallocate_tasks_based(req.body.ai_id, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
-        res.json({
-            'result': result,
-            'error':false,
-            'message':'none'
-        });
+        var result = await allocate.reallocate_tasks_based(req.body.taskarray, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
+        res.json( result );
     });
-
-
+    // Debug for testing cancelling workflow created 3-10-19 mss86
+    router.post('/reallocate/debug', async function (req, res){
+        logger.log('info','/reallocate/debug called');
+        var allocate = new Allocator([],0);
+        //var result = await allocate.create_assigment_graph(1);
+        var result = await allocate.cancel_workflow(1, 5);
+    });
 
     //Endpoint debug
 
