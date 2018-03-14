@@ -218,7 +218,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         const payload = {
                             admin: user.User.Admin,
                             instructor: user.User.Instructor,
-                            role: user.User.Role,
+                            role: user.User.Role || ROLES.ADMIN,
                             id: user.UserID
                         };
                         let token = jwt.sign(payload, TOKEN_KEY, {
