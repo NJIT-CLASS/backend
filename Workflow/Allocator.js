@@ -48,6 +48,7 @@ import {
     WorkflowInstance,
     WorkflowInstance_Archive
 } from '../Util/models.js';
+import { resolve } from 'url';
 
 var models = require('../Model');
 var Promise = require('bluebird');
@@ -789,17 +790,35 @@ class Allocator {
     //         user_history: ti_u_hist
     //     });
 
-    reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
+    async reallocate_user_to_task(ti, new_u_id, is_extra_credit) {
         if (is_extra_credit == null) {
             is_extra_credit = true;
+        }
+
+        var reallocation_status = 'reallocated_no_extra_credit';
+        if(is_extra_credit){
+            reallocation_status = 'reallocated_extra_credit';
         }
 
         // logger.log('debug', {
         //     call: 'reallocate_user_to_task'
         // });
+        if(JSON.parse(ti.Status)[0] === 'complete'){
+            return {
+                Error: true,
+                Message: 'Task already completed'
+            };
+        }
 
         var task_id = ti.TaskInstanceID;
         var ti_u_hist = JSON.parse(ti.UserHistory) || [];
+        var ti_status = JSON.parse(ti.Status);
+
+        ti_status[5] = reallocation_status;  // change reallocation status
+        ti_status[4] = 'not_opened';         // change view back to deafult
+        ti_status[3] = 'before_end_time';   // change from late to not late
+
+        var new_end_date= await this.get_new_date(ti); // get time extension
 
         ti_u_hist.push({
             time: new Date(),
@@ -810,12 +829,16 @@ class Allocator {
         logger.log('info', 'update a task instance with a new user and user history', {
             task_instance: ti.toJSON(),
             new_user_id: new_u_id,
-            user_history: ti_u_hist
+            user_history: ti_u_hist,
+            new_status: ti_status,
+            new_end_date: new_end_date
         });
 
         return TaskInstance.update({
             UserID: new_u_id,
             UserHistory: ti_u_hist,
+            Status: JSON.stringify(ti_status),
+            EndDate: new_end_date,
         }, {
             where: {
                 TaskInstanceID: task_id
@@ -825,9 +848,16 @@ class Allocator {
             //     res: res
             // });
             //return res;
+            return {
+                Error: false,
+                Message: null
+            };
         }).catch(function (err) {
             logger.log('error', 'task instance update failed', err);
-            return err;
+            return {
+                Error: true,
+                Message: 'Failed reallocate user to another task'
+            };
         });
     }
 
@@ -953,16 +983,28 @@ class Allocator {
 
         // await email.sendNow(old_ti.UserID, 'remove_reallocated');
         // await email.sendNow(new_u_id, 'new_reallocated');
-
+        // ignore if complete, bypassed, or cancelled.
         var tis = await TaskInstance.findAll({
             where:{
                 WorkflowInstanceID: ti.WorkflowInstanceID,
-                Status: {
-                    $notLike: '%"complete"%',
-                    // also bypassed?
-                    // also abondoned?
-                }
-            }
+                $and: [    
+                    { 
+                        Status: {
+                            $notLike: '%"complete"%',
+                        }
+                    },
+                    {
+                        Status: {
+                            $notLike: '%"bypassed"%',  // dont update bypassed
+                        }
+                    },
+                    {
+                        Status: {
+                            $notLike: '%"cancelled"%', // dont update completed
+                        }
+                    }
+                ]
+            }       
         });
 
         await Promise.mapSeries(tis, async (new_ti) => {
@@ -971,6 +1013,7 @@ class Allocator {
             }
         });
     }
+    /* will remove this soon mss86
         // reallocate all active assigments of user, called when user is made "inactive"
         async reallocate_all_ai_of_user(section_user_id){
             var x = this;
@@ -1062,6 +1105,7 @@ class Allocator {
                 logger.log('error', 'get_uncomplete_tis_of_users',e);
             }
         }
+        */
         // return volunteers userIds for section
         async get_volunteers_ids(section_id){
             var volunteers=[];
@@ -1267,59 +1311,327 @@ class Allocator {
             // })
         });
     }
-    // Updated version of realocate with instructor parameter, so far only used for reallocate_assigment
-    async reallocate_ti(ti, u_ids, is_extra_credit,option, instructor_id) {
-        logger.log('info', 'reallocate new user to a given task instance', {
-            task_instance: ti.toJSON(),
-            user_ids: u_ids,
-            is_extra_credit: is_extra_credit,
-            option: option,
-            instructor_id: instructor_id
+    
+
+    // Task based reallocation created 2-28-18 mss86
+    //@ tasks: array of type and ids [ 'ti',[#,...]] 
+    //@ user_pool_wc: [ [],..] ids to use with constrains
+    //@ user_pool_woc: [] ids to use without constrains
+    //@ is_extra_credit: boolean
+    async reallocate_tasks_based(tasks,user_pool_wc, user_pool_woc, is_extra_credit){
+        logger.log('info',{
+            call:"reallocate_tasks_based",
+            tasks: tasks,
+            user_pool_wc: user_pool_wc,
+            user_pool_woc: user_pool_woc,
+            is_extra_credit: is_extra_credit
         });
-
-        var ti_id = ti.TaskInstanceID;
         var x = this;
-        var [lateUser,vol_u_ids,wi_ids] = await Promise.all([x.getLateUser(ti_id), x.get_ai_volunteers(ti.AssignmentInstanceID), x.getWorkflowInstanceID(ti_id)])
-        vol_u_ids = vol_u_ids || [];
-        await Promise.map(wi_ids, async function (wi_id) {
-            var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
-            var new_u_id    = await x.find_new_user(u_ids, vol_u_ids, avoid_u_ids);
-            if(new_u_id == null){          // dont proceed if no user is available, return error
-                if(instructor_id == null){ // unless instructor was provided to use as last resource
-                    return {
-                        Error: true,
-                        message: "No Replacement User was Available"
-                    }
-                }else{
-                    new_u_id = instructor_id;  // use instructor if no user available
+        const t_type = tasks[0];
+        var task_ids = tasks[1];
+        var ignore_users=[];
+        if(t_type === 'ti'){    // update provided Task Instances with different users
+            await Promise.mapSeries(task_ids, async (ti_id) => {     // dont use these users in any reallocation
+                ignore_users.push(x.getLateUser(ti_id));
+            });
+            await Promise.mapSeries(task_ids, async (ti_id) => {   
+                var ti = await x.get_ti_from_ti_id(ti_id);           // get Instance from ID
+                var ai_id = ti.AssignmentInstanceID; 
+                var wi_id = await x.getWorkflowInstanceID(ti_id);       
+                var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id); 
+                avoid_u_ids    = _.union(avoid_u_ids,ignore_users);       
+                var vol_u_ids  = await x.get_ai_volunteers(ai_id) || [];    // get used valuenteers for assigment instance
+                var new_u_id   = await x.find_new_user_from_pool(user_pool_wc,user_pool_woc,vol_u_ids, avoid_u_ids);
+                await x.reallocate_user_to_task(ti, new_u_id,is_extra_credit);
+                await x.update_ai_volunteers(vol_u_ids, ai_id);       
+            });
+            return {'error':false};
+        }else if(t_type === 'wi'){  // update entire workflows with same new user per workflow with same new user per workflow
+            await x.reallocate_workflow(task_ids,user_pool_wc, user_pool_woc, is_extra_credit);
+            return {'error':false};    
+        }else if(t_type === 'ai'){
+            await Promise.mapSeries(task_ids, async(ai_id) =>{
+                var ai  = await x.get_ai_from_ai_id(ai_id);
+                var wi_ids = JSON.parse(ai.WorkflowCollection);  // array of workflowIDS
+                if(wi_ids == null){
+                    logger.log('error','workflow ids cannot be null',wi_ids);
+                    return;
                 }
-            }
-            logger.log('debug', 'update assignment instance volunteers', {
-                    assignment_instance_id: ti.AssignmentInstanceID,
-                    volunteer_user_ids: vol_u_ids,
-                    });
-            return AssignmentInstance.update({
-                Volunteers: vol_u_ids
-                }, {
-                    where: {
-                        AssignmentInstanceID: ti.AssignmentInstanceID
-                    }
-            }).then(async function (res) {
-                logger.log('info', 'assignment instance volunteers updated', {
-                    res: res
-                });
-                try { 
-                    await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
-                } catch(e) { 
-                    console.log('there was an error'); console.log(e); 
-                }
-            }).catch(function (err) {
-                logger.log('error', 'assignment instance volunteers update failed', err);
-                return err;
-            });              
-        });  
+                await x.reallocate_workflow(wi_ids,user_pool_wc, user_pool_woc, is_extra_credit);
+            });
+            return {'error':false};
+        }
     }
+    // reallocate late tasks withing workflows created 3-2-18 mss86
+    //@ helper function for reallocate_tasks_based
+    //@ wi_ids: WorkFlowInstanceIds
+    async reallocate_workflow(wi_ids,user_pool_wc, user_pool_woc, is_extra_credit){
+        logger.log('info',{
+            call:"reallocate_workflow",
+            wi_ids: wi_ids,
+            user_pool_wc: user_pool_wc,
+            user_pool_woc: user_pool_woc,
+            is_extra_credit: is_extra_credit
+        });
+        var x = this;
+        var ignore_users=[];
+        var tis_array=[];
+        await Promise.mapSeries(wi_ids, async (wi_id) => {    // Find late users to not use them in reallocation 
+            var tis = await x.get_late_tis(wi_id);          // get all late tasks
+            console.log(tis);
+            tis_array.push(tis);
+            await Promise.map(tis, async(ti) =>{
+                ignore_users.push(ti.UserID);
+            })
+        });
+        await Promise.mapSeries(wi_ids, async (wi_id, idx) => {
+            var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
+            avoid_u_ids = _.union(avoid_u_ids, ignore_users);
+            await Promise.mapSeries(tis_array[idx], async(ti) => {
+                var vol_u_ids   = await x.get_ai_volunteers(ti.AssignmentInstanceID) || []; 
+                var new_u_id    = await x.find_new_user_from_pool(user_pool_wc,user_pool_woc,vol_u_ids, avoid_u_ids);
+                await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
+                await x.update_ai_volunteers(vol_u_ids, ti.AssignmentInstanceID);
+            });
+        });
+        return;
+    }
+    // User Based, Updated version of realocate created 2-27-18 mss86
+    //@ ais: AssigmentInstace
+    //@ old_user_ids: [] ids to replace
+    //@ user_pool_wc: [ [],..] ids to use with constrains
+    //@ user_pool_woc: [] ids to use without constrains
+    //@ is_extra_credit: boolean
+    async reallocate_users(section_id, ais, old_user_ids, user_pool_wc, user_pool_woc, is_extra_credit) {
+        logger.log('info', 'reallocate_users was called',{
+            section_id: section_id, 
+            //ais: ais, 
+            old_user_ids: old_user_ids,
+            user_pool_wc: user_pool_wc, 
+            user_pool_woc: user_pool_woc, 
+            is_extra_credit: is_extra_credit,
+        });
+        await Promise.mapSeries(ais , async(ai) =>{   // for each Assigment Instance
 
+            var wi_ids = JSON.parse(ai.WorkflowCollection);  // array of workflowIDS 
+            if(wi_ids == null){
+                logger.log('error','workflow ids cannot be null',wi_ids);
+                return;
+            }
+
+            var x = this;
+            var vol_u_ids = await x.get_ai_volunteers(ai.AssignmentInstanceID); // get used valuenteers for assigment
+            vol_u_ids = vol_u_ids || [];
+            await Promise.mapSeries(wi_ids, async function (wi_id) {  // for each workflow 
+
+                var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
+                avoid_u_ids = _.union(avoid_u_ids, old_user_ids);  // add old user ids to avoid list
+                    
+                await Promise.mapSeries(old_user_ids,async (old_user_id) => { 
+                    var new_u_id = await x.find_new_user_from_pool(user_pool_wc, user_pool_woc, vol_u_ids, avoid_u_ids); 
+                    var ti = await TaskInstance.findOne({
+                        where:{
+                            WorkflowInstanceID: wi_id,
+                            UserID: old_user_id
+                        }
+                    })
+                    if(ti != null){
+                        await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
+                    }   
+                });
+            }) ; 
+            logger.log('info','Assigment Voluenteers updated to: ', vol_u_ids);
+            await x.update_ai_volunteers(vol_u_ids, ai.AssignmentInstanceID );
+        });
+        return {'error': false};
+    }
+    // Finds new user from lists of lists. created 2-27-18 mss86
+    //@ uses only the first list if possible, then second(section ids), lasty (instructors)
+    //@   u_ids_wc: [ [],..]  list of lists with constrains
+    //@   u_ids_woc   [ ] list of users without constrains
+    //@   avoid_u_ids [ ] list of users to avoid
+    async find_new_user_from_pool(u_ids_wc, u_ids_woc, vol_u_ids, avoid_u_ids) {
+        vol_u_ids = vol_u_ids || [];
+        var idx = null;
+        var new_user_id=null;
+        logger.log('info','find_new_user_from_pool was called',{
+            u_ids_wc: u_ids_wc, 
+            u_ids_woc: u_ids_woc, 
+            vol_u_ids: vol_u_ids, 
+            avoid_u_ids: avoid_u_ids,
+        }); 
+        // loop through each users array without Constrains
+        await Promise.mapSeries(u_ids_wc, async(u_ids) =>{
+            if(!new_user_id){
+                // check if there is a user that has not been part of voluenteers so far and fits
+                if(!new_user_id){    
+                    await Promise.map(u_ids, function (u_id) {  // changed to map from mapSeries
+                        if (new_user_id == null && !_.contains(avoid_u_ids, u_id) && !_.contains(vol_u_ids, u_id)) {
+                            new_user_id = u_id;
+                            logger.log('debug','new user not yet in voluenteers found from users with constrains :',new_user_id);
+                        }
+                    });
+                }
+                // find user that has been part of voluenteers and least recently used
+                if(!new_user_id){
+                    await Promise.map(vol_u_ids, function (u_id, i) {  // changed to map from mapSeries
+                        if (idx == null && _.contains(u_ids, u_id) && !_.contains(avoid_u_ids, u_id)) {
+                            idx = i;
+                            new_user_id = u_id;
+                            logger.log('debug','new user that is part of voluenteers found users with constrains :',new_user_id);
+                        }
+                    });
+                }
+            }      
+        });
+        // if not found a user yet, pick first user from Users without Contrains that was least used
+        if(!new_user_id){
+            new_user_id = u_ids_woc[0];  
+            // find a user  that didnt voluenteer yet
+            Promise.mapSeries(u_ids_woc, async (user_id)=>{
+                if(!_.contains(vol_u_ids,user_id)){
+                    new_user_id = user_id;
+                }
+            });
+            logger.log('debug','user without constrains used :',new_user_id);
+            idx = vol_u_ids.indexOf(new_user_id); // 
+        }
+        // reorder the volunteers used so far for this assignment
+        if(idx != null && idx > -1){
+            vol_u_ids.splice(idx, 1); // remove user
+        }
+        vol_u_ids.push(new_user_id);  // add user to end of list
+        return new_user_id; 
+    }
+    // update_ai_volunteers 
+    //@ u_ids : array of ids
+    //@ ai_id : assigment instance id
+    async update_ai_volunteers(vol_u_ids, ai_id){
+        logger.log('info',{
+            call:"update_ai_volunteers",
+            vol_u_ids: vol_u_ids,
+            ai_id: ai_id,
+        });
+        var vol_user_ids = vol_u_ids || [];
+        await AssignmentInstance.update({
+            Volunteers: vol_user_ids
+            }, {
+                where: {
+                    AssignmentInstanceID: ai_id
+                }
+        }).catch(function (err) {
+            logger.log('error', 'update_ai_volunteers, failed to update', err);
+        });
+    }
+    // Get TaskInstance from ti_id  created 3-2-18 mss86
+    //@ ti_id: taskinstanceID
+    async get_ti_from_ti_id(ti_id){
+        logger.log('info',{
+            call:"get_ti_from_ti_i",
+            ti_id: ti_id,
+        });
+        var result = await TaskInstance.findOne({
+            where: {
+                TaskInstanceID: ti_id
+            }
+        })
+        if(result){
+            return result;
+        }else{
+            logger.log('error','get_ti_from_ti_id, no TaskInstance Exists');
+        }
+    }
+    // Get TaskInstance from wi_id  created 3-2-18 mss86
+    //@ wi_id: WorkFlowInstanceID
+    async get_ti_from_wi_id(wi_id){
+        logger.log('info',{
+            call:"get_ti_from_wi_id",
+            wi_id: wi_id,
+        });
+        var result = await TaskInstance.findOne({
+            where: {
+                WorkflowInstanceID: wi_id
+            }
+        })
+        if(result){
+            return result;
+        }else{
+            logger.log('error','get_ti_from_wi_id, no TaskInstance Exists');
+        }
+    }
+    // Get AssigmentInstance from ai_id  created 3-2-18 mss86
+    //@ ai_id: AssignmentInstanceID
+    async get_ai_from_ai_id(ai_id){
+        logger.log('info',{
+            call:"get_ai_from_ai_id",
+            ai_id: ai_id,
+        });
+        var result = await AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: ai_id
+            }
+        });
+        if(result){
+            return result;
+        }else{
+            logger.log('error','get_ai_from_ai_id, no AssigmentInstance Exists');
+        }
+    }
+    // Get All late task within workflow created 3-2-18 mss86
+    //@ wi_id: WorkFlowInstanceID
+    async get_late_tis(wi_id){
+        logger.log('info',{
+            call:"get_late_tis",
+            wi_id: wi_id,
+        });
+        var late_tasks=[];
+        var tis = await TaskInstance.findAll({
+            where:{
+                WorkFlowInstanceID: wi_id,
+                $and: [
+                    { 
+                        Status: {
+                            $like: '%"late"%',
+                        }
+                    },    
+                    { 
+                        Status: {
+                            $notLike: '%"complete"%',
+                        }
+                    },
+                    {
+                        Status: {
+                            $notLike: '%"bypassed"%', 
+                        }
+                    },
+                    {
+                        Status: {
+                            $notLike: '%"cancelled"%', 
+                        }
+                    }
+                ]
+            }
+        });
+        await Promise.map(tis, async(ti) => {
+            late_tasks.push(ti);
+        });
+        return late_tasks;
+    }
+    // Get new due date for task created 3-3-18 mss86
+    //@ ti: taskinstance
+    async get_new_date(ti){
+        var extension = 1440; // TODO: change this default 1 day to 1/2 of orginal
+        //var date = new Date (ti.EndDate); 
+        if(ti.EndDate != null){ // keep the date null if it was null
+            var date = new Date ();  // from current time, since realocation can happen few days after
+            var newdate = new Date ( date );
+            newdate.setMinutes ( date.getMinutes() + extension );
+            logger.log('debug','get_new_date: ',date);
+            return newdate;
+        }else{
+            return null;
+        }
+    }
     //finds the students from the same section
     findSectionUsers(ai_id, callback) {
         AssignmentInstance.find({

@@ -1,9 +1,9 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Notification', {
-        NotificationID: {
+    return sequelize.define('Notifications', {
+        NotificationsID: {
             //Unique identifier for the Notification.
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'NotificationID',
+            field: 'NotificationsID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
@@ -31,7 +31,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         Dismiss: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Deleted',
+            field: 'Dismiss',
             allowNull: true
         },
 
@@ -54,6 +54,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'WorkflowInstance'
+        tableName: 'notifications'
     });
 };

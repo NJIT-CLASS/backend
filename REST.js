@@ -172,7 +172,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['UserID', 'Email', 'Password', 'Pending', 'Attempts', 'Timeout', 'Blocked'],
             include: [{
                 model: User,
-                attributes: ['Admin', 'Instructor']
+                attributes: ['Admin', 'Instructor', 'Role']
             }]
         }).then(async function (user) {
             let current_timestamp = new Date(); // get current time of login
@@ -216,6 +216,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         const payload = {
                             admin: user.User.Admin,
                             instructor: user.User.Instructor,
+                            role: user.User.Role,
                             id: user.UserID
                         };
                         let token = jwt.sign(payload, TOKEN_KEY, {
@@ -540,13 +541,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Middleware to verify token
     router.use(function(req,res,next){
-         if(process.env.NODE_ENV != 'production'){
-             req.user = {};
-             next();
-             return;
-         }
+        if(process.env.NODE_ENV != 'production'){
+            req.user = {};
+            next();
+            return;
+        }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
-        console.log(token);
         if (token) {
             jwt.verify(token,TOKEN_KEY, function(err, decoded) {
                 if (err) {
@@ -2383,11 +2383,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         });
     });
-/* replaced with updated by MS 2-24-28
+    
     router.post('/sectionUsers/changeActive/:sectionUserID', (req, res) => {
         // TODO:  This API does a simple database update, but it may need
-         // to do some special reallocation to deal with inactive students
-         //
+        // to do some special reallocation to deal with inactive students
+        //
         var newActiveStatus = true;
         if (req.body.active != null) {
             newActiveStatus = req.body.active;
@@ -2411,11 +2411,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         });
     });
-    */
+    /* not currently working  mss86   
     router.post('/sectionUsers/changeActive/:sectionUserID',async (req, res) => {
-        /** 
-         * When students is made Inactive, Its Assigment's get reallocated to voluenteers/instructor
-         */
+        //
+         //When students is made Inactive, Its Assigment's get reallocated to voluenteers/instructor
+         //
         var newActiveStatus = true;
         if (req.body.active != null) {
             newActiveStatus = req.body.active;
@@ -2451,7 +2451,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 res.status(400).end();
             }
     });
-
+*/
     router.get('/getWorkflow/:ti_id', async function (req, res) {
         var ti = await TaskInstance.find({
             where: {
@@ -4034,7 +4034,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         });
 
-        let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        //let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
+        var a = new Allocator([],0);  // use updated version
+        let response = await a.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
         console.log('respose back', response);
         res.json(response);
     });
@@ -4335,7 +4337,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return;
         }
         else{
-            var va2 = va[0];
+            // var va2 = va[0];
         }
         UserContact.upsert(
             req.body, {
@@ -7379,33 +7381,55 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    router.post('/reallocate/assigment', async function (req, res){
-        if(req.body.ai_id == null || req.body.replace_all_ai== null  || req.body.user_ids == null || req.body.is_extra_credit == null ){
-            console.log('/reallocate/assigment: fields cannot be null');
+    
+    // API to reallocate users in assigments instances created 3-4-18 mss86
+    //@ sec_id: section ID
+    //@ ai_ids: [] assigment instance ids
+    //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
+    //@ user_pool_woc: [#,..] array of users without constrains
+    //@ is_extra_credit: boolean
+    router.post('/reallocate/user_based', async function (req, res){
+        if(req.body.ai_ids == null || req.body.old_user_ids == null || req.body.is_extra_credit == null || req.body.sec_id == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null ){
+            logger.log('error','/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
-        console.log("reallocate assigment called");
+        logger.log('info','/reallocate/user_based called');
         var allocate = new Allocator([],0);
-        try{
-            var ai = await AssignmentInstance.findOne({ // get section
+        var ais = []
+        await Promise.map(req.body.ai_ids, async(ai_id) => {
+            var ai = await AssignmentInstance.findOne({ 
                 where: { 
-                    AssignmentInstanceID: req.body.ai_id
+                    AssignmentInstanceID: ai_id
                 }
             });
-        }catch(e){
-            logger.log('error','reallocate_user_to_assigment, failed to find one ai instance',e);
-        }
-        var sec_id = ai.SectionID;
-        await Promise.mapSeries(req.body.user_ids, async (user_id) => {
-            await allocate.inactivate_section_user(sec_id, user_id);
+            ais.push(ai);
         });
-        var result = await allocate.reallocate_user_to_assignment(req.body.ai_id, req.body.user_ids,sec_id,  req.body.replace_all_ai, req.body.is_extra_credit);
+        var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json({
             'result': result,
-            'error':false,
-            'message':"none"
+            'Error':false,
+            'message':'none'
+        });
+    });
+    // API to reallocate Tasks  created 3-4-18 mss86
+    //@ taskarray: [ 'ti' [#,..]] or [ 'wi' [#,..]] or [ 'ai' [#,..]] 
+    //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
+    //@ user_pool_woc: [#,..] array of users without constrains
+    //@ is_extra_credit: boolean
+    router.post('/reallocate/task_based', async function (req, res){
+        if(req.body.taskarray == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null || req.body.is_extra_credit == null){
+            logger.log('error','/reallocate/assigment: fields cannot be null');
+            res.status(400).end();
+            return;
+        };
+        logger.log('info','/reallocate/task_based called');
+        var allocate = new Allocator([],0);
+        var result = await allocate.reallocate_tasks_based(req.body.taskarray, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
+        res.json({
+            'result': result,
+            'Error':false,
+            'message':'none'
         });
     });
 
@@ -7830,6 +7854,48 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             'FirstName': 'Test' + n,
             'LastName': 'User' + n,
             'Email': 'testuser' + n + '@dummysite.tst'
+        });
+
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    router.get('/reallocatepools/:ai_id', function(req, res) {
+        var reallocate = new Allocator();
+        var ai_id = req.params.ai_id;
+        //var manually_chosen = {};
+        var pools = reallocate.get_ai_volunteers(ai_id);
+        var volunteer_pool, section_students, section_instructors;
+
+        if (pools[volunteer_pool] == null){
+            volunteer_pool = false;
+
+            if (pools[section_students] == null){
+                section_students = false;
+
+                return Promise.each(pools[section_instructors], function (si) {
+                    return reallocate.reallocate(si, pools[section_instructors]);
+                });
+                section_instructors = true;
+            }
+            else{
+                return Promise.each(pools[section_students], function (ss) {
+                    return reallocate.reallocate(ss, pools[section_students]);
+                });
+                section_students = true;
+            }
+        }
+        else {
+            return Promise.each(pools[volunteer_pool], function (vo) {
+                return reallocate.reallocate(vo, pools[volunteer_pool]);
+            });
+            volunteer_pool = true;
+        }
+        res.json({
+            'volunteer_pool': volunteer_pool,
+            'section_students': section_students,
+            'section_instructors': section_instructors,
+            'reallocate': pools
         });
 
     });
