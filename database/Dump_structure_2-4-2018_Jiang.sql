@@ -39,8 +39,7 @@ CREATE TABLE `Assignment` (
   `SemesterID` int(10) unsigned DEFAULT NULL,
   `VersionHistory` json DEFAULT NULL,
   PRIMARY KEY (`AssignmentID`),
-  UNIQUE KEY `AssignmentID` (`AssignmentID`),
-  UNIQUE KEY `Assignment_AssignmentID_unique` (`AssignmentID`)
+  UNIQUE KEY `AssignmentID` (`AssignmentID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -59,7 +58,6 @@ CREATE TABLE `AssignmentGrade` (
   `Comments` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`AssignmentGradeID`),
   UNIQUE KEY `AssignmentGradeID` (`AssignmentGradeID`),
-  UNIQUE KEY `AssignmentGrade_AssignmentGradeID_unique` (`AssignmentGradeID`),
   UNIQUE KEY `ai_sectionUserId_unq_idx` (`AssignmentInstanceID`,`SectionUserID`),
   KEY `SectionUserID` (`SectionUserID`),
   CONSTRAINT `assignmentgrade_ibfk_1` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `AssignmentInstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,
@@ -85,7 +83,6 @@ CREATE TABLE `AssignmentInstance` (
   `Volunteers` json DEFAULT NULL,
   PRIMARY KEY (`AssignmentInstanceID`),
   UNIQUE KEY `AssignmentInstanceID` (`AssignmentInstanceID`),
-  UNIQUE KEY `AssignmentInstance_AssignmentInstanceID_unique` (`AssignmentInstanceID`),
   KEY `AssignmentID` (`AssignmentID`),
   KEY `SectionID` (`SectionID`),
   CONSTRAINT `assignmentinstance_ibfk_1` FOREIGN KEY (`AssignmentID`) REFERENCES `Assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE,
@@ -109,7 +106,6 @@ CREATE TABLE `Course` (
   `Description` text,
   PRIMARY KEY (`CourseID`),
   UNIQUE KEY `CourseID` (`CourseID`),
-  UNIQUE KEY `Course_CourseID_unique` (`CourseID`),
   KEY `CreatorID` (`CreatorID`),
   CONSTRAINT `course_ibfk_1` FOREIGN KEY (`CreatorID`) REFERENCES `User` (`UserID`) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -126,8 +122,7 @@ CREATE TABLE `EmailNotification` (
   `EmailNotificationID` int(10) unsigned NOT NULL AUTO_INCREMENT,
   `TaskInstanceID` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`EmailNotificationID`),
-  UNIQUE KEY `EmailNotificationID` (`EmailNotificationID`),
-  UNIQUE KEY `EmailNotification_EmailNotificationID_unique` (`EmailNotificationID`)
+  UNIQUE KEY `EmailNotificationID` (`EmailNotificationID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -145,7 +140,6 @@ CREATE TABLE `FileReference` (
   `LastUpdated` datetime DEFAULT NULL,
   PRIMARY KEY (`FileID`),
   UNIQUE KEY `FileID` (`FileID`),
-  UNIQUE KEY `FileReference_FileID_unique` (`FileID`),
   KEY `UserID` (`UserID`),
   CONSTRAINT `filereference_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `User` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -183,8 +177,7 @@ CREATE TABLE `Groups` (
   `Leader` int(10) unsigned DEFAULT NULL,
   `List` blob,
   PRIMARY KEY (`GroupID`),
-  UNIQUE KEY `GroupID` (`GroupID`),
-  UNIQUE KEY `Groups_GroupID_unique` (`GroupID`)
+  UNIQUE KEY `GroupID` (`GroupID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -200,8 +193,7 @@ CREATE TABLE `Organization` (
   `Name` varchar(40) DEFAULT NULL,
   `Logo` json DEFAULT NULL,
   PRIMARY KEY (`OrganizationID`),
-  UNIQUE KEY `OrganizationID` (`OrganizationID`),
-  UNIQUE KEY `Organization_OrganizationID_unique` (`OrganizationID`)
+  UNIQUE KEY `OrganizationID` (`OrganizationID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -220,7 +212,6 @@ CREATE TABLE `PartialAssignments` (
   `Data` json NOT NULL,
   PRIMARY KEY (`PartialAssignmentID`),
   UNIQUE KEY `PartialAssignmentID` (`PartialAssignmentID`),
-  UNIQUE KEY `PartialAssignments_PartialAssignmentID_unique` (`PartialAssignmentID`),
   KEY `UserID` (`UserID`),
   KEY `CourseID` (`CourseID`),
   CONSTRAINT `partialassignments_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `User` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE,
@@ -259,7 +250,6 @@ CREATE TABLE `Section` (
   `Description` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`SectionID`),
   UNIQUE KEY `SectionID` (`SectionID`),
-  UNIQUE KEY `Section_SectionID_unique` (`SectionID`),
   KEY `SemesterID` (`SemesterID`),
   KEY `CourseID` (`CourseID`),
   CONSTRAINT `section_ibfk_1` FOREIGN KEY (`SemesterID`) REFERENCES `Semester` (`SemesterID`) ON DELETE NO ACTION ON UPDATE CASCADE,
@@ -283,7 +273,6 @@ CREATE TABLE `SectionUser` (
   `Volunteer` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`SectionUserID`),
   UNIQUE KEY `SectionUserID` (`SectionUserID`),
-  UNIQUE KEY `SectionUser_SectionUserID_unique` (`SectionUserID`),
   KEY `SectionID` (`SectionID`),
   KEY `UserID` (`UserID`),
   CONSTRAINT `sectionuser_ibfk_1` FOREIGN KEY (`SectionID`) REFERENCES `Section` (`SectionID`) ON DELETE NO ACTION ON UPDATE CASCADE,
@@ -305,8 +294,7 @@ CREATE TABLE `Semester` (
   `StartDate` datetime DEFAULT NULL,
   `EndDate` datetime DEFAULT NULL,
   PRIMARY KEY (`SemesterID`),
-  UNIQUE KEY `SemesterID` (`SemesterID`),
-  UNIQUE KEY `Semester_SemesterID_unique` (`SemesterID`)
+  UNIQUE KEY `SemesterID` (`SemesterID`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -362,7 +350,6 @@ CREATE TABLE `TaskActivity` (
   `AssignmentInstanceID` int(10) unsigned DEFAULT NULL,
   PRIMARY KEY (`TaskActivityID`),
   UNIQUE KEY `TaskActivityID` (`TaskActivityID`),
-  UNIQUE KEY `TaskActivity_TaskActivityID_unique` (`TaskActivityID`),
   KEY `WorkflowActivityID` (`WorkflowActivityID`),
   KEY `AssignmentID` (`AssignmentID`),
   KEY `AssignmentInstanceID` (`AssignmentInstanceID`),
@@ -388,7 +375,6 @@ CREATE TABLE `TaskGrade` (
   `Comments` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`TaskGradeID`),
   UNIQUE KEY `TaskGradeID` (`TaskGradeID`),
-  UNIQUE KEY `TaskGrade_TaskGradeID_unique` (`TaskGradeID`),
   UNIQUE KEY `ti_sectionUserId_unq_idx` (`TaskInstanceID`,`SectionUserID`),
   KEY `SectionUserID` (`SectionUserID`),
   KEY `WorkflowActivityID` (`WorkflowActivityID`),
@@ -427,7 +413,6 @@ CREATE TABLE `TaskInstance` (
   `EmailLastSent` datetime NOT NULL DEFAULT '1999-01-01 00:00:00',
   PRIMARY KEY (`TaskInstanceID`),
   UNIQUE KEY `TaskInstanceID` (`TaskInstanceID`),
-  UNIQUE KEY `TaskInstance_TaskInstanceID_unique` (`TaskInstanceID`),
   KEY `UserID` (`UserID`),
   KEY `TaskActivityID` (`TaskActivityID`),
   KEY `WorkflowInstanceID` (`WorkflowInstanceID`),
@@ -455,7 +440,6 @@ CREATE TABLE `TaskSimpleGrade` (
   `Comments` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`TaskSimpleGradeID`),
   UNIQUE KEY `TaskSimpleGradeID` (`TaskSimpleGradeID`),
-  UNIQUE KEY `TaskSimpleGrade_TaskSimpleGradeID_unique` (`TaskSimpleGradeID`),
   UNIQUE KEY `ti_sectionUserId_unq_idx` (`TaskInstanceID`,`SectionUserID`),
   KEY `SectionUserID` (`SectionUserID`),
   KEY `WorkflowActivityID` (`WorkflowActivityID`),
@@ -484,7 +468,6 @@ CREATE TABLE `User` (
   `Role` varchar(40) DEFAULT NULL,
   PRIMARY KEY (`UserID`),
   UNIQUE KEY `UserID` (`UserID`),
-  UNIQUE KEY `User_UserID_unique` (`UserID`),
   CONSTRAINT `user_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `UserLogin` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -525,8 +508,7 @@ CREATE TABLE `UserLogin` (
   `Timeout` date DEFAULT NULL,
   `Blocked` tinyint(4) DEFAULT NULL,
   PRIMARY KEY (`UserID`),
-  UNIQUE KEY `Email` (`Email`),
-  UNIQUE KEY `UserLogin_Email_unique` (`Email`)
+  UNIQUE KEY `Email` (`Email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -545,7 +527,6 @@ CREATE TABLE `VolunteerPool` (
   `status` varchar(25) DEFAULT NULL,
   PRIMARY KEY (`VolunteerPoolID`),
   UNIQUE KEY `VolunteerPoolID` (`VolunteerPoolID`),
-  UNIQUE KEY `VolunteerPool_VolunteerPoolID_unique` (`VolunteerPoolID`),
   UNIQUE KEY `uniqueVolunteer` (`UserID`,`SectionID`,`AssignmentInstanceID`),
   KEY `SectionID` (`SectionID`),
   KEY `AssignmentInstanceID` (`AssignmentInstanceID`),
@@ -577,7 +558,6 @@ CREATE TABLE `WorkflowActivity` (
   `VersionHistory` json DEFAULT NULL,
   PRIMARY KEY (`WorkflowActivityID`),
   UNIQUE KEY `WorkflowActivityID` (`WorkflowActivityID`),
-  UNIQUE KEY `WorkflowActivity_WorkflowActivityID_unique` (`WorkflowActivityID`),
   KEY `AssignmentID` (`AssignmentID`),
   CONSTRAINT `workflowactivity_ibfk_1` FOREIGN KEY (`AssignmentID`) REFERENCES `Assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
@@ -599,7 +579,6 @@ CREATE TABLE `WorkflowGrade` (
   `Comments` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`WorkflowGradeID`),
   UNIQUE KEY `WorkflowGradeID` (`WorkflowGradeID`),
-  UNIQUE KEY `WorkflowGrade_WorkflowGradeID_unique` (`WorkflowGradeID`),
   UNIQUE KEY `wf_sectionUserId_unq_idx` (`WorkflowActivityID`,`SectionUserID`),
   KEY `SectionUserID` (`SectionUserID`),
   KEY `AssignmentInstanceID` (`AssignmentInstanceID`),
@@ -626,7 +605,6 @@ CREATE TABLE `WorkflowInstance` (
   `Data` json DEFAULT NULL,
   PRIMARY KEY (`WorkflowInstanceID`),
   UNIQUE KEY `WorkflowInstanceID` (`WorkflowInstanceID`),
-  UNIQUE KEY `WorkflowInstance_WorkflowInstanceID_unique` (`WorkflowInstanceID`),
   KEY `WorkflowActivityID` (`WorkflowActivityID`),
   KEY `AssignmentInstanceID` (`AssignmentInstanceID`),
   CONSTRAINT `workflowinstance_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `WorkflowActivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,
@@ -663,7 +641,6 @@ CREATE TABLE `Comments` (
   `CommentTarget` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`CommentsID`),
   UNIQUE KEY `CommentsID` (`CommentsID`),
-  UNIQUE KEY `Comments_CommentsID_unique` (`CommentsID`),
   KEY `UserID` (`UserID`),
   KEY `AssignmentInstanceID` (`AssignmentInstanceID`),
   CONSTRAINT `comments_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `User` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE,
