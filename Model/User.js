@@ -46,12 +46,12 @@ module.exports = function(sequelize, DataTypes) {
         //     allowNull: false,
         //     defaultValue: false
         // },
-        /*Role: {
-            //Official first name of the user
+        Role: {
+            //Role of the user
             type: DataTypes.STRING(40),
             field: 'Role',
-            allowNull: true
-        }*/
+            allowNull: false
+        }
         //UserType: {
         //    //User type either instructor or student
         //    //Instructor Boolean?????
