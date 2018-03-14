@@ -7460,14 +7460,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         logger.log('info','/reallocate/task_based called');
         var allocate = new Allocator([],0);
         var result = await allocate.reallocate_tasks_based(req.body.taskarray, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
-        res.json({
-            'result': result,
-            'Error':false,
-            'message':'none'
-        });
+        res.json( result );
     });
-
-
+    // Debug for testing cancelling workflow created 3-10-19 mss86
+    router.post('/reallocate/debug', async function (req, res){
+        logger.log('info','/reallocate/debug called');
+        var allocate = new Allocator([],0);
+        //var result = await allocate.create_assigment_graph(1);
+        var result = await allocate.cancel_workflow(1, 5);
+    });
 
     //Endpoint debug
 

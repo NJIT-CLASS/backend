@@ -806,6 +806,7 @@ class Allocator {
         if(JSON.parse(ti.Status)[0] === 'complete'){
             return {
                 Error: true,
+                ti_id: ti.TaskInstanceID,
                 Message: 'Task already completed'
             };
         }
@@ -834,7 +835,7 @@ class Allocator {
             new_end_date: new_end_date
         });
 
-        return TaskInstance.update({
+        return await TaskInstance.update({
             UserID: new_u_id,
             UserHistory: ti_u_hist,
             Status: JSON.stringify(ti_status),
@@ -850,6 +851,7 @@ class Allocator {
             //return res;
             return {
                 Error: false,
+                ti_id: ti.TaskInstanceID,
                 Message: null
             };
         }).catch(function (err) {
@@ -1012,6 +1014,7 @@ class Allocator {
                 await x.reallocate_user_to_task(new_ti, new_u_id, is_extra_credit);
             }
         });
+        return {'Error':false, 'wi_id':ti.WorkflowInstanceID, 'Message': null};
     }
     /* will remove this soon mss86
         // reallocate all active assigments of user, called when user is made "inactive"
@@ -1330,6 +1333,7 @@ class Allocator {
         const t_type = tasks[0];
         var task_ids = tasks[1];
         var ignore_users=[];
+        var response =[];
         if(t_type === 'ti'){    // update provided Task Instances with different users
             await Promise.mapSeries(task_ids, async (ti_id) => {     // dont use these users in any reallocation
                 ignore_users.push(x.getLateUser(ti_id));
@@ -1342,13 +1346,17 @@ class Allocator {
                 avoid_u_ids    = _.union(avoid_u_ids,ignore_users);       
                 var vol_u_ids  = await x.get_ai_volunteers(ai_id) || [];    // get used valuenteers for assigment instance
                 var new_u_id   = await x.find_new_user_from_pool(user_pool_wc,user_pool_woc,vol_u_ids, avoid_u_ids);
-                await x.reallocate_user_to_task(ti, new_u_id,is_extra_credit);
+                if(!new_u_id){
+                    response.push({'Error': true, 'ti_id':ti_id, 'Message': 'None of provided users could be used as replacement for the task Instance'});
+                    return; // dont try to reallocate without user;
+                }
+                var res = await x.reallocate_user_to_task(ti, new_u_id,is_extra_credit);
+                response.push(res);
                 await x.update_ai_volunteers(vol_u_ids, ai_id);       
             });
-            return {'error':false};
+            return response;
         }else if(t_type === 'wi'){  // update entire workflows with same new user per workflow with same new user per workflow
-            await x.reallocate_workflow(task_ids,user_pool_wc, user_pool_woc, is_extra_credit);
-            return {'error':false};    
+            return await x.reallocate_workflow(task_ids,user_pool_wc, user_pool_woc, is_extra_credit);   
         }else if(t_type === 'ai'){
             await Promise.mapSeries(task_ids, async(ai_id) =>{
                 var ai  = await x.get_ai_from_ai_id(ai_id);
@@ -1358,8 +1366,9 @@ class Allocator {
                     return;
                 }
                 await x.reallocate_workflow(wi_ids,user_pool_wc, user_pool_woc, is_extra_credit);
+                response.push({'Error':false, 'ai_id':ai_id, 'Message':null});
             });
-            return {'error':false};
+            return response;
         }
     }
     // reallocate late tasks withing workflows created 3-2-18 mss86
@@ -1376,25 +1385,34 @@ class Allocator {
         var x = this;
         var ignore_users=[];
         var tis_array=[];
+        var response=[];
         await Promise.mapSeries(wi_ids, async (wi_id) => {    // Find late users to not use them in reallocation 
             var tis = await x.get_late_tis(wi_id);          // get all late tasks
-            console.log(tis);
             tis_array.push(tis);
             await Promise.map(tis, async(ti) =>{
                 ignore_users.push(ti.UserID);
             })
         });
         await Promise.mapSeries(wi_ids, async (wi_id, idx) => {
+            if(! tis_array[idx].length > 0){
+                response.push( {'Error':true, 'wi_id':wi_id, 'Message': 'No late Tasks found in workflows'});
+                return;
+            }
             var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
             avoid_u_ids = _.union(avoid_u_ids, ignore_users);
             await Promise.mapSeries(tis_array[idx], async(ti) => {
                 var vol_u_ids   = await x.get_ai_volunteers(ti.AssignmentInstanceID) || []; 
                 var new_u_id    = await x.find_new_user_from_pool(user_pool_wc,user_pool_woc,vol_u_ids, avoid_u_ids);
+                if(!new_u_id){
+                    response.push({'Error': true, 'wi_id':wi_id, 'Message': 'None of provided users could be used as replacement for late tasks in workflow'});
+                    return;
+                }
                 await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
                 await x.update_ai_volunteers(vol_u_ids, ti.AssignmentInstanceID);
             });
+            response.push({'Error':false, 'wi_id':wi_id, 'Message': null});
         });
-        return;
+        return response;
     }
     // User Based, Updated version of realocate created 2-27-18 mss86
     //@ ais: AssigmentInstace
@@ -1497,10 +1515,12 @@ class Allocator {
             idx = vol_u_ids.indexOf(new_user_id); // 
         }
         // reorder the volunteers used so far for this assignment
-        if(idx != null && idx > -1){
-            vol_u_ids.splice(idx, 1); // remove user
+        if(new_user_id != null){ // if new user was found
+            if(idx != null && idx > -1){
+                vol_u_ids.splice(idx, 1); // remove user
+            }
+            vol_u_ids.push(new_user_id);  // add user to end of list
         }
-        vol_u_ids.push(new_user_id);  // add user to end of list
         return new_user_id; 
     }
     // update_ai_volunteers 
@@ -1522,6 +1542,7 @@ class Allocator {
         }).catch(function (err) {
             logger.log('error', 'update_ai_volunteers, failed to update', err);
         });
+        return;
     }
     // Get TaskInstance from ti_id  created 3-2-18 mss86
     //@ ti_id: taskinstanceID
@@ -1539,6 +1560,7 @@ class Allocator {
             return result;
         }else{
             logger.log('error','get_ti_from_ti_id, no TaskInstance Exists');
+            return;
         }
     }
     // Get TaskInstance from wi_id  created 3-2-18 mss86
@@ -1557,6 +1579,7 @@ class Allocator {
             return result;
         }else{
             logger.log('error','get_ti_from_wi_id, no TaskInstance Exists');
+            return;
         }
     }
     // Get AssigmentInstance from ai_id  created 3-2-18 mss86
@@ -1575,6 +1598,7 @@ class Allocator {
             return result;
         }else{
             logger.log('error','get_ai_from_ai_id, no AssigmentInstance Exists');
+            return;
         }
     }
     // Get All late task within workflow created 3-2-18 mss86
@@ -1691,7 +1715,125 @@ class Allocator {
             return instructors[Math.floor(Math.random() * instructors.length)].UserID;
         }
     }
+    // Create Graph for realocation durning workflow cancellation created 3-7-18 mss86
+    //@ array of arrays of arrays of similar objects
+    //  [  
+    //    [wi_id, [{}] , [{}], [{},{}],......]     workflow 
+    //    [wi_id, [{}] , [{}], [{},{}],......]     workflow 
+    //    ...                                workflow ...
+    //  ]
+    async create_assigment_graph(ai_id,){
+        logger.log('info', 'create_assigment_graph called');
+        var x = this;
+        var ai  = await x.get_ai_from_ai_id(ai_id);
+        var wi_ids = JSON.parse(ai.WorkflowCollection);
+        var Graph = [];
+        await Promise.map(wi_ids, async (wi_id, wi_idx) => {
+            var wi = await WorkflowInstance.findOne({
+                where: {
+                    WorkflowInstanceID: wi_id,
+                }
+            });
+            var ti_ids = JSON.parse(wi.TaskCollection);
+            var g_workflow = [wi_id];
+            var g_task = [];
+            await Promise.mapSeries(ti_ids , async(ti_id , ti_idx) =>{
+                var ti = await x.get_ti_from_ti_id(ti_id);
+                var complete = false;
+                var Status = JSON.parse(ti.Status);
+                if(Status[0] === 'complete'){
+                    complete = true;
+                }
+                var obj_data = {'ta_id': ti.TaskActivityID, 'ti_id': ti_id, 'userID': ti.UserID, 'complete': complete, 'newuser':false };
+                if(g_task.length === 0){
+                    g_task.push(obj_data);
+                }else if(g_task[g_task.length-1].ta_id === ti.TaskActivityID){
+                    g_task.push(obj_data);
+                }else{
+                    g_workflow.push(g_task);
+                    g_task=[];
+                    g_task.push(obj_data);
+                    if(ti_idx >= ti_ids.length-1){
+                        g_workflow.push(g_task);
+                        g_task = [];
+                    }
+                }
+            });
+            Graph[wi_idx] = g_workflow;  
+        })
+        await Promise.mapSeries(Graph, async(g) => {
+            console.log(g);
+        })
+        return Graph;
+    }
+    // Cancel workflows and realocate the users to other workflows created 3-11-18 mss86
+    //@ array of arrays of arrays of similar objects
+    // TODO: not finished
+    async cancel_workflow(ai_id, wi_id){
+        var x = this;
+        var Graph = await x.create_assigment_graph(ai_id);
+        // find index of array with canceling workflow
+        var old_index; // index of bad workflow in the graph
+        await Promise.map(Graph, async(workflow, idx) =>{
+            console.log(workflow[0]);
+            if(workflow[0] === wi_id){
+                old_index = idx;
+                return;
+            }
+        });
+        console.log(old_index, Graph);
+        var old_workflow = Graph[old_index];
+        var old_user = old_workflow[1][0].userID; 
+        //console.log(old_user);
+        logger.log('debug', old_user);
+        await Promise.mapSeries(old_workflow, async(old_tis, idx) =>{
+            if(idx === 0 || idx === 1){return;} // skip the first index and first task instance
+            await Promise.mapSeries(old_tis, async(old_ti,idx_same) =>{
+                if(old_ti.userID != old_user){ // for all task instances where different user was there
+                    console.log('debug', 'old to user ' ,old_ti.userID)
+                    var numofw = Graph.length;
+                    var i = old_index;
+                    var j;
+                    var prv_user;
+                    var temp_user;
+                    console.log("numofw", numofw);
+                    for(var a = 0; a < numofw; a++){
+                        j = i;
+                        i--;
+                        if (i<0){
+                            i=numofw-1;
+                            j = 0;
+                        }if(prv_user == null){ 
+                            prv_user = Graph[j][idx][idx_same].userID;
+                        }
+                        console.log("prv user:", prv_user);
+                        if(Graph[i][idx][idx_same].userID === Graph[j][idx][idx_same].userID){ // if the users are the same continue to look
+                            continue;  // change to break couse it wont help in future
+                        }else{
+                            console.log("i and j", i , j)
+                            temp_user = Graph[i][idx][idx_same].userID
+                            Graph[i][idx][idx_same].userID = prv_user;
+                            Graph[i][idx][idx_same].newuser = true;
+                            prv_user = temp_user;
+                            if (temp_user != old_user){ // if we reach the trigger user
+                                continue;
+                            }else{
+                                break;
+                            }
+                        }
+                    }
+                } 
+            })
+        })
+        await Promise.mapSeries(Graph, async(g) => {
+            console.log(g);  
+        })
+        // cancel workflow instance 
+        // remove workflow from the graph
+        // for each new user, replace in database
 
+    return;
+    }
 
 
 
