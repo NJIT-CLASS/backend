@@ -7789,6 +7789,25 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
         //----------------------------------------------------------------
+        router.post('/volunteerpool/section/:section_id',async function(req, res) {
+            console.log("/volunteerpool/section/ : was called");
+            VolunteerPool.findAll({
+              where:{
+                SectionID:req.params.section_id
+              }
+            }).then(function (result) {
+                console.log('Volunteers have been found by section.');
+                res.json({
+                    'Error': false,
+                    'Volunteers': result
+                });
+            }).catch(function (err) {
+                console.log('/volunteerpool/section/: ' + err);
+                res.status(400).end();
+            });
+        });
+
+        //-----------------------------------------------------------------------------------------------------
 
 
 
