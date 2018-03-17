@@ -857,7 +857,7 @@ class Allocator {
             return {
                 Error: false,
                 ti_id: ti.TaskInstanceID,
-                Message: null
+                Message: "Success"
             };
         }).catch(function (err) {
             logger.log('error', 'task instance update failed', err);
@@ -1019,7 +1019,7 @@ class Allocator {
                 await x.reallocate_user_to_task(new_ti, new_u_id, is_extra_credit);
             }
         });
-        return {'Error':false, 'wi_id':ti.WorkflowInstanceID, 'Message': null};
+        return {'Error':false, 'ti_id':ti.TaskInstanceID, 'Message': "Success"};
     }
     /* will remove this soon mss86
         // reallocate all active assigments of user, called when user is made "inactive"
@@ -1322,7 +1322,7 @@ class Allocator {
     
 
     // Task based reallocation created 2-28-18 mss86
-    //@ tasks: array of type and ids [ 'ti',[#,...]] 
+    //@ tasks: array of type and ids [ 'ti',[#,...]]  ti : realocate only this task, "wi": realocate all task in workflow
     //@ user_pool_wc: [ [],..] ids to use with constrains
     //@ user_pool_woc: [] ids to use without constrains
     //@ is_extra_credit: boolean
@@ -1339,46 +1339,42 @@ class Allocator {
         var task_ids = tasks[1];
         var ignore_users=[];
         var response =[];
-        if(t_type === 'ti'){    // update provided Task Instances with different users
-            await Promise.mapSeries(task_ids, async (ti_id) => {     // dont use these users in any reallocation
-                ignore_users.push(x.getLateUser(ti_id));
-            });
-            await Promise.mapSeries(task_ids, async (ti_id) => {   
-                var ti = await x.get_ti_from_ti_id(ti_id);           // get Instance from ID
-                var ai_id = ti.AssignmentInstanceID; 
-                var wi_id = await x.getWorkflowInstanceID(ti_id);       
-                var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id); 
-                avoid_u_ids    = _.union(avoid_u_ids,ignore_users);       
-                var vol_u_ids  = await x.get_ai_volunteers(ai_id) || [];    // get used valuenteers for assigment instance
-                var new_u_id   = await x.find_new_user_from_pool(user_pool_wc,user_pool_woc,vol_u_ids, avoid_u_ids);
-                if(!new_u_id){
-                    response.push({'Error': true, 'ti_id':ti_id, 'Message': 'None of provided users could be used as replacement for the task Instance'});
-                    return; // dont try to reallocate without user;
-                }
-                var res = await x.reallocate_user_to_task(ti, new_u_id,is_extra_credit);
+        await Promise.map(task_ids, async (ti_id) => {     // dont use these users in any reallocation
+            ignore_users.push(await x.getLateUser(ti_id));
+        });
+        await Promise.mapSeries(task_ids, async (ti_id) => {   
+            var ti    = await x.get_ti_from_ti_id(ti_id);           // get Instance from ID
+            var ai_id = ti.AssignmentInstanceID; 
+            var wi_id = await x.getWorkflowInstanceID(ti_id);       
+            var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id); 
+            avoid_u_ids  = _.union(avoid_u_ids,ignore_users);  // merge cancelled users with ignore users    
+            logger.log('debug',{avoid_u_ids: avoid_u_ids});
+            var vol_u_ids  = await x.get_ai_volunteers(ai_id) || [];    // get used valuenteers for assigment instance
+            var new_u_id   = await x.find_new_user_from_pool(user_pool_wc,user_pool_woc,vol_u_ids, avoid_u_ids);
+            if(!new_u_id){
+                response.push({
+                    'Error': true,
+                    'ti_id':ti_id,
+                    'Message': 'None of the provided users could be used as replacement for the Task'
+                });
+                return;         // dont try to reallocate without user;
+            }
+            var res;
+            if(t_type === 'ti'){            // realocate only in this task 
+                res = await x.reallocate_user_to_task(ti, new_u_id,is_extra_credit);
                 response.push(res);
-                await x.update_ai_volunteers(vol_u_ids, ai_id);       
-            });
-            return response;
-        }else if(t_type === 'wi'){  // update entire workflows with same new user per workflow with same new user per workflow
-            return await x.reallocate_workflow(task_ids,user_pool_wc, user_pool_woc, is_extra_credit);   
-        }else if(t_type === 'ai'){
-            await Promise.mapSeries(task_ids, async(ai_id) =>{
-                var ai  = await x.get_ai_from_ai_id(ai_id);
-                var wi_ids = JSON.parse(ai.WorkflowCollection);  // array of workflowIDS
-                if(wi_ids == null){
-                    logger.log('error','workflow ids cannot be null',wi_ids);
-                    return;
-                }
-                await x.reallocate_workflow(wi_ids,user_pool_wc, user_pool_woc, is_extra_credit);
-                response.push({'Error':false, 'ai_id':ai_id, 'Message':null});
-            });
-            return response;
-        }
+            }else if(t_type ==='wi'){       // realocate user of task in entire workflow
+                res = await x.reallocate_user_to_workflow(ti,new_u_id,is_extra_credit)
+                response.push(res);
+            }
+            await x.update_ai_volunteers(vol_u_ids, ai_id);       
+        });
+        return response;  
     }
     // reallocate late tasks withing workflows created 3-2-18 mss86
     //@ helper function for reallocate_tasks_based
     //@ wi_ids: WorkFlowInstanceIds
+    /* will remove since no longer needed 3-16-18 mss86
     async reallocate_workflow(wi_ids,user_pool_wc, user_pool_woc, is_extra_credit){
         logger.log('info',{
             call:"reallocate_workflow",
@@ -1392,7 +1388,7 @@ class Allocator {
         var tis_array=[];
         var response=[];
         await Promise.mapSeries(wi_ids, async (wi_id) => {    // Find late users to not use them in reallocation 
-            var tis = await x.get_late_tis(wi_id);          // get all late tasks
+            var tis = await x.get_late_tis(wi_id);           // get all late tasks
             tis_array.push(tis);
             await Promise.map(tis, async(ti) =>{
                 ignore_users.push(ti.UserID);
@@ -1419,6 +1415,7 @@ class Allocator {
         });
         return response;
     }
+    */
     // User Based, Updated version of realocate created 2-27-18 mss86
     //@ ais: AssigmentInstace
     //@ old_user_ids: [] ids to replace
@@ -1434,24 +1431,30 @@ class Allocator {
             user_pool_woc: user_pool_woc, 
             is_extra_credit: is_extra_credit,
         });
+        var response = [];   
         await Promise.mapSeries(ais , async(ai) =>{   // for each Assigment Instance
-
             var wi_ids = JSON.parse(ai.WorkflowCollection);  // array of workflowIDS 
             if(wi_ids == null){
-                logger.log('error','workflow ids cannot be null',wi_ids);
+                logger.log('error','workflow ids cannot be null', wi_ids);
                 return;
             }
-
             var x = this;
             var vol_u_ids = await x.get_ai_volunteers(ai.AssignmentInstanceID); // get used valuenteers for assigment
             vol_u_ids = vol_u_ids || [];
             await Promise.mapSeries(wi_ids, async function (wi_id) {  // for each workflow 
-
                 var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
-                avoid_u_ids = _.union(avoid_u_ids, old_user_ids);  // add old user ids to avoid list
-                    
+                avoid_u_ids = _.union(avoid_u_ids, old_user_ids);     // add old user ids to avoid list
                 await Promise.mapSeries(old_user_ids,async (old_user_id) => { 
-                    var new_u_id = await x.find_new_user_from_pool(user_pool_wc, user_pool_woc, vol_u_ids, avoid_u_ids); 
+                    var new_u_id = await x.find_new_user_from_pool(user_pool_wc, user_pool_woc, vol_u_ids, avoid_u_ids);
+                    if(new_u_id == null){
+                        response.push({
+                            Error: true,
+                            ai:ai.AssignmentInstanceID,
+                            old_user_id: old_user_id,
+                            Message:"No users provided could be used in some Tasks of user"
+                        });
+                        return;
+                    } 
                     var ti = await TaskInstance.findOne({
                         where:{
                             WorkflowInstanceID: wi_id,
@@ -1460,13 +1463,19 @@ class Allocator {
                     })
                     if(ti != null){
                         await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
-                    }   
+                    }
+                    response.push({
+                        Error: false,
+                        ai:ai.AssignmentInstanceID,
+                        old_user_id: old_user_id,
+                        Message: "Success"
+                    });  
                 });
-            }) ; 
+            }); 
             logger.log('info','Assigment Voluenteers updated to: ', vol_u_ids);
             await x.update_ai_volunteers(vol_u_ids, ai.AssignmentInstanceID );
         });
-        return {'error': false};
+        return response;
     }
     // Finds new user from lists of lists. created 2-27-18 mss86
     //@ uses only the first list if possible, then second(section ids), lasty (instructors)

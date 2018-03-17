@@ -7440,11 +7440,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             ais.push(ai);
         });
         var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
-        res.json({
-            'result': result,
-            'Error':false,
-            'message':'none'
-        });
+        res.json( result );
     });
     // API to reallocate Tasks  created 3-4-18 mss86
     //@ taskarray: [ 'ti' [#,..]] or [ 'wi' [#,..]] or [ 'ai' [#,..]] 
