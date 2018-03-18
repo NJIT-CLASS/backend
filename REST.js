@@ -7450,11 +7450,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             ais.push(ai);
         });
         var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
-        res.json({
-            'result': result,
-            'Error':false,
-            'message':'none'
-        });
+        res.json( result );
     });
     // API to reallocate Tasks  created 3-4-18 mss86
     //@ taskarray: [ 'ti' [#,..]] or [ 'wi' [#,..]] or [ 'ai' [#,..]] 
@@ -7472,12 +7468,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var result = await allocate.reallocate_tasks_based(req.body.taskarray, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json( result );
     });
-    // Debug for testing cancelling workflow created 3-10-19 mss86
-    router.post('/reallocate/debug', async function (req, res){
-        logger.log('info','/reallocate/debug called');
+    // API to cancel workflows   created 3-10-19 mss86
+    //@ ai_id: assigment instance
+    //@ workflow_ids: [ ] of wi_ids
+    router.post('/reallocate/cancel_workflows', async function (req, res){
+        if(req.body.ai_id == null || req.body.workflow_ids == null){
+            logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
+            res.status(400).end();
+            return;
+        };
+        logger.log('info','/reallocate/cancel_workflows');
         var allocate = new Allocator([],0);
-        //var result = await allocate.create_assigment_graph(1);
-        var result = await allocate.cancel_workflow(1, 5);
+        var result = await allocate.cancel_workflow(req.body.ai_id, req.body.workflow_ids);
+        logger.log('debug',{
+            call: '/reallocate/cancel_workflows',
+            result: result
+        });
+        res.json( result );
     });
 
     //Endpoint debug
