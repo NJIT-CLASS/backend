@@ -83,9 +83,9 @@ class Make {
      * @param  {[type]}  ai_id     [description]
      * @return {Promise}           [description]
      */
-    async allocateUsers(ai_id) {
+    async allocateUsers(secId, ai_id) {
 
-        if (sectionid === null || ai_id === null) {
+        if (secId === null || ai_id === null) {
             logger.log('error', 'create workflow instances and task instance failed', {
                 ai_id: ai_id
             });
@@ -96,14 +96,14 @@ class Make {
             assignment_instance: ai_id
         });
 
-        var sectionid = await AssignmentInstance.find({
-            where:{
-                AssignmentInstanceID: ai_id
-            }
-        });
+        // var sectionid = await AssignmentInstance.find({
+        //     where:{
+        //         AssignmentInstanceID: ai_id
+        //     }
+        // });
 
         var x = this;
-        var users = await x.getUsersFromSection(sectionid); //returns users from sectionid
+        var users = await x.getUsersFromSection(secId); //returns users from sectionid
         var wf_timing = await x.getWorkflowTiming(ai_id); //returns workflow timing from the assignment instance
         var workflows = [];
 

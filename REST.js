@@ -53,7 +53,9 @@ import {
 
 import {
     FILE_SIZE as file_size,
-    MAX_NUM_FILES as max_files
+    MAX_NUM_FILES as max_files,
+    ROLES,
+    canRoleAccess
 } from './Util/constant';
 import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE} from './backend_settings';
 
@@ -346,7 +348,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //Endpoint to check if initial user in system
     router.get('/initial', function (req, res) {
-        console.log('/initial called');
         return User.findOne()
             .then(result => {
                 if (result === null) {
@@ -542,13 +543,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Middleware to verify token
     router.use(function(req,res,next){
         if(process.env.NODE_ENV != 'production'){
-            req.user = {};
+            req.user = {
+                role: ROLES.ADMIN
+            };
             next();
             return;
         }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         if (token) {
             jwt.verify(token,TOKEN_KEY, function(err, decoded) {
+                
                 if (err) {
                     if(err.name == 'TokenExpiredError'){
                         console.log('Expired Token');
@@ -575,6 +579,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
     });
 
+
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.GUEST)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     //-------------------------------------------------------------------
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////                 Guest Level APIs
@@ -646,7 +658,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin', 'Role'],
             include: [{
                 model: UserLogin,
                 attributes: ['Email']
@@ -715,6 +727,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ///////////////////////////
     ////////////----------------   END Guest APIs                           ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.PARTICIPANT)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////                 Participant Level APIs                   ///////////////////////////
 
@@ -3121,8 +3140,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         User.create({
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
-                            Instructor: req.body.instructor,
-                            Admin: req.body.admin
+                            Role: req.body.role
                         }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -6414,15 +6432,34 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         });
     });
+
     /***********************************************************************************************************
      **  Amadou work ends here
      ************************************************************************************************************/
-
-
-
-
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.TEACHER)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////----------------   Teacher APIs
+    ///////////////////////////
+
+
+    ///////////////////////////
+    ////////////----------------   END Teacher Access APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Enhanced Access Level APIs
 
@@ -6502,6 +6539,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ///////////////////////////
     ////////////----------------   END Enhanced Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
+    router.use(function(req,res,next){
+        if(canRoleAccess(req.user.role, ROLES.ADMIN)){
+            next();
+        } else {
+            return res.status(401).end();
+        }
+    });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Admin Level APIs
 
@@ -7396,7 +7440,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         };
         logger.log('info','/reallocate/user_based called');
         var allocate = new Allocator([],0);
-        var ais = []
+        var ais = [];
         await Promise.map(req.body.ai_ids, async(ai_id) => {
             var ai = await AssignmentInstance.findOne({ 
                 where: { 
@@ -7426,14 +7470,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         logger.log('info','/reallocate/task_based called');
         var allocate = new Allocator([],0);
         var result = await allocate.reallocate_tasks_based(req.body.taskarray, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
-        res.json({
-            'result': result,
-            'Error':false,
-            'message':'none'
-        });
+        res.json( result );
     });
-
-
+    // Debug for testing cancelling workflow created 3-10-19 mss86
+    router.post('/reallocate/debug', async function (req, res){
+        logger.log('info','/reallocate/debug called');
+        var allocate = new Allocator([],0);
+        //var result = await allocate.create_assigment_graph(1);
+        var result = await allocate.cancel_workflow(1, 5);
+    });
 
     //Endpoint debug
 
