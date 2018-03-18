@@ -218,7 +218,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         const payload = {
                             admin: user.User.Admin,
                             instructor: user.User.Instructor,
-                            role: user.User.Role,
+                            role: user.User.Role || ROLES.ADMIN, //TODO: Remove this
                             id: user.UserID
                         };
                         let token = jwt.sign(payload, TOKEN_KEY, {
@@ -1364,33 +1364,40 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.get('/getUserID/:email', function (req, res) {
+    router.post('/getUserID/', function (req, res) {
         UserLogin.find({
             where: {
-                Email: req.params.email
+                Email: req.body.email
             }
         }).then(function (user) {
-
-            res.json({
-                'UserID': user.UserID
-            });
-        }).catch(function (e) {
-            console.log('getUserID ' + e);
-            UserContact.find({
-                Email: req.params.email
-
-            }).then(function(user) {
+            if(user === null){
+                UserContact.find({
+                    Email: req.body.email
+    
+                }).then(function(userCon) {
+                    if(userCon === null){
+                        res.json({
+                            'UserID': null
+                        });
+                    } else{
+                        res.json({
+                            'UserID': userCon.UserID
+                        });
+                    }
+                });
+            } else {
                 res.json({
                     'UserID': user.UserID
                 });
-            })
-                .catch(function(e) {
-                    console.log('getUserID ' + e);
+            }
+        }).catch(function (e) {
+            console.log('getUserID ' + e);
+           
 
                     res.json({
-                        'UserID': -1
+                        'UserID': null
                     });
-                });
+                
 
         });
     });
@@ -2128,15 +2135,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }).then(function(response) {
                         if (response == null || response.UserID == null) {
                             return sequelize.transaction(function(t) {
+                                let role = null;
+                                switch(userDetails.role){
+                                case 'Instructor':
+                                    role = ROLES.TEACHER;
+                                    break;
+                                case 'Student':
+                                    role = ROLES.PARTICIPANT;
+                                    break;
+                                case 'Observer':
+                                    role = ROLES.GUEST;
+                                }
                                 return User.create({
                                     FirstName: userDetails.firstName,
                                     LastName: userDetails.lastName,
-                                    Instructor: userDetails.role === 'Instructor'
+                                    Instructor: userDetails.role === 'Instructor',
+                                    Role: role
                                 }, {
                                     transaction: t
                                 }).then(async function(user) {
                                     let temp_pass = await password.generate();
-                                    console.log(temp_pass);
                                     return UserContact.create({
                                         UserID: user.UserID,
                                         FirstName: userDetails.firstName,
@@ -2147,7 +2165,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         transaction: t
                                     }).then(async function(userCon) {
                                         let testHash = await password.hash(temp_pass);
-                                        console.log('Test Hash', testHash);
                                         return UserLogin.create({
                                             UserID: user.UserID,
                                             Email: userDetails.email,
@@ -2208,14 +2225,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     }).then(function(result) {
                                         console.log('User exists, adding to section');
                                         logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
-                                            result: result
+                                            result:  response.UserID
                                         });
-                                        return result;
+                                        if(userDetails.role == 'Instructor'){
+                                            //making Teacher role
+                                            
+                                            User.update({
+                                                Role: ROLES.TEACHER
+                                            },{
+                                                where: {
+                                                    UserID: response.UserID
+                                                }
+                                            }
+                                            ).then(function(makeTeacher){
+                                                return result;
+
+                                            });
+                                        } else {
+                                            return result;
+                                        }
                                     });
                                 } else {
                                     console.log('User already in section');
                                     logger.log('info', '/sectionUsers/addMany', 'user already in system', {
-                                        result: sectionUser
+                                        result:  response.UserID
                                     });
                                     return sectionUser;
                                 }
@@ -2262,14 +2295,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             attributes: ['UserID']
         }).then(function (response) {
+            console.log('User response:', response.UserID);
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
                     .then(function () {
                         return sequelize.transaction(function (t) {
+
+                            let role = null;
+                            switch(req.body.role){
+                            case 'Instructor':
+                                role = ROLES.TEACHER;
+                                break;
+                            case 'Student':
+                                role = ROLES.PARTICIPANT;
+                                break;
+                            case 'Observer':
+                                role = ROLES.GUEST;
+                            }
                             return User.create({
                                 FirstName: req.body.firstName,
                                 LastName: req.body.lastName,
-                                Instructor: req.body.role === 'Instructor'
+                                Instructor: req.body.role === 'Instructor',
+                                Role: role
                             }, {
                                 transaction: t
                             })
@@ -2285,7 +2332,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         });
                                 })
                                 .then(async function (user) {
-                                    console.log(user.UserID);
                                     let temp_pass = await password.generate();
                                     return UserContact.create({
                                         UserID: user.UserID,
@@ -2386,10 +2432,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             res.status(500).end();
                         }).then(function (result) {
                             console.log('User exists, adding to section');
-                            res.json({
-                                success: true,
-                                message: 'existing user'
-                            });
+                            if(req.body.role == 'Instructor'){
+                                //making Teacher role
+                                User.update({
+                                    Role: ROLES.TEACHER
+                                },{
+                                    where: {
+                                        UserID: response.UserID
+                                    }
+                                }
+                                ).then(function(makeTeacher){
+                                    res.json({
+                                        success: true,
+                                        message: 'existing user'
+                                    });
+                                });
+                            } else {
+                                res.json({
+                                    success: true,
+                                    message: 'existing user'
+                                });
+                            }
+                            
                         });
                     } else {
                         console.log('User already in section');
