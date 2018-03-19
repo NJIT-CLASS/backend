@@ -1,9 +1,10 @@
 import {
     Assignment,
     //AssignmentGrade,
-    //AssignmentInstance,
+    AssignmentInstance,
     //AssignmentInstance_Archive,
 	ArchivedAssignment,
+	ArchivedAssignmentInstance,
     Badge,
     BadgeInstance,
     Category,
@@ -35,6 +36,7 @@ import {
     TaskActivity_Archive,
     TaskGrade,
     TaskInstance,
+    ArchivedTaskInstance,
     TaskInstance_Archive,
     TaskSimpleGrade,
     TestUser,
@@ -48,14 +50,15 @@ import {
     WorkflowActivity_Archive,
     WorkflowGrade,
     WorkflowInstance,
-    WorkflowInstance_Archive
+	ArchivedWorkflowInstance,
+    WorkflowInstance_Archive,
 } from './Util/models.js';
 
 import {
     FILE_SIZE as file_size,
     MAX_NUM_FILES as max_files
 } from './Util/constant';
-import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE} from './backend_settings';
+import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE, DATABASE} from './backend_settings';
 
 var dateFormat = require('dateformat');
 var Guid = require('guid');
@@ -6799,6 +6802,141 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //             res.status(201).end();
         //         });
     });
+
+	router.get('/archive/:AssignmentInstanceID', function (req, res) {
+        var assignmentArray = new Array();
+		console.log('TaskInstanceArchive is called\n');
+		return TaskInstance.findAll({
+			where: {
+				AssignmentInstanceID: req.params.AssignmentInstanceID
+			},
+			attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+		}).then(function (rows) {
+			//console.log(rows[0].OwnerID);
+			var arrayLength = rows.length;
+			for (var x = 0; x < arrayLength; x++) {
+
+				ArchivedTaskInstance.create({
+
+					TaskInstanceID: rows[x].TaskInstanceID,
+					UserID: rows[x].UserID,
+					TaskActivityID: rows[x].TaskActivityID,
+					WorkflowInstanceID: rows[x].WorkflowInstanceID,
+					AssignmentInstanceID: rows[x].AssignmentInstanceID,
+					GroupID: rows[x].GroupID,
+					Status: rows[x].Status,
+					StartDate: rows[x].StartDate,
+					EndDate: rows[x].EndDate,
+					ActualEndDate: rows[x].ActualEndDate,
+					Data: rows[x].Data,
+					UserHistory: rows[x].UserHistory,
+					FinalGrade: rows[x].FinalGrade,
+					Files: rows[x].Files,
+					ReferencedTask: rows[x].ReferencedTask,
+					NextTask: rows[x].NextTask,
+					PreviousTask: rows[x].PreviousTask,
+					EmailLastSent: rows[x].EmailLastSent
+
+				});
+			}
+		})
+        .then(WorkflowInstance.findAll({
+		            where: {
+			            AssignmentInstanceID: req.params.AssignmentInstanceID
+		            },
+		            attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
+	            }).then(function (workflowrows) {
+	                console.log("**************************");
+		            console.log(req.params.AssignmentInstanceID);
+                var arrayLength = workflowrows.length;
+		        for (var x = 0; x < arrayLength; x++) {
+			            ArchivedWorkflowInstance.create({
+				            WorkflowInstanceID: workflowrows[x].WorkflowInstanceID,
+				            WorkflowActivityID: workflowrows[x].WorkflowActivityID,
+				            AssignmentInstanceID: workflowrows[x].AssignmentInstanceID,
+				            StartTime: workflowrows[x].StartTime,
+				            EndTime: workflowrows[x].EndTime,
+				            TaskCollection: workflowrows[x].TaskCollection,
+				            Data: workflowrows[x].Data
+			            });
+		            }
+	        }))
+        .then(AssignmentInstance.findAll({
+	        where: {
+		        AssignmentInstanceID: req.params.AssignmentInstanceID
+	        },
+	        attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+        }).then(function (assigninstancerows) {
+	        //console.log(rows[0].OwnerID);
+	        var arrayLength = assigninstancerows.length;
+	        for (var x = 0; x < arrayLength; x++) {
+
+		        ArchivedAssignmentInstance.create({
+			        AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
+			        AssignmentID: assigninstancerows[x].AssignmentID,
+			        SectionID: assigninstancerows[x].SectionID,
+			        StartDate: assigninstancerows[x].StartDate,
+			        EndDate: assigninstancerows[x].EndDate,
+			        WorkflowCollection: assigninstancerows[x].WorkflowCollection,
+			        WorkflowTiming: assigninstancerows[x].WorkflowTiming
+		        });
+	        }
+		    res.status(201).end()
+        })
+        )
+        // .then(sequelize.query('SET FOREIGN_KEY_CHECKS = 0;').spread((results, metadata) => {
+		 //            // Results will be an empty array and metadata will contain the number of affected rows.
+		 //            console.log(results);
+        //     }))
+        // // .then(
+		// sequelize.query('SET FOREIGN_KEY_CHECKS = 0;' +
+        //         'Delete from '+DATABASE+'.workflowinstance where AssignmentInstanceID='+req.params.AssignmentInstanceID+';')
+        // )
+        //     .then(
+		// 	sequelize.query('SET FOREIGN_KEY_CHECKS = 0;' +
+		// 	'Delete from '+DATABASE+'.assignmentinstance where AssignmentInstanceID='+req.params.AssignmentInstanceID+';')
+		// )
+		// .then(
+         //    TaskInstance.destroy({
+         //            where: {
+         //                AssignmentInstanceID: req.params.AssignmentInstanceID
+         //                    }
+		//                 })
+		//                 .then(function(rows) {
+		//                     res.status(201).end();
+		//                     console.log("Delete TaskActivityArchive Success and saved to other back up");
+		//                 })
+            // )
+			// .then(
+			//     sequelize.query('SET GLOBAL FOREIGN_KEY_CHECKS=0;')
+			// 	WorkflowInstance.destroy({
+			// 		where: {
+			// 			AssignmentInstanceID: req.params.AssignmentInstanceID
+			// 		}
+			// 	}).then(function(rows) {
+			// 		console.log("Delete TaskActivityArchive Success and saved to other back up");
+			// 	})
+			// )
+			// .then(
+			//     sequelize.query('SET GLOBAL FOREIGN_KEY_CHECKS=0;')
+			// 	AssignmentInstance.destroy({
+			// 		where: {
+			// 			AssignmentInstanceID: req.params.AssignmentInstanceID
+			// 		}
+			// 	}).then(function(rows) {
+			// 		console.log("Delete TaskActivityArchive Success and saved to other back up");
+			// 		res.status(201).end();
+			// 	})
+			// )
+            .catch(function (err) {
+	        console.log(' /archive/:AssignmentInstanceID-------' + err.message);
+	        res.status(400).end();
+        })
+	});
+
+
+
+
 
     //Endpoint to archive assignment instance table entry by giving AssignmentInstanceID
     router.get('/AssignmentInstanceArchive/save/:AssignmentInstanceID', function (req, res) {
