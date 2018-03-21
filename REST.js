@@ -7880,5 +7880,38 @@ console.log(req.body.Role+"   "+req.body.UserID);
 
       });
 
+      router.post('/getSectionByAssignmentInstance', function(req, res){
+          //console.log(req);
+        AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.body.assignmentInstanceID
+            },
+            attributes: ["SectionID"]
+        }).then(result => {
+            return res.json(result);
+        });
+      });
+
+      //----------------------------------------------------------------
+      router.post('/volunteerpool/section/:section_id',async function(req, res) {
+        console.log("/volunteerpool/section/ : was called");
+        VolunteerPool.findAll({
+          where:{
+            SectionID:req.params.section_id
+          }
+        }).then(function (result) {
+            console.log('Volunteers have been found by section.');
+            res.json({
+                'Error': false,
+                'Volunteers': result
+            });
+        }).catch(function (err) {
+            console.log('/volunteerpool/section/: ' + err);
+            res.status(400).end();
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
 };
 module.exports = REST_ROUTER;
