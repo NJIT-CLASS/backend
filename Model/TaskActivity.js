@@ -241,6 +241,16 @@ module.exports = function(sequelize, DataTypes) {
             field: 'SeeSameActivity',
             allowNull: true
         },
+        AssessmentTask: {
+            type: DataTypes.BOOLEAN,
+            field: 'AssessmentTask',
+            allowNull: true
+        },
+        MustCompleteThisFirst: {
+            type: DataTypes.BOOLEAN,
+            field: 'MustCompleteThisFirst',
+            allowNull: true
+        },
     }, {
         timestamps: false,
 
@@ -265,6 +275,6 @@ module.exports = function(sequelize, DataTypes) {
         // }
 
         // define the table's name
-        tableName: 'TaskActivity'
+        tableName: 'taskactivity'
     });
 };
