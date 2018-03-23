@@ -206,7 +206,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                     UserLogin.update({
                         Attempts: 0,
-                        Timeout: null
+                        Timeout: null,
+                        LastLogin: new Date()
                     }, {
                         where: {
                             UserID: user.UserID
@@ -558,6 +559,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         console.log('Expired Token');
                         return res.status(400).end();
                     } else {
+                        console.log(err);
                         return res.status(400).json({
                             success: false,
                             message: 'Failed to authenticate token.'
@@ -2043,7 +2045,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 UserID: req.params.userId
             },
-            attributes: ['SectionID'],
+            attributes: ['SectionID','Role'],
             include: [{
                 model: Section,
                 attributes: ['Name'],
@@ -2765,6 +2767,76 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         });
     });
+
+    // Grade reporting ==========================================================================
+
+    router.post('/getUserAssignmentGrades', function(req, res){
+        if(req.body.userID == null || req.body.sectionID == null){
+            console.log(req);
+            console.log('/getUserAssignmentGrades:userID : no user or section ID passed');
+            res.status(400).end();
+            return;
+        }
+
+        var json = {
+            error:false,
+            grades:[]
+        };
+
+        return SectionUser.findAll({
+            where: {
+                UserID:req.body.userID,
+                SectionID:req.body.sectionID
+            },
+            attributes:['SectionUserID','Role','SectionID']
+        }).then(function(response){
+            if(!response) return;
+
+            console.log("User grades called");
+            return Promise.map(response, function(sectionIDs){
+                if(!sectionIDs) return;
+
+                var userSectionIDs=sectionIDs.toJSON();
+
+                return AssignmentGrade.find({
+                    where:{
+                        SectionUserID:userSectionIDs.SectionUserID
+                    },
+                    attributes:['Grade','AssignmentGradeID','AssignmentInstanceID','Comments']
+                }).then(function (grades){
+                    if(!grades) return;
+                    var gradesJSON = grades.toJSON();
+                    gradesJSON["AssignmentDetails"]={};
+                    json.grades.push(gradesJSON);
+
+                    return AssignmentInstance.find({
+                        where:{
+                            AssignmentInstanceID:gradesJSON.AssignmentInstanceID
+                        },
+                        attributes:['AssignmentID']
+                    }).then(function (params){
+                        if(!params) return;
+
+                        return Assignment.find({
+                            where:{AssignmentID:params.AssignmentID}
+                        }).then(function (params){
+                            if(!params) return;
+                            gradesJSON.AssignmentDetails=params;
+                        });
+                    });
+                    return grades;
+                });
+            });
+        }).then(function(done){
+            res.json(json);
+        }).catch(function(error){
+            res.status(400).end();
+        });
+    });
+
+    // Grade reporting ==========================================================================
+
+
 
     //Endpoint for Assignment Manager
     router.post('/getAssignmentGrades/:ai_id', function (req, res) {
@@ -7947,7 +8019,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //----------------------------------------------------------------
     router.post('/testuser/create',async function(req, res) {
         console.log('/testuser/create : was called');
-
+        console.log(TestUser);
         await TestUser.create({
             Test: true
         }).catch(function(err) {
@@ -7974,51 +8046,100 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    //-----------------------------------------------------------------------------------------------------
+    //-----------user management------------------------------------
+    router.post('/usermanagement/testuser/add', function(req, res) {
 
-    router.get('/reallocatepools/:ai_id', function(req, res) {
-        var reallocate = new Allocator();
-        var ai_id = req.params.ai_id;
-        //var manually_chosen = {};
-        var pools = reallocate.get_ai_volunteers(ai_id);
-        var volunteer_pool, section_students, section_instructors;
-
-        if (pools[volunteer_pool] == null){
-            volunteer_pool = false;
-
-            if (pools[section_students] == null){
-                section_students = false;
-
-                return Promise.each(pools[section_instructors], function (si) {
-                    return reallocate.reallocate(si, pools[section_instructors]);
-                });
-                section_instructors = true;
+    User.update({
+        Test: 1
+    }, {
+        where: {
+            UserID: req.body.UserID
             }
-            else{
-                return Promise.each(pools[section_students], function (ss) {
-                    return reallocate.reallocate(ss, pools[section_students]);
-                });
-                section_students = true;
-            }
-        }
-        else {
-            return Promise.each(pools[volunteer_pool], function (vo) {
-                return reallocate.reallocate(vo, pools[volunteer_pool]);
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
             });
-            volunteer_pool = true;
-        }
-        res.json({
-            'volunteer_pool': volunteer_pool,
-            'section_students': section_students,
-            'section_instructors': section_instructors,
-            'reallocate': pools
+        }).catch(function(err) {
+            console.log('/usermanagement/testuser/add' + err.message);
+            res.status(401).end();
         });
 
     });
 
     //----------------------------------------------------------------
+    router.post('/usermanagement/testuser/remove', function(req, res) {
 
+        User.update({
+          Test: 0
+        }, {
+            where: {
+                UserID: req.body.UserID
+                }
+          }).then(function(rows) {
+              res.json({
+                  'Error': false,
+                  'Message': 'Success'
+              });
+          }).catch(function(err) {
+              console.log('/usermanagement/testuser/remove' + err.message);
+              res.status(401).end();
+          });
 
+      });
+
+      router.post('/usermanagement/role', function(req, res) {
+console.log(req.body.Role+"   "+req.body.UserID);
+        User.update({
+          Role: req.body.Role
+        }, {
+            where: {
+                UserID: req.body.UserID
+                }
+          }).then(function(rows) {
+              res.json({
+                  'Error': false,
+                  'Message': 'Success'
+              });
+          }).catch(function(err) {
+              console.log('/usermanagement/role' + err.message);
+              res.status(401).end();
+          });
+
+      });
+
+      router.post('/getSectionByAssignmentInstance', function(req, res){
+          //console.log(req);
+        AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.body.assignmentInstanceID
+            },
+            attributes: ["SectionID"]
+        }).then(result => {
+            return res.json(result);
+        });
+      });
+
+      //----------------------------------------------------------------
+      router.post('/volunteerpool/section/:section_id',async function(req, res) {
+        console.log("/volunteerpool/section/ : was called");
+        VolunteerPool.findAll({
+          where:{
+            SectionID:req.params.section_id
+          }
+        }).then(function (result) {
+            console.log('Volunteers have been found by section.');
+            res.json({
+                'Error': false,
+                'Volunteers': result
+            });
+        }).catch(function (err) {
+            console.log('/volunteerpool/section/: ' + err);
+            res.status(400).end();
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
 
 };
 module.exports = REST_ROUTER;
