@@ -818,7 +818,118 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     });
+ //---------------------------------------------------------------------------
+ router.get('/notifications/load',async function(req, res) {
+    console.log('/notifications/load : was called');
 
+    var v = await VolunteerPool.findAll({
+        where: {
+            status: 'pending'
+        },
+        attributes: ['volunteerpoolID']
+    }).then(function(rows) {
+        var arrayLength = rows.length;
+        for (var i = 0; i < arrayLength; x++) {
+            Notifications.create({
+                VolunteerpoolID: rows[i].volunteerpoolID
+            });
+        }
+    }).catch(function(err) {
+        console.log('/notifications/load/:UserID + volunteerpool ' + err);
+        res.status(400).end();
+    });
+
+    var f = await Comments.findAll({
+        where: {
+            Flag: 1
+        },
+        attributes: ['commentsID','UserID']
+    }).then(function(rows2) {
+        var arrayLength = rows2.length;
+        for (var j = 0; j < arrayLength; j++) {
+            Notifications.create({
+                CommentsID: rows[j].CommentsID,
+                UserID: rows[j].UserID,
+                Flag: 1
+            });
+        }
+    }).catch(function(err) {
+        console.log('/notifications/load/:UserID + volunteerpool ' + err);
+        res.status(400).end();
+    });
+
+
+    res.json({
+        'Error': false,
+        'Message': 'Success',
+        'volunteer': v,
+        'comments-flag': f,
+
+    });
+
+});
+//---------------------------------------------------------------------------
+router.get('/notifications/all', function(req, res) {
+    console.log('/notifications/all: was called');
+
+    Notifications.findAll({
+        where: {
+            Dismiss: null
+        }
+    }).then(function(rows) {
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'Notifications': rows
+        });
+    }).catch(function(err) {
+        console.log('/notifications/all ' + err.message);
+        res.status(400).end();
+    });
+
+});
+//---------------------------------------------------------------------------
+router.get('/notifications/user/:UserID', function(req, res) {
+    console.log('/notifications/user/:UserID was called');
+
+    Notifications.findAll({
+        where: {
+            UserID: req.params.UserID,
+            Dismiss: null
+        }
+    }).then(function(rows) {
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'Notifications': rows
+        });
+    }).catch(function(err) {
+        console.log('/notifications/user/:UserID' + err.message);
+        res.status(400).end();
+    });
+
+});
+//---------------------------------------------------------------------------
+router.get('/notifications/dismiss/:notificationsID', function(req, res) {
+    console.log('/notifications/dismiss/:notificationsID was called');
+
+    Notifications.update({
+        Dismiss:1
+    },{
+        where: {
+            NotificationsID: req.params.notificationsID
+        }
+    }).then(function(rows) {
+        res.json({
+            'Error': false,
+            'Message': 'Success'
+        });
+    }).catch(function(err) {
+        console.log('/notifications/dismiss/:notificationsID' + err.message);
+        res.status(400).end();
+    });
+
+});
     //Endpoint to save partially made assignments from ASA to database
     router.post('/assignment/save/', function (req, res) {
         if (req.body.partialAssignmentId == null) {
@@ -7615,8 +7726,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         };
         logger.log('info','/reallocate/cancel_workflows');
         var allocate = new Allocator([],0);
-        var result = await allocate.cancel_workflow(req.body.ai_id, req.body.workflow_ids);
+        var result = await allocate.cancel_workflow(req.body.ai_id,req.body.wa_id, req.body.workflow_ids);
         logger.log('debug',{
+            call: '/reallocate/cancel_workflows',
+            result: result
+        });
+        res.json( result );
+    });
+    // API to Confirm Workfow Cancellation By Instructor   created 3-10-19 mss86
+    //@ data: Json containing Graph and wi_ids
+    router.post('/reallocate/confirm_cancellation', async function (req, res){
+        if(req.body.data == null ){
+            logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
+            res.status(400).end();
+            return;
+        };
+        logger.log('info','/reallocate/cancel_workflows');
+        var allocate = new Allocator([],0);
+        var data = req.body.data
+        var Graph = data.Graph;
+        var wi_ids = data.wi_ids;
+        var result = await allocate.apply_cancellation_graph(Graph, wi_ids);
+        logger.log('info',{
             call: '/reallocate/cancel_workflows',
             result: result
         });
@@ -7796,118 +7927,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    //---------------------------------------------------------------------------
-    router.get('/notifications/load',async function(req, res) {
-        console.log('/notifications/load : was called');
-
-        var v = await VolunteerPool.findAll({
-            where: {
-                status: 'pending'
-            },
-            attributes: ['volunteerpoolID']
-        }).then(function(rows) {
-            var arrayLength = rows.length;
-            for (var i = 0; i < arrayLength; x++) {
-                Notifications.create({
-                    VolunteerpoolID: rows[i].volunteerpoolID
-                });
-            }
-        }).catch(function(err) {
-            console.log('/notifications/load/:UserID + volunteerpool ' + err);
-            res.status(400).end();
-        });
-
-        var f = await Comments.findAll({
-            where: {
-                Flag: 1
-            },
-            attributes: ['commentsID','UserID']
-        }).then(function(rows2) {
-            var arrayLength = rows2.length;
-            for (var j = 0; j < arrayLength; j++) {
-                Notifications.create({
-                    CommentsID: rows[j].CommentsID,
-                    UserID: rows[j].UserID,
-                    Flag: 1
-                });
-            }
-        }).catch(function(err) {
-            console.log('/notifications/load/:UserID + volunteerpool ' + err);
-            res.status(400).end();
-        });
-
-
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'volunteer': v,
-            'comments-flag': f,
-
-        });
-
-    });
-    //---------------------------------------------------------------------------
-    router.get('/notifications/all', function(req, res) {
-        console.log('/notifications/all: was called');
-
-        Notifications.findAll({
-            where: {
-                Dismiss: null
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Notifications': rows
-            });
-        }).catch(function(err) {
-            console.log('/notifications/all ' + err.message);
-            res.status(400).end();
-        });
-
-    });
-    //---------------------------------------------------------------------------
-    router.get('/notifications/user/:UserID', function(req, res) {
-        console.log('/notifications/user/:UserID was called');
-
-        Notifications.findAll({
-            where: {
-                UserID: req.params.UserID,
-                Dismiss: null
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Notifications': rows
-            });
-        }).catch(function(err) {
-            console.log('/notifications/user/:UserID' + err.message);
-            res.status(400).end();
-        });
-
-    });
-    //---------------------------------------------------------------------------
-    router.get('/notifications/dismiss/:notificationsID', function(req, res) {
-        console.log('/notifications/dismiss/:notificationsID was called');
-
-        Notifications.update({
-            Dismiss:1
-        },{
-            where: {
-                NotificationsID: req.params.notificationsID
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success'
-            });
-        }).catch(function(err) {
-            console.log('/notifications/dismiss/:notificationsID' + err.message);
-            res.status(400).end();
-        });
-
-    });
+   
     //-------inactive a user from a section---------------------------------
     router.post('/inactiveuser/section', function(req, res) {
 
@@ -8119,6 +8139,26 @@ console.log(req.body.Role+"   "+req.body.UserID);
             return res.json(result);
         });
       });
+        //----------------------------------------------------------------
+        router.post('/volunteerpool/section/:section_id',async function(req, res) {
+            console.log("/volunteerpool/section/ : was called");
+            VolunteerPool.findAll({
+              where:{
+                SectionID:req.params.section_id
+              }
+            }).then(function (result) {
+                console.log('Volunteers have been found by section.');
+                res.json({
+                    'Error': false,
+                    'Volunteers': result
+                });
+            }).catch(function (err) {
+                console.log('/volunteerpool/section/: ' + err);
+                res.status(400).end();
+            });
+        });
+
+        //-----------------------------------------------------------------------------------------------------
 
       //----------------------------------------------------------------
       router.post('/volunteerpool/section/:section_id',async function(req, res) {
