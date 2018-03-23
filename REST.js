@@ -5030,7 +5030,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
 
         console.log('got to create part');
+        console.log({
+            CommentsID: req.body.CommentsID,
+            UserID: req.body.UserID,
+            TargetID: req.body.TargetID,
+            AssignmentInstanceID: req.body.AssignmentInstanceID,
+            Type: req.body.Type,
+            CommentsText: req.body.CommentsText,
+            Rating: req.body.Rating,
+            Flag: req.body.Flag,
+            Status: req.body.Status,
+            ReplyLevel: req.body.ReplyLevel,
+            Parents: req.body.Parents,
+            Hide: 0,
+            Viewed: 0,
+            Time: req.body.Time,
+            Complete: req.body.Complete,
+            CommentTarget: req.body.CommentTarget,
+            OriginTaskInstanceID: req.body.OriginTaskInstanceID,
 
+        })
         Comments.create({
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
