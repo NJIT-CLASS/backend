@@ -7580,8 +7580,28 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
         };
         logger.log('info','/reallocate/cancel_workflows');
         var allocate = new Allocator([],0);
-        var result = await allocate.cancel_workflow(req.body.ai_id, req.body.workflow_ids);
+        var result = await allocate.cancel_workflow(req.body.ai_id,req.body.wa_id, req.body.workflow_ids);
         logger.log('debug',{
+            call: '/reallocate/cancel_workflows',
+            result: result
+        });
+        res.json( result );
+    });
+    // API to Confirm Workfow Cancellation By Instructor   created 3-10-19 mss86
+    //@ data: Json containing Graph and wi_ids
+    router.post('/reallocate/confirm_cancellation', async function (req, res){
+        if(req.body.data == null ){
+            logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
+            res.status(400).end();
+            return;
+        };
+        logger.log('info','/reallocate/cancel_workflows');
+        var allocate = new Allocator([],0);
+        var data = req.body.data
+        var Graph = data.Graph;
+        var wi_ids = data.wi_ids;
+        var result = await allocate.apply_cancellation_graph(Graph, wi_ids);
+        logger.log('info',{
             call: '/reallocate/cancel_workflows',
             result: result
         });

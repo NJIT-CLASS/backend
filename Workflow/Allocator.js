@@ -1598,20 +1598,32 @@ class Allocator {
     }
     // Get AssigmentInstance from ai_id  created 3-2-18 mss86
     //@ ai_id: AssignmentInstanceID
-    async get_ai_from_ai_id(ai_id){
-        logger.log('info',{
-            call:"get_ai_from_ai_id",
+    async get_wi_ids_from_ai(ai_id, wa_id){
+        logger.log('debug',{
+            call:"get_wi_ids_from_ai",
             ai_id: ai_id,
+            wa_id: wa_id
         });
-        var result = await AssignmentInstance.findOne({
+        var result = await WorkflowInstance.findAll({
             where: {
-                AssignmentInstanceID: ai_id
-            }
+                AssignmentInstanceID: ai_id,
+                WorkflowActivityID: wa_id
+            },
+            order: [
+                ['WorkflowInstanceID', 'ASC']
+            ],
+            attributes: ['WorkflowInstanceID']
+    
         });
         if(result){
-            return result;
+            var wi_ids = []
+            await Promise.mapSeries(result, async(res) =>{
+                wi_ids.push(res.WorkflowInstanceID);
+            });
+            console.log(wi_ids);
+            return wi_ids;
         }else{
-            logger.log('error','get_ai_from_ai_id, no AssigmentInstance Exists');
+            logger.log('error','get_wi_ids_from_ai, no Workflows Exists');
             return;
         }
     }
@@ -1747,11 +1759,10 @@ class Allocator {
     //    [wi_id, [{}] , [{}], [{},{}],......]     workflow 
     //    ...                                workflow ...
     //  ]
-    async create_assigment_graph(ai_id,){
+    async create_assigment_graph(ai_id, wa_id){
         logger.log('info', {call: 'create_assigment_graph', ai_id: ai_id});
         var x = this;
-        var ai  = await x.get_ai_from_ai_id(ai_id);
-        var wi_ids = JSON.parse(ai.WorkflowCollection);
+        var wi_ids  = await x.get_wi_ids_from_ai(ai_id , wa_id);
         var Graph = [];
         var invalid_workflows=[];
         await Promise.map(wi_ids, async (wi_id, wi_idx) => {
@@ -1762,33 +1773,33 @@ class Allocator {
             var skip_workflow = false;
             await Promise.mapSeries(ti_ids , async(ti_id , ti_idx) =>{
                 var ti = await x.get_ti_from_ti_id(ti_id);
-                var complete = false;
+                var viewed = false;
+                var completed = false;
                 var Status = JSON.parse(ti.Status);
-                if(Status[0] === 'complete'){
-                    complete = true;
+                if(Status[4] === 'viewed'   || Status[0] === 'bypassed'){
+                    viewed = true;
+                }
+                if(Status[0] === 'complete' || Status[0] === 'bypassed'){
+                    completed = true;
                 }
                 if(ti_idx === 0 && Status[1] === 'cancelled'){ // if the first task is cancelled, workflow is cancelled
                     skip_workflow = true;  
                 }
                 var history =JSON.parse(ti.UserHistory);
                 var first_user =history[0].user_id;
-                var obj_data = {'ta_id': ti.TaskActivityID, 'ti_id': ti_id, 'userID': ti.UserID, 'complete': complete, 'newuser':false, 'first_user': first_user };
+                var obj_data = {'ta_id': ti.TaskActivityID, 'ti_id': ti_id, 'userID': ti.UserID, 'viewed': viewed, 'completed':completed, 'newuser':false, 'first_user': first_user };
                 if(g_task.length === 0){           // if its empty add to array
                     g_task.push(obj_data);
-                    if(ti_ids.length <= 1){        // for single question workflows this is the only one
-                        g_workflow.push(g_task);   
-                        g_task = [];
-                    }
                 }else if(g_task[g_task.length-1].ta_id === ti.TaskActivityID){      // if its the same activity put in same array
                     g_task.push(obj_data);
                 }else{                             // if its different activity, put it in a new array
                     g_workflow.push(g_task);
                     g_task=[];
                     g_task.push(obj_data);
-                    if(ti_idx >= ti_ids.length-1){
-                        g_workflow.push(g_task);
-                        g_task = [];
-                    }
+                }
+                if(ti_idx >= ti_ids.length-1){     // if this was the last task
+                    g_workflow.push(g_task);
+                    g_task = [];
                 }
             });
             if(skip_workflow){
@@ -1797,7 +1808,7 @@ class Allocator {
             Graph[wi_idx] = g_workflow;        // worfkflow array into graph
             return;
         });
-        // this will only be used if privius cancellation took place.
+        // this will only be used if previus cancellation took place.
         invalid_workflows.sort(function (a,b) { return b-a; }); // reverse sort to remove from bottom up.
         await Promise.mapSeries(invalid_workflows, async(invalid_workflow) => {  
             Graph.splice(invalid_workflow,1);                   // remove workflows     
@@ -1827,94 +1838,110 @@ class Allocator {
     // Cancel workflows and realocate the users to other workflows created 3-11-18 mss86
     //@ ai_id: assigment instance id
     //@ wi_ids: [ ] workdlow ids to cancel
-    async cancel_workflow(ai_id, wi_ids){
+    async cancel_workflow(ai_id, wa_id, wi_ids){
+        var x = this;
         logger.log('info',{ call:'cancel_workflow', ai_id: ai_id, wi_ids: wi_ids});
         var success = true;
         var Message = '';
-        var x = this;
-        var Graph = await x.create_assigment_graph(ai_id);
+        var Graph = await x.create_assigment_graph(ai_id, wa_id);
+        var constrains = await x.create_constrain_array_for_graph(Graph[0]);
+        logger.log('debug', constrains);
         await x.print_graph(Graph);
-        var old_index; 
-        wi_ids.sort(function(a, b){return a-b});    // sort the array to process the graph top to bottom
-        await Promise.mapSeries(wi_ids, async (wi_id)=>{
-            await Promise.map(Graph, async(workflow, idx) =>{  // find index of workflow that needs to be removed in the graph
+        
+        var old_indexes = []; 
+        var old_users =[];
+        await Promise.mapSeries(wi_ids, async (wi_id)=>{        // find indexes of workflow that needs to be removed in the graph
+            await Promise.map(Graph, async(workflow, idx) =>{  
                 if(workflow[0] === wi_id){
-                    old_index = idx;
+                    old_indexes.push(idx);
+                    old_users.push(workflow[1][0].userID);
                     logger.log('debug',{cancel_workflow: wi_id, idx: idx});
                     return;
                 }
-                return;
             });
-            logger.log('debug',{Graph_index_of_cancelled_workflow: old_index} );
-            var old_workflow = Graph[old_index];
-            var old_user = old_workflow[1][0].userID;  // user of the first task instance that needs to be replaced in other
-            logger.log('debug', {'late_user_of_cancelled_workflow': old_user});
-            await Promise.mapSeries(old_workflow, async(old_tis, idx) =>{
-                if(idx === 0 || idx === 1){return;} // skip the first index(wi_id) and first task instance(since it has late user)
-                await Promise.mapSeries(old_tis, async(old_ti,idx_same) =>{
-                    if(old_ti.userID != old_user){ // for all task colums where users need to be reallocated
-                        var numofw = Graph.length;
-                        var i = old_index; // index for the workflow for which users are to be put into
-                        var j;             // index for the previous workflow from which users are used
-                        var prv_user;      // user of the privious workflow
-                        var temp_user;
-                        for(var a = 0; a < numofw; a++){
-                            j = i;
-                            i--;
-                            if (i<0){   // if we reach top of array, modifiy indexes
-                                i=numofw-1;
-                                j = 0;
-                            }if(prv_user == null){ // set the user at the start
-                                prv_user = Graph[j][idx][idx_same].userID;
-                            }
-                            /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                            //////// different scenarios  resolutions
-                            /////////////////////////////////////////////////////////////////////////////////////////////////////////////
-                            if(Graph[i][idx][idx_same].userID === Graph[j][idx][idx_same].userID && Graph[i][idx][idx_same].first_user === Graph[j][idx][idx_same].first_user){ // if the users are the same break out.
-                                break;  // if users are the same, thus same user for all workflows, skip this column
-                            }else{
-                                temp_user = Graph[i][idx][idx_same].userID
-                                if( Graph[i][idx][idx_same].complete  != true){
-                                    if(Graph[i][idx][idx_same].userID != prv_user){  // dont replace user with same user
-                                        Graph[i][idx][idx_same].userID     = prv_user;
-                                        Graph[i][idx][idx_same].newuser    = true;
-                                    }
-                                    Graph[i][idx][idx_same].first_user = prv_user;  // in case there is more workflows to be cancelled
-                                }else{
-                                    logger.log('debug', 'too late to reallocate because of completed task conflict');
-                                    success = false;
-                                    Message = "It is too Late into Assigment to Cancel Workflows";
-                                }
-                                prv_user = temp_user;
-                                if (temp_user != old_user && Graph[i][idx][idx_same].first_user != old_user){ // if we dont reach trigger user, continue
-                                    if(a === numofw-1){  // if we scanned the whole column and no trigger found
-                                        logger.log('error', 'in cancel workflow, user trigger not found!');
-                                        success = false;
-                                        Message = "It is too Late into Assigment to Cancel Workflows";
-                                    }
-                                    continue;
-                                }else{      // trigger user reached.
-                                    break;
-                                }
-                            }
-                        }
-                    } 
+        });
+        var Users = [];
+        Users[0] = [];   
+        //console.log(old_users);
+        //console.log(old_indexes);
+        await Promise.mapSeries(Graph, async(workflow, w_idx) =>{   // make array of usable users that can be used
+            await Promise.mapSeries(workflow, async(activity, a_idx) => {
+                if(a_idx === 0){return}             // ship first index
+                if(!Array.isArray(Users[a_idx])){
+                    Users[a_idx]=[];
+                }
+                await Promise.mapSeries(activity, async(task, t_idx) => {
+                    if (!Array.isArray(Users[a_idx][t_idx])){
+                        Users[a_idx][t_idx] = [];
+                    }
+                    if (!task.viewed && task.first_user === task.userID && ! _.contains(old_users,task.userID)){
+                        Users[a_idx][t_idx].push(task.userID);          // only add users that we can place in workflows
+                        //task.userID = 0;
+                    }
                 });
             });
-            /////////////////////////////////////////// cancel all the task intances in the workflow
-            if(success){
+        });
+        old_indexes.sort(function(a, b){return b-a});  // reverse sort to remove from bottom up
+        await Promise.mapSeries(old_indexes, async(old_index)=>{
+            Graph.splice(old_index,1);
+        });
+        await x.print_graph(Graph);
+        console.log(Users);
+        var num_of_wf = Graph.length;
+        var num_of_at = Graph[0].length;
+        for(var i = 2 ; i< num_of_at ; i++){
+            for(var j = 0 ; j< num_of_wf ; j++){
+                for(var k = 0 ; k < Graph[j][i].length ; k++){
+                    var task_instance = Graph[j][i][k];
+                    if(!task_instance.viewed){
+                        var Found = false;
+                        for(var user_i = 0; user_i < Users[i][k].length; user_i++){
+                            var new_user = Users[i][k][user_i];
+                            //console.log(Graph[j][i][k].userID);
+                            var ok = await x.check_constrains_for_workflow(Graph[j],constrains,i-1, new_user );
+                            //console.log(ok);
+                            if(ok){
+                                task_instance.userID  = new_user;
+                                task_instance.newuser = true;
+                                Users[i][k].splice(user_i, 1);
+                                Found = true;
+                                break;
+                            }
+                        }
+                        if(!Found){
+                            success = false;
+                            logger.log('error', "No user could be allocated to this task",i,j,k);
+                        }
+                    } 
+                    //console.log(Graph[j][i][k].userID);
+                }
+            }
+        }
+        console.log(Users);
+        x.print_graph(Graph);
+        //return //Graph;
+        if(success){
+            await x.apply_cancellation_graph(Graph, wi_ids);
+            return {'Error': false, 'Message': Message}
+        }else{
+            return {'Error': true , 'Message': Message , data:{Graph:Graph, wi_ids: wi_ids}}
+        }
+    }
+    // Uses A graph Created during workflow Cancellation and Applies the realocation created 3-22-18 mss86
+    // and cancellation to the database
+    //@ Graph: A Graph created during workflow cancellation
+    //@ wi_ids: [ ] workflow IDS that are to be cancelled
+    async apply_cancellation_graph(Graph, wi_ids){
+        var x = this;
+            //////////////////////////////////////////// cancel all the task intances in the workflow
+            await Promise.map(wi_ids, async(wi_id) =>{ 
                 var wi = await x.get_wi_from_wi_id(wi_id);
                 var ti_ids = JSON.parse(wi.TaskCollection);
                 await Promise.map(ti_ids, async(ti_id) => {
                     await x.cancel_task(ti_id);
                 });
-            }
-            /////////////////////////////////////////// remove the workflow from the Graph 
-            Graph.splice(old_index,1);    
-        });
-        await x.print_graph(Graph);
+            });   
         //////////////////////////////////////////////// check and cancel same activities with same user in same workflow
-        if(success){
             await Promise.map(Graph, async(workflow, wi_idx) =>{
                 await Promise.map(workflow, async(activity, act_idx) =>{
                     if(act_idx === 0 || act_idx === 1){return;}
@@ -1944,7 +1971,7 @@ class Allocator {
                             }
                         }
                     });
-                    /////////////////////////////////////////////////////////////// Realocate the users that Chnaged
+                    /////////////////////////////////////////////////////////////// Realocate the users that Changed
                     await Promise.mapSeries(activity, async( task, task_idx) =>{
                         if(task.newuser){
                             var ti = await x.get_ti_from_ti_id(task.ti_id);
@@ -1953,9 +1980,10 @@ class Allocator {
                     });
                 });
             });
-        }
-    return {Error: !success , Message: Message};
+
+    return {Error: false , Message: "Success"};
     }
+    
     // Debug to print the graphs  created 3-12-18 mss86
     async print_graph(Graph){
         var output="\n";
@@ -1976,9 +2004,96 @@ class Allocator {
         logger.log('debug', output);
         return;
     }
+    // Creates Array of constrains for canceling workflow graph created 3-20-18
+    
+    async create_constrain_array_for_graph(wi){
+        logger.log('debug',{ 
+            call:'create_constrain_array_for_graph',
+            wi: wi
+        });
+        var x = this;
+        var constrains = [];
+        await Promise.mapSeries(wi, async (activity,idx) =>{
+            if(idx === 0){ return; }  // first index has wi_id
+            var ta = await TaskActivity.findOne({     // get constrains
+                where: {
+                    TaskActivityID: activity[0].ta_id
+                },
+                attributes: ['AssigneeConstraints','NumberParticipants']
+            });
+            var task_constrains = JSON.parse(ta.AssigneeConstraints);
+
+            var temp = [];
+            if(task_constrains[0] === "instructor"){                                            // if its instructor 
+                constrains.push( {who:'instructor'} );
+            }else if(task_constrains[0] === "student" || task_constrains[0] === "both"){        // if student or both
+                var activity_idx = null;
+                if(ta.NumberParticipants == 1 && _.has(task_constrains[2], 'same_as')){                     // if there is only such activity, honor same_as
+                    activity_idx = await x.get_graph_activity_index_from_ta(wi, task_constrains[2].same_as[0]);
+                    constrains.push({who:'student',same_as:activity_idx});
+                }else if(_.has(task_constrains[2], 'not')){                                                 // else honor only not_in
+                    var not_ins = task_constrains[2].not;
+                    if(_.has(task_constrains[2], 'same_as')){           // remove same_as from not_in if exists
+                        var j = not_ins.indexOf(task_constrains[2].same_as[0]);
+                        if(not_ins.indexOf(j > -1 )){ 
+                            not_ins.splice(j, 1);
+                        }
+                    }
+                    await Promise.map(not_ins, async(not_in) =>{ // for each not_in ai_id, convert it to graph index
+                        activity_idx = await x.get_graph_activity_index_from_ta(wi, not_in);
+                        temp.push(activity_idx);
+                    });
+                    constrains.push({who:'student', not_in : temp} );
+                }else if(_.has(task_constrains[2], 'not_in_workflow_instance')){
+                    for(var i = 1; i< idx ; i++){
+                        temp.push(i);
+                    }
+                    constrains.push({who:'student', not_in : temp} );
+                }else{
+                    constrains.push({who:'student', not_in : temp} );
+                }
+            } 
+        });
+        return constrains;
+    }
+    // converts task activity to index in the cancellation graph created 3-20-18 mss86
+    async get_graph_activity_index_from_ta(wi, ta_id ) {
+        for(var i = 1; i< wi.length ; i++){ /// no no no 
+            if(wi[i][0].ta_id === ta_id){
+                return i;
+            }
+        }
+        return null;
+    }
+    // checks costrains when cancelling workflow created 3-22-18 mss86
+    async check_constrains_for_workflow(workflow, constrains, index, userID){
+        //console.log( {cons: constrains[index], idx:index , userID:userID })
+        if(constrains[index].who === 'instructor'){
+            return true;
+        }else{
+            if(_.has(constrains[index], 'same_as')){
+                if(workflow[constrains[index].same_as][0].userID === userID){
+                    return true
+                }else { 
+                    return false;
+                }
+            }else if(_.has(constrains[index], 'not_in')) {
+                for(var i = 0 ; i < constrains[index].not_in.length ; i++ ){                    // for each constrain of not_in 
+                    for( var j = 0 ; j < workflow[constrains[index].not_in[i]].length ; j++ ){  // check if multiple tasks of same activity
+                        var task = workflow[constrains[index].not_in[i]][j];
+                        if(task.userID === userID){
+                            return false;
+                        }
+                    }
+                }   
+            }
+        }
+        return true;
+    }
 
 
 
+    
 };
 
 
