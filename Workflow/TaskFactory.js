@@ -97,9 +97,8 @@ class TaskFactory {
         var assingmentInstancesCreated = [];
         console.log('Creating assignment instance...');
         //Iterate through all sectionIDs passed in and promise each is returned before next execution
-        
-        return await Promise.mapSeries(sectionIDs, async function(sectionid) {
-        //creates new AssignmentInstance
+        await Promise.mapSeries(sectionIDs, async function(sectionid) {
+            //creates new AssignmentInstance
             var ai = await AssignmentInstance.create({
                 //creates attributes
                 AssignmentID: a_id,
@@ -151,6 +150,50 @@ class TaskFactory {
         return ais.WorkflowTiming;
     }
 
+    async ViewContstraints(res, user_id, ti) {
+      if(ti.Status == 'complete'){
+        if(ti.UserID.length >= 2){
+          ti.TaskActivity.SeeSibblings =0;
+        }
+        else{
+          ti.TaskActivity.SeeSibblings =1;
+        }
+      }
+      else{
+        ti.TaskActivity.SeeSibblings =0;
+        }
+
+    if(ti.TaskActivity.OneOrSeparate == 'one'){
+      ti.TaskActivity.SeeSameActivity = 0;
+    }
+    else{
+      ti.TaskActivity.SeeSameActivity = 1;
+    }
+
+    if(ti.IsSubworkflow == 1){
+      ti.TaskActivity.AssessmentTask = 1;
+    }
+    else{
+      ti.TaskActivity.AssessmentTask = 0;
+    }
+
+    if(ti.TaskActivity.Name == 'create problem'){
+      ti.TaskActivity.MustCompleteThisFirst = 1;
+    }
+    else{
+      ti.TaskActivity.MustCompleteThisFirst = 2;
+    }
+
+    return {
+            'error': false,
+            'SeeSibblings': ti.TaskActivity.SeeSibblings,
+            'SeeSameActivity': ti.TaskActivity.SeeSameActivity,
+            'AssessmentTask': ti.TaskActivity.AssessmentTask,
+            'MustCompleteThisFirst': ti.TaskActivity.MustCompleteThisFirst,
+        }
+
+    }
+
 
     // check to see if the user has view access to the task and if not: immediately respond with error
     async applyViewContstraints(res, user_id, ti) {
@@ -162,24 +205,24 @@ class TaskFactory {
         if (JSON.parse(ti.Status)[0] === 'not_yet_started') {
             logger.log('debug', ' not_yet_started, return res');
             return res._headerSent || {
-                'error': true,
-                'message': 'Task not even started yet',
-            };
-            // || res.json({
-            //     'error': true,
-            //     'message': 'Task not even started yet',
-            // });
+                    'error': true,
+                    'message': 'Task not even started yet',
+                }
+                // || res.json({
+                //     'error': true,
+                //     'message': 'Task not even started yet',
+                // });
         }
         if (ti.UserID == user_id) {
-            logger.log('debug', 'UserID don\'t match, return res');
+            logger.log('debug', 'UserID don\'t match, return res')
             return;
         }
         if (JSON.parse(ti.Status)[0] != 'complete') {
-            logger.log('debug', 'current task not completed, return res');
+            logger.log('debug', 'current task not completed, return res')
             return;
         }
         if (ti.TaskActivity.SeeSibblings && ti.TaskActivity.SeeSameActivity) {
-            logger.log('debug', 'SeeSiblings & SeeSameActivity');
+            logger.log('debug', 'SeeSiblings & SeeSameActivity')
             return;
         }
 
@@ -200,13 +243,13 @@ class TaskFactory {
                 if (sibling_ti.PreviousTask == ti.PreviousTask) {
                     logger.log('debug', 'sibling task not completed, return res');
                     return res._headerSent || {
-                        'error': true,
-                        'message': 'Sibling task not completed yet',
-                    };
-                    // || res.json({
-                    //     'error': true,
-                    //     'message': 'Sibling task not completed yet',
-                    // });
+                            'error': true,
+                            'message': 'Sibling task not completed yet',
+                        }
+                        // || res.json({
+                        //     'error': true,
+                        //     'message': 'Sibling task not completed yet',
+                        // });
                 }
             }
         });
@@ -223,20 +266,20 @@ class TaskFactory {
 
         logger.log('debug', 'same act check apply view constraints to task instance');
         console.log('!ti.TaskActivity.SeeSameActivity', !ti.TaskActivity.SeeSameActivity);
-        console.log('ti.TaskActivity.SeeSameActivity', ti.TaskActivity.SeeSameActivity);
+        console.log('ti.TaskActivity.SeeSameActivity', ti.TaskActivity.SeeSameActivity)
         if (!ti.TaskActivity.SeeSameActivity) {
-            console.log('!!same_ta_tis', !!same_ta_tis);
+            console.log('!!same_ta_tis', !!same_ta_tis)
             if (!!same_ta_tis) {
                 logger.log('debug', 'same task activity task instance not completed, return res');
                 logger.log('debug', res._headerSent);
                 return res._headerSent || {
-                    'error': true,
-                    'message': 'Same type of task not completed yet',
-                };
-                // || res.json({
-                //     'error': true,
-                //     'message': 'Same type of task not completed yet',
-                // });
+                        'error': true,
+                        'message': 'Same type of task not completed yet',
+                    }
+                    // || res.json({
+                    //     'error': true,
+                    //     'message': 'Same type of task not completed yet',
+                    // });
             }
         }
         logger.log('debug', 'done applying view constraints');
@@ -919,7 +962,7 @@ class TaskFactory {
         });
     }
 
-    /*********************************************************************************************************** 
+    /***********************************************************************************************************
      **  Amadou workd starts here
      ************************************************************************************************************/
     //Update points instances when student submit task
@@ -1535,7 +1578,7 @@ class TaskFactory {
     }
 
 
-    /*********************************************************************************************************** 
+    /***********************************************************************************************************
      **  Amadou work ends here
      ************************************************************************************************************/
 }
