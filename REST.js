@@ -589,9 +589,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return res.status(401).end();
         }
     });
-    //-------------------------------------------------------------------
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////                 Guest Level APIs
+//-------------------------------------------------------------------
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////                 Guest Level APIs
     //Endpoint to update a User's Email
     router.put('/update/email', function (req, res) {
         if (req.body.password == null || req.body.email == null || req.body.userid == null) {
@@ -726,9 +726,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    ///////////////////////////
-    ////////////----------------   END Guest APIs                           ////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////
+////////////----------------   END Guest APIs                           ////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
         if(canRoleAccess(req.user.role, ROLES.PARTICIPANT)){
             next();
@@ -736,8 +736,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return res.status(401).end();
         }
     });
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ///////////////                 Participant Level APIs                   ///////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////                 Participant Level APIs                   ///////////////////////////
 
     router.post('/assignment/create', function (req, res) {
 
@@ -5216,14 +5216,33 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function (req, res) {
         console.log('/comments/add : was called');
-
+        logger.log('error', '/comments/add failed', req.body)
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
             console.log('/comments/add : Missing attributes');
             res.status(400).end();
         }
 
         console.log('got to create part');
+        console.log({
+            CommentsID: req.body.CommentsID,
+            UserID: req.body.UserID,
+            TargetID: req.body.TargetID,
+            AssignmentInstanceID: req.body.AssignmentInstanceID,
+            Type: req.body.Type,
+            CommentsText: req.body.CommentsText,
+            Rating: req.body.Rating,
+            Flag: req.body.Flag,
+            Status: req.body.Status,
+            ReplyLevel: req.body.ReplyLevel,
+            Parents: req.body.Parents,
+            Hide: 0,
+            Viewed: 0,
+            Time: req.body.Time,
+            Complete: req.body.Complete,
+            CommentTarget: req.body.CommentTarget,
+            OriginTaskInstanceID: req.body.OriginTaskInstanceID,
 
+        })
         Comments.create({
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
@@ -6683,8 +6702,123 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     /***********************************************************************************************************
      **  Amadou work ends here
      ************************************************************************************************************/
-    ////////////----------------   END Participant APIs
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    
+    //---------------------------------------------------------------------------
+    router.get('/notifications/load',async function(req, res) {
+        console.log('/notifications/load : was called');
+
+        var v = await VolunteerPool.findAll({
+            where: {
+                status: 'pending'
+            },
+            attributes: ['volunteerpoolID']
+        }).then(function(rows) {
+            var arrayLength = rows.length;
+            for (var i = 0; i < arrayLength; x++) {
+                Notifications.create({
+                    VolunteerpoolID: rows[i].volunteerpoolID
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
+
+        var f = await Comments.findAll({
+            where: {
+                Flag: 1
+            },
+            attributes: ['commentsID','UserID']
+        }).then(function(rows2) {
+            var arrayLength = rows2.length;
+            for (var j = 0; j < arrayLength; j++) {
+                Notifications.create({
+                    CommentsID: rows[j].CommentsID,
+                    UserID: rows[j].UserID,
+                    Flag: 1
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
+
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'volunteer': v,
+            'comments-flag': f,
+
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/all', function(req, res) {
+        console.log('/notifications/all: was called');
+
+        Notifications.findAll({
+            where: {
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/all ' + err.message);
+            res.status(400).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/user/:UserID', function(req, res) {
+        console.log('/notifications/user/:UserID was called');
+
+        Notifications.findAll({
+            where: {
+                UserID: req.params.UserID,
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/user/:UserID' + err.message);
+            res.status(400).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/dismiss/:notificationsID', function(req, res) {
+        console.log('/notifications/dismiss/:notificationsID was called');
+
+        Notifications.update({
+            Dismiss:1
+        },{
+            where: {
+                NotificationsID: req.params.notificationsID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/notifications/dismiss/:notificationsID' + err.message);
+            res.status(400).end();
+        });
+
+    });
+
+////////////----------------   END Participant APIs
+////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
         if(canRoleAccess(req.user.role, ROLES.TEACHER)){
             next();
@@ -6692,14 +6826,14 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
             return res.status(401).end();
         }
     });
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////----------------   Teacher APIs
-    ///////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////----------------   Teacher APIs
+///////////////////////////
 
 
-    ///////////////////////////
-    ////////////----------------   END Teacher Access APIs
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////
+////////////----------------   END Teacher Access APIs
+////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
         if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
             next();
@@ -6707,8 +6841,8 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
             return res.status(401).end();
         }
     });
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////                 Enhanced Access Level APIs
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////                 Enhanced Access Level APIs
 
     //Assign a New Instructor
     router.put('/instructor/new', function (req, res) {
@@ -6793,8 +6927,8 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
             return res.status(401).end();
         }
     });
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////                 Admin Level APIs
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////                 Admin Level APIs
 
     router.get('/AssignmentArchive/save/:AssignmentID', function (req, res) {
         var assignmentArray = new Array();
@@ -7666,12 +7800,12 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     //---------------------------------------------------------------------------
 
 
-    ///////////////////////////
-    ////////////----------------   END Admin APIs
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////
+////////////----------------   END Admin APIs
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////
     
     // API to reallocate users in assigments instances created 3-4-18 mss86
     //@ sec_id: section ID
