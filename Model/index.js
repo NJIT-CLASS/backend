@@ -140,6 +140,9 @@ models.forEach(function(model) {
     m.PartialAssignments.belongsTo(m.Course, {
         foreignKey: 'CourseID'
     });
+    m.VolunteerPool.belongsTo(m.User, {
+        foreignKey: 'UserID'
+    });
 
     m.VolunteerPool.belongsTo(m.User, {
         foreignKey: 'UserID'

@@ -284,6 +284,7 @@ class TaskFactory {
                 // });
             }
         }
+        
         logger.log('debug', 'done applying view constraints');
         // // find all non-completed task instances allocated to the user
         // return TaskInstance.findAll({

@@ -77,6 +77,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'SectionUserRecord'
+        tableName: 'sectionuserrecord'
     });
 };

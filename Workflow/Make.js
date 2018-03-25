@@ -83,11 +83,10 @@ class Make {
      * @param  {[type]}  ai_id     [description]
      * @return {Promise}           [description]
      */
-    async allocateUsers(sectionid, ai_id) {
+    async allocateUsers(secId, ai_id) {
 
-        if (sectionid === null || ai_id === null) {
+        if (secId === null || ai_id === null) {
             logger.log('error', 'create workflow instances and task instance failed', {
-                sectionid: sectionid,
                 ai_id: ai_id
             });
             return;
@@ -97,14 +96,44 @@ class Make {
             assignment_instance: ai_id
         });
 
+        // var sectionid = await AssignmentInstance.find({
+        //     where:{
+        //         AssignmentInstanceID: ai_id
+        //     }
+        // });
+
         var x = this;
         var users = await x.getUsersFromSection(sectionid); //returns users from sectionid
-        var wf_timing = await x.getWorkflowTiming(ai_id); //returns workflow timing from the assignment instance
+        var ai_idToSearch;
+        if(typeof ai_id == 'string'){
+            try{
+                var parsedAiID = JSON.parse(ai_id);
+                if(parsedAiID[0].id){
+                    ai_idToSearch = parsedAiID[0].id;
+                } else {
+                    ai_idToSearch = ai_id;
+                }
+            } catch(e){
+                ai_idToSearch = ai_id;
+            }
+        } else {
+            if(Array.isArray(ai_id)){
+                ai_idToSearch = ai_id[0];
+            }
+        }
+        var wf_timing = await x.getWorkflowTiming(ai_idToSearch); //returns workflow timing from the assignment instance
         var workflows = [];
-
+        
+        wf_timing = JSON.parse(wf_timing);
+        var aiIDArray = ai_id;
+        if(!Array.isArray(aiIDArray)){
+            aiIDArray = [JSON.parse(ai_id)];
+        }
         await Promise.mapSeries(users, async function (u_id, i) {
-            var new_wfs = await x.createWorkflowInstances(users, ai_id, wf_timing, i); //creates new workflow instances and return the workflow instance ids
-            workflows = workflows.concat(new_wfs);
+            await Promise.mapSeries(aiIDArray, async function(assignmentInstanceId){
+                var new_wfs = await x.createWorkflowInstances(users, assignmentInstanceId, wf_timing, i); //creates new workflow instances and return the workflow instance ids
+                workflows = workflows.concat(new_wfs);
+            });
         });
 
         await x.updateWorkflowCollection(ai_id, workflows);
@@ -153,6 +182,7 @@ class Make {
             AssignmentInstance: ai_id
         });
 
+        console.log(ai_id);
         var ais = await AssignmentInstance.find({
             where: {
                 AssignmentInstanceID: ai_id
@@ -180,8 +210,7 @@ class Make {
         logger.log('info', 'creating new workflows instances begin with', {
             userid: users[i]
         });
-
-        await Promise.mapSeries(JSON.parse(wf_timing).workflows, async function (wf) {
+        await Promise.mapSeries(wf_timing.workflows, async function (wf) {
             await Promise.mapSeries(await x.getNumSet(wf.id), async function () {
                 var new_wi_id = await x.createWorkflowInstance(wf, ai_id); //creates new workflow instance and return the workflow instance id
                 wfs.push(new_wi_id);
@@ -218,7 +247,6 @@ class Make {
      * @return {Promise}          [description]
      */
     async createWorkflowInstance(workflow, ai_id) {
-
         var wi = await WorkflowInstance.create({
             //create attributes.
             WorkflowActivityID: workflow.id,
@@ -807,7 +835,7 @@ class Make {
 
         if (wf_task.DueType[0] === 'duration') {
             //endDate.add(wf_task.DueType[1], 'minutes');
-           endDate.add(1, 'minutes');
+            endDate.add(1, 'minutes');
         } else if (wf_task.DueType[0] === 'specific time') {
             endDate = wf_task.DueType[1];
         }

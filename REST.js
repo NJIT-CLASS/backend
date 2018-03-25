@@ -206,7 +206,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                     UserLogin.update({
                         Attempts: 0,
-                        Timeout: null
+                        Timeout: null,
+                        LastLogin: new Date()
                     }, {
                         where: {
                             UserID: user.UserID
@@ -218,7 +219,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         const payload = {
                             admin: user.User.Admin,
                             instructor: user.User.Instructor,
-                            role: user.User.Role,
+                            role: user.User.Role || ROLES.ADMIN, //TODO: Remove this
                             id: user.UserID
                         };
                         let token = jwt.sign(payload, TOKEN_KEY, {
@@ -452,12 +453,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // var tf = new TaskFactory();
         // var make = new Make();
         //var users = await make.allocateUsers(1, 3);
-        var alloc = new Allocator();
+        // var alloc = new Allocator();
 
 
-        var grade = new Grade();
-        var instructor = await alloc.findInstructor(3);
-        console.log(instructor);
+        // var grade = new Grade();
+        // var instructor = await alloc.findInstructor(3);
+        // console.log(instructor);
 
         // var grades = await grade.getStudentSimpleGrade(1, 1);
 
@@ -465,6 +466,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     error: false,
         //     grades: grades
         // });
+
+        let email = new Email();
+        let data = {
+            pass: '1234567'
+        };
+        email.sendNow(70, 'create user');
+        email.sendNow(70, 'invite user', data);
+        email.sendNow(70, 'new task');
+        email.sendNow(70, 'late');
+        email.sendNow(70, 'reset password', data);
 
         //grade.addSimpleGrade(1);
         // grade.addTaskGrade(1, 99, 100);
@@ -548,6 +559,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         console.log('Expired Token');
                         return res.status(400).end();
                     } else {
+                        console.log(err);
                         return res.status(400).json({
                             success: false,
                             message: 'Failed to authenticate token.'
@@ -1470,33 +1482,40 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.get('/getUserID/:email', function (req, res) {
+    router.post('/getUserID/', function (req, res) {
         UserLogin.find({
             where: {
-                Email: req.params.email
+                Email: req.body.email
             }
         }).then(function (user) {
-
-            res.json({
-                'UserID': user.UserID
-            });
-        }).catch(function (e) {
-            console.log('getUserID ' + e);
-            UserContact.find({
-                Email: req.params.email
-
-            }).then(function(user) {
+            if(user === null){
+                UserContact.find({
+                    Email: req.body.email
+    
+                }).then(function(userCon) {
+                    if(userCon === null){
+                        res.json({
+                            'UserID': null
+                        });
+                    } else{
+                        res.json({
+                            'UserID': userCon.UserID
+                        });
+                    }
+                });
+            } else {
                 res.json({
                     'UserID': user.UserID
                 });
-            })
-                .catch(function(e) {
-                    console.log('getUserID ' + e);
+            }
+        }).catch(function (e) {
+            console.log('getUserID ' + e);
+           
 
-                    res.json({
-                        'UserID': -1
-                    });
-                });
+            res.json({
+                'UserID': null
+            });
+                
 
         });
     });
@@ -2142,7 +2161,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 UserID: req.params.userId
             },
-            attributes: ['SectionID'],
+            attributes: ['SectionID','Role'],
             include: [{
                 model: Section,
                 attributes: ['Name'],
@@ -2234,15 +2253,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }).then(function(response) {
                         if (response == null || response.UserID == null) {
                             return sequelize.transaction(function(t) {
+                                let role = null;
+                                switch(userDetails.role){
+                                case 'Instructor':
+                                    role = ROLES.TEACHER;
+                                    break;
+                                case 'Student':
+                                    role = ROLES.PARTICIPANT;
+                                    break;
+                                case 'Observer':
+                                    role = ROLES.GUEST;
+                                }
                                 return User.create({
                                     FirstName: userDetails.firstName,
                                     LastName: userDetails.lastName,
-                                    Instructor: userDetails.role === 'Instructor'
+                                    Instructor: userDetails.role === 'Instructor',
+                                    Role: role
                                 }, {
                                     transaction: t
                                 }).then(async function(user) {
                                     let temp_pass = await password.generate();
-                                    console.log(temp_pass);
                                     return UserContact.create({
                                         UserID: user.UserID,
                                         FirstName: userDetails.firstName,
@@ -2253,7 +2283,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         transaction: t
                                     }).then(async function(userCon) {
                                         let testHash = await password.hash(temp_pass);
-                                        console.log('Test Hash', testHash);
                                         return UserLogin.create({
                                             UserID: user.UserID,
                                             Email: userDetails.email,
@@ -2314,14 +2343,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     }).then(function(result) {
                                         console.log('User exists, adding to section');
                                         logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
-                                            result: result
+                                            result:  response.UserID
                                         });
-                                        return result;
+                                        if(userDetails.role == 'Instructor'){
+                                            //making Teacher role
+                                            
+                                            User.update({
+                                                Role: ROLES.TEACHER
+                                            },{
+                                                where: {
+                                                    UserID: response.UserID
+                                                }
+                                            }
+                                            ).then(function(makeTeacher){
+                                                return result;
+
+                                            });
+                                        } else {
+                                            return result;
+                                        }
                                     });
                                 } else {
                                     console.log('User already in section');
                                     logger.log('info', '/sectionUsers/addMany', 'user already in system', {
-                                        result: sectionUser
+                                        result:  response.UserID
                                     });
                                     return sectionUser;
                                 }
@@ -2368,14 +2413,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             attributes: ['UserID']
         }).then(function (response) {
+            console.log('User response:', response.UserID);
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
                     .then(function () {
                         return sequelize.transaction(function (t) {
+
+                            let role = null;
+                            switch(req.body.role){
+                            case 'Instructor':
+                                role = ROLES.TEACHER;
+                                break;
+                            case 'Student':
+                                role = ROLES.PARTICIPANT;
+                                break;
+                            case 'Observer':
+                                role = ROLES.GUEST;
+                            }
                             return User.create({
                                 FirstName: req.body.firstName,
                                 LastName: req.body.lastName,
-                                Instructor: req.body.role === 'Instructor'
+                                Instructor: req.body.role === 'Instructor',
+                                Role: role
                             }, {
                                 transaction: t
                             })
@@ -2391,7 +2450,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         });
                                 })
                                 .then(async function (user) {
-                                    console.log(user.UserID);
                                     let temp_pass = await password.generate();
                                     return UserContact.create({
                                         UserID: user.UserID,
@@ -2492,10 +2550,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             res.status(500).end();
                         }).then(function (result) {
                             console.log('User exists, adding to section');
-                            res.json({
-                                success: true,
-                                message: 'existing user'
-                            });
+                            if(req.body.role == 'Instructor'){
+                                //making Teacher role
+                                User.update({
+                                    Role: ROLES.TEACHER
+                                },{
+                                    where: {
+                                        UserID: response.UserID
+                                    }
+                                }
+                                ).then(function(makeTeacher){
+                                    res.json({
+                                        success: true,
+                                        message: 'existing user'
+                                    });
+                                });
+                            } else {
+                                res.json({
+                                    success: true,
+                                    message: 'existing user'
+                                });
+                            }
+                            
                         });
                     } else {
                         console.log('User already in section');
@@ -2807,6 +2883,76 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         });
     });
+
+    // Grade reporting ==========================================================================
+
+    router.post('/getUserAssignmentGrades', function(req, res){
+        if(req.body.userID == null || req.body.sectionID == null){
+            console.log(req);
+            console.log('/getUserAssignmentGrades:userID : no user or section ID passed');
+            res.status(400).end();
+            return;
+        }
+
+        var json = {
+            error:false,
+            grades:[]
+        };
+
+        return SectionUser.findAll({
+            where: {
+                UserID:req.body.userID,
+                SectionID:req.body.sectionID
+            },
+            attributes:['SectionUserID','Role','SectionID']
+        }).then(function(response){
+            if(!response) return;
+
+            console.log('User grades called');
+            return Promise.map(response, function(sectionIDs){
+                if(!sectionIDs) return;
+
+                var userSectionIDs=sectionIDs.toJSON();
+
+                return AssignmentGrade.find({
+                    where:{
+                        SectionUserID:userSectionIDs.SectionUserID
+                    },
+                    attributes:['Grade','AssignmentGradeID','AssignmentInstanceID','Comments']
+                }).then(function (grades){
+                    if(!grades) return;
+                    var gradesJSON = grades.toJSON();
+                    gradesJSON['AssignmentDetails']={};
+                    json.grades.push(gradesJSON);
+
+                    return AssignmentInstance.find({
+                        where:{
+                            AssignmentInstanceID:gradesJSON.AssignmentInstanceID
+                        },
+                        attributes:['AssignmentID']
+                    }).then(function (params){
+                        if(!params) return;
+
+                        return Assignment.find({
+                            where:{AssignmentID:params.AssignmentID}
+                        }).then(function (params){
+                            if(!params) return;
+                            gradesJSON.AssignmentDetails=params;
+                        });
+                    });
+                    return grades;
+                });
+            });
+        }).then(function(done){
+            res.json(json);
+        }).catch(function(error){
+            res.status(400).end();
+        });
+    });
+
+    // Grade reporting ==========================================================================
+
+
 
     //Endpoint for Assignment Manager
     router.post('/getAssignmentGrades/:ai_id', function (req, res) {
@@ -5075,14 +5221,33 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function (req, res) {
         console.log('/comments/add : was called');
-
+        logger.log('error', '/comments/add failed', req.body);
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
             console.log('/comments/add : Missing attributes');
             res.status(400).end();
         }
 
         console.log('got to create part');
+        console.log({
+            CommentsID: req.body.CommentsID,
+            UserID: req.body.UserID,
+            TargetID: req.body.TargetID,
+            AssignmentInstanceID: req.body.AssignmentInstanceID,
+            Type: req.body.Type,
+            CommentsText: req.body.CommentsText,
+            Rating: req.body.Rating,
+            Flag: req.body.Flag,
+            Status: req.body.Status,
+            ReplyLevel: req.body.ReplyLevel,
+            Parents: req.body.Parents,
+            Hide: 0,
+            Viewed: 0,
+            Time: req.body.Time,
+            Complete: req.body.Complete,
+            CommentTarget: req.body.CommentTarget,
+            OriginTaskInstanceID: req.body.OriginTaskInstanceID,
 
+        });
         Comments.create({
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
@@ -6542,6 +6707,121 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     /***********************************************************************************************************
      **  Amadou work ends here
      ************************************************************************************************************/
+
+    
+    //---------------------------------------------------------------------------
+    router.get('/notifications/load',async function(req, res) {
+        console.log('/notifications/load : was called');
+
+        var v = await VolunteerPool.findAll({
+            where: {
+                status: 'pending'
+            },
+            attributes: ['volunteerpoolID']
+        }).then(function(rows) {
+            var arrayLength = rows.length;
+            for (var i = 0; i < arrayLength; x++) {
+                Notifications.create({
+                    VolunteerpoolID: rows[i].volunteerpoolID
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
+
+        var f = await Comments.findAll({
+            where: {
+                Flag: 1
+            },
+            attributes: ['commentsID','UserID']
+        }).then(function(rows2) {
+            var arrayLength = rows2.length;
+            for (var j = 0; j < arrayLength; j++) {
+                Notifications.create({
+                    CommentsID: rows[j].CommentsID,
+                    UserID: rows[j].UserID,
+                    Flag: 1
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
+
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'volunteer': v,
+            'comments-flag': f,
+
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/all', function(req, res) {
+        console.log('/notifications/all: was called');
+
+        Notifications.findAll({
+            where: {
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/all ' + err.message);
+            res.status(400).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/user/:UserID', function(req, res) {
+        console.log('/notifications/user/:UserID was called');
+
+        Notifications.findAll({
+            where: {
+                UserID: req.params.UserID,
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/user/:UserID' + err.message);
+            res.status(400).end();
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/dismiss/:notificationsID', function(req, res) {
+        console.log('/notifications/dismiss/:notificationsID was called');
+
+        Notifications.update({
+            Dismiss:1
+        },{
+            where: {
+                NotificationsID: req.params.notificationsID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/notifications/dismiss/:notificationsID' + err.message);
+            res.status(400).end();
+        });
+
+    });
+
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
@@ -7910,7 +8190,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //----------------------------------------------------------------
     router.post('/testuser/create',async function(req, res) {
         console.log('/testuser/create : was called');
-
+        console.log(TestUser);
         await TestUser.create({
             Test: true
         }).catch(function(err) {
@@ -7937,44 +8217,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    //-----------------------------------------------------------------------------------------------------
+    //-----------user management------------------------------------
+    router.post('/usermanagement/testuser/add', function(req, res) {
 
-    router.get('/reallocatepools/:ai_id', function(req, res) {
-        var reallocate = new Allocator();
-        var ai_id = req.params.ai_id;
-        //var manually_chosen = {};
-        var pools = reallocate.get_ai_volunteers(ai_id);
-        var volunteer_pool, section_students, section_instructors;
-
-        if (pools[volunteer_pool] == null){
-            volunteer_pool = false;
-
-            if (pools[section_students] == null){
-                section_students = false;
-
-                return Promise.each(pools[section_instructors], function (si) {
-                    return reallocate.reallocate(si, pools[section_instructors]);
-                });
-                section_instructors = true;
+        User.update({
+            Test: 1
+        }, {
+            where: {
+                UserID: req.body.UserID
             }
-            else{
-                return Promise.each(pools[section_students], function (ss) {
-                    return reallocate.reallocate(ss, pools[section_students]);
-                });
-                section_students = true;
-            }
-        }
-        else {
-            return Promise.each(pools[volunteer_pool], function (vo) {
-                return reallocate.reallocate(vo, pools[volunteer_pool]);
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
             });
-            volunteer_pool = true;
-        }
-        res.json({
-            'volunteer_pool': volunteer_pool,
-            'section_students': section_students,
-            'section_instructors': section_instructors,
-            'reallocate': pools
+        }).catch(function(err) {
+            console.log('/usermanagement/testuser/add' + err.message);
+            res.status(401).end();
         });
 
     });
@@ -8000,7 +8259,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    //----------------------------------------------------------------
+    router.post('/volunteerpool/section/:section_id',async function(req, res) {
+        console.log('/volunteerpool/section/ : was called');
+        VolunteerPool.findAll({
+            where:{
+                SectionID:req.params.section_id
+            }
+        }).then(function (result) {
+            console.log('Volunteers have been found by section.');
+            res.json({
+                'Error': false,
+                'Volunteers': result
+            });
+        }).catch(function (err) {
+            console.log('/volunteerpool/section/: ' + err);
+            res.status(400).end();
+        });
+    });
 
+    //-----------------------------------------------------------------------------------------------------
 
 };
 module.exports = REST_ROUTER;

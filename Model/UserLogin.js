@@ -45,6 +45,11 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Blocked',
             allowNull: false,
             defaultValue: false
+        },
+        LastLogin: {
+            type: DataTypes.DATE,
+            field: 'LastLogin',
+            allowNull: true
         }
     }, {
         timestamps: false,
