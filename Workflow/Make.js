@@ -103,7 +103,7 @@ class Make {
         // });
 
         var x = this;
-        var users = await x.getUsersFromSection(sectionid); //returns users from sectionid
+        var users = await x.getUsersFromSection(secId); //returns users from sectionid
         var ai_idToSearch;
         if(typeof ai_id == 'string'){
             try{
@@ -120,7 +120,12 @@ class Make {
             if(Array.isArray(ai_id)){
                 ai_idToSearch = ai_id[0];
             }
+            else {
+                ai_idToSearch = ai_id;
+            }
         }
+
+        console.log('AIID', ai_idToSearch, ai_id);
         var wf_timing = await x.getWorkflowTiming(ai_idToSearch); //returns workflow timing from the assignment instance
         var workflows = [];
         
