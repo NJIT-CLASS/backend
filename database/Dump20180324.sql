@@ -532,9 +532,8 @@ CREATE TABLE `extracredit` (
   `SectionUserID` int(10) unsigned NOT NULL,
   `Points` int(10) unsigned NOT NULL DEFAULT '1',
   PRIMARY KEY (`SectionUserID`),
-  UNIQUE KEY `SectionUserID` (`SectionUserID`),
-  UNIQUE KEY `ExtraCredit_SectionUserID_unique` (`SectionUserID`),
-  CONSTRAINT `extracredit_ibfk_1` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE
+  UNIQUE KEY `ExtraCredit_SectionUserID_unique1` (`SectionUserID`),
+  CONSTRAINT `extracredit_ibfk_2` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -982,11 +981,10 @@ CREATE TABLE `sectionuserrecord` (
   `PlusPoint` int(10) unsigned DEFAULT '0',
   `GoalInstances` json NOT NULL,
   PRIMARY KEY (`SectionUserID`),
-  UNIQUE KEY `SectionUserID` (`SectionUserID`),
-  UNIQUE KEY `SectionUserRecord_SectionUserID_unique` (`SectionUserID`),
-  KEY `LevelInstanceID` (`LevelInstanceID`),
-  CONSTRAINT `sectionuserrecord_ibfk_1` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE,
-  CONSTRAINT `sectionuserrecord_ibfk_2` FOREIGN KEY (`LevelInstanceID`) REFERENCES `levelinstance` (`LevelInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE
+  UNIQUE KEY `SectionUserRecord1_SectionUserID_unique` (`SectionUserID`),
+  KEY `LevelInstanceID1` (`LevelInstanceID`),
+  CONSTRAINT `sectionuserrecord_ibfk_11` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE,
+  CONSTRAINT `sectionuserrecord_ibfk_21` FOREIGN KEY (`LevelInstanceID`) REFERENCES `levelinstance` (`LevelInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
