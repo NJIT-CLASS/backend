@@ -85,7 +85,7 @@ const randtoken = require('rand-token');
 
 //In-memory object to store refresh tokens
 const refreshTokens = {};
-
+const USE_TOKENS = process.env.NODE_ENV === 'production';
 var storage = multer({
     dest: './files/',
     limits: { //Max 3 files and total of 50MB
@@ -532,7 +532,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Middleware to verify token
     router.use(function(req,res,next){
-        if(process.env.NODE_ENV != 'production'){
+        if(!USE_TOKENS){
             req.user = {
                 role: ROLES.ADMIN
             };
@@ -718,6 +718,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////----------------   END Guest APIs                           ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
+        if(!USE_TOKENS){
+            next();
+            return;
+        }
+
         if(canRoleAccess(req.user.role, ROLES.PARTICIPANT)){
             next();
         } else {
@@ -806,118 +811,118 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     });
- //---------------------------------------------------------------------------
- router.get('/notifications/load',async function(req, res) {
-    console.log('/notifications/load : was called');
+    //---------------------------------------------------------------------------
+    router.get('/notifications/load',async function(req, res) {
+        console.log('/notifications/load : was called');
 
-    var v = await VolunteerPool.findAll({
-        where: {
-            status: 'pending'
-        },
-        attributes: ['volunteerpoolID']
-    }).then(function(rows) {
-        var arrayLength = rows.length;
-        for (var i = 0; i < arrayLength; x++) {
-            Notifications.create({
-                VolunteerpoolID: rows[i].volunteerpoolID
-            });
-        }
-    }).catch(function(err) {
-        console.log('/notifications/load/:UserID + volunteerpool ' + err);
-        res.status(400).end();
-    });
+        var v = await VolunteerPool.findAll({
+            where: {
+                status: 'pending'
+            },
+            attributes: ['volunteerpoolID']
+        }).then(function(rows) {
+            var arrayLength = rows.length;
+            for (var i = 0; i < arrayLength; x++) {
+                Notifications.create({
+                    VolunteerpoolID: rows[i].volunteerpoolID
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
 
-    var f = await Comments.findAll({
-        where: {
-            Flag: 1
-        },
-        attributes: ['commentsID','UserID']
-    }).then(function(rows2) {
-        var arrayLength = rows2.length;
-        for (var j = 0; j < arrayLength; j++) {
-            Notifications.create({
-                CommentsID: rows[j].CommentsID,
-                UserID: rows[j].UserID,
+        var f = await Comments.findAll({
+            where: {
                 Flag: 1
+            },
+            attributes: ['commentsID','UserID']
+        }).then(function(rows2) {
+            var arrayLength = rows2.length;
+            for (var j = 0; j < arrayLength; j++) {
+                Notifications.create({
+                    CommentsID: rows[j].CommentsID,
+                    UserID: rows[j].UserID,
+                    Flag: 1
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
+
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'volunteer': v,
+            'comments-flag': f,
+
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/all', function(req, res) {
+        console.log('/notifications/all: was called');
+
+        Notifications.findAll({
+            where: {
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
             });
-        }
-    }).catch(function(err) {
-        console.log('/notifications/load/:UserID + volunteerpool ' + err);
-        res.status(400).end();
-    });
-
-
-    res.json({
-        'Error': false,
-        'Message': 'Success',
-        'volunteer': v,
-        'comments-flag': f,
-
-    });
-
-});
-//---------------------------------------------------------------------------
-router.get('/notifications/all', function(req, res) {
-    console.log('/notifications/all: was called');
-
-    Notifications.findAll({
-        where: {
-            Dismiss: null
-        }
-    }).then(function(rows) {
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'Notifications': rows
+        }).catch(function(err) {
+            console.log('/notifications/all ' + err.message);
+            res.status(400).end();
         });
-    }).catch(function(err) {
-        console.log('/notifications/all ' + err.message);
-        res.status(400).end();
+
     });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/user/:UserID', function(req, res) {
+        console.log('/notifications/user/:UserID was called');
 
-});
-//---------------------------------------------------------------------------
-router.get('/notifications/user/:UserID', function(req, res) {
-    console.log('/notifications/user/:UserID was called');
-
-    Notifications.findAll({
-        where: {
-            UserID: req.params.UserID,
-            Dismiss: null
-        }
-    }).then(function(rows) {
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'Notifications': rows
+        Notifications.findAll({
+            where: {
+                UserID: req.params.UserID,
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/user/:UserID' + err.message);
+            res.status(400).end();
         });
-    }).catch(function(err) {
-        console.log('/notifications/user/:UserID' + err.message);
-        res.status(400).end();
+
     });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/dismiss/:notificationsID', function(req, res) {
+        console.log('/notifications/dismiss/:notificationsID was called');
 
-});
-//---------------------------------------------------------------------------
-router.get('/notifications/dismiss/:notificationsID', function(req, res) {
-    console.log('/notifications/dismiss/:notificationsID was called');
-
-    Notifications.update({
-        Dismiss:1
-    },{
-        where: {
-            NotificationsID: req.params.notificationsID
-        }
-    }).then(function(rows) {
-        res.json({
-            'Error': false,
-            'Message': 'Success'
+        Notifications.update({
+            Dismiss:1
+        },{
+            where: {
+                NotificationsID: req.params.notificationsID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/notifications/dismiss/:notificationsID' + err.message);
+            res.status(400).end();
         });
-    }).catch(function(err) {
-        console.log('/notifications/dismiss/:notificationsID' + err.message);
-        res.status(400).end();
-    });
 
-});
+    });
     //Endpoint to save partially made assignments from ASA to database
     router.post('/assignment/save/', function (req, res) {
         if (req.body.partialAssignmentId == null) {
@@ -4024,8 +4029,8 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
         await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
             console.log('/getAssignToSection/submit/ All Done!');
             console.log('Done value:', done);
-            console.log(typeof req.body.wf_timing.startDate, req.body.wf_timing.startDate);
-            if (moment(req.body.wf_timing.startDate) <= new Date()) {
+            console.log(typeof req.body.wf_timing, req.body.startDate);
+            if (moment(req.body.startDate) <= new Date()) {
                 await Promise.mapSeries(req.body.sectionIDs, async function (secId) {
                     await Promise.mapSeries(done, async function(assignmentInstanceId){
                         console.log('Assignment Instance ID?:', assignmentInstanceId);
@@ -6540,6 +6545,10 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
+        if(!USE_TOKENS){
+            next();
+            return;
+        }
         if(canRoleAccess(req.user.role, ROLES.TEACHER)){
             next();
         } else {
@@ -6555,6 +6564,10 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     ////////////----------------   END Teacher Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
+        if(!USE_TOKENS){
+            next();
+            return;
+        }
         if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
             next();
         } else {
@@ -6641,6 +6654,10 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     ////////////----------------   END Enhanced Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
+        if(!USE_TOKENS){
+            next();
+            return;
+        }
         if(canRoleAccess(req.user.role, ROLES.ADMIN)){
             next();
         } else {
@@ -7597,7 +7614,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
         };
         logger.log('info','/reallocate/cancel_workflows');
         var allocate = new Allocator([],0);
-        var data = req.body.data
+        var data = req.body.data;
         var Graph = data.Graph;
         var wi_ids = data.wi_ids;
         var result = await allocate.apply_cancellation_graph(Graph, wi_ids);
@@ -7962,26 +7979,26 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
 
     });
 
-        //----------------------------------------------------------------
-        router.post('/volunteerpool/section/:section_id',async function(req, res) {
-            console.log("/volunteerpool/section/ : was called");
-            VolunteerPool.findAll({
-              where:{
+    //----------------------------------------------------------------
+    router.post('/volunteerpool/section/:section_id',async function(req, res) {
+        console.log('/volunteerpool/section/ : was called');
+        VolunteerPool.findAll({
+            where:{
                 SectionID:req.params.section_id
-              }
-            }).then(function (result) {
-                console.log('Volunteers have been found by section.');
-                res.json({
-                    'Error': false,
-                    'Volunteers': result
-                });
-            }).catch(function (err) {
-                console.log('/volunteerpool/section/: ' + err);
-                res.status(400).end();
+            }
+        }).then(function (result) {
+            console.log('Volunteers have been found by section.');
+            res.json({
+                'Error': false,
+                'Volunteers': result
             });
+        }).catch(function (err) {
+            console.log('/volunteerpool/section/: ' + err);
+            res.status(400).end();
         });
+    });
 
-        //-----------------------------------------------------------------------------------------------------
+    //-----------------------------------------------------------------------------------------------------
 
 
 
