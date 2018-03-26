@@ -2964,37 +2964,32 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
             },
             attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID'],
             include: [{
-                model: Assignment,
-                // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                /*include: [{
-                     model: Section,
-                     }],*/
-            },
-            {
+                model: Assignment
+            },{
                 model: Section,
                 include: [{
                     model: Course,
-                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                    /*include: [{
-                         model: Section,
-                         attributes: ["SectionID"],
-                         }],*/
-                }, ],
-            },
-                /*{
-                 model: AssignmentGrade,
-                 }*/
-            ],
-        }).then(function (response) {
+                }]
+            }],
+        }).then( async function(response) {
             // console.log('res: ', response)
             if (response == null) {
                 return res.json({
                     Error: true
                 });
             }
+
+            var wf = await WorkflowActivity.findAll({
+                where:{
+                    AssignmentID: response.AssignmentID,
+                    
+                },
+                attributes: ['WorkflowActivityID','GradeDistribution']
+            })
             var json = {
                 Error: false,
                 AssignmentInstance: response,
+                WorkflowActivity: wf,
                 SectionUsers: [],
             };
             return response.Section.getSectionUsers().then(function (sectionUsers) {

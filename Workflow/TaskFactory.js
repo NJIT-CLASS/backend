@@ -110,9 +110,11 @@ class TaskFactory {
             await x.updateWorkflowTiming(wf_timing);
             logger.log('info', '/Workflow/TaskFactory/createAssignmentInstances: Done!');
             
-            return assingmentInstancesCreated;
+            
         
         });
+
+        return assingmentInstancesCreated;
     }
         
 
@@ -531,6 +533,8 @@ class TaskFactory {
                             VersionEvaluation: task.VersionEvaluation,
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
+                            AssessmentTask: task.AssessmentTask,
+                            MustCompleteThisFirst: task.MustCompleteThisFirst
                         }).then(function(taskResult) {
                             //console.log('Task creation successful!');
                             //console.log('TaskActivityID: ', taskResult.TaskActivityID);
