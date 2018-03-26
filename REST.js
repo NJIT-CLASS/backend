@@ -7870,37 +7870,81 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //@ ai_id: assigment instance
     //@ workflow_ids: [ ] of wi_ids
     router.post('/reallocate/cancel_workflows', async function (req, res){
-        if(req.body.ai_id == null || req.body.workflow_ids == null){
+        if(req.body.ai_id == null || req.body.wi_ids == null){
             logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/cancel_workflows');
-        var allocate = new Allocator([],0);
-        var result = await allocate.cancel_workflow(req.body.ai_id,req.body.wa_id, req.body.workflow_ids);
-        logger.log('debug',{
-            call: '/reallocate/cancel_workflows',
-            result: result
+        logger.log('info',{
+                    call:'/reallocate/cancel_workflows',
+                    ai_id: req.body.ai_id,
+                    wi_ids: req.body.wi_ids,
         });
-        res.json( result );
+        var wi_ids = req.body.wi_ids;
+        var allocate = new Allocator([],0);
+        var assigment_array = [];
+        var index = 0;
+        await Promise.mapSeries(wi_ids, async(wi_id) =>{    // group the assigments per Workflow Activity
+            var wi = await allocate.get_wi_from_wi_id(wi_id);
+            var wa_id = wi.WorkflowActivityID;
+            if(index === 0){
+                assigment_array.push({wa_id: wa_id, wi_ids:[wi_id]});
+                index++;
+            }else{
+                var pos = assigment_array.map(function(e) { return e.wa_id; }).indexOf(wa_id); 
+                if( pos > -1){
+                    assigment_array[pos].wi_ids.push(wi_id);
+                }else{
+                    assigment_array.push({wa_id: wa_id, wi_ids:[wi_id]});
+                }
+            }
+        });
+        var Message = 'Workflows Successfully Cancelled';
+        var array_of_results =[];
+        var result;
+        var needs_confirmation = false;     // confirmation by instructor
+        await Promise.mapSeries(assigment_array, async(activity) =>{
+            result = await allocate.cancel_workflow(req.body.ai_id, activity.wa_id, activity.wi_ids);
+            array_of_results.push(result);
+            if(result.Error){
+                needs_confirmation = true;
+                Message = 'Some users will have less tasks then others'
+            }
+        });
+        if(!needs_confirmation){    // Use the graph and apply it to the database
+            await Promise.map( array_of_results , async (w_activity) => {
+                var data = w_activity.data;
+                var Graph = data.Graph;
+                var wi_ids = data.wi_ids;
+                result = await allocate.apply_cancellation_graph(Graph, wi_ids);
+            });
+            array_of_results=[];
+        }
+        res.json( 
+            {Error: needs_confirmation,
+            Message: Message,
+            data: array_of_results } 
+        );
     });
     // API to Confirm Workfow Cancellation By Instructor   created 3-10-19 mss86
-    //@ data: Json containing Graph and wi_ids
+    //@ data: []array of Json containing Graph and wi_ids
     router.post('/reallocate/confirm_cancellation', async function (req, res){
         if(req.body.data == null ){
             logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/cancel_workflows');
-        var allocate = new Allocator([],0);
-        var data = req.body.data;
-        var Graph = data.Graph;
-        var wi_ids = data.wi_ids;
-        var result = await allocate.apply_cancellation_graph(Graph, wi_ids);
         logger.log('info',{
-            call: '/reallocate/cancel_workflows',
-            result: result
+            call:'/reallocate/confirm_cancellation',
+            data: req.body.data,
+        });
+        var allocate = new Allocator([],0);
+        var result
+        await Promise.map( req.body.data , async (w_activity) => {
+            var data = w_activity.data;
+            var Graph = data.Graph;
+            var wi_ids = data.wi_ids;
+            result = await allocate.apply_cancellation_graph(Graph, wi_ids);
         });
         res.json( result );
     });
