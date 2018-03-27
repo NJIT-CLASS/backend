@@ -325,21 +325,22 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 Email: req.body.email
             }
-        })
-            .then(async(user) => {
-                console.log('found user', user);
+        }).then(async(user) => {
+
                 if (user == null) {
                     return res.status(400).end();
                 }
-                let temp_pass = await password.generate();
+                var temp_pass = await password.generate();
                 user.Password = await password.hash(temp_pass);
                 user.Pending = true;
+                user.Timeout = null;
                 user.Attempts = 0;
+                console.log('found user', user);
                 user.save().then((result) => {
+                    console.log("temp pass: ", result);
                     let email = new Email();
-                    email.sendNow(result.UserID, 'reset password', temp_pass);
+                    email.sendNow(result.UserID, 'reset password', {"pass":temp_pass});
                     res.status(200).end();
-
                 });
             })
             .catch((err) => {
@@ -689,10 +690,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let email = new Email();
         if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
             console.log('/update/password : Missing attributes');
-            res.status(400).end();
+            res.status(400).json({error:"Missing Attributes"}).end();
         } else if (req.body.oldPasswd == req.body.newPasswd) {
             console.log('/update/password : Same password');
-            res.status(400).end();
+            res.status(400).json({error:"New Password cannot match old password."}).end();
         } else {
             UserLogin.find({
                 where: {
@@ -711,15 +712,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }).then(function (done) {
                         console.log('/update/password: Password updated successfully');
                         email.sendNow(userLogin.UserID, 'new password');
-                        res.status(200).end();
+                        res.status(200).json({error:false}).end();
                     }).catch(function (err) {
                         console.log(err);
-                        res.status(400).end();
+                        res.status(400).json({error:"Password could not be updated."}).end();
                     });
 
                 } else {
                     console.log('/update/password: Password not match');
-                    res.status(400).end();
+                    res.status(400).json({error:"Current password does not match."}).end();
                 }
             });
         }
