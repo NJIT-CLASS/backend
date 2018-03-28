@@ -52,7 +52,16 @@ module.exports = function(sequelize, DataTypes) {
         //     allowNull: false,
         //     defaultValue: false
         // },
+<<<<<<< HEAD
        
+=======
+        //Role: {
+            //Official first name of the user
+        //    type: DataTypes.STRING(40),
+        //    field: 'Role',
+         //   allowNull: true
+        //}
+>>>>>>> caton
         //UserType: {
         //    //User type either instructor or student
         //    //Instructor Boolean?????
