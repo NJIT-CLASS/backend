@@ -42,7 +42,7 @@ exports.INVITE_USER = function(data) {
 };
 
 exports.NEW_TASK = {
-    subject: 'Mew Task - Participatory Learning',
+    subject: 'New Task - Participatory Learning',
     text:(`
         Hi,\n
         A new task has started. Please visit http://pla.njit.edu:4001 to complete the task.\n\n
@@ -51,6 +51,20 @@ exports.NEW_TASK = {
     html:(`
         <p>Hi,</p><br>
         <p>A new task has started.<div>Please visit http://pla.njit.edu:4001 to complete the task</div></p>
+        <br><br>${SUPPORT_HTML}
+    `)
+}
+
+exports.NEW_PASSWORD = {
+    subject: 'Password Updated - Participatory Learning',
+    text:(`
+        Hi,\n
+        Your password has been updated.\n\n
+        ${SUPPORT_STRING}
+    `),
+    html:(`
+        <p>Hi,</p><br>
+        <p>Your password has been updated.</div></p>
         <br><br>${SUPPORT_HTML}
     `)
 }
@@ -107,7 +121,7 @@ exports.NEW_REPLY = function(data){
 
 exports.NEW_VOLUNTEER = function(data){
     return {
-        subject: '[PLA] New Reply',
+        subject: '[PLA] New Vlounteer',
         text:(`
             Dear ${data.name},\n
             A student has made a volunteer request. You can view the request here: ${data.link}\n
@@ -123,7 +137,7 @@ exports.NEW_VOLUNTEER = function(data){
 
 exports.NEW_FLAG = function(data){
     return {
-        subject: '[PLA] New Reply',
+        subject: '[PLA] New Flag',
         text:(`
             Dear ${data.name},\n
             Someone has flagged a comment. You can view the flag here: ${data.link}\n

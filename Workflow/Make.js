@@ -120,8 +120,13 @@ class Make {
             if(Array.isArray(ai_id)){
                 ai_idToSearch = ai_id[0];
             }
+            else {
+                ai_idToSearch = ai_id;
+            }
         }
-        var wf_timing = await x.getWorkflowTiming(ai_id); //returns workflow timing from the assignment instance
+
+        console.log('AIID', ai_idToSearch, ai_id);
+        var wf_timing = await x.getWorkflowTiming(ai_idToSearch); //returns workflow timing from the assignment instance
         var workflows = [];
         
         wf_timing = JSON.parse(wf_timing);
