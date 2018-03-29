@@ -1348,8 +1348,10 @@ class Allocator {
         await Promise.mapSeries(task_ids, async (ti_id) => {   
             var ti    = await x.get_ti_from_ti_id(ti_id);           // get Instance from ID
             var ai_id = ti.AssignmentInstanceID; 
-            var wi_id = await x.getWorkflowInstanceID(ti_id);       
-            var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id); 
+            var wi_id = await x.getWorkflowInstanceID(ti_id);    
+            var wi = await x.get_wi_from_wi_id(wi_id); 
+            //var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id); 
+            var avoid_u_ids = await x.get_constrained_users(wi, ti_id, ti.UserID); // get users that cannot be used for this task
             avoid_u_ids  = _.union(avoid_u_ids,ignore_users);  // merge cancelled users with ignore users    
             logger.log('debug',{avoid_u_ids: avoid_u_ids});
             var vol_u_ids  = await x.get_ai_volunteers(ai_id) || [];    // get used valuenteers for assigment instance
@@ -1434,6 +1436,8 @@ class Allocator {
             user_pool_woc: user_pool_woc, 
             is_extra_credit: is_extra_credit,
         });
+        var success;
+        var Message
         var response = [];   
         await Promise.mapSeries(ais , async(ai) =>{   // for each Assigment Instance
             var wi_ids = JSON.parse(ai.WorkflowCollection);  // array of workflowIDS 
@@ -1444,38 +1448,38 @@ class Allocator {
             var x = this;
             var vol_u_ids = await x.get_ai_volunteers(ai.AssignmentInstanceID); // get used valuenteers for assigment
             vol_u_ids = vol_u_ids || [];
-            await Promise.mapSeries(wi_ids, async function (wi_id) {  // for each workflow 
-                var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
-                avoid_u_ids = _.union(avoid_u_ids, old_user_ids);     // add old user ids to avoid list
-                await Promise.mapSeries(old_user_ids,async (old_user_id) => { 
-                    var new_u_id = await x.find_new_user_from_pool(user_pool_wc, user_pool_woc, vol_u_ids, avoid_u_ids);
-                    if(new_u_id == null){
-                        response.push({
-                            Error: true,
-                            ai:ai.AssignmentInstanceID,
-                            old_user_id: old_user_id,
-                            Message:"No users provided could be used in some Tasks of user"
-                        });
-                        return;
-                    } 
+            await Promise.mapSeries(old_user_ids,async (old_user_id) => {
+                Message = " Success";
+                success = true;
+                await Promise.mapSeries(wi_ids, async function (wi_id) {  // for each workflow 
+                    var wi = await x.get_wi_from_wi_id(wi_id);
                     var ti = await TaskInstance.findOne({
                         where:{
                             WorkflowInstanceID: wi_id,
                             UserID: old_user_id
-                        }
-                    })
+                        },
+                        order: [ [ 'TaskInstanceID', 'ASC' ]]
+                    }); 
                     if(ti != null){
+                    //var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);                  
+                        var avoid_u_ids = await x.get_constrained_users(wi, ti.TaskInstanceID);
+                        avoid_u_ids = _.union(avoid_u_ids, old_user_ids);     // add old user ids to avoid list
+                        var new_u_id = await x.find_new_user_from_pool(user_pool_wc, user_pool_woc, vol_u_ids, avoid_u_ids);
+                        if(new_u_id == null){
+                            success = false;
+                            Message = "No users provided could be used in some Tasks of user";
+                            return;
+                        } 
                         await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
                     }
-                    response.push({
-                        Error: false,
-                        ai:ai.AssignmentInstanceID,
-                        old_user_id: old_user_id,
-                        Message: "Success"
-                    });  
+                });
+                response.push({
+                    Error: !success,
+                    ai:ai.AssignmentInstanceID,
+                    old_user_id: old_user_id,
+                    Message: Message
                 });
             }); 
-            logger.log('info','Assigment Voluenteers updated to: ', vol_u_ids);
             await x.update_ai_volunteers(vol_u_ids, ai.AssignmentInstanceID );
         });
         return response;
@@ -1539,6 +1543,101 @@ class Allocator {
             vol_u_ids.push(new_user_id);  // add user to end of list
         }
         return new_user_id; 
+    }
+    // Gets the users that cannot be used for the task in the workflow created 3-28-18
+    //@ wi: workflow instance
+    //@ old_ti_id: task instance id to be replaced
+    async get_constrained_users( wi, old_ti_id ){
+        logger.log('info',{
+            call:'get_constrained_users', 
+            old_ti_id:old_ti_id
+        });
+        var x = this;
+        var constrained_users = [];  // users so far constrained
+        var users_in_workflow = [];  // users so far in the workflow
+        var ti_ids = JSON.parse(wi.TaskCollection);
+        var user_reached = false;
+        await Promise.mapSeries(ti_ids, async (ti_id) =>{   // scan the workflow and make array of users not to be used
+            var ti = await x.get_ti_from_ti_id(ti_id);
+            users_in_workflow.push(ti.UserID);
+            if(old_ti_id === ti_id){             // Task to be realocated Reached     
+                user_reached = true;
+                var temp_tis = await x.get_tis_from_wi_id_and_ta_id(wi.WorkflowInstanceID, ti.TaskActivityID)
+                await Promise.mapSeries(temp_tis, async(temp_ti)=>{
+                    constrained_users.push(temp_ti.UserID);
+                });
+            }
+            if(user_reached){                             // start checking constrains once user reached
+                var ta = await TaskActivity.findOne({     // get constrains
+                    where: {
+                        TaskActivityID: ti.TaskActivityID
+                    },
+                    attributes: ['AssigneeConstraints','NumberParticipants']
+                });
+                var task_constrains = JSON.parse(ta.AssigneeConstraints);
+    
+                if(_.has(task_constrains[2], 'not')){                   // honor only not_in
+                    var not_ins = task_constrains[2].not;
+                    if(_.has(task_constrains[2], 'same_as')){           // remove same_as from not_in if exists
+                        var j = not_ins.indexOf(task_constrains[2].same_as[0]);
+                        if(j > -1 ){ 
+                             not_ins.splice(j, 1);
+                        }
+                    }
+                    if(old_ti_id === ti_id){   // add all bad users before the task instance with new user.
+                        await Promise.map(not_ins, async(not_in) =>{ // for each not_in ai_id, get users
+                            var temp_tis = await x.get_tis_from_wi_id_and_ta_id(wi.WorkflowInstanceID, not_in);
+                            await Promise.mapSeries(temp_tis, async(temp_ti)=>{
+                                constrained_users.push(temp_ti.UserID);
+                            });
+                        });
+                    }else{ // check the task instances after the task of the user
+                        await Promise.map(not_ins, async(not_in) =>{ // for each not_in ai_id, get users
+                            var temp_tis = await x.get_tis_from_wi_id_and_ta_id(wi.WorkflowInstanceID, not_in);
+                            await Promise.mapSeries(temp_tis, async(temp_ti)=>{
+                                if(temp_ti.TaskInstanceID === old_ti_id){
+                                    constrained_users.push(ti.UserID);  // push the ti not temp_ti
+                                }
+                            });
+                        });
+                    }
+                }else if(_.has(task_constrains[2], 'not_in_workflow_instance')){
+                    var temp_users_in_workflow = users_in_workflow.slice();
+                    var skip = false;
+                    if(_.has(task_constrains[2], 'same_as')){     // if has same_as, find the user and dont consider him in the workflow
+                        var temp_tis = await x.get_tis_from_wi_id_and_ta_id(wi.WorkflowInstanceID, task_constrains[2].same_as[0]);
+                        console.log(temp_users_in_workflow)
+                        await Promise.mapSeries(temp_tis, async(temp_ti)=>{
+                            temp_users_in_workflow = temp_users_in_workflow.filter(function(s) {
+                                return s !== temp_ti.UserID;
+                            });
+                            if(old_ti_id === temp_ti.TaskInstanceID){
+                                skip = true;
+                            }
+                        });
+                    }
+                    if(old_ti_id === ti_id){ 
+                        constrained_users = _.union(constrained_users, temp_users_in_workflow);
+                    }else if(!skip){
+                        constrained_users.push(ti.UserID);  
+                    }
+                } 
+            }
+        });
+        return constrained_users;
+    }
+    // Return ti from workflow ID and task instance id created 3-28-18 mss86
+    //@ wi_id: WorkflowInstanceID
+    //@ ta_id: TaskInstanceID
+    async get_tis_from_wi_id_and_ta_id(wi_id,ta_id){
+        var tis = await TaskInstance.findAll({
+            where:{
+               WorkFlowInstanceID: wi_id,
+               TaskActivityID: ta_id
+            },
+            attributes: ['UserID', 'TaskInstanceID']
+        });
+        return tis;
     }
     // update_ai_volunteers 
     //@ u_ids : array of ids
@@ -1633,7 +1732,7 @@ class Allocator {
     // Get workflowInstacne from wi_id  created 3-14-18 mss86
     //@ wi_id: workflowInstaceID
     async get_wi_from_wi_id(wi_id){
-        logger.log('info',{call:'get_wi_from_wi_id',wi_id: wi_id});
+        //logger.log('info',{call:'get_wi_from_wi_id',wi_id: wi_id});
         var wi = await WorkflowInstance.findOne({
             where: {
                 WorkflowInstanceID: wi_id,
@@ -2112,7 +2211,7 @@ class Allocator {
                     var not_ins = task_constrains[2].not;
                     if(_.has(task_constrains[2], 'same_as')){           // remove same_as from not_in if exists
                         var j = not_ins.indexOf(task_constrains[2].same_as[0]);
-                        if(not_ins.indexOf(j > -1 )){ 
+                        if(j > -1 ){ 
                             not_ins.splice(j, 1);
                         }
                     }
