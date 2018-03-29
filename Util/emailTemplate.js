@@ -88,8 +88,8 @@ exports.RESET_PASS = function(data){
         subject: 'Password Reset - Participatory Learning',
         text:(`
             Hi,\n
-            You have requested a password reset. Please visit the following link and use the temporary password to complete the reset \n
-            http://pla.njit.edu:4001 \n
+            Your password has been reset. Please visit the following link and use the temporary password to complete the reset \n
+            http://pla.njit.edu:4001 \n 
             Temporary Password: ${data.pass} \n\n
             ${SUPPORT_STRING}
         `),

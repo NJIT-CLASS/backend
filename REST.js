@@ -327,22 +327,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 Email: req.body.email
             }
-        })
-            .then(async(user) => {
-                console.log('found user', user);
+        }).then(async(user) => {
+
                 if (user == null) {
                     return res.status(400).end();
                 }
-                let temp_pass = await password.generate();
+                var temp_pass = await password.generate();
                 user.Password = await password.hash(temp_pass);
                 user.Pending = true;
+                user.Timeout = null;
                 user.Attempts = 0;
                 user.Timeout = null;
+                console.log('found user', user);
                 user.save().then((result) => {
+                    console.log("temp pass: ", result);
                     let email = new Email();
                     email.sendNow(result.UserID, 'reset password', {'pass':temp_pass});
                     res.status(200).end();
-
                 });
             })
             .catch((err) => {
@@ -692,10 +693,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let email = new Email();
         if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
             console.log('/update/password : Missing attributes');
-            res.status(400).end();
+            res.status(400).json({error:"Missing Attributes"}).end();
         } else if (req.body.oldPasswd == req.body.newPasswd) {
             console.log('/update/password : Same password');
-            res.status(400).end();
+            res.status(400).json({error:"New Password cannot match old password."}).end();
         } else {
             UserLogin.find({
                 where: {
@@ -714,15 +715,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }).then(function (done) {
                         console.log('/update/password: Password updated successfully');
                         email.sendNow(userLogin.UserID, 'new password');
-                        res.status(200).end();
+                        res.status(200).json({error:false}).end();
                     }).catch(function (err) {
                         console.log(err);
-                        res.status(400).end();
+                        res.status(400).json({error:"Password could not be updated."}).end();
                     });
 
                 } else {
                     console.log('/update/password: Password not match');
-                    res.status(400).end();
+                    res.status(400).json({error:"Current password does not match."}).end();
                 }
             });
         }
@@ -7834,8 +7835,21 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/user_based called');
         var allocate = new Allocator([],0);
+        var inactivate_users;
+        if(req.body.inactivate_users == null){
+            inactivate_users ='this_assignment';
+        }else{
+            inactivate_users = req.body.inactivate_users;
+        }
+        await Promise.map(req.body.old_user_ids, async (old_user_id)=>{
+            if(inactivate_users == 'all_assignments'){
+                await allocate.inactivate_section_user(req.body.sec_id, old_user_id); // deactive user in section
+            }
+            await allocate.delete_volunteer(req.body.sec_id , old_user_id);     // remove user from voluenteers
+        });
+        logger.log('info','/reallocate/user_based called');
+        
         var ais = [];
         await Promise.map(req.body.ai_ids, async(ai_id) => {
             var ai = await AssignmentInstance.findOne({ 
@@ -7868,37 +7882,118 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //@ ai_id: assigment instance
     //@ workflow_ids: [ ] of wi_ids
     router.post('/reallocate/cancel_workflows', async function (req, res){
-        if(req.body.ai_id == null || req.body.workflow_ids == null){
+        if(req.body.ai_id == null || req.body.wi_ids == null){
             logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/cancel_workflows');
-        var allocate = new Allocator([],0);
-        var result = await allocate.cancel_workflow(req.body.ai_id,req.body.wa_id, req.body.workflow_ids);
-        logger.log('debug',{
-            call: '/reallocate/cancel_workflows',
-            result: result
+        logger.log('info',{
+            call:'/reallocate/cancel_workflows',
+            ai_id: req.body.ai_id,
+            wi_ids: req.body.wi_ids,
         });
-        res.json( result );
+        var wi_ids = req.body.wi_ids;
+        var allocate = new Allocator([],0);
+        var assigment_array = [];
+        var index = 0;
+        await Promise.mapSeries(wi_ids, async(wi_id) =>{    // group the assigments per Workflow Activity
+            var wi = await allocate.get_wi_from_wi_id(wi_id);
+            var wa_id = wi.WorkflowActivityID;
+            if(index === 0){
+                assigment_array.push({wa_id: wa_id, wi_ids:[wi_id]});
+                index++;
+            }else{
+                var pos = assigment_array.map(function(e) { return e.wa_id; }).indexOf(wa_id); 
+                if( pos > -1){
+                    assigment_array[pos].wi_ids.push(wi_id);
+                }else{
+                    assigment_array.push({wa_id: wa_id, wi_ids:[wi_id]});
+                }
+            }
+        });
+        var Message = 'Workflows Successfully Cancelled';
+        var array_of_results =[];
+        var result;
+        var needs_confirmation       = false;     // confirmation by instructor    
+        var wanted_to_cancel_started = false;
+        var extra_task_for_extra_credit = false;
+        var realocate_error = false;
+        try{
+            await Promise.mapSeries(assigment_array, async(activity) =>{
+                result = await allocate.cancel_workflow(req.body.ai_id, activity.wa_id, activity.wi_ids);
+                array_of_results.push(result);
+                if(result.Error){
+                    needs_confirmation = true;
+                }
+                if(result.extra_task_for_extra_credit){
+                    extra_task_for_extra_credit = true;
+                }
+                if(result.wanted_to_cancel_started){
+                    wanted_to_cancel_started = true;
+                }
+            });
+            if(result.Error){
+                needs_confirmation = true;
+                if(result.wanted_to_cancel_started && !result.extra_task_for_extra_credit){
+                    Message = 'Some users will have less tasks then others, Started workflows will not be cancelled';
+                }else if(result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                    Message = 'Some users will have less tasks then others, extra tasks will be allocated for extra credit, Started workflows will not be cancelled';
+                }else if(!result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                    Message = 'Some users will have less tasks then others, extra tasks will be allocated for extra credit';
+                }else{
+                    Message = 'Some users will have less tasks then others'
+                }
+            }else{
+                if(result.wanted_to_cancel_started && !result.extra_task_for_extra_credit){
+                    Message = 'Started workflows were not cancelled';
+                }else if(result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                    Message = 'Extra tasks were allocated for extra credit, Started workflows were not be cancelled';
+                }else if(!result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                    Message = 'Extra tasks were allocated for extra credit';
+                }
+            }
+            if(!needs_confirmation){    // Use the graph and apply it to the database
+                await Promise.map( array_of_results , async (w_activity) => {
+                    var data = w_activity.data;
+                    var Graph = data.Graph;
+                    var wi_ids = data.wi_ids;
+                    result = await allocate.apply_cancellation_graph(Graph, wi_ids);
+                });
+                array_of_results=[];
+            }
+        }catch(e){
+            logger.log('error','error in /reallocate/cancel_workflows', e);
+            realocate_error = true;
+            Message = "Could not cancel, error occured"
+        }
+        res.json( 
+            {
+            Error: realocate_error,
+            confirmation_required : needs_confirmation,
+            Message: Message,
+            data: array_of_results 
+            } 
+        );
     });
     // API to Confirm Workfow Cancellation By Instructor   created 3-10-19 mss86
-    //@ data: Json containing Graph and wi_ids
+    //@ data: [] array of Json containing Graph and wi_ids
     router.post('/reallocate/confirm_cancellation', async function (req, res){
         if(req.body.data == null ){
             logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/cancel_workflows');
-        var allocate = new Allocator([],0);
-        var data = req.body.data;
-        var Graph = data.Graph;
-        var wi_ids = data.wi_ids;
-        var result = await allocate.apply_cancellation_graph(Graph, wi_ids);
         logger.log('info',{
-            call: '/reallocate/cancel_workflows',
-            result: result
+            call:'/reallocate/confirm_cancellation',
+            data: req.body.data,
+        });
+        var allocate = new Allocator([],0);
+        var result
+        await Promise.map( req.body.data , async (w_activity) => {
+            var data = w_activity.data;
+            var Graph = data.Graph;
+            var wi_ids = data.wi_ids;
+            result = await allocate.apply_cancellation_graph(Graph, wi_ids);
         });
         res.json( result );
     });
