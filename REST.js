@@ -8331,6 +8331,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+    router.post('/getSectionByAssignmentInstance', function(req, res){
+        //console.log(req);
+      AssignmentInstance.find({
+          where: {
+              AssignmentInstanceID: req.body.assignmentInstanceID
+          },
+          attributes: ["SectionID"]
+      }).then(result => {
+          return res.json(result);
+      });
+    });
+
     //----------------------------------------------------------------
     router.post('/volunteerpool/section/:section_id',async function(req, res) {
         console.log('/volunteerpool/section/ : was called');
