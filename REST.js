@@ -335,9 +335,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 user.Pending = true;
                 user.Timeout = null;
                 user.Attempts = 0;
-                console.log('found user', user);
-                user.save().then((result) => {
-                    console.log("temp pass: ", result);
+                //console.log('found user', user);
+                user.save({logging:console.log}).then((result) => {
+                    //console.log("temp pass: ", result);
                     let email = new Email();
                     email.sendNow(result.UserID, 'reset password', {"pass":temp_pass});
                     res.status(200).end();
@@ -3369,11 +3369,15 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     // adding the user, called on add user page
     router.post('/adduser', function (req, res) {
         console.log('/adduser:called');
+        console.log(req.body);
         var email = new Email();
         if (req.body.email === null) {
             console.log('/adduser : Email cannot be null');
             res.status(400).end();
         }
+
+        var isTestUSer = "test" in req.body ? req.body.test : false; 
+        var isAdmin = "admin" in req.body ? req.body.admin : false;
 
         UserLogin.find({
             where: {
@@ -3388,7 +3392,9 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                         User.create({
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
-                            Role: req.body.role
+                            Role: req.body.role,
+                            Admin: isAdmin,
+                            Test: isTestUSer
                         }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -3423,7 +3429,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                                         });
                                 }).then(function(userLogin) {
                                     let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    email.sendNow(user.UserID, 'invite user', {"pass":req.body.password});
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -6889,10 +6895,12 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                             .catch(function (err) {
                                 console.log('Error creating user');
                                 console.log(err);
+                                res.state(500).end();
                             });
                     })
                     .catch(function (err) {
                         console.log(err);
+                        res.state(500).end();
                     });
             } else {
                 User.find({
@@ -6905,7 +6913,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                         makerID.updateAttributes({
                             UserID: makerID.UserID,
                             Instructor: true
-                        }).success(function () {
+                        }).then(function () {
                             console.log('/instructor/new : success');
                             res.status(200).end();
                         });
@@ -7720,7 +7728,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     router.get('/userManagement', async function (req, res) {
         console.log('/userManagement : was called');
         await User.findAll({
-            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin'/*, 'Test'*/, 'Instructor'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin', 'Test', 'Instructor'],
             include: [{
                 model: UserContact,
                 attributes: ['Email', 'FirstName', 'LastName']
