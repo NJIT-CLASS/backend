@@ -1024,110 +1024,21 @@ class Allocator {
         });
         return {'Error':false, 'ti_id':ti.TaskInstanceID, 'Message': "Success"};
     }
-    /* will remove this soon mss86
-        // reallocate all active assigments of user, called when user is made "inactive"
-        async reallocate_all_ai_of_user(section_user_id){
-            var x = this;
-            try{
-                var sectionuser = await SectionUser.findOne({
-                    where:{
-                        SectionUserID: section_user_id,
-                    }
-                });
-                var user_id=sectionuser.UserID;
-                var section_id = sectionuser.SectionID;
-                return await x.reallocate_user_to_assignment(null,[user_id],section_id,true,true);
-            }catch(e){
-                logger.log('error','realocate_all_ai_of_user',e);
-            }
-        }
-        // reallocate users of one or all assigment Instances with volunteers
-        async reallocate_user_to_assignment(ai_id, user_ids, sec_id, replace_all_assigmnets, is_extra_credit) {
-            var x = this;
-            logger.log('info', 'reallocate new users to assigment instance ', {
-                ai_id: ai_id,
-                user_ids: user_ids,
-                replace_all_assigmnets: replace_all_assigmnets,
-                is_extra_credit: is_extra_credit,
-                sec_id:sec_id,
-            });
-
-            var voluenteers = await x.get_volunteers_ids(sec_id); // get voluenteer pool
-            var sec_instructors = await x.get_section_users_ids(sec_id, 'instructor');
-            var instructor_id = sec_instructors[0];            
-            await Promise.map(user_ids, async(user_id)  => {     // remove users from volunteer pool
-                await x.delete_volunteer(sec_id,user_id);   
-            }) 
-            voluenteers =voluenteers.filter(function (user_id) { // remove users from voluenteers
-                return !_.contains(user_ids, user_id);
-            });
-
-            if(replace_all_assigmnets){ // replace all Task Instances of the users in all Assigments in the Section
-                try{
-                    var ais= await AssignmentInstance.findAll({
-                        where: {
-                            SectionID: sec_id,
-                        }
-                    });
-                }catch(e){
-                    logger.log('error', 'failed to find ais inside reallocate_user_to_assigment inside if statement',e);
-                }
-                await Promise.map(ais, async (ai) => { // for each Assigment Instance
-                    var tis= await x.get_uncomplete_tis_of_users(ai.AssignmentInstanceID, user_ids);
-                    await Promise.mapSeries(tis, async (ti) => { // for each Task Instance
-                        await x.reallocate_ti(ti,voluenteers,is_extra_credit,false,instructor_id);
-                    });
-                });
-                //return await x.reallocate_section(sec_id,user_ids, user_pool, is_extra_credit, );
-            }else{ // replace All Tasks of given Assigment instance and users
-                //return await x.reallocate_ai(ai_id, user_ids, voluenteers, is_extra_credit);
-                var tis= await x.get_uncomplete_tis_of_users(ai_id, user_ids);
-                await Promise.mapSeries(tis, async (ti) => { // for each Task Instance
-                    await x.reallocate_ti(ti,voluenteers,is_extra_credit,false,instructor_id);
-                });
-                return {'test':'test'};
-            }
-        }
-        
-        // get tis of users, in assigment instance
-        async get_uncomplete_tis_of_users(ai_id, user_ids){
-            try{
-                var tis= await TaskInstance.findAll({
-                    where: {
-                        UserID: {
-                            $in: user_ids,
-                        },
-                        AssignmentInstanceID: ai_id,
-                        $and: {  // make sure status in not complete and not bypassed, and not abondoned
-                            Status: {
-                                $notLike: '%"complete"%',
-                            },
-                            Status: {
-                                $notLike: '%"bypassed"%',
-                            },
-                            Status: {
-                                $notLike: '%"abandoned"%',
-                            }
-                        }
-                    }
-                });
-                return tis;
-            }catch(e){
-                logger.log('error', 'get_uncomplete_tis_of_users',e);
-            }
-        }
-        */
-        // return volunteers userIds for section
+   
+        // return volunteers userIds for section modified 3-30-18 mss86
         async get_volunteers_ids(section_id){
             var volunteers=[];
             try{
                 var vols = await VolunteerPool.findAll({
                     where:{
                         SectionID: section_id,
+                        status: {
+                            $like: '%Approved%',
+                        }
                     },
                     attributes:['UserID']
                 });
-                await Promise.map(vols, function(vol){
+                await Promise.map(vols, async (vol)=> {
                     volunteers.push(vol.UserID);
                 });
             }catch(e){
@@ -1576,8 +1487,16 @@ class Allocator {
                 });
                 var task_constrains = JSON.parse(ta.AssigneeConstraints);
     
-                if(_.has(task_constrains[2], 'not')){                   // honor only not_in
-                    var not_ins = task_constrains[2].not;
+                //if(_.has(task_constrains[2], 'not')){                   // honor only not_in
+                if(_.has(task_constrains[2], 'not') || (_.has(task_constrains[2], 'not_in_workflow_instance') && task_constrains[2].not_in_workflow_instance.length > 0)){                                                 // else honor only not_in
+                    var not_ins =[];
+                    if(_.has(task_constrains[2], 'not')){
+                        not_ins = not_ins.concat(task_constrains[2].not);
+                    }
+                    if(_.has(task_constrains[2], 'not_in_workflow_instance')){
+                        not_ins = not_ins.concat(task_constrains[2].not_in_workflow_instance);
+                    }
+                    //var not_ins = task_constrains[2].not;
                     if(_.has(task_constrains[2], 'same_as')){           // remove same_as from not_in if exists
                         var j = not_ins.indexOf(task_constrains[2].same_as[0]);
                         if(j > -1 ){ 
@@ -1903,7 +1822,8 @@ class Allocator {
                 var obj_data = {
                     'ta_id': ti.TaskActivityID, 'ti_id': ti_id, 'userID': ti.UserID,
                     'previous_userID': ti.UserID ,'viewed': viewed, 'completed':completed, 
-                    'cancel': false, 'first_user': first_user, 'is_extra_credit': is_extra_credit 
+                    'cancel': false, 'first_user': first_user, 'is_extra_credit': is_extra_credit,
+                    'was_extra_credit': is_extra_credit 
                 };
                 if(g_task.length === 0){           // if its empty add to array
                     g_task.push(obj_data);
@@ -1968,41 +1888,52 @@ class Allocator {
         await x.print_graph(Graph);
         var first_task_by = constrains[0].who;
         var first_ta = 1;                                            // first activity in graph with bad user
-        if(first_task_by === 'instructor'){                                //TODO: need relocation of user of 2nd task
+        if(first_task_by === 'instructor'){                          //need relocation of user of 2nd task
             logger.log('debug','first task by instructor, relocate from 2nd task')
             first_ta = 2;
-            return {'Error': false, 'Message': Message, data: {Graph: Graph, wi_ids: wi_ids}}
         }
         
         var old_indexes = []; 
         var old_users   = [];
+        var users_to_realocate_later = [];
         wi_ids.sort(function(a, b){return a-b});               // sort the array to process the graph top to bottom
-        await Promise.mapSeries(wi_ids, async (wi_id, wi_id_index)=>{       // find indexes of workflows to be removed in the graph
+        await Promise.mapSeries(wi_ids, async (wi_id)=>{       // find indexes of workflows to be removed in the graph
             await Promise.mapSeries(Graph, async(workflow, idx) =>{  
                 if(workflow[0] === wi_id){
-                    console.log(workflow[first_ta][0]);
-                    if(!workflow[first_ta][0].completed){             // only cancel workflows that were not started
+                    var valid_for_cancellation = true;
+                    await Promise.map(workflow[first_ta], async(task)=>{    // if there are multiple first activity tasks
+                        if(task.completed){
+                            valid_for_cancellation = false;
+                        }
+                        if(workflow[first_ta].length > 1){
+                            users_to_realocate_later.push(task.userID);    // will be realocated for extra credit later
+                            extra_task_for_extra_credit = true;
+                        }
+                    });
+                    //console.log(workflow[first_ta][0]);
+                    if(valid_for_cancellation){             // only cancel workflows that were not started
                         old_indexes.push(idx);
                         old_users.push(workflow[first_ta][0].userID);
                         logger.log('debug',{cancel_workflow: wi_id, idx: idx});
                         return;
                     }else{
-                        wi_ids.splice(wi_id_index, 1);                // remove the workflows it is not cancelled
+                        wi_ids.splice(wi_ids.indexOf(wi_id), 1);                // remove the workflow from array to not cancel later
                         wanted_to_cancel_started = true;
                         logger.log('debug',"cannot cancel workflow that has been started");
                     }
                 }
             });
         });
-        var Users = await x.make_array_of_usable_users(Graph, old_indexes, old_users);  // drops the availabe users to arrays
-        console.log(JSON.stringify(Users));
+        
+        // drops the availabe users to arrays
+        // checks if some old users completed task
+        var [Users, some_user_will_have_less_tasks] = await Promise.all([ x.make_array_of_usable_users(Graph, old_indexes, old_users) , x.check_old_users_in_graph(Graph, old_users)]);  
+        //console.log(JSON.stringify(Users));
      
         old_indexes.sort(function(a, b){return b-a});           
         await Promise.mapSeries(old_indexes, async(old_index)=>{    // remove the cancelled workflows from the Graph
             Graph.splice(old_index,1);
         });
-        var some_user_will_have_less_tasks = await x.check_old_users_in_graph(Graph, old_users); // check if any old users completed tasks
-        await x.print_graph(Graph);
         
         var num_of_wf = Graph.length;
         var num_of_at = Graph[0].length;
@@ -2010,10 +1941,9 @@ class Allocator {
         if(old_indexes.length !== 0){ // if there are workflows to be cancelled
             /////////////////////////////////////// relocation starts here//////////////////////////////////////////////////////////
             for(var i = first_ta+1 ; i< num_of_at ; i++){                                // activity, start at task at activity after 1st.
-                var users_in_activity =[];          // array to keep track of users already in activity
-                for(var w = 0; w < num_of_wf; w++){
-                    users_in_activity.push([]);
-                }   
+                   
+                var users_in_activity = await x.create_users_in_activity_array(Graph, i, old_users);  // make array of users already in activity 
+                
                 var num_of_task = Graph[0][i].length;   
                 var retry = 0;                                                      // counter for reassigmen
                 var ignore_same = false;                                   
@@ -2029,8 +1959,8 @@ class Allocator {
                                 var new_user = user_column[user_index][0];
                                 new_user = await x.check_constrains_for_workflow(Graph[j], constrains,i-1, new_user);
                                 if(new_user){// if user valid, if instructor ingore if already in activity
-                    //             console.log(users_in_activity, new_user, i,j,k);
-                                    if(ignore_same || (!_.contains(temp_users_in_activity[j], new_user) /*|| constrains[i-1].who =='instructor'*/)){
+                              //console.log(users_in_activity, new_user, i,j,k);
+                                    if(ignore_same || (!_.contains(temp_users_in_activity[j], new_user) || constrains[i-1].who =='instructor')){
                                         task_instance.userID  = new_user;
                                         if(task_instance.previous_userID != new_user && new_user === user_column[user_index][0]){
                                             task_instance.is_extra_credit = user_column[user_index][1];  // set new task's extra credit status
@@ -2053,10 +1983,15 @@ class Allocator {
                                     k--; // run same column again
                                     break;
                                 }else{
-                                    logger.log('debug',temp_users_in_activity);
-                                    success = false;
-                                    logger.log('error', "No user could be allocated to this task, using Owner",i,j,k);
-                                    task_instance.userID = await x.getInstructor(ai_id);
+                                    //logger.log('debug',temp_users_in_activity);
+                                    console.log(user_column.length);
+                                    if(user_column.length === Users[i][k].length && k > 0){        // if the activity requires more users then there are
+                                        extra_task_for_extra_credit = true;
+                                    }else{
+                                        success = false;
+                                    }
+                                    logger.log('error', "No user could be allocated to this task, using Instructor",i,j,k);
+                                    task_instance.userID = await x.getInstructor(task_instance.ta_id);
                                 }
                             }
                         } 
@@ -2064,7 +1999,7 @@ class Allocator {
                     users_in_activity = temp_users_in_activity.slice();
                 }
             }
-            console.log(Users);
+            //console.log(Users);
             await x.print_graph(Graph);
         }
         
@@ -2075,12 +2010,14 @@ class Allocator {
         if(!some_user_will_have_less_tasks & success){
             return_error = false;
         }
-        console.log(return_error);
+
         return {
             Error: return_error, 
             wanted_to_cancel_started: wanted_to_cancel_started, 
             extra_task_for_extra_credit: extra_task_for_extra_credit,  
-            data: {Graph: Graph, wi_ids: wi_ids}
+            data: {Graph: Graph, wi_ids: wi_ids,
+            users_to_realocate_later: users_to_realocate_later,
+            ai_id: ai_id}
         }
     }
 
@@ -2088,7 +2025,9 @@ class Allocator {
     // and cancellation to the database
     //@ Graph: A Graph created during workflow cancellation
     //@ wi_ids: [ ] workflow IDS that are to be cancelled
-    async apply_cancellation_graph(Graph, wi_ids){
+    //@ user_ids: users to be replaced for extra credit, when first activity had multiple users
+    //@ ai_id: assigment instance ID
+    async apply_cancellation_graph(Graph, wi_ids, user_ids, ai_id){
         var x = this;
             //////////////////////////////////////////// cancel all the task intances in the workflow
             await Promise.map(wi_ids, async(wi_id) =>{ 
@@ -2098,12 +2037,13 @@ class Allocator {
                     await x.cancel_task(ti_id);
                 });
             });   
-        //////////////////////////////////////////////// check and cancel same activities with same user in same workflow
+            //////////////////////////////////////////////// Realocate Users that Changed
             await Promise.map(Graph, async(workflow, wi_idx) =>{
                 await Promise.map(workflow, async(activity, act_idx) =>{
                     if(act_idx === 0 || act_idx === 1){return;}
                     var users_old=[]; 
                     var users_new=[]; 
+                    /* disabled removal of same users in same activity as it is possible in allocation, replacing with instructor instead
                     await Promise.mapSeries(activity, async( task, task_idx) =>{
                         var in_users_new = users_new.indexOf(task.userID); 
                         if(in_users_new > -1){ 
@@ -2128,12 +2068,13 @@ class Allocator {
                             }
                         }
                     });
+                    */
                     /////////////////////////////////////////////////////////////// Realocate the users that Changed
                     await Promise.mapSeries(activity, async( task, task_idx) =>{
                         if(task.userID !== task.previous_userID && !task.cancel){
                             var ti = await x.get_ti_from_ti_id(task.ti_id);
                             await x.reallocate_user_to_task(ti,task.userID, task.is_extra_credit, true, 'extend_only_if_late'); 
-                            if(task.viewed && task.is_extra_credit){   // if task was extra credit, viewed, and relocated, notify the user he was removed
+                            if(task.viewed && task.was_extra_credit){   // if task was extra credit, viewed, and relocated, notify the user he was removed
                                 await x.Email.sendNow(task.previous_userID,'remove_reallocated', null );
                                 logger.log('debug', 'sending email to removed user of extra credit task in workflow cancellation');
                             }
@@ -2141,6 +2082,16 @@ class Allocator {
                     });
                 });
             });
+            if(user_ids.length > 0){  // realocate extra tasks for extra credit when first activity had multiple users
+                var ai = await AssignmentInstance.findOne({     // get constrains
+                    where: {
+                        AssignmentInstanceID: ai_id,
+                    },
+                });
+                var section_id = ai.SectionID;
+                var [volunteer_ids, section_user_ids, instructor_ids] = await Promise.all([x.get_volunteers_ids(section_id), x.get_section_users_ids(section_id,'students'), x.get_section_users_ids(section_id,'instructor') ]);
+                await x.reallocate_users(section_id, [ai], user_ids, [volunteer_ids,section_user_ids], instructor_ids, true);
+            }
         return {Error: false , Message: "Workflows Successfully Cancelled"};
     }
     // Debug to print the graphs  created 3-12-18 mss86
@@ -2162,6 +2113,23 @@ class Allocator {
         });
         logger.log('debug', output);
         return;
+    }
+    // creates array of users in each workflow that are already in activity
+    // these users will permanently stay in those activities
+    async create_users_in_activity_array(Graph , ta_index, old_users){
+        var users_in_activity = [];
+        var task_instance;
+        for(var i = 0; i < Graph.length; i++){     // for each workflow
+            var temp_users = [];
+            for(var j = 0; j < Graph[i][ta_index].length ; j++){ // for each task in activity
+                task_instance = Graph[i][ta_index][j];
+                if(task_instance.completed || (task_instance.viewed && !_.contains(old_users, task_instance.previous_userID))){
+                    temp_users.push(task_instance.userID);   // push users that completed, or viewed and are not old users
+                }
+            }
+            users_in_activity.push(temp_users);
+        }
+        return users_in_activity;
     }
     // checks if the users to be removed completed some tasks already
     async check_old_users_in_graph(Graph, old_users){
@@ -2207,8 +2175,15 @@ class Allocator {
                 if(ta.NumberParticipants == 1 && _.has(task_constrains[2], 'same_as')){                     // if there is only such activity, honor same_as
                     activity_idx = await x.get_graph_activity_index_from_ta(wi, task_constrains[2].same_as[0]);
                     constrains.push({who:'student',same_as:activity_idx});
-                }else if(_.has(task_constrains[2], 'not')){                                                 // else honor only not_in
-                    var not_ins = task_constrains[2].not;
+                }else if(_.has(task_constrains[2], 'not') || (_.has(task_constrains[2], 'not_in_workflow_instance') && task_constrains[2].not_in_workflow_instance.length > 0)){                                                 // else honor only not_in
+                    var not_ins =[];
+                    if(_.has(task_constrains[2], 'not')){
+                        not_ins = not_ins.concat(task_constrains[2].not);
+                    }
+                    if(_.has(task_constrains[2], 'not_in_workflow_instance')){
+                        not_ins = not_ins.concat(task_constrains[2].not_in_workflow_instance);
+                    }
+                    //var not_ins = task_constrains[2].not;
                     if(_.has(task_constrains[2], 'same_as')){           // remove same_as from not_in if exists
                         var j = not_ins.indexOf(task_constrains[2].same_as[0]);
                         if(j > -1 ){ 
