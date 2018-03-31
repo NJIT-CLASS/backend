@@ -203,11 +203,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 if (user != null && await password.verify(user.Password, req.body.password)) {
                     // unset past timeout with correct password, login
                     // set attempts back to zero
-
+                    const currTime = new Date();
+                    currTime.setHours(currTime.getHours()-4);
                     UserLogin.update({
                         Attempts: 0,
                         Timeout: null,
-                        LastLogin: new Date()
+                        LastLogin: currTime.toLocaleString()
                     }, {
                         where: {
                             UserID: user.UserID
@@ -2965,37 +2966,32 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
             },
             attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID'],
             include: [{
-                model: Assignment,
-                // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                /*include: [{
-                     model: Section,
-                     }],*/
-            },
-            {
+                model: Assignment
+            },{
                 model: Section,
                 include: [{
                     model: Course,
-                    // attributes: ["AssignmentInstanceID", "AssignmentID"],
-                    /*include: [{
-                         model: Section,
-                         attributes: ["SectionID"],
-                         }],*/
-                }, ],
-            },
-                /*{
-                 model: AssignmentGrade,
-                 }*/
-            ],
-        }).then(function (response) {
+                }]
+            }],
+        }).then( async function(response) {
             // console.log('res: ', response)
             if (response == null) {
                 return res.json({
                     Error: true
                 });
             }
+
+            var wf = await WorkflowActivity.findAll({
+                where:{
+                    AssignmentID: response.AssignmentID,
+                    
+                },
+                attributes: ['WorkflowActivityID','GradeDistribution']
+            })
             var json = {
                 Error: false,
                 AssignmentInstance: response,
+                WorkflowActivity: wf,
                 SectionUsers: [],
             };
             return response.Section.getSectionUsers().then(function (sectionUsers) {
@@ -3377,7 +3373,6 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
         }
 
         var isTestUSer = "test" in req.body ? req.body.test : false; 
-        var isAdmin = "admin" in req.body ? req.body.admin : false;
 
         UserLogin.find({
             where: {
@@ -3393,7 +3388,6 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
                             Role: req.body.role,
-                            Admin: isAdmin,
                             Test: isTestUSer
                         }).catch(function(err) {
                             console.log(err);
@@ -3428,8 +3422,10 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                                             res.status(500).end();
                                         });
                                 }).then(function(userLogin) {
-                                    let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', {"pass":req.body.password});
+                                    if(!isTestUSer){
+                                        let email = new Email();
+                                        email.sendNow(user.UserID, 'invite user', {"pass":req.body.password});
+                                    }
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -7728,14 +7724,14 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     router.get('/userManagement', async function (req, res) {
         console.log('/userManagement : was called');
         await User.findAll({
-            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin', 'Test', 'Instructor'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Role', 'Admin', 'Test', 'Instructor'],
             include: [{
                 model: UserContact,
                 attributes: ['Email', 'FirstName', 'LastName']
             }, {
 
                 model: UserLogin,
-                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked']
+                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked','LastLogin']
             }
 
             ]
