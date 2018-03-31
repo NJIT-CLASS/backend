@@ -85,7 +85,7 @@ const randtoken = require('rand-token');
 
 //In-memory object to store refresh tokens
 const refreshTokens = {};
-
+const USE_TOKENS = process.env.NODE_ENV === 'production';
 var storage = multer({
     dest: './files/',
     limits: { //Max 3 files and total of 50MB
@@ -318,6 +318,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-----------------------------------------------------------------------------------------------------
 
     router.post('/password/reset', function (req, res) {
+
+        console.log("Password reset here")
         if (req.body.email === null || req.body.email === '') {
             return res.status(400).end();
         }
@@ -336,11 +338,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 user.Pending = true;
                 user.Timeout = null;
                 user.Attempts = 0;
-                //console.log('found user', user);
-                user.save({logging:console.log}).then((result) => {
-                    //console.log("temp pass: ", result);
+                user.Timeout = null;
+                console.log('found user', user);
+                user.save().then((result) => {
+                    console.log("temp pass: ", result);
                     let email = new Email();
-                    email.sendNow(result.UserID, 'reset password', {"pass":temp_pass});
+                    email.sendNow(result.UserID, 'reset password', {'pass':temp_pass});
                     res.status(200).end();
                 });
             })
@@ -472,7 +475,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let email = new Email();
         let data = {
             pass: '1234567'
-        }
+        };
         email.sendNow(70, 'create user');
         email.sendNow(70, 'invite user', data);
         email.sendNow(70, 'new task');
@@ -545,7 +548,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Middleware to verify token
     router.use(function(req,res,next){
-        if(process.env.NODE_ENV != 'production'){
+        if(!USE_TOKENS){
             req.user = {
                 role: ROLES.ADMIN
             };
@@ -591,9 +594,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return res.status(401).end();
         }
     });
-//-------------------------------------------------------------------
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////                 Guest Level APIs
+    //-------------------------------------------------------------------
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////                 Guest Level APIs
     //Endpoint to update a User's Email
     router.put('/update/email', function (req, res) {
         if (req.body.password == null || req.body.email == null || req.body.userid == null) {
@@ -728,18 +731,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-///////////////////////////
-////////////----------------   END Guest APIs                           ////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////
+    ////////////----------------   END Guest APIs                           ////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
+        if(!USE_TOKENS){
+            next();
+            return;
+        }
+
         if(canRoleAccess(req.user.role, ROLES.PARTICIPANT)){
             next();
         } else {
             return res.status(401).end();
         }
     });
-////////////////////////////////////////////////////////////////////////////////////////////////////
-///////////////                 Participant Level APIs                   ///////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////                 Participant Level APIs                   ///////////////////////////
 
     router.post('/assignment/create', function (req, res) {
 
@@ -820,118 +828,118 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     });
- //---------------------------------------------------------------------------
- router.get('/notifications/load',async function(req, res) {
-    console.log('/notifications/load : was called');
+    //---------------------------------------------------------------------------
+    router.get('/notifications/load',async function(req, res) {
+        console.log('/notifications/load : was called');
 
-    var v = await VolunteerPool.findAll({
-        where: {
-            status: 'pending'
-        },
-        attributes: ['volunteerpoolID']
-    }).then(function(rows) {
-        var arrayLength = rows.length;
-        for (var i = 0; i < arrayLength; x++) {
-            Notifications.create({
-                VolunteerpoolID: rows[i].volunteerpoolID
-            });
-        }
-    }).catch(function(err) {
-        console.log('/notifications/load/:UserID + volunteerpool ' + err);
-        res.status(400).end();
-    });
+        var v = await VolunteerPool.findAll({
+            where: {
+                status: 'pending'
+            },
+            attributes: ['volunteerpoolID']
+        }).then(function(rows) {
+            var arrayLength = rows.length;
+            for (var i = 0; i < arrayLength; x++) {
+                Notifications.create({
+                    VolunteerpoolID: rows[i].volunteerpoolID
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
 
-    var f = await Comments.findAll({
-        where: {
-            Flag: 1
-        },
-        attributes: ['commentsID','UserID']
-    }).then(function(rows2) {
-        var arrayLength = rows2.length;
-        for (var j = 0; j < arrayLength; j++) {
-            Notifications.create({
-                CommentsID: rows[j].CommentsID,
-                UserID: rows[j].UserID,
+        var f = await Comments.findAll({
+            where: {
                 Flag: 1
+            },
+            attributes: ['commentsID','UserID']
+        }).then(function(rows2) {
+            var arrayLength = rows2.length;
+            for (var j = 0; j < arrayLength; j++) {
+                Notifications.create({
+                    CommentsID: rows[j].CommentsID,
+                    UserID: rows[j].UserID,
+                    Flag: 1
+                });
+            }
+        }).catch(function(err) {
+            console.log('/notifications/load/:UserID + volunteerpool ' + err);
+            res.status(400).end();
+        });
+
+
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'volunteer': v,
+            'comments-flag': f,
+
+        });
+
+    });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/all', function(req, res) {
+        console.log('/notifications/all: was called');
+
+        Notifications.findAll({
+            where: {
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
             });
-        }
-    }).catch(function(err) {
-        console.log('/notifications/load/:UserID + volunteerpool ' + err);
-        res.status(400).end();
-    });
-
-
-    res.json({
-        'Error': false,
-        'Message': 'Success',
-        'volunteer': v,
-        'comments-flag': f,
-
-    });
-
-});
-//---------------------------------------------------------------------------
-router.get('/notifications/all', function(req, res) {
-    console.log('/notifications/all: was called');
-
-    Notifications.findAll({
-        where: {
-            Dismiss: null
-        }
-    }).then(function(rows) {
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'Notifications': rows
+        }).catch(function(err) {
+            console.log('/notifications/all ' + err.message);
+            res.status(400).end();
         });
-    }).catch(function(err) {
-        console.log('/notifications/all ' + err.message);
-        res.status(400).end();
+
     });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/user/:UserID', function(req, res) {
+        console.log('/notifications/user/:UserID was called');
 
-});
-//---------------------------------------------------------------------------
-router.get('/notifications/user/:UserID', function(req, res) {
-    console.log('/notifications/user/:UserID was called');
-
-    Notifications.findAll({
-        where: {
-            UserID: req.params.UserID,
-            Dismiss: null
-        }
-    }).then(function(rows) {
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'Notifications': rows
+        Notifications.findAll({
+            where: {
+                UserID: req.params.UserID,
+                Dismiss: null
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Notifications': rows
+            });
+        }).catch(function(err) {
+            console.log('/notifications/user/:UserID' + err.message);
+            res.status(400).end();
         });
-    }).catch(function(err) {
-        console.log('/notifications/user/:UserID' + err.message);
-        res.status(400).end();
+
     });
+    //---------------------------------------------------------------------------
+    router.get('/notifications/dismiss/:notificationsID', function(req, res) {
+        console.log('/notifications/dismiss/:notificationsID was called');
 
-});
-//---------------------------------------------------------------------------
-router.get('/notifications/dismiss/:notificationsID', function(req, res) {
-    console.log('/notifications/dismiss/:notificationsID was called');
-
-    Notifications.update({
-        Dismiss:1
-    },{
-        where: {
-            NotificationsID: req.params.notificationsID
-        }
-    }).then(function(rows) {
-        res.json({
-            'Error': false,
-            'Message': 'Success'
+        Notifications.update({
+            Dismiss:1
+        },{
+            where: {
+                NotificationsID: req.params.notificationsID
+            }
+        }).then(function(rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function(err) {
+            console.log('/notifications/dismiss/:notificationsID' + err.message);
+            res.status(400).end();
         });
-    }).catch(function(err) {
-        console.log('/notifications/dismiss/:notificationsID' + err.message);
-        res.status(400).end();
-    });
 
-});
+    });
     //Endpoint to save partially made assignments from ASA to database
     router.post('/assignment/save/', function (req, res) {
         if (req.body.partialAssignmentId == null) {
@@ -1509,9 +1517,9 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
             console.log('getUserID ' + e);
            
 
-                    res.json({
-                        'UserID': null
-                    });
+            res.json({
+                'UserID': null
+            });
                 
 
         });
@@ -2303,7 +2311,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                                                 });
 
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+                                                email.sendNow(user.UserID, 'invite user', {'pass': temp_pass});
 
                                                 return sectionUser;
 
@@ -2486,7 +2494,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                                                     });
                                             }).then(function (userLogin) {
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+                                                email.sendNow(user.UserID, 'invite user', {'pass':temp_pass});
                                                 return SectionUser.create({
                                                     SectionID: req.params.sectionid,
                                                     UserID: userLogin.UserID,
@@ -2905,7 +2913,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
         }).then(function(response){
             if(!response) return;
 
-            console.log("User grades called");
+            console.log('User grades called');
             return Promise.map(response, function(sectionIDs){
                 if(!sectionIDs) return;
 
@@ -2919,7 +2927,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                 }).then(function (grades){
                     if(!grades) return;
                     var gradesJSON = grades.toJSON();
-                    gradesJSON["AssignmentDetails"]={};
+                    gradesJSON['AssignmentDetails']={};
                     json.grades.push(gradesJSON);
 
                     return AssignmentInstance.find({
@@ -3498,7 +3506,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
                                     console.log(err);
                                 }).then(function (userLogin) {
                                     //Email User With Password
-                                    email.sendNow(userLogin.UserID, 'create user', req.body.password);
+                                    email.sendNow(userLogin.UserID, 'invite user', {'pass':req.body.password});
                                     SectionUser.create({
                                         SectionID: req.body.sectionid,
                                         UserID: userLogin.UserID,
@@ -4173,8 +4181,8 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
         await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
             console.log('/getAssignToSection/submit/ All Done!');
             console.log('Done value:', done);
-            console.log(typeof req.body.wf_timing.startDate, req.body.wf_timing.startDate);
-            if (moment(req.body.wf_timing.startDate) <= new Date()) {
+            console.log(typeof req.body.wf_timing, req.body.startDate);
+            if (moment(req.body.startDate) <= new Date()) {
                 await Promise.mapSeries(req.body.sectionIDs, async function (secId) {
                     await Promise.mapSeries(done, async function(assignmentInstanceId){
                         console.log('Assignment Instance ID?:', assignmentInstanceId);
@@ -5219,7 +5227,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function (req, res) {
         console.log('/comments/add : was called');
-        logger.log('error', '/comments/add failed', req.body)
+        logger.log('error', '/comments/add failed', req.body);
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
             console.log('/comments/add : Missing attributes');
             res.status(400).end();
@@ -5245,7 +5253,7 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
             CommentTarget: req.body.CommentTarget,
             OriginTaskInstanceID: req.body.OriginTaskInstanceID,
 
-        })
+        });
         Comments.create({
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
@@ -6820,32 +6828,40 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
 
     });
 
-////////////----------------   END Participant APIs
-////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////----------------   END Participant APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
+        if(!USE_TOKENS){
+            next();
+            return;
+        }
         if(canRoleAccess(req.user.role, ROLES.TEACHER)){
             next();
         } else {
             return res.status(401).end();
         }
     });
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////----------------   Teacher APIs
-///////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////----------------   Teacher APIs
+    ///////////////////////////
 
 
-///////////////////////////
-////////////----------------   END Teacher Access APIs
-////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////
+    ////////////----------------   END Teacher Access APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
+        if(!USE_TOKENS){
+            next();
+            return;
+        }
         if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
             next();
         } else {
             return res.status(401).end();
         }
     });
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////                 Enhanced Access Level APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////                 Enhanced Access Level APIs
 
     //Assign a New Instructor
     router.put('/instructor/new', function (req, res) {
@@ -6926,14 +6942,18 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     ////////////----------------   END Enhanced Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
+        if(!USE_TOKENS){
+            next();
+            return;
+        }
         if(canRoleAccess(req.user.role, ROLES.ADMIN)){
             next();
         } else {
             return res.status(401).end();
         }
     });
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////                 Admin Level APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////                 Admin Level APIs
 
     router.get('/AssignmentArchive/save/:AssignmentID', function (req, res) {
         var assignmentArray = new Array();
@@ -7805,12 +7825,12 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     //---------------------------------------------------------------------------
 
 
-///////////////////////////
-////////////----------------   END Admin APIs
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////
+    ///////////////////////////
+    ////////////----------------   END Admin APIs
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////
     
     // API to reallocate users in assigments instances created 3-4-18 mss86
     //@ sec_id: section ID
@@ -7824,17 +7844,44 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/user_based called');
         var allocate = new Allocator([],0);
+        var inactivate_users;
+        if(req.body.inactivate_users == null){
+            inactivate_users ='this_assignment';
+        }else{
+            inactivate_users = req.body.inactivate_users;
+        }
+        var remove_from_all_assigments;
+        if(req.body.remove_from_all_assigments == null){
+            remove_from_all_assigments =false;
+        }else{
+            remove_from_all_assigments = req.body.remove_from_all_assigments;
+        }
+        await Promise.map(req.body.old_user_ids, async (old_user_id)=>{
+            if(inactivate_users == 'all_assignments'){
+                await allocate.inactivate_section_user(req.body.sec_id, old_user_id); // deactive user in section
+            }
+            await allocate.delete_volunteer(req.body.sec_id , old_user_id);     // remove user from voluenteers
+        });
+        logger.log('info','/reallocate/user_based called');
+        
         var ais = [];
-        await Promise.map(req.body.ai_ids, async(ai_id) => {
-            var ai = await AssignmentInstance.findOne({ 
+        if(remove_from_all_assigments){                 // remove user from all Assigments
+            ais = await AssignmentInstance.findAll({ 
                 where: { 
-                    AssignmentInstanceID: ai_id
+                    SectionID: req.body.sec_id          // TODO: get only active assigments in section
                 }
             });
-            ais.push(ai);
-        });
+        }else{
+            await Promise.map(req.body.ai_ids, async(ai_id) => { // remove users from provided ais
+                var ai = await AssignmentInstance.findOne({ 
+                    where: { 
+                        AssignmentInstanceID: ai_id
+                    }
+                });
+                ais.push(ai);
+            });
+        }
         var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json( result );
     });
@@ -7858,37 +7905,126 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     //@ ai_id: assigment instance
     //@ workflow_ids: [ ] of wi_ids
     router.post('/reallocate/cancel_workflows', async function (req, res){
-        if(req.body.ai_id == null || req.body.workflow_ids == null){
+        if(req.body.ai_id == null || req.body.wi_ids == null){
             logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/cancel_workflows');
-        var allocate = new Allocator([],0);
-        var result = await allocate.cancel_workflow(req.body.ai_id,req.body.wa_id, req.body.workflow_ids);
-        logger.log('debug',{
-            call: '/reallocate/cancel_workflows',
-            result: result
+        logger.log('info',{
+            call:'/reallocate/cancel_workflows',
+            ai_id: req.body.ai_id,
+            wi_ids: req.body.wi_ids,
         });
-        res.json( result );
+        var wi_ids = req.body.wi_ids;
+        var allocate = new Allocator([],0);
+        var assigment_array = [];
+        var index = 0;
+        await Promise.mapSeries(wi_ids, async(wi_id) =>{    // group the assigments per Workflow Activity
+            var wi = await allocate.get_wi_from_wi_id(wi_id);
+            var wa_id = wi.WorkflowActivityID;
+            if(index === 0){
+                assigment_array.push({wa_id: wa_id, wi_ids:[wi_id]});
+                index++;
+            }else{
+                var pos = assigment_array.map(function(e) { return e.wa_id; }).indexOf(wa_id); 
+                if( pos > -1){
+                    assigment_array[pos].wi_ids.push(wi_id);
+                }else{
+                    assigment_array.push({wa_id: wa_id, wi_ids:[wi_id]});
+                }
+            }
+        });
+        var Message = 'Workflows Successfully Cancelled';
+        var array_of_results =[];
+        var result;
+        var needs_confirmation       = false;     // confirmation by instructor    
+        var wanted_to_cancel_started = false;
+        var extra_task_for_extra_credit = false;
+        var realocate_error = false;
+        try{
+            await Promise.mapSeries(assigment_array, async(activity) =>{
+                result = await allocate.cancel_workflow(req.body.ai_id, activity.wa_id, activity.wi_ids);
+                array_of_results.push(result);
+                if(result.Error){
+                    needs_confirmation = true;
+                }
+                if(result.extra_task_for_extra_credit){
+                    extra_task_for_extra_credit = true;
+                }
+                if(result.wanted_to_cancel_started){
+                    wanted_to_cancel_started = true;
+                }
+            });
+            if(result.Error){
+                needs_confirmation = true;
+                if(result.wanted_to_cancel_started && !result.extra_task_for_extra_credit){
+                    Message = 'Some users will have less tasks then others, Started workflows will not be cancelled';
+                }else if(result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                    Message = 'Some users will have less tasks then others, extra tasks will be allocated for extra credit, Started workflows will not be cancelled';
+                }else if(!result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                    Message = 'Some users will have less tasks then others, extra tasks will be allocated for extra credit';
+                }else{
+                    Message = 'Some users will have less tasks then others'
+                }
+            }else{
+                if(result.wanted_to_cancel_started && !result.extra_task_for_extra_credit){
+                    Message = 'Started workflows were not cancelled';
+                }else if(result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                    Message = 'Extra tasks were allocated for extra credit, Started workflows were not be cancelled';
+                }else if(!result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                    Message = 'Extra tasks were allocated for extra credit';
+                }
+            }
+            if(!needs_confirmation){    // Use the graph and apply it to the database
+                await Promise.map( array_of_results , async (w_activity) => {
+                    var data = w_activity.data;
+                    var Graph = data.Graph;
+                    var wi_ids = data.wi_ids;
+                    var ai_id = data.ai_id;
+                    var users_to_realocate = data.users_to_realocate_later;
+                    var replace_users = data.users_to_realocate_later;
+                    if(wi_ids.length > 0){
+                        result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id);
+                    }
+                });
+                array_of_results=[];
+            }
+        }catch(e){
+            logger.log('error','error in /reallocate/cancel_workflows', e);
+            realocate_error = true;
+            Message = "Could not cancel, error occured"
+        }
+        res.json( 
+            {
+            Error: realocate_error,
+            confirmation_required : needs_confirmation,
+            Message: Message,
+            data: array_of_results 
+            } 
+        );
     });
     // API to Confirm Workfow Cancellation By Instructor   created 3-10-19 mss86
-    //@ data: Json containing Graph and wi_ids
+    //@ data: [] array of Json containing Graph and wi_ids
     router.post('/reallocate/confirm_cancellation', async function (req, res){
         if(req.body.data == null ){
             logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/cancel_workflows');
-        var allocate = new Allocator([],0);
-        var data = req.body.data
-        var Graph = data.Graph;
-        var wi_ids = data.wi_ids;
-        var result = await allocate.apply_cancellation_graph(Graph, wi_ids);
         logger.log('info',{
-            call: '/reallocate/cancel_workflows',
-            result: result
+            call:'/reallocate/confirm_cancellation',
+            data: req.body.data,
+        });
+        var allocate = new Allocator([],0);
+        var result
+        await Promise.map( req.body.data , async (w_activity) => {
+            var data = w_activity.data;
+            var Graph = data.Graph;
+            var wi_ids = data.wi_ids;
+            var ai_id = data.ai_id;
+            var users_to_realocate = data.users_to_realocate_later;
+            var replace_users = data.users_to_realocate_later;
+            result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id);
         });
         res.json( result );
     });
@@ -8208,11 +8344,11 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
     //-----------user management------------------------------------
     router.post('/usermanagement/testuser/add', function(req, res) {
 
-    User.update({
-        Test: 1
-    }, {
-        where: {
-            UserID: req.body.UserID
+        User.update({
+            Test: 1
+        }, {
+            where: {
+                UserID: req.body.UserID
             }
         }).then(function(rows) {
             res.json({
@@ -8226,86 +8362,46 @@ router.get('/notifications/dismiss/:notificationsID', function(req, res) {
 
     });
 
+    router.post('/getSectionByAssignmentInstance', function(req, res){
+        //console.log(req);
+      AssignmentInstance.find({
+          where: {
+              AssignmentInstanceID: req.body.assignmentInstanceID
+          },
+          attributes: ["SectionID"]
+      }).then(result => {
+          return res.json(result);
+      });
+    });
+
     //----------------------------------------------------------------
-    router.post('/usermanagement/testuser/remove', function(req, res) {
-
-        User.update({
-          Test: 0
-        }, {
-            where: {
-                UserID: req.body.UserID
-                }
-          }).then(function(rows) {
-              res.json({
-                  'Error': false,
-                  'Message': 'Success'
-              });
-          }).catch(function(err) {
-              console.log('/usermanagement/testuser/remove' + err.message);
-              res.status(401).end();
-          });
-
-      });
-
-      router.post('/usermanagement/role', function(req, res) {
-console.log(req.body.Role+"   "+req.body.UserID);
-        User.update({
-          Role: req.body.Role
-        }, {
-            where: {
-                UserID: req.body.UserID
-                }
-          }).then(function(rows) {
-              res.json({
-                  'Error': false,
-                  'Message': 'Success'
-              });
-          }).catch(function(err) {
-              console.log('/usermanagement/role' + err.message);
-              res.status(401).end();
-          });
-
-      });
-
-      router.post('/getSectionByAssignmentInstance', function(req, res){
-          //console.log(req);
-        AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: req.body.assignmentInstanceID
-            },
-            attributes: ["SectionID"]
-        }).then(result => {
-            return res.json(result);
-        });
-      });
-        //----------------------------------------------------------------
-        router.post('/volunteerpool/section/:section_id',async function(req, res) {
-            console.log("/volunteerpool/section/ : was called");
-            VolunteerPool.findAll({
-              where:{
-                SectionID:req.params.section_id
-              }
-            }).then(function (result) {
-                console.log('Volunteers have been found by section.');
-                res.json({
-                    'Error': false,
-                    'Volunteers': result
-                });
-            }).catch(function (err) {
-                console.log('/volunteerpool/section/: ' + err);
-                res.status(400).end();
-            });
-        });
-
-        //-----------------------------------------------------------------------------------------------------
-
-      //----------------------------------------------------------------
-      router.post('/volunteerpool/section/:section_id',async function(req, res) {
-        console.log("/volunteerpool/section/ : was called");
+    router.post('/volunteerpool/section/:section_id',async function(req, res) {
+        console.log('/volunteerpool/section/ : was called');
         VolunteerPool.findAll({
-          where:{
-            SectionID:req.params.section_id
-          }
+            where:{
+                SectionID:req.params.section_id
+            }
+        }).then(function (result) {
+            console.log('Volunteers have been found by section.');
+            res.json({
+                'Error': false,
+                'Volunteers': result
+            });
+        }).catch(function (err) {
+            console.log('/volunteerpool/section/: ' + err);
+            res.status(400).end();
+        });
+    });
+
+    //-----------------------------------------------------------------------------------------------------
+
+    //----------------------------------------------------------------
+    router.post('/volunteerpool/section/:section_id',async function(req, res) {
+        console.log('/volunteerpool/section/ : was called');
+        VolunteerPool.findAll({
+            where:{
+                SectionID:req.params.section_id
+            }
         }).then(function (result) {
             console.log('Volunteers have been found by section.');
             res.json({

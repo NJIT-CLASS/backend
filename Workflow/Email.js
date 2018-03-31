@@ -139,8 +139,6 @@ class Email {
     */
     async sendNow(userid, type, data) {
         //return; //for testting purposes
-
-
         if (active) {
             var x = this;
             await UserLogin.find({
@@ -222,6 +220,7 @@ class Email {
                     break;
 
                 case 'reset password':
+                    console.log('resetting password')
                     let template2 = await RESET_PASS(data);
                     await x.send({
                         from: email,
@@ -232,14 +231,25 @@ class Email {
                         html: template2.html
                     });
                     break;
+                case 'new password':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: NEW_PASSWORD.subject,
+                        text: NEW_PASSWORD.text,
+                        html: NEW_PASSWORD.html
+
+                    });
+                    break; 
                 case 'new_reply':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Reply',
-                        text: 'Dear ' + data.name + '\nSomeone has replied to your comment. You can view the reply here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.name + '<br>Someone has replied to your comment. You can view the reply here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_REPLY.subject,
+                        text: NEW_REPLY.text,
+                        html: NEW_REPLY.html
 
                     });
                     break;    
@@ -248,9 +258,9 @@ class Email {
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Volunteer',
-                        text: 'Dear ' + data.name + '\nA student has made a volunteer request. You can view the request here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.name + '<br>A student has made a volunteer request. You can view the request here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_VOLUNTEER.subject,
+                        text: NEW_VOLUNTEER.text,
+                        html: NEW_VOLUNTEER.html
 
                     });
                     break;  
@@ -259,9 +269,9 @@ class Email {
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Flag',
-                        text: 'Dear ' + data.name + '\nSomeone has flagged a comment. You can view the flag here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.name + '<br>Someone has flagged a comment. You can view the flag here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_FLAG.subject,
+                        text: NEW_FLAG.text,
+                        html: NEW_FLAG.html
 
                     });
                     break;

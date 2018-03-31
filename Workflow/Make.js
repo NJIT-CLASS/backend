@@ -96,14 +96,14 @@ class Make {
             assignment_instance: ai_id
         });
 
-        // var sectionid = await AssignmentInstance.find({
+        // var secId = await AssignmentInstance.find({
         //     where:{
         //         AssignmentInstanceID: ai_id
         //     }
         // });
 
         var x = this;
-        var users = await x.getUsersFromSection(sectionid); //returns users from sectionid
+        var users = await x.getUsersFromSection(secId); //returns users from secId
         var ai_idToSearch;
         if(typeof ai_id == 'string'){
             try{
@@ -120,7 +120,12 @@ class Make {
             if(Array.isArray(ai_id)){
                 ai_idToSearch = ai_id[0];
             }
+            else {
+                ai_idToSearch = ai_id;
+            }
         }
+
+        console.log('AIID', ai_idToSearch, ai_id);
         var wf_timing = await x.getWorkflowTiming(ai_idToSearch); //returns workflow timing from the assignment instance
         var workflows = [];
         
@@ -857,7 +862,7 @@ class Make {
                         TaskInstanceID: task
                     }
                 });
-                email.sendNow(ti.UserID, 'new task', null);
+                email.sendNow(ti.UserID, 'new task');
             });
         });
 
