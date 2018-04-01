@@ -5,7 +5,8 @@ var rest = require('./REST.js');
 var app = express();
 var settings = require('./backend_settings');
 const logger = require('./Workflow/Logger.js');
-
+import "babel-core/register";
+import "babel-polyfill";
 var schedule = require('node-schedule');
 var Email = require('./Workflow/Email.js');
 var Sequelize = require('sequelize');
