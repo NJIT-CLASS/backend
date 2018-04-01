@@ -7842,6 +7842,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }else{
             inactivate_users = req.body.inactivate_users;
         }
+        var remove_from_all_assigments;
+        if(req.body.remove_from_all_assigments == null){
+            remove_from_all_assigments =false;
+        }else{
+            remove_from_all_assigments = req.body.remove_from_all_assigments;
+        }
         await Promise.map(req.body.old_user_ids, async (old_user_id)=>{
             if(inactivate_users == 'all_assignments'){
                 await allocate.inactivate_section_user(req.body.sec_id, old_user_id); // deactive user in section
@@ -7851,14 +7857,22 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         logger.log('info','/reallocate/user_based called');
         
         var ais = [];
-        await Promise.map(req.body.ai_ids, async(ai_id) => {
-            var ai = await AssignmentInstance.findOne({ 
+        if(remove_from_all_assigments){                 // remove user from all Assigments
+            ais = await AssignmentInstance.findAll({ 
                 where: { 
-                    AssignmentInstanceID: ai_id
+                    SectionID: req.body.sec_id          // TODO: get only active assigments in section
                 }
             });
-            ais.push(ai);
-        });
+        }else{
+            await Promise.map(req.body.ai_ids, async(ai_id) => { // remove users from provided ais
+                var ai = await AssignmentInstance.findOne({ 
+                    where: { 
+                        AssignmentInstanceID: ai_id
+                    }
+                });
+                ais.push(ai);
+            });
+        }
         var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json( result );
     });
@@ -7957,7 +7971,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     var data = w_activity.data;
                     var Graph = data.Graph;
                     var wi_ids = data.wi_ids;
-                    result = await allocate.apply_cancellation_graph(Graph, wi_ids);
+                    var ai_id = data.ai_id;
+                    var users_to_realocate = data.users_to_realocate_later;
+                    var replace_users = data.users_to_realocate_later;
+                    if(wi_ids.length > 0){
+                        result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id);
+                    }
                 });
                 array_of_results=[];
             }
@@ -7993,7 +8012,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             var data = w_activity.data;
             var Graph = data.Graph;
             var wi_ids = data.wi_ids;
-            result = await allocate.apply_cancellation_graph(Graph, wi_ids);
+            var ai_id = data.ai_id;
+            var users_to_realocate = data.users_to_realocate_later;
+            var replace_users = data.users_to_realocate_later;
+            result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id);
         });
         res.json( result );
     });
@@ -8329,6 +8351,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(401).end();
         });
 
+    });
+
+    router.post('/getSectionByAssignmentInstance', function(req, res){
+        //console.log(req);
+      AssignmentInstance.find({
+          where: {
+              AssignmentInstanceID: req.body.assignmentInstanceID
+          },
+          attributes: ["SectionID"]
+      }).then(result => {
+          return res.json(result);
+      });
     });
 
     //----------------------------------------------------------------
