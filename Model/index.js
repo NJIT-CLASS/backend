@@ -28,7 +28,8 @@ var models = ['Assignment', 'ArchivedAssignment', 'ArchivedAssignmentInstance', 
     'BadgeInstance', 'Badge', 'CategoryInstance', 'Category', 'UserBadgeInstances', 'UserPointInstances',
     'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
     'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit','RemovedAssignmentInstance','RemovedWorkflowInstance','RemovedTaskInstance',
-    'ArchivedTaskGrade', 'ArchivedWorkflowGrade', 'ArchivedTaskSimpleGrade'
+    'ArchivedTaskGrade', 'ArchivedWorkflowGrade', 'ArchivedTaskSimpleGrade','ArchivedAssignmentGrade','ArchivedWorkflowActivity','ArchivedTaskActivity',
+	'RemovedTaskGrade', 'RemovedWorkflowGrade', 'RemovedTaskSimpleGrade','RemovedAssignmentGrade','RemovedWorkflowActivity','RemovedTaskActivity','RemovedAssignment'
 ];
 
 

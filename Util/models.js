@@ -3,7 +3,6 @@ export let Assignment = models.Assignment;
 export let AssignmentGrade = models.AssignmentGrade;
 export let AssignmentInstance = models.AssignmentInstance;
 export let AssignmentInstance_Archive = models.AssignmentInstance_Archive;
-export let ArchivedAssignment = models.ArchivedAssignment;
 export let ArchivedAssignmentInstance = models.ArchivedAssignmentInstance;
 export let RemovedAssignmentInstance = models.RemovedAssignmentInstance;
 export let BadgeInstance = models.BadgeInstance;
@@ -55,6 +54,18 @@ export let ArchivedWorkflowInstance = models.ArchivedWorkflowInstance;
 export let ArchivedTaskGrade = models.ArchivedTaskGrade;
 export let ArchivedTaskSimpleGrade = models.ArchivedTaskSimpleGrade;
 export let ArchivedWorkflowGrade = models.ArchivedWorkflowGrade;
+export let ArchivedAssignmentGrade = models.ArchivedAssignmentGrade;
+export let ArchivedAssignment = models.ArchivedAssignment;
+export let ArchivedWorkflowActivity = models.ArchivedWorkflowActivity;
+export let ArchivedTaskActivity = models.ArchivedTaskActivity;
+
+export let RemovedTaskGrade = models.RemovedTaskGrade;
+export let RemovedTaskSimpleGrade = models.RemovedTaskSimpleGrade;
+export let RemovedWorkflowGrade = models.RemovedWorkflowGrade;
+export let RemovedAssignmentGrade = models.RemovedAssignmentGrade;
+export let RemovedAssignment = models.RemovedAssignment;
+export let RemovedWorkflowActivity = models.RemovedWorkflowActivity;
+export let RemovedTaskActivity = models.RemovedTaskActivity;
 export let WorkflowInstance_Archive = models.WorkflowInstance_Archive;
 
 

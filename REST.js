@@ -57,7 +57,18 @@ import {
     WorkflowInstance_Archive,
     ArchivedTaskGrade,
     ArchivedTaskSimpleGrade,
-    ArchivedWorkflowGrade
+    ArchivedWorkflowGrade,
+	ArchivedAssignmentGrade,
+	ArchivedWorkflowActivity,
+	ArchivedTaskActivity,
+	RemovedTaskGrade,
+	RemovedTaskSimpleGrade,
+	RemovedWorkflowGrade,
+	RemovedAssignmentGrade,
+	RemovedWorkflowActivity,
+	RemovedTaskActivity,
+	RemovedAssignment
+
 } from './Util/models.js';
 
 import {
@@ -4720,6 +4731,68 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+	router.get('/displayarchivedinstance/', function (req, res) {
+
+		ArchivedAssignmentInstance.findAll({
+			attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'ArchivedAssignmentInstance': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayarchivedinstance/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayremovedinstance/', function (req, res) {
+
+		RemovedAssignmentInstance.findAll({
+			attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'RemovedAssignmentInstance': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayremovedinstance/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayarchivedactivity/', function (req, res) {
+		ArchivedAssignment.findAll({
+			attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
+	    }).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'ArchivedAssignment': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayarchivedassignment/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayremovedactivity/', function (req, res) {
+
+		RemovedAssignment.findAll({
+			attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'RemovedAssignment': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayremovedassignment/ ' + err.message);
+			res.status(400).end();
+		});
+	});
     //Endpoint to return count total of Volunteers
     router.get('/VolunteerPool/countOfUsers', function (req, res) {
         console.log('VolunteerPool/count was called');
@@ -4800,8 +4873,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
             res.status(400).end();
         });
-
-
     });
 
     //Create another call saying "This student is volunteered for all assignments in section";
@@ -7177,142 +7248,916 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //             res.status(201).end();
         //         });
     });
+    function archiveinstance(AssignInsID){
+	    return sequelize.transaction(function(t) {
+		    var options = { raw: true, transaction: t }
+		    return sequelize
+			    .query('SET FOREIGN_KEY_CHECKS = 0', options)
+			    .then(function() {
+				    return TaskInstance.findAll({
+					    where: {
+						    AssignmentInstanceID: AssignInsID
+					    },
+					    attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+				    }).then(function (rows) {
+						    //console.log(rows[0].OwnerID);
+						    var arrayLength = rows.length;
+						    for (var x = 0; x < arrayLength; x++) {
 
-	router.get('/archive/:AssignmentInstanceID', function (req, res) {
+							    ArchivedTaskInstance.create({
+								    TaskInstanceID: rows[x].TaskInstanceID,
+								    UserID: rows[x].UserID,
+								    TaskActivityID: rows[x].TaskActivityID,
+								    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+								    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+								    GroupID: rows[x].GroupID,
+								    Status: rows[x].Status,
+								    StartDate: rows[x].StartDate,
+								    EndDate: rows[x].EndDate,
+								    ActualEndDate: rows[x].ActualEndDate,
+								    Data: rows[x].Data,
+								    UserHistory: rows[x].UserHistory,
+								    FinalGrade: rows[x].FinalGrade,
+								    Files: rows[x].Files,
+								    ReferencedTask: rows[x].ReferencedTask,
+								    NextTask: rows[x].NextTask,
+								    PreviousTask: rows[x].PreviousTask,
+								    EmailLastSent: rows[x].EmailLastSent
+							    }, {
+								    transaction: t
+							    })
+						    }
+					    })
+					    .then(WorkflowInstance.findAll({
+						    where: {
+							    AssignmentInstanceID: AssignInsID
+						    },
+						    attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
+					    }).then(function (workflowrows) {
+						    var arrayLength = workflowrows.length;
+						    for (var x = 0; x < arrayLength; x++) {
+							    ArchivedWorkflowInstance.create({
+								    WorkflowInstanceID: workflowrows[x].WorkflowInstanceID,
+								    WorkflowActivityID: workflowrows[x].WorkflowActivityID,
+								    AssignmentInstanceID: workflowrows[x].AssignmentInstanceID,
+								    StartTime: workflowrows[x].StartTime,
+								    EndTime: workflowrows[x].EndTime,
+								    TaskCollection: workflowrows[x].TaskCollection,
+								    Data: workflowrows[x].Data
+							    }, {
+								    transaction: t
+							    });
+						    }
+					    }))
+					    .then(AssignmentInstance.findAll({
+						    where: {
+							    AssignmentInstanceID: AssignInsID
+						    },
+						    attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+					    }).then(function (assigninstancerows) {
+						    //console.log(rows[0].OwnerID);
+						    var arrayLength = assigninstancerows.length;
+						    for (var x = 0; x < arrayLength; x++) {
+
+							    ArchivedAssignmentInstance.create({
+								    AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
+								    AssignmentID: assigninstancerows[x].AssignmentID,
+								    SectionID: assigninstancerows[x].SectionID,
+								    StartDate: assigninstancerows[x].StartDate,
+								    EndDate: assigninstancerows[x].EndDate,
+								    WorkflowCollection: assigninstancerows[x].WorkflowCollection,
+								    WorkflowTiming: assigninstancerows[x].WorkflowTiming
+							    }, {
+								    transaction: t
+							    });
+						    }
+					    }))
+			    })
+			    .then(function() {
+				    return TaskInstance.destroy({
+						    where: {
+							    AssignmentInstanceID: AssignInsID
+						    },
+						    transaction: t
+					    })
+					    .then(function(rows){
+						    console.log("Delete TaskInstance Success and saved to other back up");
+					    })
+			    })
+			    .then(function() {
+				    return WorkflowInstance.destroy({
+						    where: {
+							    AssignmentInstanceID: AssignInsID
+						    },
+						    transaction: t
+					    })
+					    .then(function(rows){
+						    console.log("Delete WorkflowInstance Success and saved to other back up");
+					    })
+			    })
+			    .then(function() {
+				    return AssignmentInstance.destroy({
+						    where: {
+							    AssignmentInstanceID: AssignInsID
+						    },
+						    transaction: t
+					    })
+					    .then(function(rows){
+						    console.log("Delete AssignmentInstance Success and saved to other back up");
+					    })
+			    })
+			    .then(function(){
+				    return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
+			    })
+			    .catch(function(err) {
+			        console.log(err);
+				    return t.rollback();
+			    });
+	    });
+    }
+
+	router.get('/archiveinstance/:AssignmentInstanceID', function (req, res) {
         var assignmentArray = new Array();
+		console.log('ArchiveInstance is called\n');
+		archiveinstance(req.params.AssignmentInstanceID)
+            .then(function(){
+			    res.status(201).end();
+		    });
+	});
+
+	router.get('/archiveactivity/:AssignmentID', function (req, res) {
+		var assignmentArray = new Array();
+		var promises = [];
 		console.log('TaskInstanceArchive is called\n');
 		return sequelize.transaction(function(t) {
-			var options = { raw: true, transaction: t }
-            return sequelize
+			var options = { raw: true, transaction: t };
+			return sequelize
 				.query('SET FOREIGN_KEY_CHECKS = 0', options)
+                .then(function(){
+	                return TaskActivity.findAll({
+		                where: {
+			                AssignmentID: req.params.AssignmentID
+		                },
+		                attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+	                }).then(function (rows) {
+		                //console.log(rows[0].OwnerID);
+		                var arrayLength = rows.length;
+		                for (var x = 0; x < arrayLength; x++) {
+
+			                ArchivedTaskActivity.create({
+				                TaskActivityID: rows[x].TaskActivityID,
+				                WorkflowActivityID: rows[x].WorkflowActivityID,
+				                AssignmentID: rows[x].AssignmentID,
+				                Name: rows[x].Name,
+				                Type: rows[x].Type,
+				                FileUpload: rows[x].FileUpload,
+				                DueType: rows[x].DueType,
+				                StartDelay: rows[x].StartDelay,
+				                AtDUrationEnd: rows[x].AtDUrationEnd,
+				                WhatIfLate: rows[x].WhatIfLate,
+				                DisplayName: rows[x].DisplayName,
+				                Documentation: rows[x].Documentation,
+				                OneOrSeparate: rows[x].OneOrSeparate,
+				                AssigneeConstraints: rows[x].AssigneeConstraints,
+				                Difficulty: rows[x].Difficulty,
+				                SimpleGrade: rows[x].SimpleGrade,
+				                IsFinalGradingTask: rows[x].IsFinalGradingTask,
+				                Instructions: rows[x].Instructions,
+				                Rubric: rows[x].Rubric,
+				                Fields: rows[x].Fields,
+				                AllowReflection: rows[x].AllowReflection,
+				                AllowAssessment: rows[x].AllowAssessment,
+				                NumberParticipants: rows[x].NumberParticipants,
+				                RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
+				                FunctionType: rows[x].FunctionType,
+				                Function: rows[x].Function,
+				                AllowDispute: rows[x].AllowDispute,
+				                LeadsToNewProblem: rows[x].LeadsToNewProblem,
+				                LeadsToNewSolution: rows[x].LeadsToNewSolution,
+				                VisualID: rows[x].VisualID,
+				                VersionHistory: rows[x].VersionHistory,
+				                RefersToWhichTask: rows[x].RefersToWhichTask,
+				                TriggerCondition: rows[x].TriggerCondition,
+				                PreviousTasks: rows[x].PreviousTasks,
+				                NextTasks: rows[x].NextTasks,
+				                MinimumDuration: rows[x].MinimumDuration,
+				                AssignmentInstanceID: rows[x].AssignmentInstanceID
+			                }, {
+				                transaction: t
+			                });
+		                }
+	                })
+                })
+                .then(function() {
+	                return WorkflowActivity.findAll({
+		                where: {
+			                AssignmentID: req.params.AssignmentID
+		                },
+		                attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
+	                }).then(function (rows) {
+		                //console.log(rows[0].OwnerID);
+		                var arrayLength = rows.length;
+		                for (var x = 0; x < arrayLength; x++) {
+
+			                ArchivedWorkflowActivity.create({
+				                WorkflowActivityID: rows[x].WorkflowActivityID,
+				                AssignmentID: rows[x].AssignmentID,
+				                TaskActivityCollection: rows[x].TaskActivityCollection,
+				                Name: rows[x].Name,
+				                Type: rows[x].Type,
+				                GradeDistribution: rows[x].GradeDistribution,
+				                NumberOfSets: rows[x].NumberOfSets,
+				                Documentation: rows[x].Documentation,
+				                GroupSize: rows[x].GroupSize,
+				                StartTaskActivity: rows[x].StartTaskActivity,
+				                WorkflowStructure: rows[x].WorkflowStructure,
+				                VersionHistory: rows[x].VersionHistory
+
+			                }, {
+				                transaction: t
+			                });
+		                }
+	                })
+                })
 				.then(function() {
-                    return TaskInstance.findAll({
+					return Assignment.findAll({
 						where: {
-							AssignmentInstanceID: req.params.AssignmentInstanceID
+							AssignmentID: req.params.AssignmentID
 						},
-						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+						attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
 					}).then(function (rows) {
-							//console.log(rows[0].OwnerID);
-							var arrayLength = rows.length;
-							for (var x = 0; x < arrayLength; x++) {
-
-								ArchivedTaskInstance.create({
-									TaskInstanceID: rows[x].TaskInstanceID,
-									UserID: rows[x].UserID,
-									TaskActivityID: rows[x].TaskActivityID,
-									WorkflowInstanceID: rows[x].WorkflowInstanceID,
-									AssignmentInstanceID: rows[x].AssignmentInstanceID,
-									GroupID: rows[x].GroupID,
-									Status: rows[x].Status,
-									StartDate: rows[x].StartDate,
-									EndDate: rows[x].EndDate,
-									ActualEndDate: rows[x].ActualEndDate,
-									Data: rows[x].Data,
-									UserHistory: rows[x].UserHistory,
-									FinalGrade: rows[x].FinalGrade,
-									Files: rows[x].Files,
-									ReferencedTask: rows[x].ReferencedTask,
-									NextTask: rows[x].NextTask,
-									PreviousTask: rows[x].PreviousTask,
-									EmailLastSent: rows[x].EmailLastSent
-								}, {
-									transaction: t
-								})
-							}
-						})
-						.then(WorkflowInstance.findAll({
+						//console.log(rows[0].OwnerID);
+						ArchivedAssignment.create({
+							AssignmentID: rows[0].AssignmentID,
+							OwnerID: rows[0].OwnerID,
+							WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
+							Instructions: rows[0].Instructions,
+							Documentation: rows[0].Documentation,
+							GradeDistribution: rows[0].GradeDistribution,
+							Name: rows[0].Name,
+							Type: rows[0].Type,
+							DisplayName: rows[0].DisplayName,
+							SectionID: rows[0].SectionID,
+							CourseID: rows[0].CourseID,
+							SemesterID: rows[0].SemesterID,
+							VersionHistory: rows[0].VersionHistory
+						});
+					})
+				})
+                .then(function(){
+                    return TaskActivity.destroy({
+		                    where: {
+			                    AssignmentID: req.params.AssignmentID
+		                    },
+		                transaction: t
+	                })
+	                .then(function(rows){
+		                console.log("Delete Taskactivity Success and saved to other back up");
+	                })
+                })
+				.then(function(){
+					return WorkflowActivity.destroy({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentID: req.params.AssignmentID
 							},
-                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
-						}).then(function (workflowrows) {
-							var arrayLength = workflowrows.length;
-							for (var x = 0; x < arrayLength; x++) {
-								ArchivedWorkflowInstance.create({
-									WorkflowInstanceID: workflowrows[x].WorkflowInstanceID,
-									WorkflowActivityID: workflowrows[x].WorkflowActivityID,
-									AssignmentInstanceID: workflowrows[x].AssignmentInstanceID,
-									StartTime: workflowrows[x].StartTime,
-									EndTime: workflowrows[x].EndTime,
-									TaskCollection: workflowrows[x].TaskCollection,
-									Data: workflowrows[x].Data
-								}, {
-									transaction: t
-								});
-							}
-						}))
-						.then(AssignmentInstance.findAll({
-								where: {
-									AssignmentInstanceID: req.params.AssignmentInstanceID
-								},
-								attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
-							}).then(function (assigninstancerows) {
-								//console.log(rows[0].OwnerID);
-								var arrayLength = assigninstancerows.length;
-								for (var x = 0; x < arrayLength; x++) {
-
-									ArchivedAssignmentInstance.create({
-										AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
-										AssignmentID: assigninstancerows[x].AssignmentID,
-										SectionID: assigninstancerows[x].SectionID,
-										StartDate: assigninstancerows[x].StartDate,
-										EndDate: assigninstancerows[x].EndDate,
-										WorkflowCollection: assigninstancerows[x].WorkflowCollection,
-										WorkflowTiming: assigninstancerows[x].WorkflowTiming
-									}, {
-										transaction: t
-									});
-								}
-							}))
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete WorkflowActivity Success and saved to other back up");
+						});
+				})
+				.then(function(){
+					return Assignment.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete Assignment Success and saved to other back up");
+						})
 				})
                 .then(function() {
-	                   return TaskInstance.destroy({
-	                           where: {
-	                               AssignmentInstanceID: req.params.AssignmentInstanceID
-                               },
-			                   transaction: t
-                           })
-                           .then(function(rows){
-                               console.log("Delete TaskInstance Success and saved to other back up");
-                           })
+	                AssignmentInstance.findAll({
+		                where: {
+			                AssignmentID: req.params.AssignmentID
+		                },
+		                attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+	                }).then(function (assigninstancerows) {
+		                var arrayLength = assigninstancerows.length;
+		                for (var x = 0; x < arrayLength; x++) {
+			                promises.push(archiveinstance(assigninstancerows[x].AssignmentInstanceID));
+		                }
+	                })
                 })
-	            .then(function() {
-		            return WorkflowInstance.destroy({
-				            where: {
-					            AssignmentInstanceID: req.params.AssignmentInstanceID
-				            },
-				            transaction: t
-			            })
-			            .then(function(rows){
-				            console.log("Delete WorkflowInstance Success and saved to other back up");
-			            })
-	            })
-	            .then(function() {
-		            return AssignmentInstance.destroy({
-				            where: {
-					            AssignmentInstanceID: req.params.AssignmentInstanceID
-				            },
-				            transaction: t
-			            })
-			            .then(function(rows){
-				            console.log("Delete AssignmentInstance Success and saved to other back up");
-			            })
-	            })
-				.then(function(){
+                .then(function(){
+                    return Promise.all(promises).then(function(){
+                        console.log("done");
+                    });
+                })
+                .then(function(){
 					return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
 				})
                 .then(function(){
-				    res.status(201).end();
+                	res.status(201).end();
                 })
 				.catch(function(err) {
-                    return t.rollback();
+				    console.log(err);
+					return t.rollback();
 				});
-		});
+        });
+
+
+		// archiveit(req.params.AssignmentID)
+		// 	.then(function(){
+		// 		res.status(201).end();
+		// 	})
 	});
 
-	router.get('/restore/:AssignmentInstanceID', function (req, res) {
+	router.get('/restorearchivedactivity/:AssignmentID', function (req, res) {
+		var assignmentArray = new Array();
+		var promises = [];
+		console.log('TaskInstanceArchive is called\n');
+		return sequelize.transaction(function(t) {
+			var options = { raw: true, transaction: t };
+			return sequelize
+				.query('SET FOREIGN_KEY_CHECKS = 0', options)
+				.then(function(){
+					return ArchivedTaskActivity.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+
+							TaskActivity.create({
+								TaskActivityID: rows[x].TaskActivityID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								AssignmentID: rows[x].AssignmentID,
+								Name: rows[x].Name,
+								Type: rows[x].Type,
+								FileUpload: rows[x].FileUpload,
+								DueType: rows[x].DueType,
+								StartDelay: rows[x].StartDelay,
+								AtDUrationEnd: rows[x].AtDUrationEnd,
+								WhatIfLate: rows[x].WhatIfLate,
+								DisplayName: rows[x].DisplayName,
+								Documentation: rows[x].Documentation,
+								OneOrSeparate: rows[x].OneOrSeparate,
+								AssigneeConstraints: rows[x].AssigneeConstraints,
+								Difficulty: rows[x].Difficulty,
+								SimpleGrade: rows[x].SimpleGrade,
+								IsFinalGradingTask: rows[x].IsFinalGradingTask,
+								Instructions: rows[x].Instructions,
+								Rubric: rows[x].Rubric,
+								Fields: rows[x].Fields,
+								AllowReflection: rows[x].AllowReflection,
+								AllowAssessment: rows[x].AllowAssessment,
+								NumberParticipants: rows[x].NumberParticipants,
+								RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
+								FunctionType: rows[x].FunctionType,
+								Function: rows[x].Function,
+								AllowDispute: rows[x].AllowDispute,
+								LeadsToNewProblem: rows[x].LeadsToNewProblem,
+								LeadsToNewSolution: rows[x].LeadsToNewSolution,
+								VisualID: rows[x].VisualID,
+								VersionHistory: rows[x].VersionHistory,
+								RefersToWhichTask: rows[x].RefersToWhichTask,
+								TriggerCondition: rows[x].TriggerCondition,
+								PreviousTasks: rows[x].PreviousTasks,
+								NextTasks: rows[x].NextTasks,
+								MinimumDuration: rows[x].MinimumDuration,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID
+							}, {
+								transaction: t
+							});
+						}
+					})
+				})
+				.then(function() {
+					return ArchivedWorkflowActivity.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+
+							WorkflowActivity.create({
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								AssignmentID: rows[x].AssignmentID,
+								TaskActivityCollection: rows[x].TaskActivityCollection,
+								Name: rows[x].Name,
+								Type: rows[x].Type,
+								GradeDistribution: rows[x].GradeDistribution,
+								NumberOfSets: rows[x].NumberOfSets,
+								Documentation: rows[x].Documentation,
+								GroupSize: rows[x].GroupSize,
+								StartTaskActivity: rows[x].StartTaskActivity,
+								WorkflowStructure: rows[x].WorkflowStructure,
+								VersionHistory: rows[x].VersionHistory
+
+							}, {
+								transaction: t
+							});
+						}
+					})
+				})
+				.then(function() {
+					return ArchivedAssignment.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						Assignment.create({
+							AssignmentID: rows[0].AssignmentID,
+							OwnerID: rows[0].OwnerID,
+							WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
+							Instructions: rows[0].Instructions,
+							Documentation: rows[0].Documentation,
+							GradeDistribution: rows[0].GradeDistribution,
+							Name: rows[0].Name,
+							Type: rows[0].Type,
+							DisplayName: rows[0].DisplayName,
+							SectionID: rows[0].SectionID,
+							CourseID: rows[0].CourseID,
+							SemesterID: rows[0].SemesterID,
+							VersionHistory: rows[0].VersionHistory
+						});
+					})
+				})
+				.then(function(){
+					return ArchivedTaskActivity.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete Taskactivity Success and saved to other back up");
+						})
+				})
+				.then(function(){
+					return ArchivedWorkflowActivity.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete WorkflowActivity Success and saved to other back up");
+						});
+				})
+				.then(function(){
+					return ArchivedAssignment.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete Assignment Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					ArchivedAssignmentInstance.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+					}).then(function (assigninstancerows) {
+						var arrayLength = assigninstancerows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							promises.push(restoreArchivedInstance(assigninstancerows[x].AssignmentInstanceID));
+						}
+					})
+				})
+				.then(function(){
+					return Promise.all(promises).then(function(){
+						console.log("done");
+					});
+				})
+				.then(function(){
+					return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
+				})
+				.then(function(){
+					res.status(201).end();
+				})
+				.catch(function(err) {
+					return t.rollback();
+				});
+		});
+
+
+		// archiveit(req.params.AssignmentID)
+		// 	.then(function(){
+		// 		res.status(201).end();
+		// 	})
+	});
+
+	router.get('/restoreremovedactivity/:AssignmentID', function (req, res) {
+		var assignmentArray = new Array();
+		var promises = [];
+		console.log('TaskInstanceArchive is called\n');
+		return sequelize.transaction(function(t) {
+			var options = { raw: true, transaction: t };
+			return sequelize
+				.query('SET FOREIGN_KEY_CHECKS = 0', options)
+				.then(function(){
+					return RemovedTaskActivity.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+
+							TaskActivity.create({
+								TaskActivityID: rows[x].TaskActivityID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								AssignmentID: rows[x].AssignmentID,
+								Name: rows[x].Name,
+								Type: rows[x].Type,
+								FileUpload: rows[x].FileUpload,
+								DueType: rows[x].DueType,
+								StartDelay: rows[x].StartDelay,
+								AtDUrationEnd: rows[x].AtDUrationEnd,
+								WhatIfLate: rows[x].WhatIfLate,
+								DisplayName: rows[x].DisplayName,
+								Documentation: rows[x].Documentation,
+								OneOrSeparate: rows[x].OneOrSeparate,
+								AssigneeConstraints: rows[x].AssigneeConstraints,
+								Difficulty: rows[x].Difficulty,
+								SimpleGrade: rows[x].SimpleGrade,
+								IsFinalGradingTask: rows[x].IsFinalGradingTask,
+								Instructions: rows[x].Instructions,
+								Rubric: rows[x].Rubric,
+								Fields: rows[x].Fields,
+								AllowReflection: rows[x].AllowReflection,
+								AllowAssessment: rows[x].AllowAssessment,
+								NumberParticipants: rows[x].NumberParticipants,
+								RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
+								FunctionType: rows[x].FunctionType,
+								Function: rows[x].Function,
+								AllowDispute: rows[x].AllowDispute,
+								LeadsToNewProblem: rows[x].LeadsToNewProblem,
+								LeadsToNewSolution: rows[x].LeadsToNewSolution,
+								VisualID: rows[x].VisualID,
+								VersionHistory: rows[x].VersionHistory,
+								RefersToWhichTask: rows[x].RefersToWhichTask,
+								TriggerCondition: rows[x].TriggerCondition,
+								PreviousTasks: rows[x].PreviousTasks,
+								NextTasks: rows[x].NextTasks,
+								MinimumDuration: rows[x].MinimumDuration,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID
+							}, {
+								transaction: t
+							});
+						}
+					})
+				})
+				.then(function() {
+					return RemovedWorkflowActivity.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+
+							WorkflowActivity.create({
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								AssignmentID: rows[x].AssignmentID,
+								TaskActivityCollection: rows[x].TaskActivityCollection,
+								Name: rows[x].Name,
+								Type: rows[x].Type,
+								GradeDistribution: rows[x].GradeDistribution,
+								NumberOfSets: rows[x].NumberOfSets,
+								Documentation: rows[x].Documentation,
+								GroupSize: rows[x].GroupSize,
+								StartTaskActivity: rows[x].StartTaskActivity,
+								WorkflowStructure: rows[x].WorkflowStructure,
+								VersionHistory: rows[x].VersionHistory
+
+							}, {
+								transaction: t
+							});
+						}
+					})
+				})
+				.then(function() {
+					return RemovedAssignment.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						Assignment.create({
+							AssignmentID: rows[0].AssignmentID,
+							OwnerID: rows[0].OwnerID,
+							WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
+							Instructions: rows[0].Instructions,
+							Documentation: rows[0].Documentation,
+							GradeDistribution: rows[0].GradeDistribution,
+							Name: rows[0].Name,
+							Type: rows[0].Type,
+							DisplayName: rows[0].DisplayName,
+							SectionID: rows[0].SectionID,
+							CourseID: rows[0].CourseID,
+							SemesterID: rows[0].SemesterID,
+							VersionHistory: rows[0].VersionHistory
+						});
+					})
+				})
+				.then(function(){
+					return RemovedTaskActivity.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete Taskactivity Success and saved to other back up");
+						})
+				})
+				.then(function(){
+					return RemovedWorkflowActivity.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete WorkflowActivity Success and saved to other back up");
+						});
+				})
+				.then(function(){
+					return RemovedAssignment.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete Assignment Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					RemovedAssignmentInstance.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+					}).then(function (assigninstancerows) {
+						var arrayLength = assigninstancerows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							promises.push(restoreRemovedInstance(assigninstancerows[x].AssignmentInstanceID));
+						}
+					})
+				})
+				.then(function(){
+					return Promise.all(promises).then(function(){
+						console.log("done");
+					});
+				})
+				.then(function(){
+					return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
+				})
+				.then(function(){
+					res.status(201).end();
+				})
+				.catch(function(err) {
+					return t.rollback();
+				});
+		});
+
+
+		// archiveit(req.params.AssignmentID)
+		// 	.then(function(){
+		// 		res.status(201).end();
+		// 	})
+	});
+
+
+
+	router.get('/removeactivity/:AssignmentID', function (req, res) {
+		var assignmentArray = new Array();
+		var promises = [];
+		console.log('TaskInstanceArchive is called\n');
+		return sequelize.transaction(function(t) {
+			var options = { raw: true, transaction: t };
+			return sequelize
+				.query('SET FOREIGN_KEY_CHECKS = 0', options)
+				.then(function(){
+					return TaskActivity.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+
+							RemovedTaskActivity.create({
+								TaskActivityID: rows[x].TaskActivityID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								AssignmentID: rows[x].AssignmentID,
+								Name: rows[x].Name,
+								Type: rows[x].Type,
+								FileUpload: rows[x].FileUpload,
+								DueType: rows[x].DueType,
+								StartDelay: rows[x].StartDelay,
+								AtDUrationEnd: rows[x].AtDUrationEnd,
+								WhatIfLate: rows[x].WhatIfLate,
+								DisplayName: rows[x].DisplayName,
+								Documentation: rows[x].Documentation,
+								OneOrSeparate: rows[x].OneOrSeparate,
+								AssigneeConstraints: rows[x].AssigneeConstraints,
+								Difficulty: rows[x].Difficulty,
+								SimpleGrade: rows[x].SimpleGrade,
+								IsFinalGradingTask: rows[x].IsFinalGradingTask,
+								Instructions: rows[x].Instructions,
+								Rubric: rows[x].Rubric,
+								Fields: rows[x].Fields,
+								AllowReflection: rows[x].AllowReflection,
+								AllowAssessment: rows[x].AllowAssessment,
+								NumberParticipants: rows[x].NumberParticipants,
+								RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
+								FunctionType: rows[x].FunctionType,
+								Function: rows[x].Function,
+								AllowDispute: rows[x].AllowDispute,
+								LeadsToNewProblem: rows[x].LeadsToNewProblem,
+								LeadsToNewSolution: rows[x].LeadsToNewSolution,
+								VisualID: rows[x].VisualID,
+								VersionHistory: rows[x].VersionHistory,
+								RefersToWhichTask: rows[x].RefersToWhichTask,
+								TriggerCondition: rows[x].TriggerCondition,
+								PreviousTasks: rows[x].PreviousTasks,
+								NextTasks: rows[x].NextTasks,
+								MinimumDuration: rows[x].MinimumDuration,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID
+							}, {
+								transaction: t
+							});
+						}
+					})
+				})
+				.then(function() {
+					return WorkflowActivity.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+
+							RemovedWorkflowActivity.create({
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								AssignmentID: rows[x].AssignmentID,
+								TaskActivityCollection: rows[x].TaskActivityCollection,
+								Name: rows[x].Name,
+								Type: rows[x].Type,
+								GradeDistribution: rows[x].GradeDistribution,
+								NumberOfSets: rows[x].NumberOfSets,
+								Documentation: rows[x].Documentation,
+								GroupSize: rows[x].GroupSize,
+								StartTaskActivity: rows[x].StartTaskActivity,
+								WorkflowStructure: rows[x].WorkflowStructure,
+								VersionHistory: rows[x].VersionHistory
+
+							}, {
+								transaction: t
+							});
+						}
+					})
+				})
+				.then(function() {
+					return Assignment.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
+					}).then(function (rows) {
+						//console.log(rows[0].OwnerID);
+						RemovedAssignment.create({
+							AssignmentID: rows[0].AssignmentID,
+							OwnerID: rows[0].OwnerID,
+							WorkflowActivityIDs: rows[0].WorkflowActivityIDs,
+							Instructions: rows[0].Instructions,
+							Documentation: rows[0].Documentation,
+							GradeDistribution: rows[0].GradeDistribution,
+							Name: rows[0].Name,
+							Type: rows[0].Type,
+							DisplayName: rows[0].DisplayName,
+							SectionID: rows[0].SectionID,
+							CourseID: rows[0].CourseID,
+							SemesterID: rows[0].SemesterID,
+							VersionHistory: rows[0].VersionHistory
+						});
+					});
+				})
+				.then(function(){
+					return TaskActivity.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete Taskactivity Success and saved to other back up");
+						})
+				})
+				.then(function(){
+					return WorkflowActivity.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete WorkflowActivity Success and saved to other back up");
+						});
+				})
+				.then(function(){
+					return Assignment.destroy({
+							where: {
+								AssignmentID: req.params.AssignmentID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete Assignment Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					AssignmentInstance.findAll({
+						where: {
+							AssignmentID: req.params.AssignmentID
+						},
+						attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+					}).then(function (assigninstancerows) {
+						var arrayLength = assigninstancerows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							promises.push(removeInstance(assigninstancerows[x].AssignmentInstanceID));
+						}
+					})
+				})
+				.then(function(){
+					return Promise.all(promises).then(function(){
+						console.log("done");
+					});
+				})
+				.then(function(){
+					return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
+				})
+				.then(function(){
+					res.status(201).end();
+				})
+				.catch(function(err) {
+					return t.rollback();
+				});
+		});
+		// archiveit(req.params.AssignmentID)
+		// 	.then(function(){
+		// 		res.status(201).end();
+		// 	})
+	});
+
+	router.get('/restorearchivedinstance/:AssignmentInstanceID', function (req, res) {
 		var assignmentArray = new Array();
 		console.log('Restoreassignmentinstance is called\n');
+		restoreArchivedInstance(req.params.AssignmentInstanceID)
+			.then(function(){
+				res.status(201).end();
+			});
+
+	});
+
+	router.get('/restoreremovedinstance/:AssignmentInstanceID', function (req, res) {
+		var assignmentArray = new Array();
+		console.log('Restoreassignmentinstance is called\n');
+		restoreRemovedInstance(req.params.AssignmentInstanceID)
+			.then(function(){
+				res.status(201).end();
+			});
+	});
+
+	function restoreArchivedInstance(AssignInstanceID){
 		return sequelize.transaction(function(t) {
 			var options = { raw: true, transaction: t }
 			return sequelize
@@ -7320,7 +8165,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return ArchivedTaskInstance.findAll({
 						where: {
-							AssignmentInstanceID: req.params.AssignmentInstanceID
+							AssignmentInstanceID: AssignInstanceID
 						},
 						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
 					}).then(function (rows) {
@@ -7355,7 +8200,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						})
 						.then(ArchivedWorkflowInstance.findAll({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceID
 							},
 							attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
 						}).then(function (workflowrows) {
@@ -7376,7 +8221,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						}))
 						.then(ArchivedAssignmentInstance.findAll({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceID
 							},
 							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
 						}).then(function (assigninstancerows) {
@@ -7401,7 +8246,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return ArchivedTaskInstance.destroy({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceID
 							},
 							transaction: t
 						})
@@ -7412,7 +8257,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return ArchivedWorkflowInstance.destroy({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceID
 							},
 							transaction: t
 						})
@@ -7423,7 +8268,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return ArchivedAssignmentInstance.destroy({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceID
 							},
 							transaction: t
 						})
@@ -7434,18 +8279,141 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function(){
 					return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
 				})
+				.catch(function(err) {
+					return t.rollback();
+				});
+		});
+    }
+
+	function restoreRemovedInstance(AssignInstanceID){
+		return sequelize.transaction(function(t) {
+			var options = { raw: true, transaction: t }
+			return sequelize
+				.query('SET FOREIGN_KEY_CHECKS = 0', options)
+				.then(function() {
+					return RemovedTaskInstance.findAll({
+						where: {
+							AssignmentInstanceID: AssignInstanceID
+						},
+						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+					}).then(function (rows) {
+							//console.log(rows[0].OwnerID);
+							var arrayLength = rows.length;
+							for (var x = 0; x < arrayLength; x++) {
+
+								TaskInstance.create({
+
+									TaskInstanceID: rows[x].TaskInstanceID,
+									UserID: rows[x].UserID,
+									TaskActivityID: rows[x].TaskActivityID,
+									WorkflowInstanceID: rows[x].WorkflowInstanceID,
+									AssignmentInstanceID: rows[x].AssignmentInstanceID,
+									GroupID: rows[x].GroupID,
+									Status: rows[x].Status,
+									StartDate: rows[x].StartDate,
+									EndDate: rows[x].EndDate,
+									ActualEndDate: rows[x].ActualEndDate,
+									Data: rows[x].Data,
+									UserHistory: rows[x].UserHistory,
+									FinalGrade: rows[x].FinalGrade,
+									Files: rows[x].Files,
+									ReferencedTask: rows[x].ReferencedTask,
+									NextTask: rows[x].NextTask,
+									PreviousTask: rows[x].PreviousTask,
+									EmailLastSent: rows[x].EmailLastSent
+								}, {
+									transaction: t
+								});
+							}
+						})
+						.then(RemovedWorkflowInstance.findAll({
+							where: {
+								AssignmentInstanceID: AssignInstanceID
+							},
+							attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
+						}).then(function (workflowrows) {
+							var arrayLength = workflowrows.length;
+							for (var x = 0; x < arrayLength; x++) {
+								WorkflowInstance.create({
+									WorkflowInstanceID: workflowrows[x].WorkflowInstanceID,
+									WorkflowActivityID: workflowrows[x].WorkflowActivityID,
+									AssignmentInstanceID: workflowrows[x].AssignmentInstanceID,
+									StartTime: workflowrows[x].StartTime,
+									EndTime: workflowrows[x].EndTime,
+									TaskCollection: workflowrows[x].TaskCollection,
+									Data: workflowrows[x].Data
+								}, {
+									transaction: t
+								});
+							}
+						}))
+						.then(RemovedAssignmentInstance.findAll({
+							where: {
+								AssignmentInstanceID: AssignInstanceID
+							},
+							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+						}).then(function (assigninstancerows) {
+							//console.log(rows[0].OwnerID);
+							var arrayLength = assigninstancerows.length;
+							for (var x = 0; x < arrayLength; x++) {
+
+								AssignmentInstance.create({
+									AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
+									AssignmentID: assigninstancerows[x].AssignmentID,
+									SectionID: assigninstancerows[x].SectionID,
+									StartDate: assigninstancerows[x].StartDate,
+									EndDate: assigninstancerows[x].EndDate,
+									WorkflowCollection: assigninstancerows[x].WorkflowCollection,
+									WorkflowTiming: assigninstancerows[x].WorkflowTiming
+								}, {
+									transaction: t
+								});
+							}
+						}))
+				})
+				.then(function() {
+					return RemovedTaskInstance.destroy({
+							where: {
+								AssignmentInstanceID: AssignInstanceID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete TaskInstance Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return RemovedWorkflowInstance.destroy({
+							where: {
+								AssignmentInstanceID: AssignInstanceID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete WorkflowInstance Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return RemovedAssignmentInstance.destroy({
+							where: {
+								AssignmentInstanceID: AssignInstanceID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("AssignmentInstance Success and saved to other back up");
+						})
+				})
 				.then(function(){
-					res.status(201).end();
+					return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
 				})
 				.catch(function(err) {
 					return t.rollback();
 				});
 		});
-	});
+	}
 
-	router.get('/remove/:AssignmentInstanceID', function (req, res) {
-		var assignmentArray = new Array();
-		console.log('Restoreassignmentinstance is called\n');
+	function removeInstance(AssignInstanceId) {
 		return sequelize.transaction(function(t) {
 			var options = { raw: true, transaction: t }
 			return sequelize
@@ -7453,7 +8421,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return TaskInstance.findAll({
 						where: {
-							AssignmentInstanceID: req.params.AssignmentInstanceID
+							AssignmentInstanceID: AssignInstanceId
 						},
 						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
 					}).then(function (rows) {
@@ -7462,7 +8430,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 							for (var x = 0; x < arrayLength; x++) {
 
 								RemovedTaskInstance.create({
-
 									TaskInstanceID: rows[x].TaskInstanceID,
 									UserID: rows[x].UserID,
 									TaskActivityID: rows[x].TaskActivityID,
@@ -7488,7 +8455,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						})
 						.then(WorkflowInstance.findAll({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceId
 							},
 							attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
 						}).then(function (workflowrows) {
@@ -7509,7 +8476,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						}))
 						.then(AssignmentInstance.findAll({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceId
 							},
 							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
 						}).then(function (assigninstancerows) {
@@ -7534,7 +8501,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return TaskInstance.destroy({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceId
 							},
 							transaction: t
 						})
@@ -7545,7 +8512,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return WorkflowInstance.destroy({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceId
 							},
 							transaction: t
 						})
@@ -7556,7 +8523,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return AssignmentInstance.destroy({
 							where: {
-								AssignmentInstanceID: req.params.AssignmentInstanceID
+								AssignmentInstanceID: AssignInstanceId
 							},
 							transaction: t
 						})
@@ -7567,13 +8534,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function(){
 					return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
 				})
-				.then(function(){
-					res.status(201).end();
-				})
 				.catch(function(err) {
 					return t.rollback();
 				});
 		});
+	}
+
+	router.get('/removeinstance/:AssignmentInstanceID', function (req, res) {
+		var assignmentArray = new Array();
+		console.log('Remove assignment is called\n');
+		removeinstance(req.params.AssignmentInstanceID)
+			.then(function() {
+				res.status(201).end();
+			});
 	});
 
 

@@ -1,5 +1,5 @@
 module.exports = function (sequelize, DataTypes) {
-    return sequelize.define('WorkflowGrade', {
+    return sequelize.define('ArchivedWorkflowGrade', {
         WorkflowGradeID: {
             //Workflow grade ID
             type: DataTypes.INTEGER.UNSIGNED,
@@ -59,6 +59,6 @@ module.exports = function (sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'workflowgrade'
+        tableName: 'archivedworkflowgrade'
     });
 };

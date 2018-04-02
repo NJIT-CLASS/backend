@@ -1,5 +1,5 @@
 module.exports = function (sequelize, DataTypes) {
-    return sequelize.define('ArchivedTaskSimpleGrade', {
+    return sequelize.define('RemovedTaskSimpleGrade', {
         TaskSimpleGradeID: {
             //TaskSimple grade ID
             type: DataTypes.INTEGER.UNSIGNED,
@@ -70,6 +70,6 @@ module.exports = function (sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'archivedtasksimplegrade'
+        tableName: 'removedtasksimplegrade'
     });
 };

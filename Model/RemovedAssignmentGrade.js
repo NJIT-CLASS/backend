@@ -1,50 +1,33 @@
 module.exports = function (sequelize, DataTypes) {
-    return sequelize.define('ArchivedTaskSimpleGrade', {
-        TaskSimpleGradeID: {
-            //TaskSimple grade ID
+    return sequelize.define('RemovedAssignmentGrade', {
+        AssignmentGradeID: {
+            //Assignment grade ID
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskSimpleGradeID',
+            field: 'AssignmentGradeID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true,
         },
-        TaskInstanceID: {
+        AssignmentInstanceID: {
             //Unique with SectionUserID.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskInstanceID',
+            field: 'AssignmentInstanceID',
             allowNull: false,
-            unique: 'ti_sectionUserId_unq_idx',
+            unique: 'ai_sectionUserId_unq_idx',
         },
         SectionUserID: {
-            //Unique with TaskInstanceID
+            //Unique with AssignmentInstanceID
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'SectionUserID',
             allowNull: false,
-            unique: 'ti_sectionUserId_unq_idx',
+            unique: 'ai_sectionUserId_unq_idx',
         },
-        WorkflowActivityID: {
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'WorkflowActivityID',
-            allowNull: false,
-        },
-        /*AssignmentInstanceID: {
-         //Foreign Key
-         type: DataTypes.INTEGER.UNSIGNED,
-         field: 'AssignmentInstanceID',
-         allowNull: false,
-         },*/
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'Grade',
-            allowNull: false,
-        },
-        IsExtraCredit: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'IsExtraCredit',
             allowNull: false,
         },
         Comments: {
@@ -70,6 +53,6 @@ module.exports = function (sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'archivedtasksimplegrade'
+        tableName: 'removedassignmentgrade'
     });
 };
