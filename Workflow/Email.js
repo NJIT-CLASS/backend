@@ -173,7 +173,7 @@ class Email {
                         replyTo: email,
                         to: send,
                         subject: template.subject,
-                        text: template.html,
+                        text: template.text,
                         html: template.html
                     });
                     break;
