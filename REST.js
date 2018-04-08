@@ -318,7 +318,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/password/reset', function (req, res) {
 
-        console.log("Password reset here")
+        console.log('Password reset here');
         if (req.body.email === null || req.body.email === '') {
             return res.status(400).end();
         }
@@ -329,6 +329,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(async(user) => {
 
+<<<<<<< HEAD
                 if (user == null) {
                     return res.status(400).end();
                 }
@@ -345,6 +346,25 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     res.status(200).end();
                 });
             })
+=======
+            if (user == null) {
+                return res.status(400).end();
+            }
+            var temp_pass = await password.generate();
+            user.Password = await password.hash(temp_pass);
+            user.Pending = true;
+            user.Timeout = null;
+            user.Attempts = 0;
+            user.Timeout = null;
+            console.log('found user', user);
+            user.save().then((result) => {
+                console.log('temp pass: ', result);
+                let email = new Email();
+                email.sendNow(result.UserID, 'reset password', {'pass':temp_pass});
+                res.status(200).end();
+            });
+        })
+>>>>>>> 71704e9dfb1da00f92c07a20d8bb255a9ed1fae7
             .catch((err) => {
                 console.log(err);
                 res.status(500).end();
@@ -382,6 +402,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         }
 
+<<<<<<< HEAD
         UserLogin.find({
             where: {
                 Email: req.body.email
@@ -444,11 +465,38 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         });
                     });
             } else {
+=======
+        let generatedPassword = await password.hash(req.body.password);
+        return sequelize.query('CALL addInitialUserToSystem (:firstName,:lastName,:Instructor,:Admin,:Role,:Email,:Phone,:Password,:Pending );', 
+            {
+                replacements: { 
+                    firstName :req.body.firstname
+                    ,lastName : req.body.lastname
+                    ,Instructor : 1
+                    ,Admin : 1
+                    ,Role : ROLES.ADMIN
+                    ,Email : req.body.email
+                    ,Phone : '(XXX) XXX-XXXX'
+                    ,Password : generatedPassword
+                    ,Pending :0
+                }
+            })
+            .then(function(queryResult){
+                
+                let email = new Email();
+                email.sendNow(queryResult[0].UserID, 'invite user', { pass:'[user defined]'});
+               
+>>>>>>> 71704e9dfb1da00f92c07a20d8bb255a9ed1fae7
                 res.json({
-                    'Message': 'User is currently exist'
+                    'Message': 'User has succesfully added'
                 });
-            }
-        });
+            })
+            .catch(function(err){
+                console.log(err);
+                res.status(500).end();
+            });
+
+                               
     });
 
     router.get('/test', async function (req, res) {
@@ -713,10 +761,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let email = new Email();
         if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
             console.log('/update/password : Missing attributes');
-            res.status(400).json({error:"Missing Attributes"}).end();
+            res.status(400).json({error:'Missing Attributes'}).end();
         } else if (req.body.oldPasswd == req.body.newPasswd) {
             console.log('/update/password : Same password');
-            res.status(400).json({error:"New Password cannot match old password."}).end();
+            res.status(400).json({error:'New Password cannot match old password.'}).end();
         } else {
             UserLogin.find({
                 where: {
@@ -738,12 +786,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         res.status(200).json({error:false}).end();
                     }).catch(function (err) {
                         console.log(err);
-                        res.status(400).json({error:"Password could not be updated."}).end();
+                        res.status(400).json({error:'Password could not be updated.'}).end();
                     });
 
                 } else {
                     console.log('/update/password: Password not match');
-                    res.status(400).json({error:"Current password does not match."}).end();
+                    res.status(400).json({error:'Current password does not match.'}).end();
                 }
             });
         }
@@ -2266,6 +2314,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //End point to add mutliple users to a section and invite any new ones
     router.post('/sectionUsers/addMany/:sectionid', function (req, res) {
         //expects - users
+<<<<<<< HEAD
         return sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
             .then(function () {
                 Promise.mapSeries(req.body.users, (userDetails) => {
@@ -2344,77 +2393,61 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
                                         body: userDetails,
                                         err: err
+=======
+        return Promise.mapSeries(req.body.users, async function(userDetails) {
+>>>>>>> 71704e9dfb1da00f92c07a20d8bb255a9ed1fae7
 
-                                    });
-                                });
+            let role = null;
+            switch(userDetails.role){
+            case 'Instructor':
+                role = ROLES.TEACHER;
+                break;
+            case 'Student':
+                role = ROLES.PARTICIPANT;
+                break;
+            case 'Observer':
+                role = ROLES.GUEST;
+            }
 
-                        } else {
-                            SectionUser.find({
-                                where: {
-                                    SectionID: req.params.sectionid,
-                                    UserID: response.UserID
-                                },
-                                attributes: ['UserID']
-                            }).then(function(sectionUser) {
-                                if (sectionUser == null || sectionUser.UserID == null) {
-                                    SectionUser.create({
-                                        SectionID: req.params.sectionid,
-                                        UserID: response.UserID,
-                                        Active: userDetails.active,
-                                        Volunteer: userDetails.volunteer,
-                                        Role: userDetails.role
-
-                                    }).then(function(result) {
-                                        console.log('User exists, adding to section');
-                                        logger.log('info', '/sectionUsers/addMany', 'added existing user successfully', {
-                                            result:  response.UserID
-                                        });
-                                        if(userDetails.role == 'Instructor'){
-                                            //making Teacher role
-                                            
-                                            User.update({
-                                                Role: ROLES.TEACHER
-                                            },{
-                                                where: {
-                                                    UserID: response.UserID
-                                                }
-                                            }
-                                            ).then(function(makeTeacher){
-                                                return result;
-
-                                            });
-                                        } else {
-                                            return result;
-                                        }
-                                    });
-                                } else {
-                                    console.log('User already in section');
-                                    logger.log('info', '/sectionUsers/addMany', 'user already in system', {
-                                        result:  response.UserID
-                                    });
-                                    return sectionUser;
-                                }
-                            });
-                        }
-                    });
+            let temp_pass = await password.generate();
+            let hashedPassword = await password.hash(temp_pass);
+                    
+            return sequelize.query('CALL addUserToSection (:FirstName,:LastName,:Instructor,:Admin,:Role,:Email,:Phone,:Password,:Pending,:SectionID,:Active,:Volunteer,:SectionRole )', 
+                {
+                    replacements: { 
+                        FirstName : (userDetails.firstName || '')
+                        ,LastName :( userDetails.lastName || '' )
+                        ,Instructor : userDetails.role === 'Instructor' ? 1 : 0
+                        ,Admin : 0
+                        ,Role : role
+                        ,Email : userDetails.email
+                        ,Phone : '(XXX) XXX-XXXX'
+                        ,Password : hashedPassword
+                        ,Pending :1
+                        ,SectionID : req.params.sectionid
+                        ,Active : (userDetails.active || 1)
+                        ,Volunteer :(userDetails.volunteer || 1 )
+                        ,SectionRole : userDetails.role
+                    }
                 })
-                    .then((results) => {
-                        console.log(results);
-                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                            .then(() => {
-                                return res.status(200).end();
-                            });
-                    }).catch(function (err) {
-                        console.error(err);
-                        logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
-                            req_body: req.body,
-                            error: err
-                        });
-                        return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                            .then(() => {
-                                res.status(500).end();
-                            });
+                .then(function(queryResult){
+                    let email = new Email();
+                    email.sendNow(queryResult[0].UserID, 'invite user', {'pass': temp_pass});
+                })
+                .catch(function (err) {
+                    console.error(err);
+                    logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
+                        req_body: req.body,
+                        firstName: userDetails.firstName,
+                        error: err
                     });
+                    
+                    res.status(500).end();   
+                });
+        })
+            .then(function(done){
+                console.log('Promise.map Results: ', done);
+                res.status(200).end();
             });
     });
 
@@ -3014,7 +3047,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     
                 },
                 attributes: ['WorkflowActivityID','GradeDistribution']
-            })
+            });
             var json = {
                 Error: false,
                 AssignmentInstance: response,
@@ -7975,7 +8008,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }else if(!result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
                     Message = 'Some users will have less tasks then others, extra tasks will be allocated for extra credit';
                 }else{
-                    Message = 'Some users will have less tasks then others'
+                    Message = 'Some users will have less tasks then others';
                 }
             }else{
                 if(result.wanted_to_cancel_started && !result.extra_task_for_extra_credit){
@@ -8003,14 +8036,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }catch(e){
             logger.log('error','error in /reallocate/cancel_workflows', e);
             realocate_error = true;
-            Message = "Could not cancel, error occured"
+            Message = 'Could not cancel, error occured';
         }
         res.json( 
             {
-            Error: realocate_error,
-            confirmation_required : needs_confirmation,
-            Message: Message,
-            data: array_of_results 
+                Error: realocate_error,
+                confirmation_required : needs_confirmation,
+                Message: Message,
+                data: array_of_results 
             } 
         );
     });
@@ -8027,7 +8060,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             data: req.body.data,
         });
         var allocate = new Allocator([],0);
-        var result
+        var result;
         await Promise.map( req.body.data , async (w_activity) => {
             var data = w_activity.data;
             var Graph = data.Graph;
@@ -8375,14 +8408,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/getSectionByAssignmentInstance', function(req, res){
         //console.log(req);
-      AssignmentInstance.find({
-          where: {
-              AssignmentInstanceID: req.body.assignmentInstanceID
-          },
-          attributes: ["SectionID"]
-      }).then(result => {
-          return res.json(result);
-      });
+        AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.body.assignmentInstanceID
+            },
+            attributes: ['SectionID']
+        }).then(result => {
+            return res.json(result);
+        });
     });
 
     //----------------------------------------------------------------

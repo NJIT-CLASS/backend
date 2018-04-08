@@ -1,4 +1,6 @@
-import {FRONT_SERVER_PORT} from '../backend_settings.js'
+import {SERVER_PORT} from '../backend_settings.js';
+
+const FrontendPort = parseInt(SERVER_PORT) + 1;
 let SUPPORT_HTML = (`
     <p>For technical support for the Participatory Learning system, contact:<br>
     <a mailto:bieber@njit.edu>bieber@njit.edu</a><br>
@@ -74,7 +76,7 @@ exports.INVITE_USER_NEW_TO_SYSTEM = function(data) {
             <p>Temporary Password: ${data.pass} </p>
             <br><br>${SUPPORT_HTML}
             `)
-    }
+    };
 };
 
 exports.NEW_TASK = {
@@ -89,7 +91,7 @@ exports.NEW_TASK = {
         <p>A new task has started.<div>Please visit http://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task</div></p>
         <br><br>${SUPPORT_HTML}
     `)
-}
+};
 
 exports.NEW_PASSWORD = {
     subject: 'Password Updated - Participatory Learning',
@@ -103,7 +105,7 @@ exports.NEW_PASSWORD = {
         <p>Your password has been updated.</div></p>
         <br><br>${SUPPORT_HTML}
     `)
-}
+};
 
 exports.LATE = {
     subject: 'Task Late - Participatory Learning',
@@ -117,7 +119,7 @@ exports.LATE = {
         <p>You have a task due.<div>Please visit http://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task</div></p>
         <br><br>${SUPPORT_HTML}
     `)
-}
+};
 
 exports.RESET_PASS = function(data){
     return {
@@ -127,17 +129,13 @@ exports.RESET_PASS = function(data){
             Your password has been reset. Please visit the following link and use the temporary password to complete the reset \n
             http://pla.njit.edu:${FRONT_SERVER_PORT} \n 
             Temporary Password: ${data.pass} \n
-            ${SUPPORT_STRING}
-        `),
-        html:(`
-            <p>Hi,<p><br>
             <p>You have requested a password reset. Please visit the following link and use the temporary password to complete the reset </p><br>
             <p>http://pla.njit.edu:${FRONT_SERVER_PORT}</p><br>
             <p>Temporary Password: ${data.pass}</p>
             <br><br>${SUPPORT_HTML}
         `)
-    }
-}
+    };
+};
 
 exports.NEW_REPLY = function(data){
     return {
@@ -152,8 +150,8 @@ exports.NEW_REPLY = function(data){
             <p>Someone has replied to your comment. You can view the reply here: ${data.link} </p><br>
             <br><br>${SUPPORT_HTML}
         `)
-    }
-}
+    };
+};
 
 exports.NEW_VOLUNTEER = function(data){
     return {
@@ -168,8 +166,8 @@ exports.NEW_VOLUNTEER = function(data){
             <p>A student has made a volunteer request. You can view the request here: ${data.link} </p><br>
             <br><br>${SUPPORT_HTML}
         `)
-    }
-}
+    };
+};
 
 exports.NEW_FLAG = function(data){
     return {
@@ -184,6 +182,6 @@ exports.NEW_FLAG = function(data){
             <p>Someone has flagged a comment. You can view the flag here: ${data.link} </p><br>
             <br><br>${SUPPORT_HTML}
         `)
-    }
-}
+    };
+};
 
