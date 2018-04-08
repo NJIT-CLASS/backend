@@ -329,24 +329,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         }).then(async(user) => {
 
-<<<<<<< HEAD
-                if (user == null) {
-                    return res.status(400).end();
-                }
-                var temp_pass = await password.generate();
-                user.Password = await password.hash(temp_pass);
-                user.Pending = true;
-                user.Timeout = null;
-                user.Attempts = 0;
-                console.log('found user', user);
-                user.save().then((result) => {
-                    console.log("temp pass: ", result);
-                    let email = new Email();
-                    email.sendNow(result.UserID, 'reset password', {'pass':temp_pass});
-                    res.status(200).end();
-                });
-            })
-=======
             if (user == null) {
                 return res.status(400).end();
             }
@@ -364,7 +346,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 res.status(200).end();
             });
         })
->>>>>>> 71704e9dfb1da00f92c07a20d8bb255a9ed1fae7
             .catch((err) => {
                 console.log(err);
                 res.status(500).end();
@@ -402,70 +383,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         }
 
-<<<<<<< HEAD
-        UserLogin.find({
-            where: {
-                Email: req.body.email
-            },
-            attributes: ['UserID']
-        }).then(function (response) {
-            if (response == null || response.UserID == null) {
-                sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-
-                    .then(function() {
-                        User.create({
-                            FirstName: req.body.firstname,
-                            LastName: req.body.lastname,
-                            Instructor: req.body.instructor,
-                            Admin: req.body.admin
-                        }).catch(function(err) {
-                            console.log(err);
-                            sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                .then(function () {
-                                    res.status(500).end();
-                                });
-                        }).then(async function(user) {
-                            UserContact.create({
-                                UserID: user.UserID,
-                                FirstName: req.body.firstname,
-                                LastName: req.body.lastname,
-                                Email: req.body.email,
-                                Phone: '(XXX) XXX-XXXX'
-                            }).catch(function(err) {
-                                console.log(err);
-                                sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                    .then(function () {
-                                        res.status(500).end();
-                                    });
-                            }).then(async function(userCon) {
-                                console.log('trustpass', req.body.trustpassword);
-                                UserLogin.create({
-                                    UserID: user.UserID,
-                                    Email: req.body.email,
-                                    Password: await password.hash(req.body.password),
-                                    Pending: req.body.trustpassword ? false : true
-                                }).catch(function(err) {
-                                    console.log(err);
-                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function() {
-                                            res.status(500).end();
-                                        });
-                                }).then(function(userLogin) {
-                                    let email = new Email();
-                                    email.sendNow(user.UserID, 'initial_user');
-                                    sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function() {
-                                            res.json({
-                                                'Message': 'User has succesfully added'
-                                            });
-                                        });
-
-                                });
-                            });
-                        });
-                    });
-            } else {
-=======
         let generatedPassword = await password.hash(req.body.password);
         return sequelize.query('CALL addInitialUserToSystem (:firstName,:lastName,:Instructor,:Admin,:Role,:Email,:Phone,:Password,:Pending );', 
             {
@@ -486,7 +403,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 let email = new Email();
                 email.sendNow(queryResult[0].UserID, 'invite user', { pass:'[user defined]'});
                
->>>>>>> 71704e9dfb1da00f92c07a20d8bb255a9ed1fae7
                 res.json({
                     'Message': 'User has succesfully added'
                 });
@@ -2314,88 +2230,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //End point to add mutliple users to a section and invite any new ones
     router.post('/sectionUsers/addMany/:sectionid', function (req, res) {
         //expects - users
-<<<<<<< HEAD
-        return sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
-            .then(function () {
-                Promise.mapSeries(req.body.users, (userDetails) => {
-                    return UserLogin.find({
-                        where: {
-                            Email: userDetails.email
-                        },
-                        attributes: ['UserID']
-                    }).then(function(response) {
-                        if (response == null || response.UserID == null) {
-                            return sequelize.transaction(function(t) {
-                                let role = null;
-                                switch(userDetails.role){
-                                case 'Instructor':
-                                    role = ROLES.TEACHER;
-                                    break;
-                                case 'Student':
-                                    role = ROLES.PARTICIPANT;
-                                    break;
-                                case 'Observer':
-                                    role = ROLES.GUEST;
-                                }
-                                return User.create({
-                                    FirstName: userDetails.firstName,
-                                    LastName: userDetails.lastName,
-                                    Instructor: userDetails.role === 'Instructor',
-                                    Role: role
-                                }, {
-                                    transaction: t
-                                }).then(async function(user) {
-                                    let temp_pass = await password.generate();
-                                    return UserContact.create({
-                                        UserID: user.UserID,
-                                        FirstName: userDetails.firstName,
-                                        LastName: userDetails.lastName,
-                                        Email: userDetails.email,
-                                        Phone: '(XXX) XXX-XXXX'
-                                    }, {
-                                        transaction: t
-                                    }).then(async function(userCon) {
-                                        let testHash = await password.hash(temp_pass);
-                                        return UserLogin.create({
-                                            UserID: user.UserID,
-                                            Email: userDetails.email,
-                                            Password: testHash
-                                        }, {
-                                            transaction: t
-                                        }).then(function(userLogin) {
-
-                                            return SectionUser.create({
-                                                SectionID: req.params.sectionid,
-                                                UserID: userLogin.UserID,
-                                                Active: userDetails.active,
-                                                Volunteer: userDetails.volunteer,
-                                                Role: userDetails.role
-                                            }, {
-                                                transaction: t
-                                            }).then(function(sectionUser) {
-                                                console.log('Creating user, inviting, and adding to section');
-                                                logger.log('info', 'post: sectionUsers/:sectionid, user invited to system', {
-                                                    req_body: userDetails
-                                                });
-
-                                                let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', {'pass': temp_pass, 'sectionid': req.params.sectionid});
-
-                                                return sectionUser;
-
-                                            });
-                                        });
-                                    });
-                                });
-                            })
-                                .catch((err) => {
-                                    console.log(err);
-                                    logger.log('err', '/sectionUsers/:Sectionid', 'user invitation failed', {
-                                        body: userDetails,
-                                        err: err
-=======
         return Promise.mapSeries(req.body.users, async function(userDetails) {
->>>>>>> 71704e9dfb1da00f92c07a20d8bb255a9ed1fae7
 
             let role = null;
             switch(userDetails.role){

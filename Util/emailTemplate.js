@@ -1,6 +1,6 @@
 import {SERVER_PORT} from '../backend_settings.js';
 
-const FrontendPort = parseInt(SERVER_PORT) + 1;
+const FRONT_SERVER_PORT = parseInt(SERVER_PORT) + 1;
 let SUPPORT_HTML = (`
     <p>For technical support for the Participatory Learning system, contact:<br>
     <a mailto:bieber@njit.edu>bieber@njit.edu</a><br>
