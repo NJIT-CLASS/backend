@@ -10,7 +10,7 @@ var settings = require('../backend_settings');
 var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
     host: settings.DB_HOST,
     dialect: 'mysql',
-    omitNull: true,
+    omitNull: false,
     pool: {
         max: 5,
         min: 0,
