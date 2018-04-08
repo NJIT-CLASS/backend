@@ -2229,8 +2229,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return sequelize.query('CALL addUserToSection (:FirstName,:LastName,:Instructor,:Admin,:Role,:Email,:Phone,:Password,:Pending,:SectionID,:Active,:Volunteer,:SectionRole )', 
                 {
                     replacements: { 
-                        FirstName :userDetails.firstName
-                        ,LastName : userDetails.lastName
+                        FirstName : (userDetails.firstName || '')
+                        ,LastName :( userDetails.lastName || '' )
                         ,Instructor : userDetails.role === 'Instructor' ? 1 : 0
                         ,Admin : 0
                         ,Role : role
@@ -2239,8 +2239,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         ,Password : hashedPassword
                         ,Pending :1
                         ,SectionID : req.params.sectionid
-                        ,Active : userDetails.active
-                        ,Volunteer :userDetails.volunteer
+                        ,Active : (userDetails.active || 1)
+                        ,Volunteer :(userDetails.volunteer || 1 )
                         ,SectionRole : userDetails.role
                     }
                 })
