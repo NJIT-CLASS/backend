@@ -459,7 +459,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         res.json({
             'Task' : task
-        })
+        });
         // email.sendNow(70, 'invite user', data);
         // email.sendNow(70, 'new task');
         // email.sendNow(70, 'late');

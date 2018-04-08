@@ -1,6 +1,5 @@
-import {SERVER_PORT} from '../backend_settings.js';
+import {SERVER_PORT, FRONT_SERVER_PORT} from '../backend_settings.js';
 
-const FRONT_SERVER_PORT = parseInt(SERVER_PORT) + 1;
 let SUPPORT_HTML = (`
     <p>For technical support for the Participatory Learning system, contact:<br>
     <a mailto:bieber@njit.edu>bieber@njit.edu</a><br>
@@ -8,7 +7,7 @@ let SUPPORT_HTML = (`
     The Participatory Learning Team</p>
 `);
 
-let INSTRUCTOR_STRING = (`If you have any questions, please contact your instructor.`)
+let INSTRUCTOR_STRING = ('If you have any questions, please contact your instructor.');
 
 let SUPPORT_STRING = (`For technical support for the Participatory Learning system, contact: bieber@njit.edu\n
 Thanks,\n\nThe Participatory Learning Team`);
@@ -57,7 +56,7 @@ exports.INVITE_USER = function(data) {
             <p>Temporary Password: ${data.pass} </p>
             <br><br>${SUPPORT_HTML}
             `)
-    }
+    };
 };
 
 exports.INVITE_USER_NEW_TO_SYSTEM = function(data) {
