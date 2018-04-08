@@ -681,7 +681,7 @@ class TaskTrigger {
                     }
                 } else if (field[val].assessment_type === 'evaluation') {
                     let label_length = field[val].list_of_labels.length;
-                    final_grade += (field[val].list_of_labels.indexOf(data[val][0])/label_length)*(distribution/100);
+                    final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100);
                 }
             }
         });
