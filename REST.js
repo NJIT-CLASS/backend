@@ -337,7 +337,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 user.Pending = true;
                 user.Timeout = null;
                 user.Attempts = 0;
-                user.Timeout = null;
                 console.log('found user', user);
                 user.save().then((result) => {
                     console.log("temp pass: ", result);
@@ -432,7 +431,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         });
                                 }).then(function(userLogin) {
                                     let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    email.sendNow(user.UserID, 'initial_user');
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -471,15 +470,36 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     grades: grades
         // });
 
-        let email = new Email();
-        let data = {
-            pass: '1234567'
-        };
-        email.sendNow(70, 'create user');
-        email.sendNow(70, 'invite user', data);
-        email.sendNow(70, 'new task');
-        email.sendNow(70, 'late');
-        email.sendNow(70, 'reset password', data);
+        // let email = new Email();
+        // let data = {
+        //     pass: '1234567'
+        // };
+        // email.sendNow(70, 'initial_user');
+        // email.sendNow(73, 'initial_user');
+
+        let task = await TaskInstance.find({
+            where:{
+                TaskInstanceID: 1
+            },
+            attributes: ['AssignmentInstanceID'],
+            include: [{
+                model: AssignmentInstance,
+                include: [{
+                    model: Section,
+                    include:[{
+                        model:Course
+                    }]
+                }]
+            }]
+        });
+
+        res.json({
+            'Task' : task
+        })
+        // email.sendNow(70, 'invite user', data);
+        // email.sendNow(70, 'new task');
+        // email.sendNow(70, 'late');
+        // email.sendNow(70, 'reset password', data);
 
         //grade.addSimpleGrade(1);
         // grade.addTaskGrade(1, 99, 100);
@@ -2310,7 +2330,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                 });
 
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', {'pass': temp_pass});
+                                                email.sendNow(user.UserID, 'invite user', {'pass': temp_pass, 'sectionid': req.params.sectionid});
 
                                                 return sectionUser;
 
@@ -2493,7 +2513,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                     });
                                             }).then(function (userLogin) {
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', {'pass':temp_pass});
+                                                email.sendNow(user.UserID, 'invite user new to system', {'pass':temp_pass, 'sectionid': req.params.sectionid});
                                                 return SectionUser.create({
                                                     SectionID: req.params.sectionid,
                                                     UserID: userLogin.UserID,

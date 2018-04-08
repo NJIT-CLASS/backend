@@ -894,7 +894,7 @@ class Make {
                         TaskInstanceID: task
                     }
                 });
-                email.sendNow(ti.UserID, 'new task');
+                email.sendNow(ti.UserID, 'new_task', {'ti_id': task});
             });
         });
 

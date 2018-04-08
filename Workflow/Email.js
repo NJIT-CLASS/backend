@@ -3,7 +3,7 @@ import {
     MASTER_PASSWORD,
     EMAIL_SERVER_STATUS
 } from '../Util/constant.js';
-import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER} from '../Util/emailTemplate.js'
+import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER} from '../Util/emailTemplate.js'
 import {SERVER_PORT} from '../backend_settings.js'
 var models = require('../Model');
 var Promise = require('bluebird');
@@ -151,145 +151,181 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
-                //send = 'qxl2@njit.edu';
+                send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
-                case 'create user':
+                    case 'initial_user':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: CREATE_USER.subject,
-                        text: CREATE_USER.text,
-                        html: CREATE_USER.html
+                        subject: INITIAL_USER.subject,
+                        text: INITIAL_USER.text,
+                        html: INITIAL_USER.html
                     });
                     break;
-                case 'invite user':
-                    console.log('inviting ' + send);
-                    let template = await INVITE_USER(data);
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: template.subject,
-                        text: template.html,
-                        html: template.html
-                    });
-                    break;
-                case 'new task':
-                    console.log('notifying ' + send);
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: NEW_TASK.subject,
-                        text: NEW_TASK.text,
-                        html: NEW_TASK.html
-                    });
-                    break;
+                    // case 'create user':
+                    //     await x.send({
+                    //         from: email,
+                    //         replyTo: email,
+                    //         to: send,
+                    //         subject: CREATE_USER.subject,
+                    //         text: CREATE_USER.text,
+                    //         html: CREATE_USER.html
+                    //     });
+                    //     break;
+                    case 'invite user':
+                        console.log('inviting ' + send);
+                        let template = await INVITE_USER(data);
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: template.subject,
+                            text: template.html,
+                            html: template.html
+                        });
+                        break;
+                    case 'new_task':
+                        console.log('notifying ' + send);
+                        // let task = await TaskInstance.find({
+                        //     where:{
+                        //         TaskInstanceID: data.ti_id
+                        //     },
+                        //     attributes: ['AssignmentInstanceID'],
+                        //     include: [{
+                        //         model: AssignmentInstance,
+                        //         include: [{
+                        //             model: Section,
+                        //             include:[{
+                        //                 model:Course
+                        //             }]
+                        //         }]
+                        //     }]
+                        // });
+                        // let template = await NEW_TASK(data);
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: NEW_TASK.subject,
+                            text: NEW_TASK.text,
+                            html: NEW_TASK.html
+                        });
+                        break;
 
-                case 'late':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: LATE.subject,
-                        text: LATE.text,
-                        html: LATE.html
-                    });
-                    break;
-                case 'remove_reallocated':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: 'You have removed from a task - PLA',
-                        text: 'You have been removed from a task, a new user has been reallcated to replace your duty',
-                        html: ''
-                    });
-                    break;
-                case 'new_reallocated':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: 'Reallocated to a new task - PLA',
-                        text: 'Hi, you have been reallocated to a new task, please complete as soon as possible',
-                        html: ''
-                    });
-                    break;
+                    case 'late':
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: LATE.subject,
+                            text: LATE.text,
+                            html: LATE.html
+                        });
+                        break;
+                    case 'late':
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: REVISE.subject,
+                            text: REVISE.text,
+                            html: REVISE.html
+                        });
+                        break;
+                    case 'remove_reallocated':
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: 'You have removed from a task - PLA',
+                            text: 'You have been removed from a task, a new user has been reallcated to replace your duty',
+                            html: ''
+                        });
+                        break;
+                    case 'new_reallocated':
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: 'Reallocated to a new task - PLA',
+                            text: 'Hi, you have been reallocated to a new task, please complete as soon as possible',
+                            html: ''
+                        });
+                        break;
 
-                case 'reset password':
-                    console.log('resetting password')
-                    let template2 = await RESET_PASS(data);
+                    case 'reset password':
+                        console.log('resetting password')
+                        let template2 = await RESET_PASS(data);
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: template2.subject,
+                            text: template2.text,
+                            html: template2.html
+                        });
+                        break;
+                    case 'new password':
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: NEW_PASSWORD.subject,
+                            text: NEW_PASSWORD.text,
+                            html: NEW_PASSWORD.html
+
+                        });
+                        break; 
+                    case 'new_reply':
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: NEW_REPLY.subject,
+                            text: NEW_REPLY.text,
+                            html: NEW_REPLY.html
+
+                        });
+                        break;    
+                    case 'new_volunteer':
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: NEW_VOLUNTEER.subject,
+                            text: NEW_VOLUNTEER.text,
+                            html: NEW_VOLUNTEER.html
+
+                        });
+                        break;  
+                    case 'new_flag':
+                        await x.send({
+                            from: email,
+                            replyTo: email,
+                            to: send,
+                            subject: NEW_FLAG.subject,
+                            text: NEW_FLAG.text,
+                            html: NEW_FLAG.html
+
+                        });
+                        break;
+                    case 'custom':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: template2.subject,
-                        text: template2.text,
-                        html: template2.html
-                    });
-                    break;
-                case 'new password':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: NEW_PASSWORD.subject,
-                        text: NEW_PASSWORD.text,
-                        html: NEW_PASSWORD.html
+                        subject: data.subject,
+                        text: data.text,
+                        html: data.html
 
                     });
-                    break; 
-                case 'new_reply':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: NEW_REPLY.subject,
-                        text: NEW_REPLY.text,
-                        html: NEW_REPLY.html
-
-                    });
-                    break;    
-                case 'new_volunteer':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: NEW_VOLUNTEER.subject,
-                        text: NEW_VOLUNTEER.text,
-                        html: NEW_VOLUNTEER.html
-
-                    });
-                    break;  
-                case 'new_flag':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: NEW_FLAG.subject,
-                        text: NEW_FLAG.text,
-                        html: NEW_FLAG.html
-
-                    });
-                    break;
-                case 'custom':
-                await x.send({
-                    from: email,
-                    replyTo: email,
-                    to: send,
-                    subject: data.subject,
-                    text: data.text,
-                    html: data.html
-
-                });
-                default:
-                    logger.log('error', '/Workflow/Email/sendNow: email option not found!');
-                    return null;
-                }
+                    default:
+                        logger.log('error', '/Workflow/Email/sendNow: email option not found!');
+                        return null;
+                    }
             });
 
         }
