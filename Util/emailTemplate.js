@@ -1,4 +1,6 @@
-import {SERVER_PORT} from '../backend_settings.js'
+import {SERVER_PORT} from '../backend_settings.js';
+
+const FrontendPort = parseInt(SERVER_PORT) + 1;
 let SUPPORT_HTML = (`
     <p>For technical support for the Participatory Learning system, contact: </p>
     <p>TECHNICAL_SUPPORT_EMAIL (for that organization)</p><br>
@@ -14,11 +16,11 @@ exports.CREATE_USER = {
     text: (`
     Hi,\n\n 
     You have created a new account on PL website. To login, please visit the following link:\n
-    http://pla.njit.edu:${SERVER_PORT} \n\n${SUPPORT_STRING}`),
+    https://pla.njit.edu:${FrontendPort} \n\n${SUPPORT_STRING}`),
     html:(`
         <p>Hi,</p><br>
         <p>You have created a new account on PL website. To login, please visit the following link: </p>
-        <br><div>http://pla.njit.edu:${SERVER_PORT} <div><br><br>${SUPPORT_HTML}
+        <br><div>https://pla.njit.edu:${FrontendPort} <div><br><br>${SUPPORT_HTML}
         `)
 };
 
@@ -28,32 +30,32 @@ exports.INVITE_USER = function(data) {
         text: (`
             Hi,\n
             You are invited to create a new account on PL. Please visit the following link with your temporary password to finish creating your account. \n 
-            http://pla.njit.edu:${SERVER_PORT} \n
+            https://pla.njit.edu:${FrontendPort} \n
             Temporary Password: ${data.pass} \n\n${SUPPORT_STRING}`),
         html:(`
             <p>Hi,</p><br>
             <p>You are invited to create an account on PLA. Please log in with your temporary password to finish creating your account.</p><br/>
-            <div>http://pla.njit.edu:${SERVER_PORT} <div>
+            <div>https://pla.njit.edu:${FrontendPort} <div>
             <br>
             <p>Temporary Password: ${data.pass} </p>
             <br><br>${SUPPORT_HTML}
             `)
-    }
+    };
 };
 
 exports.NEW_TASK = {
     subject: 'New Task - Participatory Learning',
     text:(`
         Hi,\n
-        A new task has started. Please visit http://pla.njit.edu:${SERVER_PORT} to complete the task.\n\n
+        A new task has started. Please visit https://pla.njit.edu:${FrontendPort} to complete the task.\n\n
         ${SUPPORT_STRING}
     `),
     html:(`
         <p>Hi,</p><br>
-        <p>A new task has started.<div>Please visit http://pla.njit.edu:${SERVER_PORT} to complete the task</div></p>
+        <p>A new task has started.<div>Please visit https://pla.njit.edu:${FrontendPort} to complete the task</div></p>
         <br><br>${SUPPORT_HTML}
     `)
-}
+};
 
 exports.NEW_PASSWORD = {
     subject: 'Password Updated - Participatory Learning',
@@ -67,21 +69,21 @@ exports.NEW_PASSWORD = {
         <p>Your password has been updated.</div></p>
         <br><br>${SUPPORT_HTML}
     `)
-}
+};
 
 exports.LATE = {
     subject: 'Task Late - Participatory Learning',
     text:(`
         Hi,\n
-        You have a task due. Please visit http://pla.njit.edu:${SERVER_PORT} to complete the task.\n\n
+        You have a task due. Please visit https://pla.njit.edu:${FrontendPort} to complete the task.\n\n
         ${SUPPORT_STRING}
     `),
     html:(`
         <p>Hi,</p><br>
-        <p>You have a task due.<div>Please visit http://pla.njit.edu:${SERVER_PORT} to complete the task</div></p>
+        <p>You have a task due.<div>Please visit https://pla.njit.edu:${FrontendPort} to complete the task</div></p>
         <br><br>${SUPPORT_HTML}
     `)
-}
+};
 
 exports.RESET_PASS = function(data){
     return {
@@ -89,19 +91,19 @@ exports.RESET_PASS = function(data){
         text:(`
             Hi,\n
             Your password has been reset. Please visit the following link and use the temporary password to complete the reset \n
-            http://pla.njit.edu:${SERVER_PORT} \n 
+            https://pla.njit.edu:${FrontendPort} \n 
             Temporary Password: ${data.pass} \n\n
             ${SUPPORT_STRING}
         `),
         html:(`
             <p>Hi,<p><br>
             <p>You have requested a password reset. Please visit the following link and use the temporary password to complete the reset </p><br>
-            <p>http://pla.njit.edu:${SERVER_PORT}</p><br>
+            <p>https://pla.njit.edu:${FrontendPort}</p><br>
             <p>Temporary Password: ${data.pass}</p>
             <br><br>${SUPPORT_HTML}
         `)
-    }
-}
+    };
+};
 
 exports.NEW_REPLY = function(data){
     return {
@@ -116,8 +118,8 @@ exports.NEW_REPLY = function(data){
             <p>Someone has replied to your comment. You can view the reply here: ${data.link} </p><br>
             <br><br>${SUPPORT_HTML}
         `)
-    }
-}
+    };
+};
 
 exports.NEW_VOLUNTEER = function(data){
     return {
@@ -132,8 +134,8 @@ exports.NEW_VOLUNTEER = function(data){
             <p>A student has made a volunteer request. You can view the request here: ${data.link} </p><br>
             <br><br>${SUPPORT_HTML}
         `)
-    }
-}
+    };
+};
 
 exports.NEW_FLAG = function(data){
     return {
@@ -148,6 +150,6 @@ exports.NEW_FLAG = function(data){
             <p>Someone has flagged a comment. You can view the flag here: ${data.link} </p><br>
             <br><br>${SUPPORT_HTML}
         `)
-    }
-}
+    };
+};
 
