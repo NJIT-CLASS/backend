@@ -2266,8 +2266,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }
                 })
                 .then(function(queryResult){
-                    let email = new Email();
-                    email.sendNow(queryResult[0].UserID, 'invite user', {'pass': temp_pass});
+                    if(queryResult[0].SendEmail == 1){
+                        let email = new Email();
+                        email.sendNow(queryResult[0].UserID, 'invite user', {'pass': temp_pass});
+                    }
+
                 })
                 .catch(function (err) {
                     console.error(err);
