@@ -1,6 +1,6 @@
 import {
     Assignment,
-    //AssignmentGrade,
+    AssignmentGrade,
     AssignmentInstance,
     //AssignmentInstance_Archive,
 	ArchivedAssignment,
@@ -997,7 +997,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 return { File: file, Error: err };
             });
         }).then(results => {
-            console.log(results);
+            //console.log(results);
             let newFileIDs = results.map(instanceInfo => instanceInfo.FileID);
             switch (req.params.type) {
             case 'task':
@@ -2215,7 +2215,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     });
                 })
                     .then((results) => {
-                        console.log(results);
+                        //console.log(results);
                         return sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                             .then(() => {
                                 return res.status(200).end();
@@ -6582,7 +6582,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 		return sequelize.query("DROP TABLE IF EXISTS `archivedassignmentinstance`;")
 			.spread((results, metadata) => {
 				// Results will be an empty array and metadata will contain the number of affected rows.
-				console.log(results);
 			}).then(sequelize.query(              //CREATE new archivedassignment instance table
 				"   CREATE TABLE `archivedassignmentinstance` (\n" +
 				"  `AssignmentInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6603,12 +6602,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `archivedworkflowinstance`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `archivedworkflowinstance` (\n" +
 				"  `WorkflowInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6628,12 +6627,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=256 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `archivedtaskinstance`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `archivedtaskinstance` (\n" +
 				"  `TaskInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6669,12 +6668,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=2066 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `removedassignmentinstance`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query(              //CREATE new removedassignment instance table
 				"   CREATE TABLE `removedassignmentinstance` (\n" +
@@ -6696,12 +6695,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `removedworkflowinstance`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `removedworkflowinstance` (\n" +
 				"  `WorkflowInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6721,12 +6720,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=256 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `removedtaskinstance`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `removedtaskinstance` (\n" +
 				"  `TaskInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6762,12 +6761,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=2066 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `archivedtaskgrade`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
             .then(sequelize.query("CREATE TABLE `archivedtaskgrade` (\n" +
 	            "  `TaskGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6792,12 +6791,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 	            ") ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=latin1;")
 	            .spread((results, metadata) => {
 		            // Results will be an empty array and metadata will contain the number of affected rows.
-		            console.log(results);
+		            //console.log(results);
 	            }))
 			.then(sequelize.query("DROP TABLE IF EXISTS `archivedtasksimplegrade`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
             .then(sequelize.query("CREATE TABLE `archivedtasksimplegrade` (\n" +
 	            "  `TaskSimpleGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6819,12 +6818,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 	            ") ENGINE=InnoDB AUTO_INCREMENT=225 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `archivedworkflowgrade`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `archivedworkflowgrade` (\n" +
 				"  `WorkflowGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6845,12 +6844,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `archivedassignment`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `archivedassignment` (\n" +
 				"  `AssignmentID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6874,12 +6873,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 			}))
             .then(sequelize.query("DROP TABLE IF EXISTS `archivedtaskactivity`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `archivedtaskactivity` (\n" +
 				"  `TaskActivityID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6935,12 +6934,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=141 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `archivedworkflowactivity`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
             .then(sequelize.query("CREATE TABLE `archivedworkflowactivity` (\n" +
 	            "  `WorkflowActivityID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6963,11 +6962,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 	            ") ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				})).then(sequelize.query("DROP TABLE IF EXISTS `removedtaskgrade`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `removedtaskgrade` (\n" +
 				"  `TaskGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -6992,12 +6991,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `removedtasksimplegrade`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `removedtasksimplegrade` (\n" +
 				"  `TaskSimpleGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -7019,12 +7018,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=225 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `removedworkflowgrade`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `removedworkflowgrade` (\n" +
 				"  `WorkflowGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -7045,12 +7044,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `removedassignment`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `removedassignment` (\n" +
 				"  `AssignmentID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -7074,12 +7073,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `removedtaskactivity`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `removedtaskactivity` (\n" +
 				"  `TaskActivityID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -7135,12 +7134,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=141 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("DROP TABLE IF EXISTS `removedworkflowactivity`;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
 			.then(sequelize.query("CREATE TABLE `removedworkflowactivity` (\n" +
 				"  `WorkflowActivityID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
@@ -7163,7 +7162,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				") ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=latin1;")
 				.spread((results, metadata) => {
 					// Results will be an empty array and metadata will contain the number of affected rows.
-					console.log(results);
+					//console.log(results);
 				}))
             .then(res.status(200).end());
 	});
@@ -7248,11 +7247,158 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //             res.status(201).end();
         //         });
     });
+
     function archiveinstance(AssignInsID){
 	    return sequelize.transaction(function(t) {
-		    var options = { raw: true, transaction: t }
+		    var options = { raw: true, transaction: t };
+		    var promises = [];
 		    return sequelize
 			    .query('SET FOREIGN_KEY_CHECKS = 0', options)
+                .then(function() {
+                    return AssignmentGrade.findAll({
+                        where: {
+	                        AssignmentInstanceID: AssignInsID
+				        },
+				        attributes: ['AssignmentGradeID','AssignmentInstanceID','SectionUserID','Grade','Comments']
+                    }).then(function(rows){
+	                    var arrayLength = rows.length;
+	                    for (var x = 0; x < arrayLength; x++) {
+	                        ArchivedAssignmentGrade.create({
+		                        AssignmentGradeID: rows[x].AssignmentGradeID,
+		                        AssignmentInstanceID: rows[x].AssignmentInstanceID,
+		                        SectionUserID: rows[x].SectionUserID,
+		                        Grade: rows[x].Grade,
+		                        Comments: rows[x].Comments
+                            },{
+		                        transaction: t
+	                        })
+                        }
+                    })
+                })
+			    .then(function() {
+				    return AssignmentGrade.destroy({
+						    where: {
+							    AssignmentInstanceID: AssignInsID
+						    },
+						    transaction: t
+					    })
+					    .then(function(rows){
+						    console.log("Delete AssignmentGrade Success and saved to other back up");
+					    })
+			    })
+			    .then(function() {
+				    return WorkflowGrade.findAll({
+					    where: {
+						    AssignmentInstanceID: AssignInsID
+					    },
+					    attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
+				    }).then(function(rows){
+					    var arrayLength = rows.length;
+					    for (var x = 0; x < arrayLength; x++) {
+						    ArchivedWorkflowGrade.create({
+							    WorkflowGradeID: rows[x].WorkflowGradeID,
+							    WorkflowActivityID: rows[x].WorkflowActivityID,
+							    SectionUserID: rows[x].SectionUserID,
+							    AssignmentInstanceID: rows[x].Grade,
+							    Grade: rows[x].Grade,
+							    Comments: rows[x].Comments
+						    },{
+							    transaction: t
+						    })
+					    }
+				    })
+			    })
+			    .then(function() {
+				    return WorkflowGrade.destroy({
+						    where: {
+							    AssignmentInstanceID: AssignInsID
+						    },
+						    transaction: t
+					    })
+					    .then(function(rows){
+						    console.log("Delete WorkflowGrade Success and saved to other back up");
+					    })
+			    })
+			    .then(function() {
+				    return TaskGrade.findAll({
+					    where: {
+						    AssignmentInstanceID: AssignInsID
+					    },
+					    attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
+				    }).then(function(rows){
+					    var arrayLength = rows.length;
+					    for (var x = 0; x < arrayLength; x++) {
+						    ArchivedTaskGrade.create({
+							    TaskGradeID: rows[x].TaskGradeID,
+							    TaskInstanceID: rows[x].TaskInstanceID,
+							    SectionUserID: rows[x].SectionUserID,
+							    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+							    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+							    WorkflowActivityID: rows[x].WorkflowActivityID,
+							    Grade: rows[x].Grade,
+							    IsExtraCredit: rows[x].IsExtraCredit,
+							    MaxGrade: rows[x].MaxGrade,
+							    Comments: rows[x].Comments,
+						    },{
+							    transaction: t
+						    })
+					    }
+				    })
+			    })
+			    .then(function() {
+				    return TaskGrade.destroy({
+						    where: {
+							    AssignmentInstanceID: AssignInsID
+						    },
+						    transaction: t
+					    })
+					    .then(function(rows) {
+						    console.log("Delete TaskGrade Success and saved to other back up");
+					    })
+			    })
+			    .then(function() {
+				    return TaskInstance.findAll({
+					    where: {
+						    AssignmentInstanceID: AssignInsID
+					    },
+					    attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+				    }).then(async function (assigninstancerows) {
+					    var arrayLength = assigninstancerows.length;
+					    for (var x = 0; x < arrayLength; x++) {
+						    await TaskSimpleGrade.findAll({
+							    where: {
+								    TaskInstanceID: assigninstancerows[x].TaskInstanceID
+							    },
+							    attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
+						    }).then(function(rows){
+							    var arrayLength = rows.length;
+							    for (var x = 0; x < arrayLength; x++) {
+								    ArchivedTaskSimpleGrade.create({
+									    TaskSimpleGradeID: rows[x].TaskSimpleGradeID,
+									    TaskInstanceID: rows[x].TaskInstanceID,
+									    SectionUserID: rows[x].SectionUserID,
+									    WorkflowActivityID: rows[x].WorkflowActivityID,
+									    Grade: rows[x].Grade,
+									    IsExtraCredit: rows[x].IsExtraCredit,
+									    Comments: rows[x].Comments,
+								    },{
+									    transaction: t
+								    })
+							    }
+						    }).then(function(){
+							    return TaskSimpleGrade.destroy({
+									    where: {
+										    TaskInstanceID: assigninstancerows[x].TaskInstanceID
+									    },
+									    transaction: t
+								    })
+								    .then(function(rows) {
+									    console.log("Delete TaskSimpleGRade Success and saved to other back up");
+								    })
+                            })
+					    }
+				    })
+			    })
 			    .then(function() {
 				    return TaskInstance.findAll({
 					    where: {
@@ -8163,6 +8309,151 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 			return sequelize
 				.query('SET FOREIGN_KEY_CHECKS = 0', options)
 				.then(function() {
+					return ArchivedAssignmentGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['AssignmentGradeID','AssignmentInstanceID','SectionUserID','Grade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							AssignmentGrade.create({
+								AssignmentGradeID: rows[x].AssignmentGradeID,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID,
+								SectionUserID: rows[x].SectionUserID,
+								Grade: rows[x].Grade,
+								Comments: rows[x].Comments
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return ArchivedAssignmentGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete AssignmentGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return ArchivedWorkflowGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							WorkflowGrade.create({
+								WorkflowGradeID: rows[x].WorkflowGradeID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								SectionUserID: rows[x].SectionUserID,
+								AssignmentInstanceID: rows[x].Grade,
+								Grade: rows[x].Grade,
+								Comments: rows[x].Comments
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return ArchivedWorkflowGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete WorkflowGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return ArchivedTaskGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							TaskGrade.create({
+								TaskGradeID: rows[x].TaskGradeID,
+								TaskInstanceID: rows[x].TaskInstanceID,
+								SectionUserID: rows[x].SectionUserID,
+								WorkflowInstanceID: rows[x].WorkflowInstanceID,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								Grade: rows[x].Grade,
+								IsExtraCredit: rows[x].IsExtraCredit,
+								MaxGrade: rows[x].MaxGrade,
+								Comments: rows[x].Comments,
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return ArchivedTaskGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows) {
+							console.log("Delete TaskGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return ArchivedTaskInstance.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+					}).then(async function (assigninstancerows) {
+						var arrayLength = assigninstancerows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							await ArchivedTaskSimpleGrade.findAll({
+								where: {
+									TaskInstanceID: assigninstancerows[x].TaskInstanceID
+								},
+								attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
+							}).then(function(rows){
+								var arrayLength = rows.length;
+								for (var x = 0; x < arrayLength; x++) {
+									TaskSimpleGrade.create({
+										TaskSimpleGradeID: rows[x].TaskSimpleGradeID,
+										TaskInstanceID: rows[x].TaskInstanceID,
+										SectionUserID: rows[x].SectionUserID,
+										WorkflowActivityID: rows[x].WorkflowActivityID,
+										Grade: rows[x].Grade,
+										IsExtraCredit: rows[x].IsExtraCredit,
+										Comments: rows[x].Comments,
+									},{
+										transaction: t
+									})
+								}
+							}).then(function(){
+								return ArchivedTaskSimpleGrade.destroy({
+										where: {
+											TaskInstanceID: assigninstancerows[x].TaskInstanceID
+										},
+										transaction: t
+									})
+									.then(function(rows) {
+										console.log("Delete TaskSimpleGRade Success and saved to other back up");
+									})
+							})
+						}
+					})
+				})
+				.then(function() {
 					return ArchivedTaskInstance.findAll({
 						where: {
 							AssignmentInstanceID: AssignInstanceID
@@ -8291,6 +8582,151 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 			return sequelize
 				.query('SET FOREIGN_KEY_CHECKS = 0', options)
 				.then(function() {
+					return RemovedAssignmentGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['AssignmentGradeID','AssignmentInstanceID','SectionUserID','Grade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							AssignmentGrade.create({
+								AssignmentGradeID: rows[x].AssignmentGradeID,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID,
+								SectionUserID: rows[x].SectionUserID,
+								Grade: rows[x].Grade,
+								Comments: rows[x].Comments
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return RemovedAssignmentGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete AssignmentGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return RemovedWorkflowGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							WorkflowGrade.create({
+								WorkflowGradeID: rows[x].WorkflowGradeID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								SectionUserID: rows[x].SectionUserID,
+								AssignmentInstanceID: rows[x].Grade,
+								Grade: rows[x].Grade,
+								Comments: rows[x].Comments
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return RemovedWorkflowGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete WorkflowGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return RemovedTaskGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							TaskGrade.create({
+								TaskGradeID: rows[x].TaskGradeID,
+								TaskInstanceID: rows[x].TaskInstanceID,
+								SectionUserID: rows[x].SectionUserID,
+								WorkflowInstanceID: rows[x].WorkflowInstanceID,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								Grade: rows[x].Grade,
+								IsExtraCredit: rows[x].IsExtraCredit,
+								MaxGrade: rows[x].MaxGrade,
+								Comments: rows[x].Comments,
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return RemovedTaskGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows) {
+							console.log("Delete TaskGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return RemovedTaskInstance.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+					}).then(async function (assigninstancerows) {
+						var arrayLength = assigninstancerows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							await RemovedTaskSimpleGrade.findAll({
+								where: {
+									TaskInstanceID: assigninstancerows[x].TaskInstanceID
+								},
+								attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
+							}).then(function(rows){
+								var arrayLength = rows.length;
+								for (var x = 0; x < arrayLength; x++) {
+									TaskSimpleGrade.create({
+										TaskSimpleGradeID: rows[x].TaskSimpleGradeID,
+										TaskInstanceID: rows[x].TaskInstanceID,
+										SectionUserID: rows[x].SectionUserID,
+										WorkflowActivityID: rows[x].WorkflowActivityID,
+										Grade: rows[x].Grade,
+										IsExtraCredit: rows[x].IsExtraCredit,
+										Comments: rows[x].Comments,
+									},{
+										transaction: t
+									})
+								}
+							}).then(function(){
+								return RemovedTaskSimpleGrade.destroy({
+										where: {
+											TaskInstanceID: assigninstancerows[x].TaskInstanceID
+										},
+										transaction: t
+									})
+									.then(function(rows) {
+										console.log("Delete TaskSimpleGRade Success and saved to other back up");
+									})
+							})
+						}
+					})
+				})
+				.then(function() {
 					return RemovedTaskInstance.findAll({
 						where: {
 							AssignmentInstanceID: AssignInstanceID
@@ -8418,6 +8854,151 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 			var options = { raw: true, transaction: t }
 			return sequelize
 				.query('SET FOREIGN_KEY_CHECKS = 0', options)
+				.then(function() {
+					return AssignmentGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['AssignmentGradeID','AssignmentInstanceID','SectionUserID','Grade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							RemovedAssignmentGrade.create({
+								AssignmentGradeID: rows[x].AssignmentGradeID,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID,
+								SectionUserID: rows[x].SectionUserID,
+								Grade: rows[x].Grade,
+								Comments: rows[x].Comments
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return AssignmentGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete AssignmentGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return WorkflowGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							RemovedWorkflowGrade.create({
+								WorkflowGradeID: rows[x].WorkflowGradeID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								SectionUserID: rows[x].SectionUserID,
+								AssignmentInstanceID: rows[x].Grade,
+								Grade: rows[x].Grade,
+								Comments: rows[x].Comments
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return WorkflowGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows){
+							console.log("Delete WorkflowGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return TaskGrade.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
+					}).then(function(rows){
+						var arrayLength = rows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							RemovedTaskGrade.create({
+								TaskGradeID: rows[x].TaskGradeID,
+								TaskInstanceID: rows[x].TaskInstanceID,
+								SectionUserID: rows[x].SectionUserID,
+								WorkflowInstanceID: rows[x].WorkflowInstanceID,
+								AssignmentInstanceID: rows[x].AssignmentInstanceID,
+								WorkflowActivityID: rows[x].WorkflowActivityID,
+								Grade: rows[x].Grade,
+								IsExtraCredit: rows[x].IsExtraCredit,
+								MaxGrade: rows[x].MaxGrade,
+								Comments: rows[x].Comments,
+							},{
+								transaction: t
+							})
+						}
+					})
+				})
+				.then(function() {
+					return TaskGrade.destroy({
+							where: {
+								AssignmentInstanceID: AssignInsID
+							},
+							transaction: t
+						})
+						.then(function(rows) {
+							console.log("Delete TaskGrade Success and saved to other back up");
+						})
+				})
+				.then(function() {
+					return TaskInstance.findAll({
+						where: {
+							AssignmentInstanceID: AssignInsID
+						},
+						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+					}).then(async function (assigninstancerows) {
+						var arrayLength = assigninstancerows.length;
+						for (var x = 0; x < arrayLength; x++) {
+							await TaskSimpleGrade.findAll({
+								where: {
+									TaskInstanceID: assigninstancerows[x].TaskInstanceID
+								},
+								attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
+							}).then(function(rows){
+								var arrayLength = rows.length;
+								for (var x = 0; x < arrayLength; x++) {
+									RemovedTaskSimpleGrade.create({
+										TaskSimpleGradeID: rows[x].TaskSimpleGradeID,
+										TaskInstanceID: rows[x].TaskInstanceID,
+										SectionUserID: rows[x].SectionUserID,
+										WorkflowActivityID: rows[x].WorkflowActivityID,
+										Grade: rows[x].Grade,
+										IsExtraCredit: rows[x].IsExtraCredit,
+										Comments: rows[x].Comments,
+									},{
+										transaction: t
+									})
+								}
+							}).then(function(){
+								return TaskSimpleGrade.destroy({
+										where: {
+											TaskInstanceID: assigninstancerows[x].TaskInstanceID
+										},
+										transaction: t
+									})
+									.then(function(rows) {
+										console.log("Delete TaskSimpleGRade Success and saved to other back up");
+									})
+							})
+						}
+					})
+				})
 				.then(function() {
 					return TaskInstance.findAll({
 						where: {
