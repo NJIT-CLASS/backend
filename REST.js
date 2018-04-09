@@ -1,4 +1,5 @@
 import {
+    APIStatistics,
     Assignment,
     AssignmentGrade,
     AssignmentInstance,
@@ -59,6 +60,7 @@ import {
 } from './Util/constant';
 import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE} from './backend_settings';
 
+var url = require('url');
 var dateFormat = require('dateformat');
 var Guid = require('guid');
 var Promise = require('bluebird');
@@ -158,6 +160,55 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //     //});
     // });
 
+
+    //API Logging
+
+    router.use(async function(req,res,next){
+        var path = url.parse(req.url).pathname.replace(/[0-9]*/g, '' );
+        
+        
+        let insertAPIResult = await sequelize.query(" INSERT INTO apistatistics (StartTime, Route) VALUES(NOW(6), :route) ",
+        {
+            replacements: {
+                route: path
+            }
+        })
+
+        req.statID = insertAPIResult[0].insertId;
+
+        next();
+    });
+
+    router.use(function(req, res,next){
+        //overide json and end functions in res;
+        let oldJson = res.json;
+        let oldEnd = res.end;
+        let statID = req.statID;
+        res.json = function(){
+            sequelize.query(" UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID",
+            {
+                replacements: {
+                    statID: statID
+                }
+            });
+
+            oldJson.apply(this, arguments);
+            
+        };
+
+        res.end = function(){
+            sequelize.query(" UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID",
+            {
+                replacements: {
+                    statID: statID
+                }
+            });
+
+            oldEnd.apply(this, arguments);
+            
+        };
+        next();
+    })
 
     ///////////////                 System Level APIs                   ///////////////////////////
 
@@ -8299,5 +8350,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    
 };
 module.exports = REST_ROUTER;
