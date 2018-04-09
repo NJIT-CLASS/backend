@@ -718,7 +718,8 @@ class Make {
                 }
             }
         });
-
+        
+        console.log('alloc users', alloc_users)
         return [alloc_users, index];
     }
 
