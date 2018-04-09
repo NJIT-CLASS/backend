@@ -315,12 +315,12 @@ class Manager {
 
     async whatIfLate(task, users) {
         var x = this;
-        var status = JSON.parse(task.Status);;
+        var status = JSON.parse(task.Status);
         switch (task.TaskActivity.WhatIfLate) {
             case '"keep_same_participant"':
                 status[3] = 'late';
                 await x.updateStatus(task, status);
-                email.sendNow(task.UserID, 'late');
+                email.sendNow(task.UserID, 'late', {'ti_id': task.TaskInstanceID});
                 break;
             case '"allocate_new_participant_from_contigency_pool"':
                 status[5] = 'reallocated_no_extra_credit';

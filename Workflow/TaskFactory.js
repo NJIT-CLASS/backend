@@ -79,7 +79,7 @@ var reallocation = consts.REALLOCATION_STATUS;
 class TaskFactory {
 
     getUserFromSection(sectionid) {
-        console.log('Retrieving all users from section: ', sectionid, '...');
+        //console.log('Retrieving all users from section: ', sectionid, '...');
         var users = [];
 
         Section.findAll({

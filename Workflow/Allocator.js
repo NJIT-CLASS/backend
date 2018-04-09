@@ -1702,9 +1702,19 @@ class Allocator {
     // Get new due date for task created 3-3-18 mss86
     //@ ti: taskinstance
     async get_new_date(ti, change_date_option){
-        var extension = 1440; // TODO: change this default 1 day to 1/2 of orginal
+        var ta = await TaskActivity.findOne({ // get the orginal duration
+            where: {
+                TaskActivityID: ti.TaskActivityID
+            },
+            attributes: ['DueType']
+        });
+        var duetype = JSON.parse(ta.DueType);  
+        var extension = 1440;                   // default 1 day 
+        if(duetype[0] === 'duration'){
+            extension = duetype[1] / 2;         //half of the orginal duration
+        }
         //var date = new Date (ti.EndDate); 
-        var date = new Date ();  // from current time, since realocation can happen few days after
+        var date = new Date ();                 // from current time, since realocation can happen few days after
         var newdate = new Date ( date );
         newdate.setMinutes ( date.getMinutes() + extension );
         if(change_date_option === 'extend_only_if_late'){   
