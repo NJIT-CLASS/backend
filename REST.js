@@ -2214,8 +2214,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }
                 })
                 .then(function(queryResult){
-                    let email = new Email();
-                    email.sendNow(queryResult[0].UserID, 'invite user', {'pass': temp_pass});
+                    if(queryResult[0].SendEmail == 1){
+                        let email = new Email();
+                        email.sendNow(queryResult[0].UserID, 'invite user', {'pass': temp_pass});
+                    }
+
                 })
                 .catch(function (err) {
                     console.error(err);
@@ -5068,7 +5071,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', participantAuthentication,function (req, res) {
         console.log('/comments/add : was called');
-        logger.log('error', '/comments/add failed', req.body);
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
             console.log('/comments/add : Missing attributes');
             res.status(400).end();
@@ -5118,6 +5120,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(200).end();
         }).catch(function (err) {
             console.log(err);
+            logger.log('error', '/comments/add failed', req.body, err);
+            
             res.status(400).end();
         });
     });
