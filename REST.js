@@ -7937,6 +7937,127 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         res.json( result );
     });
 
+    // API to cancell a Ti  created 4-7-18 mss86
+    //@ ti_id: task instance id
+    // changes status from "normal" to "cancelled" 
+    router.post('/task/cancel', teacherAuthentication, async function (req, res){
+        logger.log('info',{ 
+            call:'/task/cancel', 
+            ti_id: req.body.ti_id
+            });
+
+        if(req.body.ti_id == null ){
+            logger.log('error','/task/cancel');
+            res.status(400).end();
+            return;
+        };
+
+        var allocate = new Allocator([],0);
+        await allocate.cancel_task(req.body.ti_id);
+        res.json({ 
+            Error: false,
+            Message: 'Task Successfully Cancelled'
+        });
+    });
+
+    // API to Bypass a Ti and trigger next  created 4-7-18 mss86
+    //@ ti_id: task instance id
+    // changes status to "bypassed" and triggers next tasks
+    router.post('/task/bypass', teacherAuthentication,  async function (req, res){
+        logger.log('info',{ 
+            call:'/task/bypass', 
+            ti_id: req.body.ti_id
+            });
+        if(req.body.ti_id == null ){
+            logger.log('error','/task/cancel');
+            res.status(400).end();
+            return;
+        };
+        var ti = await TaskInstance.find({   
+            where: {
+                TaskInstanceID: req.body.ti_id,
+            },
+            include: [{
+                model: TaskActivity,
+                attributes: ['Type', 'AllowRevision', 'AllowReflection'],
+            }, ],
+        });
+        var trigger = new TaskTrigger();
+        var status = JSON.parse(ti.Status);
+        var Message;
+        var Success;
+        if(status[0] !== 'complete' && status[0] !== 'bypassed' && status[0] !== 'not_yet_started'){
+            var date = new Date();
+            status[0] = 'bypassed'; 
+            logger.log('info', 'updating TaskInstanceID:',req.body.ti_id, 'to bypassed');
+            await TaskInstance.update({     // update task before triggering 
+                Status: JSON.stringify(status),
+                StartDate: date,
+                EndDate: date,
+                ActualEndDate: date
+            }, {
+                where: {
+                    TaskInstanceID: req.body.ti_id,
+                }
+            });
+            
+            Message = 'Task Successfully Bypassed';
+            Success = true;
+            try{
+                if (ti.TaskActivity.Type === 'edit' ) {      // edit tasks always have [] as next task, treat differently
+                    var original_task = await trigger.getEdittingTask(ti);  
+                    await trigger.trigger(original_task);       // trigger next tasks
+                    trigger.next(req.body.ti_id);               // same action as in trigger.approved() function     
+                } else {
+                    await trigger.next(req.body.ti_id);         // trigger next task
+                    await trigger.bypass(ti);                   // changes status to bypassed, checks if final task
+                }
+            }catch(e){                                      // error with missing grades occurs sometimes
+                Message = 'Task Bypassed, with Server Error';
+                Success = false;
+                logger.log('error','/task/bypass', e);
+            }
+        }else{
+            Message = 'Cannot Bypass Completed or Not Started Tasks';
+            Success = false;
+        }
+        res.json({ 
+            Error: !Success,
+            Message: Message
+        });
+    });
+
+    // API to Inactivate users in one or all assigments created 4-9-18
+    //@ user_ids: [] of userIDS 
+    //@ ai_id: AssigmentInstanceID
+    //@ inactivate_users: condition
+    router.post('/inactivate/users_in_assignment', teacherAuthentication, async function (req, res){
+        if(req.body.user_ids == null || req.body.ai_id == null || req.body.sec_id == null || req.body.inactivate_users == null){
+            logger.log('error','/task/cancel');
+            res.status(400).end();
+            return;
+        };
+        logger.log('info',{ 
+            call:'/inactivate/users_in_assignment', 
+            user_ids: req.body.user_ids,
+            inactivate_users: req.body.inactivate_users
+            });
+        var allocate = new Allocator([], 0);
+        await Promise.map(req.body.user_ids, async (old_user_id)=>{
+            if(req.body.inactivate_users == 'all_assignments'){
+                await allocate.inactivate_section_user(req.body.sec_id, old_user_id); // deactive user in section
+            }else if(req.body.inactivate_users == 'this_assignment'){
+                // TODO: inactivate in all assgments, not implemented yet
+                // in req.body.ai_id
+            }
+            // await allocate.delete_volunteer(req.body.sec_id , old_user_id);     // remove user from voluenteers
+        });
+        res.json({ 
+            Error: false,
+            Message: 'User(s) Inactivated Successfully'
+        });
+    });
+
     //Endpoint debug
 
     router.get('/debug', function (req, res) {
