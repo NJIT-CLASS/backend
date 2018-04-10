@@ -365,7 +365,7 @@ class TaskTrigger {
 
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function(val) {
                     let field = JSON.parse(pre.TaskActivity.Fields)
-                    if (field[val].field_type === 'assessment') { //check if field type is assessment
+                    if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
                         let distribution = field.field_distribution[val];
                         if (field[val].assessment_type === 'grade') {
                             final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
