@@ -450,13 +450,14 @@ class Grade {
             });
 
             var maxGrade = 0;
+            let data = JSON.parse(ti.Data);
             await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function(val) {
                  if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
                 let distribution = field.field_distribution[val];
                 if (field[val].assessment_type === 'grade') {
                     final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
                 } else if (field[val].assessment_type === 'rating') {
-                    final_grade += (parseInt(data[val][0])/field[val].rating_max)*(distribution/100)*100;
+                    final_grade += (data[val][0]/field[val].rating_max)*(distribution/100)*100;
                 } else if (field[val].assessment_type === 'pass') {
                     if(data[val][0] == 'pass'){
                         final_grade += (distribution/100)*100;
@@ -471,7 +472,7 @@ class Grade {
             logger.log('info', '/Workflow/Grade/gradeBelongsTo: userID found:', pre_ti.UserID);
             return {
                 'id': pre_ti.TaskInstanceID,
-                'max_grade': maxGrade
+                'max_grade': 100
             };
         } else {
             var pre_ti = await TaskInstance.find({
