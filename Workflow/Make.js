@@ -316,6 +316,8 @@ class Make {
                     'users': users
                 };
 
+                console.log('obj',obj);
+
                 var ti = await x.createTaskInstance(obj); //creates a task instance and returns the instance id
                 tis = ti[0];
                 ti_to_ta = ti[1];
@@ -477,7 +479,7 @@ class Make {
         var x = this;
         var isSubWorkflow = await x.getIsSubWorkflow(obj.flat_tree, obj.ta);
         var num_participants = await x.getNumParticipants(obj.ta.id); //returns number of participants of a task and whether the task has subworkflow
-        console.log(num_participants.length);
+        // console.log(num_participants.length);
         var u_id_and_index = await x.getAllocUser(obj.ta, obj.ta_to_u_id, obj.users, obj.i, obj.index, num_participants,obj.ai_id); //returns users id and new index of the pointer
         var user_ids = u_id_and_index[0];
         obj.index = u_id_and_index[1];
@@ -545,44 +547,119 @@ class Make {
             //     'parents': parents
             // });
 
-            if ((ta.Type === 'needs_consolidation' || obj.ta.isSubWorkflow === isSubWorkflow) && !(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
-                let stat;
-                if (ta.Type === 'needs_consolidation') {
-                    stat = await JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
-                } else {
-                    stat = await JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
-                }
+            // if ((ta.Type === 'needs_consolidation' || obj.ta.isSubWorkflow === isSubWorkflow) && !(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
+            //     let stat;
+            //     if (ta.Type === 'needs_consolidation') {
+            //         stat = await JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
+            //     } else {
+            //         stat = await JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
+            //     }
 
-                await Promise.mapSeries(user_ids, async function (userid) {
+            //     await Promise.mapSeries(user_ids, async function (userid) {
 
-                    var ti_u_hist = [{
-                        time: new Date(),
-                        user_id: userid,
-                        is_extra_credit: false,
-                    }];
+            //         var ti_u_hist = [{
+            //             time: new Date(),
+            //             user_id: userid,
+            //             is_extra_credit: false,
+            //         }];
 
-                    var ti = await TaskInstance.create({
-                        UserID: userid,
-                        TaskActivityID: obj.ta.id,
-                        WorkflowInstanceID: obj.new_wi_id,
-                        AssignmentInstanceID: obj.ai_id,
-                        Status: stat,
-                        UserHistory: ti_u_hist,
-                        NextTask: [],
-                        PreviousTask: parents,
-                        IsSubWorkflow: obj.ta.isSubWorkflow
-                    });
+            //         var ti = await TaskInstance.create({
+            //             UserID: userid,
+            //             TaskActivityID: obj.ta.id,
+            //             WorkflowInstanceID: obj.new_wi_id,
+            //             AssignmentInstanceID: obj.ai_id,
+            //             Status: stat,
+            //             UserHistory: ti_u_hist,
+            //             NextTask: [],
+            //             PreviousTask: parents,
+            //             IsSubWorkflow: obj.ta.isSubWorkflow
+            //         });
 
-                    await x.updateNextTasks(parents, {
-                        'id': ti.TaskInstanceID,
-                        'isSubWorkflow': obj.ta.isSubWorkflow
-                    });
+            //         await x.updateNextTasks(parents, {
+            //             'id': ti.TaskInstanceID,
+            //             'isSubWorkflow': obj.ta.isSubWorkflow
+            //         });
 
-                    obj.tis.push(ti.TaskInstanceID);
-                    obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+            //         obj.tis.push(ti.TaskInstanceID);
+            //         obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+            //     });
+
+            //     return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
+
+            // } else {
+
+            //     await Promise.mapSeries(parents, async function (parent) { //collects all parents and create edit for each of the parent
+            //         await Promise.mapSeries(user_ids, async function (userid) {
+            //             var ti_u_hist = [{
+            //                 time: new Date(),
+            //                 user_id: userid,
+            //                 is_extra_credit: false,
+            //             }];
+
+            //             var ti = await TaskInstance.create({
+            //                 UserID: userid,
+            //                 TaskActivityID: obj.ta.id,
+            //                 WorkflowInstanceID: obj.new_wi_id,
+            //                 AssignmentInstanceID: obj.ai_id,
+            //                 Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+            //                 UserHistory: ti_u_hist,
+            //                 NextTask: [],
+            //                 PreviousTask: [parent],
+            //                 IsSubWorkflow: obj.ta.isSubWorkflow
+            //             });
+
+            //             await x.updateNextTasks([parent], {
+            //                 'id': ti.TaskInstanceID,
+            //                 'isSubWorkflow': obj.ta.isSubWorkflow
+            //             });
+
+            //             obj.tis.push(ti.TaskInstanceID);
+            //             obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+            //         });
+            //     });
+
+            //     return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
+            // }
+
+
+            if (!(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
+            let stat;
+            if (ta.Type === 'needs_consolidation') {
+                stat = await JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
+            } else {
+                stat = await JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
+            }
+
+            await Promise.mapSeries(user_ids, async function (userid) {
+
+                var ti_u_hist = [{
+                    time: new Date(),
+                    user_id: userid,
+                    is_extra_credit: false,
+                }];
+
+                var ti = await TaskInstance.create({
+                    UserID: userid,
+                    TaskActivityID: obj.ta.id,
+                    WorkflowInstanceID: obj.new_wi_id,
+                    AssignmentInstanceID: obj.ai_id,
+                    Status: stat,
+                    UserHistory: ti_u_hist,
+                    NextTask: [],
+                    PreviousTask: parents,
+                    IsSubWorkflow: obj.ta.isSubWorkflow
                 });
 
-                return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
+                await x.updateNextTasks(parents, {
+                    'id': ti.TaskInstanceID,
+                    'isSubWorkflow': obj.ta.isSubWorkflow
+                });
+
+                obj.tis.push(ti.TaskInstanceID);
+                obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+            });
+
+            return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
 
             } else {
 
@@ -707,6 +784,7 @@ class Make {
                         if (void_users.length > 0) {
                             if (_.contains(void_users, users[index])) { //check if the void users contains the user
                                 index++;
+                                console.log('here')
                             } else {
                                 alloc_users.push(users[index]);
                                 index++;
@@ -715,10 +793,13 @@ class Make {
                     }
                 } else {
                     logger.log('error', 'Fatal! No user to allocate! ');
+                    // var owner = await x.getInstructorID(ai_id);
+                    // alloc_users.push(owner);
                 }
             }
         });
-
+        
+        // console.log('alloc users', alloc_users)
         return [alloc_users, index];
     }
 

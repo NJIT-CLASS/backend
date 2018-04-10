@@ -44,10 +44,7 @@ exports.REVISE = {
 exports.INVITE_USER = function(data) {
     return {
         subject: 'Invited to Participatory Learning System – Next Step',
-        text: (`
-            Hi,\nYou are invited to create a new account on PL. Please visit the following link with your temporary password to finish creating your account.
-            https://pla.njit.edu:${FRONT_SERVER_PORT}\n\n
-            Temporary Password: ${data.pass} \n\n${SUPPORT_STRING}`),
+        text: (`Hi,\nYou are invited to create a new account on PL. Please visit the following link with your temporary password to finish creating your account.https://pla.njit.edu:${FRONT_SERVER_PORT}\n\nTemporary Password: ${data.pass}\n\n${SUPPORT_STRING}`),
         html:(`
             <p>Hi,</p><br>
             <p>You are invited to create an account on PLA. Please log in with your temporary password to finish creating your account.</p><br/>
@@ -80,9 +77,7 @@ exports.INVITE_USER_NEW_TO_SYSTEM = function(data) {
 
 exports.NEW_TASK = {
     subject: 'New Task - Participatory Learning',
-    text:(`
-        Hi,\n
-        A new task has started. Please visit https://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task.\n\n
+    text:(`Hi,\nA new task has started. Please visit https://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task.\n\n
         ${SUPPORT_STRING}
     `),
     html:(`
@@ -94,10 +89,7 @@ exports.NEW_TASK = {
 
 exports.NEW_PASSWORD = {
     subject: 'Password Updated - Participatory Learning',
-    text:(`
-        Hi,\n
-        Your password has been updated.\n\n
-        ${SUPPORT_STRING}
+    text:(`Hi,\nYour password has been updated.\n\n${SUPPORT_STRING}
     `),
     html:(`
         <p>Hi,</p><br>
@@ -108,10 +100,7 @@ exports.NEW_PASSWORD = {
 
 exports.LATE = {
     subject: 'Task Late - Participatory Learning',
-    text:(`
-        Hi,\n
-        You have a task due. Please visit https://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task.\n\n
-        ${SUPPORT_STRING}
+    text:(`Hi,\nYou have a task due. Please visit https://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task.\n\n${SUPPORT_STRING}
     `),
     html:(`
         <p>Hi,</p><br>
@@ -123,11 +112,10 @@ exports.LATE = {
 exports.RESET_PASS = function(data){
     return {
         subject: 'Password Reset - Participatory Learning',
-        text:(`
-            Hi,\n
-            Your password has been reset. Please visit the following link and use the temporary password to complete the reset \n
-            https://pla.njit.edu:${FRONT_SERVER_PORT} \n 
+        text:(`Hi,\nYour password has been reset. Please visit the following link and use the temporary password to complete the reset\nhttps://pla.njit.edu:${FRONT_SERVER_PORT}\n 
             Temporary Password: ${data.pass} \n
+            `),
+        html:(`
             <p>You have requested a password reset. Please visit the following link and use the temporary password to complete the reset </p><br>
             <p>https://pla.njit.edu:${FRONT_SERVER_PORT}</p><br>
             <p>Temporary Password: ${data.pass}</p>
@@ -139,10 +127,7 @@ exports.RESET_PASS = function(data){
 exports.NEW_REPLY = function(data){
     return {
         subject: '[PLA] New Reply',
-        text:(`
-            Dear ${data.name},\n
-            Someone has replied to your comment. You can view the reply here: ${data.link}\n
-            ${SUPPORT_STRING}
+        text:(`Dear ${data.name},\nSomeone has replied to your comment. You can view the reply here: ${data.link}\n${SUPPORT_STRING}
         `),
         html:(`
             <p>Dear ${data.name},<p><br>
@@ -155,10 +140,7 @@ exports.NEW_REPLY = function(data){
 exports.NEW_VOLUNTEER = function(data){
     return {
         subject: '[PLA] New Vlounteer',
-        text:(`
-            Dear ${data.name},\n
-            A student has made a volunteer request. You can view the request here: ${data.link}\n
-            ${SUPPORT_STRING}
+        text:(`Dear ${data.name},\nA student has made a volunteer request. You can view the request here: ${data.link}\n${SUPPORT_STRING}
         `),
         html:(`
             <p>Dear ${data.name},<p><br>
@@ -171,10 +153,7 @@ exports.NEW_VOLUNTEER = function(data){
 exports.NEW_FLAG = function(data){
     return {
         subject: '[PLA] New Flag',
-        text:(`
-            Dear ${data.name},\n
-            Someone has flagged a comment. You can view the flag here: ${data.link}\n
-            ${SUPPORT_STRING}
+        text:(`Dear ${data.name},\nSomeone has flagged a comment. You can view the flag here: ${data.link}\n${SUPPORT_STRING}
         `),
         html:(`
             <p>Dear ${data.name},<p><br>
