@@ -169,12 +169,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var path = url.parse(req.url).pathname.replace(/[0-9]*/g, '' );
         
         
-        let insertAPIResult = await sequelize.query(" INSERT INTO apistatistics (StartTime, Route) VALUES(NOW(6), :route) ",
-        {
-            replacements: {
-                route: path
-            }
-        })
+        let insertAPIResult = await sequelize.query(' INSERT INTO apistatistics (StartTime, Route) VALUES(NOW(6), :route) ',
+            {
+                replacements: {
+                    route: path
+                }
+            });
 
         req.statID = insertAPIResult[0].insertId;
 
@@ -187,30 +187,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let oldEnd = res.end;
         let statID = req.statID;
         res.json = function(){
-            sequelize.query(" UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID",
-            {
-                replacements: {
-                    statID: statID
-                }
-            });
+            sequelize.query(' UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID',
+                {
+                    replacements: {
+                        statID: statID
+                    }
+                });
 
             oldJson.apply(this, arguments);
             
         };
 
         res.end = function(){
-            sequelize.query(" UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID",
-            {
-                replacements: {
-                    statID: statID
-                }
-            });
+            sequelize.query(' UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID',
+                {
+                    replacements: {
+                        statID: statID
+                    }
+                });
 
             oldEnd.apply(this, arguments);
             
         };
         next();
-    })
+    });
 
     ///////////////                 System Level APIs                   ///////////////////////////
 
@@ -2612,16 +2612,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         try{
             let fileInfoJSON = JSON.parse(result.Files);
         
-                await Promise.map(fileInfoJSON, async file => {
-                    var fr = await FileReference.findOne({
-                        where: {
-                            FileID: file
-                        },
-                        attributes: ['FileID','Info']
-                    });
-        
-                    fileArray.push(fr);
+            await Promise.map(fileInfoJSON, async file => {
+                var fr = await FileReference.findOne({
+                    where: {
+                        FileID: file
+                    },
+                    attributes: ['FileID','Info']
                 });
+        
+                fileArray.push(fr);
+            });
             
         } catch(e){
             console.log('File upload err:', e);
@@ -3287,7 +3287,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         }
 
-        var isTestUSer = "test" in req.body ? req.body.test : false; 
+        var isTestUSer = 'test' in req.body ? req.body.test : false; 
 
         UserLogin.find({
             where: {
@@ -3339,7 +3339,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                 }).then(function(userLogin) {
                                     if(!isTestUSer){
                                         let email = new Email();
-                                        email.sendNow(user.UserID, 'invite user', {"pass":req.body.password});
+                                        email.sendNow(user.UserID, 'invite user', {'pass':req.body.password});
                                     }
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
@@ -6736,6 +6736,36 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+    //----------------------------------------------------------------
+    router.post('/volunteerpool/section/:section_id',async function(req, res) {
+        console.log('/volunteerpool/section/ : was called');
+        VolunteerPool.findAll({
+            where:{
+                SectionID:req.params.section_id
+            }
+        }).then(function (result) {
+            console.log('Volunteers have been found by section.');
+            res.json({
+                'Error': false,
+                'Volunteers': result
+            });
+        }).catch(function (err) {
+            console.log('/volunteerpool/section/: ' + err);
+            res.status(400).end();
+        });
+    });
+
+    router.post('/getSectionByAssignmentInstance', function(req, res){
+        //console.log(req);
+        AssignmentInstance.find({
+            where: {
+                AssignmentInstanceID: req.body.assignmentInstanceID
+            },
+            attributes: ['SectionID']
+        }).then(result => {
+            return res.json(result);
+        });
+    });
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     router.use(function(req,res,next){
@@ -7944,7 +7974,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         logger.log('info',{ 
             call:'/task/cancel', 
             ti_id: req.body.ti_id
-            });
+        });
 
         if(req.body.ti_id == null ){
             logger.log('error','/task/cancel');
@@ -7967,7 +7997,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         logger.log('info',{ 
             call:'/task/bypass', 
             ti_id: req.body.ti_id
-            });
+        });
         if(req.body.ti_id == null ){
             logger.log('error','/task/cancel');
             res.status(400).end();
@@ -8041,7 +8071,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             call:'/inactivate/users_in_assignment', 
             user_ids: req.body.user_ids,
             inactivate_users: req.body.inactivate_users
-            });
+        });
         var allocate = new Allocator([], 0);
         await Promise.map(req.body.user_ids, async (old_user_id)=>{
             if(req.body.inactivate_users == 'all_assignments'){
@@ -8391,57 +8421,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    router.post('/getSectionByAssignmentInstance', function(req, res){
-        //console.log(req);
-        AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: req.body.assignmentInstanceID
-            },
-            attributes: ['SectionID']
-        }).then(result => {
-            return res.json(result);
-        });
-    });
+   
 
-    //----------------------------------------------------------------
-    router.post('/volunteerpool/section/:section_id',async function(req, res) {
-        console.log('/volunteerpool/section/ : was called');
-        VolunteerPool.findAll({
-            where:{
-                SectionID:req.params.section_id
-            }
-        }).then(function (result) {
-            console.log('Volunteers have been found by section.');
-            res.json({
-                'Error': false,
-                'Volunteers': result
-            });
-        }).catch(function (err) {
-            console.log('/volunteerpool/section/: ' + err);
-            res.status(400).end();
-        });
-    });
+    
 
-    //-----------------------------------------------------------------------------------------------------
-
-    //----------------------------------------------------------------
-    router.post('/volunteerpool/section/:section_id',async function(req, res) {
-        console.log('/volunteerpool/section/ : was called');
-        VolunteerPool.findAll({
-            where:{
-                SectionID:req.params.section_id
-            }
-        }).then(function (result) {
-            console.log('Volunteers have been found by section.');
-            res.json({
-                'Error': false,
-                'Volunteers': result
-            });
-        }).catch(function (err) {
-            console.log('/volunteerpool/section/: ' + err);
-            res.status(400).end();
-        });
-    });
+    
+    
 
     //-----------------------------------------------------------------------------------------------------
 
