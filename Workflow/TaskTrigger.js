@@ -116,7 +116,7 @@ class TaskTrigger {
             if (type === 'needs_consolidation') {
                 await x.needsConsolidate(next_task);
             } else {
-                if (JSON.parse(next_task.Status)[0] !== 'complete') {
+                if (JSON.parse(next_task.Status)[0] !== 'complete' && JSON.parse(next_task.Status)[0] !== 'bypassed') { // added bypassed for bypassed tasks 4-8-18
                     await x.triggerNext(next_task);
                 }
             }

@@ -1815,7 +1815,7 @@ class Allocator {
                 var completed = false;
                 var is_extra_credit = false;
                 var Status = JSON.parse(ti.Status);
-                if(Status[4] === 'viewed'   || Status[0] === 'bypassed'){
+                if(Status[4] === 'viewed'   || Status[0] === 'bypassed' || Status[0] === 'complete'){ // if any, task considered viewed 4-8-18
                     viewed = true;
                 }
                 if(Status[0] === 'complete' || Status[0] === 'bypassed'){
@@ -2014,7 +2014,7 @@ class Allocator {
         }
         
         //return {'Error':  true, 'Message': Message, data: {Graph: Graph, wi_ids: wi_ids}};
-        console.log(some_user_will_have_less_tasks , success);
+        logger.log('debug',{some_user_will_have_less_tasks: some_user_will_have_less_tasks , hadToUseInstructor: !success});
 
         var return_error = true;
         if(!some_user_will_have_less_tasks & success){
