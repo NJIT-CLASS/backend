@@ -2608,20 +2608,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
         let fileArray = [];
-
-        await Promise.map(JSON.parse(result.Files), async file => {
-            var fr = await FileReference.findOne({
-                where: {
-                    FileID: file
-                },
-                attributes: ['FileID','Info']
-            });
-
-            fileArray.push(fr);
-        });
-
-
-
+        try{
+            let fileInfoJSON = JSON.parse(result.Files);
+        
+                await Promise.map(fileInfoJSON, async file => {
+                    var fr = await FileReference.findOne({
+                        where: {
+                            FileID: file
+                        },
+                        attributes: ['FileID','Info']
+                    });
+        
+                    fileArray.push(fr);
+                });
+            
+        } catch(e){
+            console.log('File upload err:', e);
+        }
+        
         return res.json({
             Files: fileArray
         });
