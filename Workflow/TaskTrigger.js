@@ -365,21 +365,21 @@ class TaskTrigger {
 
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function(val) {
                     let field = JSON.parse(pre.TaskActivity.Fields)
-                     if (field[val].field_type === 'assessment') { //check if field type is assessment
-                let distribution = field.field_distribution[val];
-                if (field[val].assessment_type === 'grade') {
-                    final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
-                } else if (field[val].assessment_type === 'rating') {
-                    final_grade += (parseInt(data[val][0])/field[val].rating_max)*(distribution/100)*100;
-                } else if (field[val].assessment_type === 'pass') {
-                    if(data[val][0] == 'pass'){
-                        final_grade += (distribution/100)*100;
+                    if (field[val].field_type === 'assessment') { //check if field type is assessment
+                        let distribution = field.field_distribution[val];
+                        if (field[val].assessment_type === 'grade') {
+                            final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
+                        } else if (field[val].assessment_type === 'rating') {
+                            final_grade += (parseInt(data[val][0])/field[val].rating_max)*(distribution/100)*100;
+                        } else if (field[val].assessment_type === 'pass') {
+                            if(data[val][0] == 'pass'){
+                                final_grade += (distribution/100)*100;
+                            }
+                        } else if (field[val].assessment_type === 'evaluation') {
+                            let label_length = field[val].list_of_labels.length;
+                            final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
+                        }
                     }
-                } else if (field[val].assessment_type === 'evaluation') {
-                    let label_length = field[val].list_of_labels.length;
-                    final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
-                }
-            }
                 });
             }
         });
@@ -661,15 +661,15 @@ class TaskTrigger {
             }
         });
         let field = JSON.parse(ta.Fields);
-        console.log('type of data', typeof data)
+
         if (typeof data === 'string') {
             var keys = Object.keys(JSON.parse(data)); //find the latest version of the data
         } else {
             var keys = Object.keys(data); //find the latest version of the data
         }
-
         await Promise.mapSeries(keys, function(val) {
-            if (field[val].field_type === 'assessment') { //check if field type is assessment
+            
+            if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution') && field[val].field_type === 'assessment') { //check if field type is assessment
                 let distribution = field.field_distribution[val];
                 if (field[val].assessment_type === 'grade') {
                     final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
