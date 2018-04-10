@@ -791,7 +791,25 @@ class Make {
                             }
                         }
                     }
-                } else {
+                } else if (assign_constr[2].hasOwnProperty('not_in_workflow_instance')) {
+                    var void_users = await x.getVoidUsers(assign_constr[2].not_in_workflow_instance, ta_to_u_id); //*
+                    //console.log('void_users', void_users);
+                    if (void_users.length >= users.length) {
+                        logger.log('error', 'Fatal! No user to allocate! Reallocate to instructor');
+                        var owner = await x.getInstructorID(ai_id);
+                        alloc_users.push(owner);
+                    } else {
+                        if (void_users.length > 0) {
+                            if (_.contains(void_users, users[index])) { //check if the void users contains the user
+                                index++;
+                                console.log('here')
+                            } else {
+                                alloc_users.push(users[index]);
+                                index++;
+                            }
+                        }
+                    }
+                }else {
                     logger.log('error', 'Fatal! No user to allocate! ');
                     var owner = await x.getInstructorID(ai_id);
                     alloc_users.push(owner);
