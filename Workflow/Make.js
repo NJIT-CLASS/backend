@@ -316,7 +316,7 @@ class Make {
                     'users': users
                 };
 
-                console.log('obj',obj);
+                // console.log('obj',obj);
 
                 var ti = await x.createTaskInstance(obj); //creates a task instance and returns the instance id
                 tis = ti[0];

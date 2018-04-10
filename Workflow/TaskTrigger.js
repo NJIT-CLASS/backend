@@ -342,7 +342,7 @@ class TaskTrigger {
      * @return {Promise}      [description]
      */
     async findGrades(task) {
-        logger.log('info', 'checking for grades...');
+        logger.log('info', '/findGrades:checking for grades...');
         //try{
         var x = this;
         var final_grade;
@@ -362,7 +362,7 @@ class TaskTrigger {
 
             if (pre.FinalGrade !== null) { //if no FinalGrade found, dont push
                 grades.push(pre.FinalGrade);
-
+                let data =  JSON.parse(pre.Data);
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function(val) {
                     let field = JSON.parse(pre.TaskActivity.Fields)
                     if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
@@ -377,7 +377,7 @@ class TaskTrigger {
                             }
                         } else if (field[val].assessment_type === 'evaluation') {
                             let label_length = field[val].list_of_labels.length;
-                            final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
+                            final_grade += ((field[val].list_of_labels.indexOf(p[val][0])+1)/label_length)*(distribution/100)*100;
                         }
                     }
                 });
@@ -651,7 +651,7 @@ class TaskTrigger {
      */
     async finalGrade(ti, data) {
 
-        logger.log('info', 'checking for grades...');
+        logger.log('info', '/finalGrade:checking for grades...');
         var x = this;
         var final_grade = 0;
         

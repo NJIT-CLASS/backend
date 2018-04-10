@@ -1618,7 +1618,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('error', 'UserID Not Matched');
             return res.status(400).end();
         }
-        if (ti.TaskActivity.Type === 'edit') {
+        if (ti.TaskActivity.Type === 'edit' || ti.TaskActivity.Type === 'comment') {
             await trigger.approved(req.body.taskInstanceid, req.body.taskInstanceData);
         } else {
 
