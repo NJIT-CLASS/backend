@@ -45,13 +45,19 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.STRING(40),
             field: 'Role',
             allowNull: true
-        }
-        // Test: {
-        //     type: DataTypes.BOOLEAN,
-        //     field: 'Test',
-        //     allowNull: false,
-        //     defaultValue: false
-        // },
+        },
+         Test: {
+             type: DataTypes.BOOLEAN,
+             field: 'Test',
+             allowNull: false,
+             defaultValue: false
+         }
+        //Role: {
+            //Official first name of the user
+        //    type: DataTypes.STRING(40),
+        //    field: 'Role',
+         //   allowNull: true
+        //}
         //UserType: {
         //    //User type either instructor or student
         //    //Instructor Boolean?????

@@ -1,4 +1,5 @@
 import {
+    APIStatistics,
     Assignment,
     AssignmentGrade,
     AssignmentInstance,
@@ -58,6 +59,8 @@ import {
     canRoleAccess
 } from './Util/constant';
 import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE} from './backend_settings';
+
+var url = require('url');
 import {adminAuthentication, enhancedAuthentication, teacherAuthentication, participantAuthentication} from './Util/authentication.js';
 var dateFormat = require('dateformat');
 var Guid = require('guid');
@@ -160,6 +163,55 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     // });
 
 
+    //API Logging
+
+    router.use(async function(req,res,next){
+        var path = url.parse(req.url).pathname.replace(/[0-9]*/g, '' );
+        
+        
+        let insertAPIResult = await sequelize.query(" INSERT INTO apistatistics (StartTime, Route) VALUES(NOW(6), :route) ",
+        {
+            replacements: {
+                route: path
+            }
+        })
+
+        req.statID = insertAPIResult[0].insertId;
+
+        next();
+    });
+
+    router.use(function(req, res,next){
+        //overide json and end functions in res;
+        let oldJson = res.json;
+        let oldEnd = res.end;
+        let statID = req.statID;
+        res.json = function(){
+            sequelize.query(" UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID",
+            {
+                replacements: {
+                    statID: statID
+                }
+            });
+
+            oldJson.apply(this, arguments);
+            
+        };
+
+        res.end = function(){
+            sequelize.query(" UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID",
+            {
+                replacements: {
+                    statID: statID
+                }
+            });
+
+            oldEnd.apply(this, arguments);
+            
+        };
+        next();
+    })
+
     ///////////////                 System Level APIs                   ///////////////////////////
 
     // endpoint for login function
@@ -204,11 +256,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 if (user != null && await password.verify(user.Password, req.body.password)) {
                     // unset past timeout with correct password, login
                     // set attempts back to zero
-
+                    const currTime = new Date();
+                    currTime.setHours(currTime.getHours()-4);
                     UserLogin.update({
                         Attempts: 0,
                         Timeout: null,
-                        LastLogin: new Date()
+                        LastLogin: currTime.toLocaleString()
                     }, {
                         where: {
                             UserID: user.UserID
@@ -2556,20 +2609,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
         let fileArray = [];
-
-        await Promise.map(JSON.parse(result.Files), async file => {
-            var fr = await FileReference.findOne({
-                where: {
-                    FileID: file
-                },
-                attributes: ['FileID','Info']
-            });
-
-            fileArray.push(fr);
-        });
-
-
-
+        try{
+            let fileInfoJSON = JSON.parse(result.Files);
+        
+                await Promise.map(fileInfoJSON, async file => {
+                    var fr = await FileReference.findOne({
+                        where: {
+                            FileID: file
+                        },
+                        attributes: ['FileID','Info']
+                    });
+        
+                    fileArray.push(fr);
+                });
+            
+        } catch(e){
+            console.log('File upload err:', e);
+        }
+        
         return res.json({
             Files: fileArray
         });
@@ -3223,11 +3280,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     // adding the user, called on add user page
     router.post('/adduser', teacherAuthentication, function (req, res) {
         console.log('/adduser:called');
+        console.log(req.body);
         var email = new Email();
         if (req.body.email === null) {
             console.log('/adduser : Email cannot be null');
             res.status(400).end();
         }
+
+        var isTestUSer = "test" in req.body ? req.body.test : false; 
 
         UserLogin.find({
             where: {
@@ -3242,7 +3302,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         User.create({
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
-                            Role: req.body.role
+                            Role: req.body.role,
+                            Test: isTestUSer
                         }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -3276,8 +3337,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                             res.status(500).end();
                                         });
                                 }).then(function(userLogin) {
-                                    let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    if(!isTestUSer){
+                                        let email = new Email();
+                                        email.sendNow(user.UserID, 'invite user', {"pass":req.body.password});
+                                    }
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -6752,10 +6815,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             .catch(function (err) {
                                 console.log('Error creating user');
                                 console.log(err);
+                                res.state(500).end();
                             });
                     })
                     .catch(function (err) {
                         console.log(err);
+                        res.state(500).end();
                     });
             } else {
                 User.find({
@@ -6768,7 +6833,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         makerID.updateAttributes({
                             UserID: makerID.UserID,
                             Instructor: true
-                        }).success(function () {
+                        }).then(function () {
                             console.log('/instructor/new : success');
                             res.status(200).end();
                         });
@@ -7587,14 +7652,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/userManagement', adminAuthentication, async function (req, res) {
         console.log('/userManagement : was called');
         await User.findAll({
-            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Admin'/*, 'Test'*/, 'Instructor'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'OrganizationGroup', 'Role', 'Admin', 'Test', 'Instructor'],
             include: [{
                 model: UserContact,
                 attributes: ['Email', 'FirstName', 'LastName']
             }, {
 
                 model: UserLogin,
-                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked']
+                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked','LastLogin']
             }
 
             ]
@@ -8259,5 +8324,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-----------------------------------------------------------------------------------------------------
 
+    
 };
 module.exports = REST_ROUTER;
