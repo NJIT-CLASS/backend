@@ -791,7 +791,7 @@ class Make {
                             }
                         }
                     }
-                } else if (assign_constr[2].hasOwnProperty('not_in_workflow_instance')) {
+                } else if (assign_constr[2].hasOwnProperty('not_in_workflow_instance')) { //temporary fix for 2nd grader not showing
                     var void_users = await x.getVoidUsers(assign_constr[2].not_in_workflow_instance, ta_to_u_id); //*
                     //console.log('void_users', void_users);
                     if (void_users.length >= users.length) {
