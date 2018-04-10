@@ -793,8 +793,8 @@ class Make {
                     }
                 } else {
                     logger.log('error', 'Fatal! No user to allocate! ');
-                    // var owner = await x.getInstructorID(ai_id);
-                    // alloc_users.push(owner);
+                    var owner = await x.getInstructorID(ai_id);
+                    alloc_users.push(owner);
                 }
             }
         });
