@@ -896,6 +896,61 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+	//Endpoint to get the duplicate a saved assignment from a partial assignment
+	router.get('/partialAssignments/duplicate/:partialAssignmentId', function (req, res) {
+		var newid;
+		PartialAssignments.max('PartialAssignmentID').then(max => {
+			newid = max+1;
+		}).then(
+        PartialAssignments.find({
+			where: {
+				PartialAssignmentID: req.params.partialAssignmentId,
+			}
+		}).then(result => {
+			PartialAssignments.create({
+				UserID:result.UserID,
+				CourseID: result.CourseID,
+				PartialAssignmentName: result.PartialAssignmentName+'-copy-'+newid,
+				Data: JSON.parse(result.Data)
+			}).then(function(){
+			    return res.json({
+					'Error': false
+				});
+            })
+		})
+        ).catch(result => {
+			console.log(result);
+			res.status(400).json({
+				Error: true
+			});
+		});
+	});
+
+	//Endpoint to get the move a saved assignment from a partial assignment to different course
+	router.get('/partialAssignments/duplicate/:partialAssignmentId/:CourseID', function (req, res) {
+		PartialAssignments.find({
+				where: {
+					PartialAssignmentID: req.params.partialAssignmentId,
+				}
+			}).then(result => {
+				PartialAssignments.create({
+					UserID:result.UserID,
+					CourseID: req.params.CourseID,
+					PartialAssignmentName: result.PartialAssignmentName,
+					Data: JSON.parse(result.Data)
+				}).then(function() {
+					return res.json({
+						'Error': false
+					});
+				})
+			}).catch(result => {
+			    console.log(result);
+			    res.status(400).json({
+				    Error: true
+			});
+		});
+	});
+
     //Endpoint to get an assignment associate with courseId
     router.get('/getAssignments/:courseId', function (req, res) {
 
