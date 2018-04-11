@@ -240,7 +240,25 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
+	m.ArchivedAssignmentInstance.belongsTo(m.Section, {
+		foreignKey: 'SectionID'
+	});
 
+	m.RemovedAssignmentInstance.belongsTo(m.Section, {
+		foreignKey: 'SectionID'
+	});
+
+	m.Assignment.belongsTo(m.Course, {
+		foreignKey: 'CourseID'
+	});
+
+	m.ArchivedAssignment.belongsTo(m.Course, {
+		foreignKey: 'CourseID'
+	});
+
+	m.RemovedAssignment.belongsTo(m.Course, {
+		foreignKey: 'CourseID'
+	});
 
     //has Many Relations
     m.CategoryInstance.hasMany(m.BadgeInstance, {

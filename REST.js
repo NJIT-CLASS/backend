@@ -4734,7 +4734,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 	router.get('/displayarchivedinstance/', function (req, res) {
 
 		ArchivedAssignmentInstance.findAll({
-			attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+            include:[
+                {
+                    model:Section,
+                    include:[{
+                        model: Semester
+                    },
+                    {
+		                model: Course
+                    }]
+                }]
 		}).then(function (rows) {
 			res.json({
 				'Error': false,
@@ -4750,7 +4759,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 	router.get('/displayremovedinstance/', function (req, res) {
 
 		RemovedAssignmentInstance.findAll({
-			attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+			include:[
+				{
+					model:Section,
+					include:[{
+						model: Semester
+					},
+						{
+							model: Course
+						}]
+				}]
 		}).then(function (rows) {
 			res.json({
 				'Error': false,
@@ -4765,8 +4783,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 	router.get('/displayarchivedactivity/', function (req, res) {
 		ArchivedAssignment.findAll({
-			attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
-	    }).then(function (rows) {
+			include:[Course]
+		}).then(function (rows) {
 			res.json({
 				'Error': false,
 				'Message': 'Success',
@@ -4781,7 +4799,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 	router.get('/displayremovedactivity/', function (req, res) {
 
 		RemovedAssignment.findAll({
-			attributes: ['AssignmentID', 'OwnerID', 'WorkflowActivityIDs', 'Instructions', 'Documentation', 'GradeDistribution', 'Name', 'Type', 'DisplayName', 'SectionID', 'CourseID', 'SemesterID', 'VersionHistory']
+			include:[Course]
 		}).then(function (rows) {
 			res.json({
 				'Error': false,
@@ -4790,6 +4808,45 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 			});
 		}).catch(function (err) {
 			console.log('/displayremovedassignment/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayactiveactivity/', function (req, res) {
+		Assignment.findAll({
+			include:[Course]
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'ActiveAssignment': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayactiveassignment/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayactiveinstance/', function (req, res) {
+		AssignmentInstance.findAll({
+			include:[
+				{
+					model:Section,
+					include:[{
+						model: Semester
+					},
+						{
+							model: Course
+						}]
+				}]
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'ActiveAssignmentInstance': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayactiveinstance/ ' + err.message);
 			res.status(400).end();
 		});
 	});
