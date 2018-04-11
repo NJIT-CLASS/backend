@@ -257,7 +257,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     // unset past timeout with correct password, login
                     // set attempts back to zero
                     const currTime = new Date();
-                    currTime.setHours(currTime.getHours()-4);
+                    currTime.setHours(currTime.getHours());
                     UserLogin.update({
                         Attempts: 0,
                         Timeout: null,
@@ -3288,6 +3288,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
 
         var isTestUSer = "test" in req.body ? req.body.test : false; 
+        var organization = "organization" in req.body ? req.body.organization : null;
 
         UserLogin.find({
             where: {
@@ -3303,7 +3304,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
                             Role: req.body.role,
-                            Test: isTestUSer
+                            Test: isTestUSer,
+                            OrganizationGroup:organization
                         }).catch(function(err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
