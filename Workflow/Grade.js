@@ -440,6 +440,8 @@ class Grade {
             }
         });
 
+        let field = JSON.parse(ta.Fields) 
+
         if (ta.Type === 'grade_problem') {
             var pre_ti = await TaskInstance.find({
                 where: {
@@ -448,29 +450,29 @@ class Grade {
             });
 
             var maxGrade = 0;
+            let data = JSON.parse(ti.Data);
             await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function(val) {
-                if ((val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(ta.Fields)[val].field_type == 'assessment') {
-                    if (JSON.parse(ta.Fields)[val].assessment_type == 'grade') {
-                        maxGrade += JSON.parse(ta.Fields)[val].numeric_max;
-                    } else if (JSON.parse(ta.Fields)[val].assessment_type == 'rating') {
-                        maxGrade += 100;
-                    } else if (JSON.parse(ta.Fields)[val].assessment_type == 'evaluation') {
-                        // How evaluation works?
-                        // if(JSON.parse(ti.Data)[val][0] == 'Easy'){
-                        //
-                        // } else if(JSON.parse(ti.Data)[val][0] == 'Medium'){
-                        //
-                        // } else if(JSON.parse(ti.Data)[val][0] == 'Hard'){
-                        //
-                        // }
+                 if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
+                let distribution = field.field_distribution[val];
+                if (field[val].assessment_type === 'grade') {
+                    final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
+                } else if (field[val].assessment_type === 'rating') {
+                    final_grade += (data[val][0]/field[val].rating_max)*(distribution/100)*100;
+                } else if (field[val].assessment_type === 'pass') {
+                    if(data[val][0] == 'pass'){
+                        final_grade += (distribution/100)*100;
                     }
+                } else if (field[val].assessment_type === 'evaluation') {
+                    let label_length = field[val].list_of_labels.length;
+                    final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
                 }
+            }
             });
 
             logger.log('info', '/Workflow/Grade/gradeBelongsTo: userID found:', pre_ti.UserID);
             return {
                 'id': pre_ti.TaskInstanceID,
-                'max_grade': maxGrade
+                'max_grade': 100
             };
         } else {
             var pre_ti = await TaskInstance.find({

@@ -10,7 +10,7 @@ var settings = require('../backend_settings');
 var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
     host: settings.DB_HOST,
     dialect: 'mysql',
-    omitNull: true,
+    omitNull: false,
     pool: {
         max: 5,
         min: 0,
@@ -27,7 +27,7 @@ var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification',
     'FileReference','TaskInstance','Comments','CommentsArchive', 'CommentsViewed', 'Contact','Notifications',
     'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
     'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
-    'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit'
+    'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit','APIStatistics'
 ];
 
 

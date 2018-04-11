@@ -3,7 +3,8 @@ import {
     MASTER_PASSWORD,
     EMAIL_SERVER_STATUS
 } from '../Util/constant.js';
-import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER} from '../Util/emailTemplate.js'
+import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER} from '../Util/emailTemplate.js';
+import {SERVER_PORT} from '../backend_settings.js';
 var models = require('../Model');
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
@@ -74,14 +75,14 @@ if (active) {
 console.log('/Email: Creating Transport');
 
 var transporter = nodemailer.createTransport(
-smtpTransport({
-    service: 'gmail',
-    host: 'smtp.gmail.com',
-    auth: {
-        user: MASTER_EMAIL,
-        pass: MASTER_PASSWORD
-    }
-}));
+    smtpTransport({
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        auth: {
+            user: MASTER_EMAIL,
+            pass: MASTER_PASSWORD
+        }
+    }));
 
 let email = MASTER_EMAIL;
 
@@ -139,8 +140,6 @@ class Email {
     */
     async sendNow(userid, type, data) {
         //return; //for testting purposes
-
-
         if (active) {
             var x = this;
             await UserLogin.find({
@@ -156,16 +155,26 @@ class Email {
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
-                case 'create user':
+                case 'initial_user':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: CREATE_USER.subject,
-                        text: CREATE_USER.text,
-                        html: CREATE_USER.html
+                        subject: INITIAL_USER.subject,
+                        text: INITIAL_USER.text,
+                        html: INITIAL_USER.html
                     });
                     break;
+                    // case 'create user':
+                    //     await x.send({
+                    //         from: email,
+                    //         replyTo: email,
+                    //         to: send,
+                    //         subject: CREATE_USER.subject,
+                    //         text: CREATE_USER.text,
+                    //         html: CREATE_USER.html
+                    //     });
+                    //     break;
                 case 'invite user':
                     console.log('inviting ' + send);
                     let template = await INVITE_USER(data);
@@ -174,12 +183,28 @@ class Email {
                         replyTo: email,
                         to: send,
                         subject: template.subject,
-                        text: template.html,
+                        text: template.text,
                         html: template.html
                     });
                     break;
-                case 'new task':
+                case 'new_task':
                     console.log('notifying ' + send);
+                    // let task = await TaskInstance.find({
+                    //     where:{
+                    //         TaskInstanceID: data.ti_id
+                    //     },
+                    //     attributes: ['AssignmentInstanceID'],
+                    //     include: [{
+                    //         model: AssignmentInstance,
+                    //         include: [{
+                    //             model: Section,
+                    //             include:[{
+                    //                 model:Course
+                    //             }]
+                    //         }]
+                    //     }]
+                    // });
+                    // let template = await NEW_TASK(data);
                     await x.send({
                         from: email,
                         replyTo: email,
@@ -198,6 +223,16 @@ class Email {
                         subject: LATE.subject,
                         text: LATE.text,
                         html: LATE.html
+                    });
+                    break;
+                case 'late':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: REVISE.subject,
+                        text: REVISE.text,
+                        html: REVISE.html
                     });
                     break;
                 case 'remove_reallocated':
@@ -222,6 +257,7 @@ class Email {
                     break;
 
                 case 'reset password':
+                    console.log('resetting password');
                     let template2 = await RESET_PASS(data);
                     await x.send({
                         from: email,
@@ -232,14 +268,25 @@ class Email {
                         html: template2.html
                     });
                     break;
+                case 'new password':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: NEW_PASSWORD.subject,
+                        text: NEW_PASSWORD.text,
+                        html: NEW_PASSWORD.html
+
+                    });
+                    break; 
                 case 'new_reply':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Reply',
-                        text: 'Dear ' + data.name + '\nSomeone has replied to your comment. You can view the reply here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.name + '<br>Someone has replied to your comment. You can view the reply here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_REPLY.subject,
+                        text: NEW_REPLY.text,
+                        html: NEW_REPLY.html
 
                     });
                     break;    
@@ -248,9 +295,9 @@ class Email {
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Volunteer',
-                        text: 'Dear ' + data.name + '\nA student has made a volunteer request. You can view the request here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.name + '<br>A student has made a volunteer request. You can view the request here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_VOLUNTEER.subject,
+                        text: NEW_VOLUNTEER.text,
+                        html: NEW_VOLUNTEER.html
 
                     });
                     break;  
@@ -259,22 +306,22 @@ class Email {
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Flag',
-                        text: 'Dear ' + data.name + '\nSomeone has flagged a comment. You can view the flag here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.name + '<br>Someone has flagged a comment. You can view the flag here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_FLAG.subject,
+                        text: NEW_FLAG.text,
+                        html: NEW_FLAG.html
 
                     });
                     break;
                 case 'custom':
-                await x.send({
-                    from: email,
-                    replyTo: email,
-                    to: send,
-                    subject: data.subject,
-                    text: data.text,
-                    html: data.html
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: data.subject,
+                        text: data.text,
+                        html: data.html
 
-                });
+                    });
                 default:
                     logger.log('error', '/Workflow/Email/sendNow: email option not found!');
                     return null;

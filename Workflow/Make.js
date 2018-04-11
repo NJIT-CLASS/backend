@@ -96,14 +96,14 @@ class Make {
             assignment_instance: ai_id
         });
 
-        // var sectionid = await AssignmentInstance.find({
+        // var secId = await AssignmentInstance.find({
         //     where:{
         //         AssignmentInstanceID: ai_id
         //     }
         // });
 
         var x = this;
-        var users = await x.getUsersFromSection(sectionid); //returns users from sectionid
+        var users = await x.getUsersFromSection(secId); //returns users from secId
         var ai_idToSearch;
         if(typeof ai_id == 'string'){
             try{
@@ -120,7 +120,12 @@ class Make {
             if(Array.isArray(ai_id)){
                 ai_idToSearch = ai_id[0];
             }
+            else {
+                ai_idToSearch = ai_id;
+            }
         }
+
+        console.log('AIID', ai_idToSearch, ai_id);
         var wf_timing = await x.getWorkflowTiming(ai_idToSearch); //returns workflow timing from the assignment instance
         var workflows = [];
         
@@ -156,7 +161,8 @@ class Make {
 
         var sec_users = await SectionUser.findAll({
             where: {
-                SectionID: sectionid
+                SectionID: sectionid,
+                Active: 1
             }
         }).catch(function (err) {
             logger.log('error', 'error has been found /TaskFactory.js/getUsersFromSection(sectionid)');
@@ -309,6 +315,8 @@ class Make {
                     'index': index,
                     'users': users
                 };
+
+                // console.log('obj',obj);
 
                 var ti = await x.createTaskInstance(obj); //creates a task instance and returns the instance id
                 tis = ti[0];
@@ -471,7 +479,9 @@ class Make {
         var x = this;
         var isSubWorkflow = await x.getIsSubWorkflow(obj.flat_tree, obj.ta);
         var num_participants = await x.getNumParticipants(obj.ta.id); //returns number of participants of a task and whether the task has subworkflow
-        var u_id_and_index = await x.getAllocUser(obj.ta, obj.ta_to_u_id, obj.users, obj.i, obj.index, num_participants); //returns users id and new index of the pointer
+        
+        console.log(num_participants.length);
+        var u_id_and_index = await x.getAllocUser(obj.ta, obj.ta_to_u_id, obj.users, obj.i, obj.index, num_participants,obj.ai_id); //returns users id and new index of the pointer
         var user_ids = u_id_and_index[0];
         obj.index = u_id_and_index[1];
 
@@ -538,44 +548,119 @@ class Make {
             //     'parents': parents
             // });
 
-            if ((ta.Type === 'needs_consolidation' || obj.ta.isSubWorkflow === isSubWorkflow) && !(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
-                let stat;
-                if (ta.Type === 'needs_consolidation') {
-                    stat = await JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
-                } else {
-                    stat = await JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
-                }
+            // if ((ta.Type === 'needs_consolidation' || obj.ta.isSubWorkflow === isSubWorkflow) && !(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
+            //     let stat;
+            //     if (ta.Type === 'needs_consolidation') {
+            //         stat = await JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
+            //     } else {
+            //         stat = await JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
+            //     }
 
-                await Promise.mapSeries(user_ids, async function (userid) {
+            //     await Promise.mapSeries(user_ids, async function (userid) {
 
-                    var ti_u_hist = [{
-                        time: new Date(),
-                        user_id: userid,
-                        is_extra_credit: false,
-                    }];
+            //         var ti_u_hist = [{
+            //             time: new Date(),
+            //             user_id: userid,
+            //             is_extra_credit: false,
+            //         }];
 
-                    var ti = await TaskInstance.create({
-                        UserID: userid,
-                        TaskActivityID: obj.ta.id,
-                        WorkflowInstanceID: obj.new_wi_id,
-                        AssignmentInstanceID: obj.ai_id,
-                        Status: stat,
-                        UserHistory: ti_u_hist,
-                        NextTask: [],
-                        PreviousTask: parents,
-                        IsSubWorkflow: obj.ta.isSubWorkflow
-                    });
+            //         var ti = await TaskInstance.create({
+            //             UserID: userid,
+            //             TaskActivityID: obj.ta.id,
+            //             WorkflowInstanceID: obj.new_wi_id,
+            //             AssignmentInstanceID: obj.ai_id,
+            //             Status: stat,
+            //             UserHistory: ti_u_hist,
+            //             NextTask: [],
+            //             PreviousTask: parents,
+            //             IsSubWorkflow: obj.ta.isSubWorkflow
+            //         });
 
-                    await x.updateNextTasks(parents, {
-                        'id': ti.TaskInstanceID,
-                        'isSubWorkflow': obj.ta.isSubWorkflow
-                    });
+            //         await x.updateNextTasks(parents, {
+            //             'id': ti.TaskInstanceID,
+            //             'isSubWorkflow': obj.ta.isSubWorkflow
+            //         });
 
-                    obj.tis.push(ti.TaskInstanceID);
-                    obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+            //         obj.tis.push(ti.TaskInstanceID);
+            //         obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+            //     });
+
+            //     return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
+
+            // } else {
+
+            //     await Promise.mapSeries(parents, async function (parent) { //collects all parents and create edit for each of the parent
+            //         await Promise.mapSeries(user_ids, async function (userid) {
+            //             var ti_u_hist = [{
+            //                 time: new Date(),
+            //                 user_id: userid,
+            //                 is_extra_credit: false,
+            //             }];
+
+            //             var ti = await TaskInstance.create({
+            //                 UserID: userid,
+            //                 TaskActivityID: obj.ta.id,
+            //                 WorkflowInstanceID: obj.new_wi_id,
+            //                 AssignmentInstanceID: obj.ai_id,
+            //                 Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+            //                 UserHistory: ti_u_hist,
+            //                 NextTask: [],
+            //                 PreviousTask: [parent],
+            //                 IsSubWorkflow: obj.ta.isSubWorkflow
+            //             });
+
+            //             await x.updateNextTasks([parent], {
+            //                 'id': ti.TaskInstanceID,
+            //                 'isSubWorkflow': obj.ta.isSubWorkflow
+            //             });
+
+            //             obj.tis.push(ti.TaskInstanceID);
+            //             obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+            //         });
+            //     });
+
+            //     return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
+            // }
+
+
+            if (!(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
+            let stat;
+            if (ta.Type === 'needs_consolidation') {
+                stat = await JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
+            } else {
+                stat = await JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
+            }
+
+            await Promise.mapSeries(user_ids, async function (userid) {
+
+                var ti_u_hist = [{
+                    time: new Date(),
+                    user_id: userid,
+                    is_extra_credit: false,
+                }];
+
+                var ti = await TaskInstance.create({
+                    UserID: userid,
+                    TaskActivityID: obj.ta.id,
+                    WorkflowInstanceID: obj.new_wi_id,
+                    AssignmentInstanceID: obj.ai_id,
+                    Status: stat,
+                    UserHistory: ti_u_hist,
+                    NextTask: [],
+                    PreviousTask: parents,
+                    IsSubWorkflow: obj.ta.isSubWorkflow
                 });
 
-                return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
+                await x.updateNextTasks(parents, {
+                    'id': ti.TaskInstanceID,
+                    'isSubWorkflow': obj.ta.isSubWorkflow
+                });
+
+                obj.tis.push(ti.TaskInstanceID);
+                obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+            });
+
+            return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
 
             } else {
 
@@ -655,7 +740,7 @@ class Make {
      * @param  {[type]}  num_participants [description]
      * @return {Promise}                  [description]
      */
-    async getAllocUser(ta, ta_to_u_id, users, i, j, num_participants) {
+    async getAllocUser(ta, ta_to_u_id, users, i, j, num_participants, ai_id) {
 
         // logger.log('debug', 'finding user to allocate',{
         //     ta:ta,
@@ -677,7 +762,8 @@ class Make {
             }
 
             if (assign_constr[0] === 'instructor') { //if the first index is 'instructor', find the owner. TODO: Future, allocate to instructor in the section User table
-                var owner = await x.getOwnerID(ta.id);
+                // var owner = await x.getOwnerID(ta.id);
+                var owner = await x.getInstructorID(ai_id);
                 alloc_users.push(owner);
             } else if (Object.keys(ta_to_u_id).length === 0) { //if nothing is inside ta_to_u_id return the current user pointing to and index add 1
                 alloc_users.push(users[index]);
@@ -693,24 +779,46 @@ class Make {
                     //console.log('void_users', void_users);
                     if (void_users.length >= users.length) {
                         logger.log('error', 'Fatal! No user to allocate! Reallocate to instructor');
-                        var owner = await x.getOwnerID(ta.id);
+                        var owner = await x.getInstructorID(ai_id);
                         alloc_users.push(owner);
                     } else {
                         if (void_users.length > 0) {
                             if (_.contains(void_users, users[index])) { //check if the void users contains the user
                                 index++;
+                                console.log('here')
                             } else {
                                 alloc_users.push(users[index]);
                                 index++;
                             }
                         }
                     }
-                } else {
+                } else if (assign_constr[2].hasOwnProperty('not_in_workflow_instance')) { //temporary fix for 2nd grader not showing
+                    var void_users = await x.getVoidUsers(assign_constr[2].not_in_workflow_instance, ta_to_u_id); //*
+                    //console.log('void_users', void_users);
+                    if (void_users.length >= users.length) {
+                        logger.log('error', 'Fatal! No user to allocate! Reallocate to instructor');
+                        var owner = await x.getInstructorID(ai_id);
+                        alloc_users.push(owner);
+                    } else {
+                        if (void_users.length > 0) {
+                            if (_.contains(void_users, users[index])) { //check if the void users contains the user
+                                index++;
+                                console.log('here')
+                            } else {
+                                alloc_users.push(users[index]);
+                                index++;
+                            }
+                        }
+                    }
+                }else {
                     logger.log('error', 'Fatal! No user to allocate! ');
+                    var owner = await x.getInstructorID(ai_id);
+                    alloc_users.push(owner);
                 }
             }
         });
-
+        
+        console.log('alloc users', alloc_users)
         return [alloc_users, index];
     }
 
@@ -745,26 +853,56 @@ class Make {
      * @param  {[type]}  ta_id [description]
      * @return {Promise}       [description]
      */
-    async getOwnerID(ta_id) {
+    async getOwnerID(ai_id) {
 
         try {
-            var ta = await TaskActivity.find({
-                where: {
-                    TaskActivityID: ta_id
+           var ai = await AssignmentInstance.find({
+               where: {
+                   AssignmentInstanceID: ai_id
+               }
+           });
+
+           var section = await SectionUser.findAll({
+               where: {
+                   SectionID: ai.Section,
+                   Role: 'Instructor'
+               }
+           });
+
+
+           return section[0];
+        } catch (err) {
+            logger.log('error', 'cannot find owner ID', {
+                error: err,
+                task_activity: ta_id
+            });
+        }
+
+    }
+
+    /**
+     * get the owner id of the assignment. Future: this is should be get instructor
+     * @param  {[type]}  ta_id [description]
+     * @return {Promise}       [description]
+     */
+    async getInstructorID(ai_id) {
+
+        try {
+            var ai = await AssignmentInstance.findOne({
+                where:{
+                    AssignmentInstanceID: ai_id
                 }
-            }).catch(function (err) {
-                logger.log('error', 'cannot find task activity for a owner');
             });
 
-            var a = await Assignment.find({
-                where: {
-                    AssignmentID: ta.AssignmentID
+            var sec_users = await SectionUser.findAll({
+                where:{
+                    SectionID: ai.SectionID,
+                    Role: 'Instructor',
+                    Active: 1
                 }
-            }).catch(function (err) {
-                logger.log('error', 'cannot find assignment for a owner');
             });
 
-            return a.OwnerID;
+            return sec_users[0].UserID;
         } catch (err) {
             logger.log('error', 'cannot find owner ID', {
                 error: err,
@@ -834,8 +972,8 @@ class Make {
         var endDate = moment(startDate);
 
         if (wf_task.DueType[0] === 'duration') {
-            //endDate.add(wf_task.DueType[1], 'minutes');
-            endDate.add(1, 'minutes');
+            endDate.add(wf_task.DueType[1], 'minutes');
+            //endDate.add(1, 'minutes');
         } else if (wf_task.DueType[0] === 'specific time') {
             endDate = wf_task.DueType[1];
         }
@@ -857,7 +995,7 @@ class Make {
                         TaskInstanceID: task
                     }
                 });
-                email.sendNow(ti.UserID, 'new task', null);
+                email.sendNow(ti.UserID, 'new_task', {'ti_id': task});
             });
         });
 

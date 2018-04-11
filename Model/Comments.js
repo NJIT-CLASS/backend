@@ -103,7 +103,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         CommentTarget:{
             type: DataTypes.STRING(255),
-            field: 'Hide',
+            field: 'CommentTarget',
             allowNull: true
         }
     }, {

@@ -1,5 +1,6 @@
 var models = require('../Model');
 
+export let APIStatistics = models.APIStatistics;
 export let Assignment = models.Assignment;
 export let AssignmentGrade = models.AssignmentGrade;
 export let AssignmentInstance = models.AssignmentInstance;
