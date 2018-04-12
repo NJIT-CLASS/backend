@@ -46,12 +46,12 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Role',
             allowNull: true
         },
-         Test: {
-             type: DataTypes.BOOLEAN,
-             field: 'Test',
-             allowNull: false,
-             defaultValue: false
-         }
+        //  Test: {
+        //      type: DataTypes.BOOLEAN,
+        //      field: 'Test',
+        //      allowNull: false,
+        //      defaultValue: false
+        //  }
         //Role: {
             //Official first name of the user
         //    type: DataTypes.STRING(40),
