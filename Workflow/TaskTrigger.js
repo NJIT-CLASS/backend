@@ -418,7 +418,7 @@ class TaskTrigger {
             } else if (ta.FunctionType === 'min') {
                 console.log('The needs consolidation grade is: ', min);
                 return [min, triggerConsolidate];
-            } else if (ta.FunctionType === 'average') {
+            } else if (ta.FunctionType === 'average' ||ta.FunctionType === 'avg') {
                 console.log('The needs consolidation grade is: ', (max + min) / 2);
                 return [(max + min) / 2, triggerConsolidate];
             } else {
