@@ -9,4 +9,7 @@ exports.TOKEN_KEY = process.env.tokenSecret || 'secretKey';
 exports.TOKEN_LIFE = process.env.tokenLife || '6h';
 exports.REFRESH_TOKEN_LIFE = process.env.refreshTokenLife || 14;
 
+<<<<<<< HEAD
 
+=======
+>>>>>>> b6b7fb38578fb284bff53c7e7818915dda480214
