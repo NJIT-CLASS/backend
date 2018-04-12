@@ -35,7 +35,8 @@ REST.prototype.configureExpress = function() {
     app.use(bodyParser.urlencoded({
         extended: true
     }));
-    app.use(bodyParser.json());
+    app.use(bodyParser.json({limit: '50mb'}));
+    app.use(bodyParser.urlencoded({limit: '50mb', extended: true,parameterLimit:50000}));
     var router = express.Router();
     app.use('/api', router);
     var rest_router = new rest(router);
@@ -53,6 +54,7 @@ REST.prototype.stop = function(err) {
     console.log('ISSUE WITH MYSQL n' + err);
     process.exit(1);
 };
+
 
 //-----------------------------------------------------------------------------------------------------------------------------------------
 
