@@ -9236,7 +9236,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 	router.get('/removeinstance/:AssignmentInstanceID', function (req, res) {
 		var assignmentArray = new Array();
 		console.log('Remove assignment is called\n');
-		removeinstance(req.params.AssignmentInstanceID)
+		removeInstance(req.params.AssignmentInstanceID)
 			.then(function() {
 				res.status(201).end();
 			});
