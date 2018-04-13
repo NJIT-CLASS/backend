@@ -8688,7 +8688,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 		});
     }
 
-	function restoreRemovedInstance(AssignInstanceID){
+	function restoreRemovedInstance(AssignInsID){
 		return sequelize.transaction(function(t) {
 			var options = { raw: true, transaction: t }
 			return sequelize
@@ -8841,7 +8841,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return RemovedTaskInstance.findAll({
 						where: {
-							AssignmentInstanceID: AssignInstanceID
+							AssignmentInstanceID: AssignInsID
 						},
 						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
 					}).then(function (rows) {
@@ -8876,7 +8876,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						})
 						.then(RemovedWorkflowInstance.findAll({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
 						}).then(function (workflowrows) {
@@ -8897,7 +8897,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						}))
 						.then(RemovedAssignmentInstance.findAll({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
 						}).then(function (assigninstancerows) {
@@ -8922,7 +8922,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return RemovedTaskInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
@@ -8933,7 +8933,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return RemovedWorkflowInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
@@ -8944,7 +8944,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return RemovedAssignmentInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
@@ -8961,7 +8961,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 		});
 	}
 
-	function removeInstance(AssignInstanceId) {
+	function removeInstance(AssignInsID) {
 		return sequelize.transaction(function(t) {
 			var options = { raw: true, transaction: t }
 			return sequelize
@@ -9114,14 +9114,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return TaskInstance.findAll({
 						where: {
-							AssignmentInstanceID: AssignInstanceId
+							AssignmentInstanceID: AssignInsID
 						},
 						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
 					}).then(function (rows) {
 							//console.log(rows[0].OwnerID);
 							var arrayLength = rows.length;
 							for (var x = 0; x < arrayLength; x++) {
-
 								RemovedTaskInstance.create({
 									TaskInstanceID: rows[x].TaskInstanceID,
 									UserID: rows[x].UserID,
@@ -9148,7 +9147,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						})
 						.then(WorkflowInstance.findAll({
 							where: {
-								AssignmentInstanceID: AssignInstanceId
+								AssignmentInstanceID: AssignInsID
 							},
 							attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
 						}).then(function (workflowrows) {
@@ -9169,7 +9168,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						}))
 						.then(AssignmentInstance.findAll({
 							where: {
-								AssignmentInstanceID: AssignInstanceId
+								AssignmentInstanceID: AssignInsID
 							},
 							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
 						}).then(function (assigninstancerows) {
@@ -9194,7 +9193,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return TaskInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceId
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
@@ -9205,7 +9204,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return WorkflowInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceId
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
@@ -9216,7 +9215,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return AssignmentInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceId
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
@@ -9228,6 +9227,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 					return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
 				})
 				.catch(function(err) {
+				    console.log(err);
 					return t.rollback();
 				});
 		});
