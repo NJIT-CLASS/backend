@@ -928,7 +928,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 	//Endpoint to get the move a saved assignment from a partial assignment to different course
 	router.get('/partialAssignments/duplicate/:partialAssignmentId/:CourseID', function (req, res) {
-		PartialAssignments.find({
+		var newid;
+		PartialAssignments.max('PartialAssignmentID').then(max => {
+			newid = max+1;
+		}).then(
+	    PartialAssignments.find({
 				where: {
 					PartialAssignmentID: req.params.partialAssignmentId,
 				}
@@ -936,14 +940,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				PartialAssignments.create({
 					UserID:result.UserID,
 					CourseID: req.params.CourseID,
-					PartialAssignmentName: result.PartialAssignmentName,
+					PartialAssignmentName: result.PartialAssignmentName+'-copy-'+newid,
 					Data: JSON.parse(result.Data)
 				}).then(function() {
 					return res.json({
 						'Error': false
 					});
 				})
-			}).catch(result => {
+			})).catch(result => {
 			    console.log(result);
 			    res.status(400).json({
 				    Error: true
