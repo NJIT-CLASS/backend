@@ -450,23 +450,16 @@ class Grade {
             });
 
             var maxGrade = 0;
-            let data = JSON.parse(ti.Data);
-            await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function(val) {
-                 if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
-                let distribution = field.field_distribution[val];
-                if (field[val].assessment_type === 'grade') {
-                    final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
-                } else if (field[val].assessment_type === 'rating') {
-                    final_grade += (data[val][0]/field[val].rating_max)*(distribution/100)*100;
-                } else if (field[val].assessment_type === 'pass') {
-                    if(data[val][0] == 'pass'){
-                        final_grade += (distribution/100)*100;
-                    }
-                } else if (field[val].assessment_type === 'evaluation') {
-                    let label_length = field[val].list_of_labels.length;
-                    final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
+            let field = JSON.parse(ta.Fields);
+
+            
+            await Promise.mapSeries(Object.keys(field), async function(val) {
+                if (val === 'field_distribution') { //check if field type is assessment
+                    let distribution = field.field_distribution[val];
+                    await Promise.mapSeries(Object.keys(distribution), function(val) {
+                        max += distribution[val];
+                    });
                 }
-            }
             });
 
             logger.log('info', '/Workflow/Grade/gradeBelongsTo: userID found:', pre_ti.UserID);
