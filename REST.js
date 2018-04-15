@@ -765,7 +765,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 PartialAssignmentName: req.body.assignment.AA_name,
                 UserID: req.body.userId,
                 CourseID: req.body.courseId,
-                Data: req.body.assignment
+                Data: req.body.saveData
             }).then((result) => {
 
                 console.log('assignment: ', req.body.assignment);
@@ -786,7 +786,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         } else {
             PartialAssignments.update({
                 PartialAssignmentName: req.body.assignment.AA_name,
-                Data: req.body.assignment
+                Data: req.body.saveData
             }, {
                 where: {
                     PartialAssignmentID: req.body.partialAssignmentId
@@ -1592,7 +1592,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('info', 'Data cannot be null');
             return res.status(400).end();
         }
-
+        console.log('Task Submitting', req.body)
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: req.body.taskInstanceid,
