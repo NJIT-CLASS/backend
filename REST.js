@@ -1050,7 +1050,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 SectionID: req.params.sectionId
             },
-            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'DisplayName'],
             include: [{
                 model: Assignment,
                 attributes: ['DisplayName']
@@ -1080,7 +1080,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [{
                 model: AssignmentInstance,
                 as: 'AssignmentInstances',
-                attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'SectionID']
+                attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'SectionID', 'DisplayName']
 
             }]
         }).then(function (result) {
@@ -1528,6 +1528,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 attributes: ['Type']
             }, {
                 model: AssignmentInstance,
+                attributes: ['DisplayName'],
                 include: [{
                     model: Section,
                     attributes: ['Name', 'SectionID'],
@@ -1561,6 +1562,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     'courseName': taskInstanceResult.AssignmentInstance.Section.Course.Name,
                     'courseNumber': taskInstanceResult.AssignmentInstance.Section.Course.Number,
                     'assignment': taskInstanceResult.TaskActivity.Assignment,
+                    'assignmentDisplayName': taskInstanceResult.AssignmentInstance.DisplayName,
                     'semesterID': taskInstanceResult.AssignmentInstance.Section.Semester.SemesterID,
                     'semesterName': taskInstanceResult.AssignmentInstance.Section.Semester.Name,
                     'sectionName': taskInstanceResult.AssignmentInstance.Section.Name,
@@ -1592,7 +1594,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('info', 'Data cannot be null');
             return res.status(400).end();
         }
-        console.log('Task Submitting', req.body)
+        console.log('Task Submitting', req.body);
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: req.body.taskInstanceid,
@@ -1896,7 +1898,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
+                    attributes: ['AssignmentInstanceID', 'AssignmentID', 'DisplayName'],
                     include: [{
                         model: Section,
                         attributes: ['SectionID', 'Name'],
@@ -1955,7 +1957,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
+                    attributes: ['AssignmentInstanceID', 'AssignmentID', 'DisplayName'],
                     include: [{
                         model: Section,
                         attributes: ['SectionID', 'Name'],
@@ -2074,6 +2076,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     attributes: ['OwnerID', 'SemesterID', 'CourseID', 'DisplayName', 'SectionID']
                                 }).then(function (A_Result) {
                                     info.Assignment = A_Result;
+                                    info.AssignmentDisplayName = AI_Result.DisplayName;
                                     //console.log("A_Result", A_Result);
                                     return User.find({
                                         where: {
@@ -2123,7 +2126,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 SectionID: req.params.SectionID
             },
-            attributes: ['AssignmentInstanceID'],
+            attributes: ['AssignmentInstanceID', 'DisplayName'],
             include: [{
                 model: Assignment,
                 attributes: ['AssignmentID', 'Name', 'Type', 'DisplayName'],
@@ -2651,7 +2654,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 SectionID: req.params.sectionId
             },
-            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate', 'DisplayName'],
             include: [{
                 model: Assignment,
                 attributes: ['DisplayName']
@@ -4673,6 +4676,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     'Course': cou.Number,
                     'Section': sec.Name,
                     'Semester': ses.Name,
+                    'Name': ai.DisplayName
                 },
                 'Workflows': everyones_work
             });
