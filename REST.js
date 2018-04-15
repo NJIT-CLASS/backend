@@ -4805,7 +4805,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 },
                 {
                     model: ArchivedAssignment
-                }]
+                },
+                {
+		            model: Assignment
+	            }
+                ]
 		}).then(function (rows) {
 			res.json({
 				'Error': false,
@@ -4833,6 +4837,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				},
 				{
 					model: RemovedAssignment
+				},
+				{
+					model: Assignment
 				}]
 		}).then(function (rows) {
 			res.json({
