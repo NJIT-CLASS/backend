@@ -4802,6 +4802,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     {
 		                model: Course
                     }]
+                },
+                {
+                    model: ArchivedAssignment
                 }]
 		}).then(function (rows) {
 			res.json({
@@ -4827,6 +4830,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						{
 							model: Course
 						}]
+				},
+				{
+					model: RemovedAssignment
 				}]
 		}).then(function (rows) {
 			res.json({
@@ -4897,6 +4903,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						{
 							model: Course
 						}]
+				},
+				{
+					model: Assignment
 				}]
 		}).then(function (rows) {
 			res.json({
@@ -8419,7 +8428,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 			});
 	});
 
-	function restoreArchivedInstance(AssignInstanceID){
+	function restoreArchivedInstance(AssignInsID){
 		return sequelize.transaction(function(t) {
 			var options = { raw: true, transaction: t }
 			return sequelize
@@ -8572,7 +8581,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return ArchivedTaskInstance.findAll({
 						where: {
-							AssignmentInstanceID: AssignInstanceID
+							AssignmentInstanceID: AssignInsID
 						},
 						attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
 					}).then(function (rows) {
@@ -8607,7 +8616,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						})
 						.then(ArchivedWorkflowInstance.findAll({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
 						}).then(function (workflowrows) {
@@ -8628,7 +8637,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						}))
 						.then(ArchivedAssignmentInstance.findAll({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
 						}).then(function (assigninstancerows) {
@@ -8653,7 +8662,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return ArchivedTaskInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
@@ -8664,7 +8673,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return ArchivedWorkflowInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
@@ -8675,7 +8684,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				.then(function() {
 					return ArchivedAssignmentInstance.destroy({
 							where: {
-								AssignmentInstanceID: AssignInstanceID
+								AssignmentInstanceID: AssignInsID
 							},
 							transaction: t
 						})
