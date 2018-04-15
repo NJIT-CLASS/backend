@@ -51,7 +51,13 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.JSON,
             field: 'Volunteers',
             default: '[]'
+        },
+        DisplayName: {
+            type: DataTypes.STRING,
+            field: 'DisplayName',
+            allowNull: false
         }
+
     }, {
         timestamps: false,
 

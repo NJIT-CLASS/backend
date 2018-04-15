@@ -92,7 +92,7 @@ class TaskFactory {
         });
     }
 
-    async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
+    async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing, ai_displayName) {
         var x = this;
         var assingmentInstancesCreated = [];
         console.log('Creating assignment instance... WTIH ', a_id, sectionIDs, startDate, wf_timing);
@@ -104,7 +104,8 @@ class TaskFactory {
                 AssignmentID: a_id,
                 SectionID: sectionid,
                 StartDate: startDate,
-                WorkflowTiming: wf_timing
+                WorkflowTiming: wf_timing,
+                DisplayName: ai_displayName
             });
             assingmentInstancesCreated.push(ai.AssignmentInstanceID);
             await x.updateWorkflowTiming(wf_timing);

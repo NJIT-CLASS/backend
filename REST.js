@@ -4084,8 +4084,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         console.log('/getAssignToSection/submit/  Creating Assignment Instance...');
         logger.log('info', 'Assing TO Section submit', req.body);
 
+        
         //create assignment instance
-        await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
+        await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing, req.body.assignmentDisplayName).then(async function (done) {
             console.log('/getAssignToSection/submit/ All Done!');
             console.log('Done value:', done);
             console.log(typeof req.body.wf_timing, req.body.startDate);
