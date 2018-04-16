@@ -134,7 +134,7 @@ class Grade {
      * @param {any} max_grade 
      * @memberof Grade
      */
-    async addTaskGrade(ti_id, grade, max_grade, ) {
+    async addTaskGrade(ti_id, grade, max_grade) {
 
         var ti = await TaskInstance.find({
             where: {
@@ -159,6 +159,9 @@ class Grade {
             Grade: grade,
             IsExtraCredit: user_history[user_history.length - 1].is_extra_credit,
             MaxGrade: max_grade
+        }).catch(function(err){
+            console.log('err here')
+            console.log(err);
         });
 
 
@@ -454,10 +457,10 @@ class Grade {
 
             
             await Promise.mapSeries(Object.keys(field), async function(val) {
-                if (val === 'field_distribution') { //check if field type is assessment
-                    let distribution = field.field_distribution[val];
-                    await Promise.mapSeries(Object.keys(distribution), function(val) {
-                        max += distribution[val];
+                if (val === 'field_distribution' && val != null) { //check if field type is assessment
+                    let distribution = field.field_distribution;
+                    await Promise.mapSeries(Object.keys(field.field_distribution), function(val) {
+                        maxGrade += distribution[val];
                     });
                 }
             });

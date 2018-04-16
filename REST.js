@@ -1610,7 +1610,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         //Update points for student as they submit tasks
         let taskFactory = new TaskFactory;
-        taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, req.body.userid);
+        // taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, req.body.userid);
 
         logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
@@ -3222,7 +3222,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 //Update Categories as new section is being created
                 let taskFactory = new TaskFactory;
-                taskFactory.createCategoryInstances(response.SemesterID, response.CourseID, response.SectionID);
+                // taskFactory.createCategoryInstances(response.SemesterID, response.CourseID, response.SectionID);
 
                 res.json({
                     'result': response
