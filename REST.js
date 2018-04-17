@@ -3017,15 +3017,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     // });
 
     //Endpoint for Assignment Manager
-    router.post('/getAssignmentGrades/:ai_id', participantAuthentication, function (req, res) {
+    router.get('/getAssignmentGrade/:ai_id', async function (req, res) {
 
         if (req.params.ai_id == null) {
-            console.log('/getAssignmentGrades/:ai_id : assignmentInstanceID cannot be null');
+            console.log('/getAssignmentGrade/:ai_id : assignmentInstanceID cannot be null');
             res.status(400).end();
             return;
         }
 
-       
+        let grade = new Grade();
+        let result = await grade.getGradeReport(req.params.ai_id);
+        res.json(result);
+        
     });
 
     //Endpoint to create a semester
