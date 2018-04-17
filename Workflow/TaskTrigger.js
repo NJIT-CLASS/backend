@@ -116,7 +116,7 @@ class TaskTrigger {
             if (type === 'needs_consolidation') {
                 await x.needsConsolidate(next_task);
             } else {
-                if (JSON.parse(next_task.Status)[0] !== 'complete') {
+                if (JSON.parse(next_task.Status)[0] !== 'complete' && JSON.parse(next_task.Status)[0] !== 'bypassed') { // added bypassed for bypassed tasks 4-8-18
                     await x.triggerNext(next_task);
                 }
             }
@@ -140,7 +140,11 @@ class TaskTrigger {
         });
 
         var final_grade = await grade.findFinalGrade(ti);
-        await grade.addTaskGrade(final_grade.id, final_grade.grade, final_grade.max_grade);
+        console.log('herte', final_grade);
+        if(final_grade != null){
+            await grade.addTaskGrade(final_grade.id, final_grade.grade, final_grade.max_grade);
+        }
+
 
         if (await grade.checkWorkflowDone(ti.WorkflowInstanceID)) {
             var grades = await TaskGrade.findAll({
@@ -151,7 +155,7 @@ class TaskTrigger {
 
             //Amadou
             let taskFactory = new TaskFactory;
-            taskFactory.updatePointInstance('high_grade', ti.AssignmentInstanceID, ti.UserID);
+            // taskFactory.updatePointInstance('high_grade', ti.AssignmentInstanceID, ti.UserID);
 
 
             await Promise.mapSeries(grades, async function(t_grade) {
@@ -339,7 +343,7 @@ class TaskTrigger {
      * @return {Promise}      [description]
      */
     async findGrades(task) {
-        logger.log('info', 'checking for grades...');
+        logger.log('info', '/findGrades:checking for grades...');
         //try{
         var x = this;
         var final_grade;
@@ -359,22 +363,23 @@ class TaskTrigger {
 
             if (pre.FinalGrade !== null) { //if no FinalGrade found, dont push
                 grades.push(pre.FinalGrade);
-
+                let data =  JSON.parse(pre.Data)[0];
+                console.log(data);
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function(val) {
-                    if (JSON.parse(pre.TaskActivity.Fields)[val].field_type !== undefined && (val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(pre.TaskActivity.Fields)[val].field_type == 'assessment') {
-                        if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'grade') {
-                            maxGrade += JSON.parse(pre.TaskActivity.Fields)[val].numeric_max;
-                        } else if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'rating') {
-                            maxGrade += 100;
-                        } else if (JSON.parse(pre.TaskActivity.Fields)[val].assessment_type == 'evaluation') {
-                            // How evaluation works?
-                            // if(JSON.parse(pre.Data)[val][0] == 'Easy'){
-                            //
-                            // } else if(JSON.parse(pre.Data)[val][0] == 'Medium'){
-                            //
-                            // } else if(JSON.parse(pre.Data)[val][0] == 'Hard'){
-                            //
-                            // }
+                    let field = JSON.parse(pre.TaskActivity.Fields)
+                    if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
+                        let distribution = field.field_distribution[val];
+                        if (field[val].assessment_type === 'grade') {
+                            final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
+                        } else if (field[val].assessment_type === 'rating') {
+                            final_grade += (data[val][0]/field[val].rating_max)*(distribution/100)*100;
+                        } else if (field[val].assessment_type === 'pass') {
+                            if(data[val][0] == 'pass'){
+                                final_grade += (distribution/100)*100;
+                            }
+                        } else if (field[val].assessment_type === 'evaluation') {
+                            let label_length = field[val].list_of_labels.length;
+                            final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
                         }
                     }
                 });
@@ -414,7 +419,7 @@ class TaskTrigger {
             } else if (ta.FunctionType === 'min') {
                 console.log('The needs consolidation grade is: ', min);
                 return [min, triggerConsolidate];
-            } else if (ta.FunctionType === 'average') {
+            } else if (ta.FunctionType === 'average' ||ta.FunctionType === 'avg') {
                 console.log('The needs consolidation grade is: ', (max + min) / 2);
                 return [(max + min) / 2, triggerConsolidate];
             } else {
@@ -596,7 +601,7 @@ class TaskTrigger {
                     TaskInstanceID: ti.TaskInstanceID
                 }
             }).then(function() {
-                email.sendNow(ti.UserID, 'new task', null);
+                email.sendNow(ti.UserID, 'new_task', {'ti_id': ti.TaskInstanceID});
             });
 
             logger.log('info', 'trigger completed', {
@@ -641,63 +646,57 @@ class TaskTrigger {
     }
 
     /**
-     * finds the grade of a task with the data passed in
+     * computes the assessment grade if there is any
      * @param  {[type]}  ti   [description]
      * @param  {[type]}  data [description]
      * @return {Promise}      [description]
      */
     async finalGrade(ti, data) {
-        logger.log('info', 'checking for grades...');
-        //try{
-        var x = this;
-        var grade = 0;
 
+        logger.log('info', '/finalGrade:checking for grades...');
+        var x = this;
+        var final_grade = 0;
+        
         var ta = await TaskActivity.find({
             where: {
                 TaskActivityID: ti.TaskActivityID
             }
         });
-        console.log(data);
+        let field = JSON.parse(ta.Fields);
+
         if (typeof data === 'string') {
             var keys = Object.keys(JSON.parse(data)); //find the latest version of the data
         } else {
             var keys = Object.keys(data); //find the latest version of the data
         }
-
         await Promise.mapSeries(keys, function(val) {
-            //if (typeof JSON.parse(ta.Fields)[val].field_type !== undefined) {
-            if ((val !== 'number_of_fields' && val !== 'revise_and_resubmit') && JSON.parse(ta.Fields)[val].field_type === 'assessment') {
-                if (JSON.parse(ta.Fields)[val].assessment_type === 'grade') {
-                    grade += parseInt(data[val][0]);
-                } else if (JSON.parse(ta.Fields)[val].assessment_type === 'rating') {
-                    grade += parseInt(data[val][0]) * (100 / JSON.parse(ta.Fields)[val].rating_max);
-                } else if (JSON.parse(ta.Fields)[val].assessment_type === 'evaluation') {
-                    // How evaluation works?
-                    // if(JSON.parse(pre.Data)[val][0] == 'Easy'){
-                    //
-                    // } else if(JSON.parse(pre.Data)[val][0] == 'Medium'){
-                    //
-                    // } else if(JSON.parse(pre.Data)[val][0] == 'Hard'){
-                    //
-                    // }
+            
+            if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution') && field[val].field_type === 'assessment') { //check if field type is assessment
+                let distribution = field.field_distribution[val];
+                if (field[val].assessment_type === 'grade') {
+                    final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
+                } else if (field[val].assessment_type === 'rating') {
+                    final_grade += (parseInt(data[val][0])/field[val].rating_max)*(distribution/100)*100;
+                } else if (field[val].assessment_type === 'pass') {
+                    if(data[val][0] == 'pass'){
+                        final_grade += (distribution/100)*100;
+                    }
+                } else if (field[val].assessment_type === 'evaluation') {
+                    let label_length = field[val].list_of_labels.length;
+                    final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
                 }
             }
-            // }
         });
 
-        if (grade === 0) {
+        if (final_grade === 0) {
             logger.log('info', 'no grade has been found!');
             return null;
         } else {
             logger.log('info', 'grade has been found!', {
-                'grade': grade
+                'grade': final_grade
             });
-            return grade;
+            return final_grade;
         }
-
-        // }catch(err){
-        //     logger.log('error', 'failed finding final grades', {ti_id: ti.TaskInstanceID});
-        // }
     }
 
 
@@ -710,6 +709,7 @@ class TaskTrigger {
      */
     async revise(ti_id, data) {
         var x = this;
+
         var ti = await TaskInstance.find({ //find the revising task
             where: {
                 TaskInstanceID: ti_id
@@ -718,18 +718,19 @@ class TaskTrigger {
                 model: TaskActivity
             }]
         });
+
         var original_task = await x.getEdittingTask(ti); //find the original task that been editted
 
         //update the current task status
         var status = JSON.parse(ti.Status);
         status[0] = 'complete';
-
         var final_grade = await x.finalGrade(ti, data);
-
         var ti_data = JSON.parse(ti.Data);
+
         if (!ti_data) {
             ti_data = [];
         }
+
         await ti_data.push(data);
 
         await TaskInstance.update({
@@ -762,7 +763,7 @@ class TaskTrigger {
             }
         });
 
-
+        email.sendNow(original_task.UserID, 'revise');
     }
 
 

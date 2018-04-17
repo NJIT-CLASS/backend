@@ -3,9 +3,12 @@ import {
     MASTER_PASSWORD,
     EMAIL_SERVER_STATUS
 } from '../Util/constant.js';
+import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER} from '../Util/emailTemplate.js';
+import {SERVER_PORT} from '../backend_settings.js';
 var models = require('../Model');
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
+var smtpTransport = require('nodemailer-smtp-transport');
 
 
 import {
@@ -61,9 +64,6 @@ import {
 
 const logger = require('./Logger.js');
 
-var email = 'njitplamaster@gmail.com';
-// var email = 'participatory-learning@njit.edu';
-//var email = 'qxl2@njit.edu';
 var active = EMAIL_SERVER_STATUS;
 
 if (active) {
@@ -74,18 +74,17 @@ if (active) {
 
 console.log('/Email: Creating Transport');
 
-var transporter = nodemailer.createTransport({
-    /*host: 'smtp.gmail.com',
-    secure: true,
-    port: 465,*/
-    service: 'gmail',
-    secure: true,
-    auth: {
-        user: MASTER_EMAIL,
-        pass: MASTER_PASSWORD
-    },
-    tls: { rejectUnauthorized: false }
-});
+var transporter = nodemailer.createTransport(
+    smtpTransport({
+        service: 'gmail',
+        host: 'smtp.gmail.com',
+        auth: {
+            user: MASTER_EMAIL,
+            pass: MASTER_PASSWORD
+        }
+    }));
+
+let email = MASTER_EMAIL;
 
 // verify connection configuration
 transporter.verify(function (error, success) {
@@ -103,37 +102,7 @@ console.log('/Email: Transport Created');
 */
 class Email {
 
-    // /*
-    //   Adding task instance to email notification list
-    // */
-    // add(taskInstanceID) {
-
-    //     console.log('Adding TaskInstanceID', taskInstanceID, ' To Email Notification List...');
-
-    //     EmailNotification.create({
-    //         TaskInstanceID: taskInstanceID
-    //     }).catch(function (err) {
-    //         console.log(err);
-    //     });
-
-    // }
-
-    // /*
-    //   Removing task instance from email notification list
-    // */
-    // delete(taskInstanceID) {
-
-    //     console.log('Removing TaskInstanceID', taskInstanceID, ' From Email Notification List...');
-
-    //     EmailNotification.destroy({
-    //         where: {
-    //             TaskInstanceID: taskInstanceID
-    //         }
-    //     }).catch(function (err) {
-    //         console.log(err);
-    //     });
-    // }
-
+  
     /*
       Send an email, provide an opts will allow you to send any email to anyone.
     */
@@ -171,8 +140,6 @@ class Email {
     */
     async sendNow(userid, type, data) {
         //return; //for testting purposes
-
-
         if (active) {
             var x = this;
             await UserLogin.find({
@@ -184,40 +151,67 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
-                //send = 'qxl2@njit.edu';
+                send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
-                case 'create user':
+                case 'initial_user':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Welcome to PLA!',
-                        text: 'You have succesfully created an account on PLA \n http://pla.njit.edu:4001',
-                        html: '<p> You have succesfully created an account on PLA! Here is the temporary password for your account: <div>http://pla.njit.edu:4001 <div></p> '
+                        subject: INITIAL_USER.subject,
+                        text: INITIAL_USER.text,
+                        html: INITIAL_USER.html
                     });
                     break;
+                    // case 'create user':
+                    //     await x.send({
+                    //         from: email,
+                    //         replyTo: email,
+                    //         to: send,
+                    //         subject: CREATE_USER.subject,
+                    //         text: CREATE_USER.text,
+                    //         html: CREATE_USER.html
+                    //     });
+                    //     break;
                 case 'invite user':
                     console.log('inviting ' + send);
+                    let template = await INVITE_USER(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Welcome to PLA!',
-                        text: 'You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation. \n http://pla.njit.edu:4001 \nTemporary Password: ' + data,
-                        html: '<p>You have been invited to create an account on PLA. Please log in with your temporary password to finish your account creation.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + data + '</p>'
+                        subject: template.subject,
+                        text: template.text,
+                        html: template.html
                     });
                     break;
-                case 'new task':
+                case 'new_task':
                     console.log('notifying ' + send);
+                    // let task = await TaskInstance.find({
+                    //     where:{
+                    //         TaskInstanceID: data.ti_id
+                    //     },
+                    //     attributes: ['AssignmentInstanceID'],
+                    //     include: [{
+                    //         model: AssignmentInstance,
+                    //         include: [{
+                    //             model: Section,
+                    //             include:[{
+                    //                 model:Course
+                    //             }]
+                    //         }]
+                    //     }]
+                    // });
+                    // let template = await NEW_TASK(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'New Task Awaiting! PLA Admin',
-                        text: 'A new task has been assigned. Please login into \n http://pla.njit.edu:4001 to complete the task',
-                        html: '<p>A new task has been assigned.<div>Please login into http://pla.njit.edu:4001</div></p>'
+                        subject: NEW_TASK.subject,
+                        text: NEW_TASK.text,
+                        html: NEW_TASK.html
                     });
                     break;
 
@@ -226,9 +220,19 @@ class Email {
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Your assignment is overdue - PLA',
-                        text: 'You have an assignment that is due. Please check PLA',
-                        html: ''
+                        subject: LATE.subject,
+                        text: LATE.text,
+                        html: LATE.html
+                    });
+                    break;
+                case 'late':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: REVISE.subject,
+                        text: REVISE.text,
+                        html: REVISE.html
                     });
                     break;
                 case 'remove_reallocated':
@@ -253,24 +257,36 @@ class Email {
                     break;
 
                 case 'reset password':
+                    console.log('resetting password');
+                    let template2 = await RESET_PASS(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Your password has been reset - PLA',
-                        text: 'Your password has been reset. Please log in with your temporary password to finish resetting your password. \n http://pla.njit.edu:4001 \nTemporary Password: ' + data,
-                        html: '<p>Your password has been reset. Please log in with your temporary password to finish resetting your password.<div>http://pla.njit.edu:4001</div><br/>Temporary Password: ' + data + '</p>'
-
+                        subject: template2.subject,
+                        text: template2.text,
+                        html: template2.html
                     });
                     break;
+                case 'new password':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: NEW_PASSWORD.subject,
+                        text: NEW_PASSWORD.text,
+                        html: NEW_PASSWORD.html
+
+                    });
+                    break; 
                 case 'new_reply':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Reply',
-                        text: 'Dear ' + data.Name + '\nSomeone has replied to your comment. You can view the reply here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.Name + '<br>Someone has replied to your comment. You can view the reply here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_REPLY.subject,
+                        text: NEW_REPLY.text,
+                        html: NEW_REPLY.html
 
                     });
                     break;    
@@ -279,23 +295,33 @@ class Email {
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Volunteer',
-                        text: 'Dear ' + data.Name + '\nA student has made a volunteer request. You can view the request here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.Name + '<br>A student has made a volunteer request. You can view the request here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_VOLUNTEER.subject,
+                        text: NEW_VOLUNTEER.text,
+                        html: NEW_VOLUNTEER.html
 
                     });
                     break;  
-                case 'new_fkag':
+                case 'new_flag':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: '[PLA] New Volunteer',
-                        text: 'Dear ' + data.Name + '\nSomeone has flagged a comment. You can view the flag here: ' + data.link + '\nThe PLA Team',
-                        html: '<p>Dear ' + data.Name + '<br>Someone has flagged a comment. You can view the flag here: ' + data.link + '<br>The PLA Team</p>'
+                        subject: NEW_FLAG.subject,
+                        text: NEW_FLAG.text,
+                        html: NEW_FLAG.html
 
                     });
                     break;
+                case 'custom':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: data.subject,
+                        text: data.text,
+                        html: data.html
+
+                    });
                 default:
                     logger.log('error', '/Workflow/Email/sendNow: email option not found!');
                     return null;
@@ -305,83 +331,7 @@ class Email {
         }
     }
 
-    // //Update Email Last Sent in Task Instance to Now.
-    // updateEmailLastSent(taskInstanceId) {
-    //     TaskInstance.update({
-    //         EmailLastSent: new Date()
-    //     }, {
-    //         where: {
-    //             TaskInstanceID: taskInstanceId
-    //         }
-    //     }).then(function (done) {
-    //         console.log('Email Last Send Updated!');
-    //     }).catch(function (err) {
-    //         console.log(err);
-    //         throw new Error(err);
-    //     });
-    // }
 
-    // //Goes through entire EmailNotification table and check their time
-    // //Asynchrounious, sending email does not need to wait for anything
-    // check() {
-
-    //     var x = this;
-
-    //     var now = new Date();
-    //     var oneDay = (24 * 60 * 60 * 1000);
-    //     var sevenDays = (7 * 24 * 60 * 60 * 1000);
-
-    //     console.log('Checking Email Notification List...');
-
-    //     //Retrieve entire Email Notification table
-    //     EmailNotification.findAll({
-    //         attributes: ['TaskInstanceID'],
-    //     }).then(function (list) {
-
-    //         //Check through each item in the list
-    //         list.forEach(function (result) {
-
-    //             TaskInstance.find({
-    //                 where: {
-    //                     TaskInstanceID: result.TaskInstanceID
-    //                 }
-    //             }).then(function (taskInstance) {
-    //                 //if task end date has past delete from Email Notification
-    //                 if (taskInstance.EndDate < now) {
-
-    //                     console.log('Assignment overdue! User: ', taskInstance.UserID, ' TaskInstanceID: ', taskInstance.TaskInstanceID);
-
-    //                     x.delete(taskInstance.TaskInstanceID);
-    //                 }
-    //                 //if task has started and it's due less than 24 hours, send an email to user and delete from Email Notification
-    //                 else if ((taskInstance.StartDate < now) && ((taskInstance.EndDate - now) < oneDay)) {
-
-    //                     console.log('Assignment due less than one day! User: ', taskInstance.UserID, ' TaskInstanceID: ', taskInstance.TaskInstanceID);
-
-    //                     x.sendNow(taskInstance.UserID, 'due less than one day');
-    //                     updateEmailLastSent(taskInstance.TaskInstanceID);
-    //                     x.delete(taskInstance.TaskInstanceID);
-
-    //                 }
-    //                 //if email last sent is more than 7 days and if task has started and it's due less than 7 days, send an email to user
-    //                 else if ((((now - taskInstance.EmailLastSent) > sevenDays) && (taskInstance.StartDate < now)) && ((taskInstance.EndDate - now) < sevenDays)) {
-
-    //                     console.log('Assignment due less than seven days! User: ', taskInstance.UserID, ' TaskInstanceID: ', taskInstance.TaskInstanceID);
-
-    //                     x.sendNow(taskInstance.UserID, 'due less than seven days');
-    //                     updateEmailLastSent(taskInstance.TaskInstanceID);
-
-    //                 }
-
-    //                 return null;
-    //             });
-    //         });
-    //     }).catch(function (err) {
-    //         console.log(err);
-    //         throw new Error('EmailNotification - Something went wrong...');
-    //     });
-
-    // }
 }
 
 

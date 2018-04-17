@@ -1,4 +1,6 @@
 var models = require('../Model');
+
+export let APIStatistics = models.APIStatistics;
 export let Assignment = models.Assignment;
 export let AssignmentGrade = models.AssignmentGrade;
 export let AssignmentInstance = models.AssignmentInstance;
@@ -39,6 +41,7 @@ export let ArchivedTaskInstance = models.ArchivedTaskInstance;
 export let RemovedTaskInstance = models.RemovedTaskInstance;
 export let TaskInstance_Archive = models.TaskInstance_Archive;
 export let TaskSimpleGrade = models.TaskSimpleGrade;
+export let TestUser = models.TestUser;
 export let User = models.User;
 export let UserContact = models.UserContact;
 export let UserLogin = models.UserLogin;

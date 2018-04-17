@@ -79,7 +79,7 @@ var reallocation = consts.REALLOCATION_STATUS;
 class TaskFactory {
 
     getUserFromSection(sectionid) {
-        console.log('Retrieving all users from section: ', sectionid, '...');
+        //console.log('Retrieving all users from section: ', sectionid, '...');
         var users = [];
 
         Section.findAll({
@@ -95,11 +95,10 @@ class TaskFactory {
     async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
         var x = this;
         var assingmentInstancesCreated = [];
-        console.log('Creating assignment instance...');
+        console.log('Creating assignment instance... WTIH ', a_id, sectionIDs, startDate, wf_timing);
         //Iterate through all sectionIDs passed in and promise each is returned before next execution
-        
-        return await Promise.mapSeries(sectionIDs, async function(sectionid) {
-        //creates new AssignmentInstance
+        await Promise.mapSeries(sectionIDs, async function(sectionid) {
+            //creates new AssignmentInstance
             var ai = await AssignmentInstance.create({
                 //creates attributes
                 AssignmentID: a_id,
@@ -111,9 +110,11 @@ class TaskFactory {
             await x.updateWorkflowTiming(wf_timing);
             logger.log('info', '/Workflow/TaskFactory/createAssignmentInstances: Done!');
             
-            return assingmentInstancesCreated;
         
         });
+
+        return assingmentInstancesCreated;
+        
     }
         
 
@@ -149,6 +150,50 @@ class TaskFactory {
         });
 
         return ais.WorkflowTiming;
+    }
+
+    async ViewContstraints(res, user_id, ti) {
+        if(JSON.parse(ti.Status)[1] == 'complete'){
+            if(ti.UserID.length >= 2){
+                ti.TaskActivity.SeeSibblings =0;
+            }
+            else{
+                ti.TaskActivity.SeeSibblings =1;
+            }
+        }
+        else{
+            ti.TaskActivity.SeeSibblings =0;
+        }
+
+        if(ti.TaskActivity.OneOrSeparate == 'one'){
+            ti.TaskActivity.SeeSameActivity = 0;
+        }
+        else{
+            ti.TaskActivity.SeeSameActivity = 1;
+        }
+
+        if(ti.IsSubworkflow == 1){
+            ti.TaskActivity.AssessmentTask = 1;
+        }
+        else{
+            ti.TaskActivity.AssessmentTask = 0;
+        }
+
+        if(ti.TaskActivity.Name == 'create problem'){
+            ti.TaskActivity.MustCompleteThisFirst = 1;
+        }
+        else{
+            ti.TaskActivity.MustCompleteThisFirst = 2;
+        }
+
+        return {
+            'error': false,
+            'SeeSibblings': ti.TaskActivity.SeeSibblings,
+            'SeeSameActivity': ti.TaskActivity.SeeSameActivity,
+            'AssessmentTask': ti.TaskActivity.AssessmentTask,
+            'MustCompleteThisFirst': ti.TaskActivity.MustCompleteThisFirst,
+        };
+
     }
 
 
@@ -239,6 +284,7 @@ class TaskFactory {
                 // });
             }
         }
+        
         logger.log('debug', 'done applying view constraints');
         // // find all non-completed task instances allocated to the user
         // return TaskInstance.findAll({
@@ -299,7 +345,7 @@ class TaskFactory {
         var ar = [];
         await Promise.mapSeries(pre_tis, async function(ti, i) {
             if (user_id == cur_ti.UserID) {
-                if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
+                if (-1 != ['grade_problem', 'critique','consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
                     ar.push(await x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation));
                 } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) /*&& (i != pre_tis.length - 1)*/ ) {
                     ar.push(await x.setDataVersion(ti, 'last'));
@@ -311,6 +357,7 @@ class TaskFactory {
                 }
             } else {
                 // x.setDataVersion(ti, 'none') //TODO
+                // ar.push(await x.setDataVersion(ti, 'last'));
             }
         });
 
@@ -487,6 +534,8 @@ class TaskFactory {
                             VersionEvaluation: task.VersionEvaluation,
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
+                            AssessmentTask: task.AssessmentTask,
+                            MustCompleteThisFirst: task.MustCompleteThisFirst
                         }).then(function(taskResult) {
                             //console.log('Task creation successful!');
                             //console.log('TaskActivityID: ', taskResult.TaskActivityID);
@@ -919,7 +968,7 @@ class TaskFactory {
         });
     }
 
-    /*********************************************************************************************************** 
+    /***********************************************************************************************************
      **  Amadou workd starts here
      ************************************************************************************************************/
     //Update points instances when student submit task
@@ -1535,7 +1584,7 @@ class TaskFactory {
     }
 
 
-    /*********************************************************************************************************** 
+    /***********************************************************************************************************
      **  Amadou work ends here
      ************************************************************************************************************/
 }

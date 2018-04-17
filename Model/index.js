@@ -10,7 +10,7 @@ var settings = require('../backend_settings');
 var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_PASS, {
     host: settings.DB_HOST,
     dialect: 'mysql',
-    omitNull: true,
+    omitNull: false,
     pool: {
         max: 5,
         min: 0,
@@ -27,7 +27,7 @@ var models = ['Assignment', 'ArchivedAssignment', 'ArchivedAssignmentInstance', 
     'FileReference','ArchivedTaskInstance','TaskInstance','Comments','CommentsArchive', 'CommentsViewed', 'Contact','Notifications',
     'BadgeInstance', 'Badge', 'CategoryInstance', 'Category', 'UserBadgeInstances', 'UserPointInstances',
     'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
-    'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit','RemovedAssignmentInstance','RemovedWorkflowInstance','RemovedTaskInstance',
+    'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit','APIStatistics','RemovedAssignmentInstance','RemovedWorkflowInstance','RemovedTaskInstance',
     'ArchivedTaskGrade', 'ArchivedWorkflowGrade', 'ArchivedTaskSimpleGrade','ArchivedAssignmentGrade','ArchivedWorkflowActivity','ArchivedTaskActivity',
 	'RemovedTaskGrade', 'RemovedWorkflowGrade', 'RemovedTaskSimpleGrade','RemovedAssignmentGrade','RemovedWorkflowActivity','RemovedTaskActivity','RemovedAssignment'
 ];
@@ -141,6 +141,9 @@ models.forEach(function(model) {
     });
     m.PartialAssignments.belongsTo(m.Course, {
         foreignKey: 'CourseID'
+    });
+    m.VolunteerPool.belongsTo(m.User, {
+        foreignKey: 'UserID'
     });
 
     m.VolunteerPool.belongsTo(m.User, {

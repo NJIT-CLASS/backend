@@ -1,29 +1,34 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('UserPointIntances', {
-        UserID: {
-            //The User
-            //Foreign Key
+    return sequelize.define('APIStatistics', {
+        StatID: {
+            //Unique identifier for the section
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'UserID',
+            field: 'StatID',
             allowNull: false,
-            primaryKey: true
+            primaryKey: true,
+            autoIncrement: true,
+            unique: true
         },
-        BadgeCategoryID: {
-            //The Semester 
+        StartTime: {
+            //Unique identifier for the semester
             //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'BadgeCategoryID',
-            allowNull: false,
-            primaryKey: true
+            type: DataTypes.DATE(6),
+            field: 'StartTime',
+            allowNull: true,
         },
-        PointInstances: {
-            //The Course 
+        EndTime: {
+            //Unique identifier for the course
             //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'PointInstances',
-            allowNull: false,
-            primaryKey: true
+            type: DataTypes.DATE(6),
+            field: 'EndTime',
+            allowNull: true
         },
+        Route: {
+            type: DataTypes.STRING(2000),
+            field: 'Route',
+            allowNull: false
+        }
+
     }, {
         timestamps: false,
 
@@ -42,6 +47,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'userPointInstances'
+        tableName: 'apistatistics'
     });
 };
