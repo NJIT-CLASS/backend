@@ -17,11 +17,6 @@ module.exports = function (sequelize, DataTypes) {
             allowNull: false,
             unique: 'ti_sectionUserId_unq_idx'
         },
-        TaskActivityID: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskActivityID',
-            allowNull: false,
-        },
         SectionUserID: {
             //Unique with TaskInstanceID
             //Foreign Key
