@@ -107,6 +107,7 @@ class Grade {
             try {
                 var grade = await TaskSimpleGrade.create({
                     TaskInstanceID: ti.TaskInstanceID,
+                    AssignmentInstanceID: ti.AssignmentInstanceID,
                     SectionUserID: sec_user,
                     WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
                     IsExtraCredit: user_history[user_history.length - 1].is_extra_credit,
@@ -623,6 +624,14 @@ class Grade {
             console.log(err);
         });
 
+        var simple_grade = await TaskSimpleGrade.findAll({
+            where:{
+                AssignmentInstanceID: ai_id
+            }
+        }).catch(function(err){
+            console.log(err);
+        });
+
         var ta = await TaskActivity.findAll({
             where:{
                 AssignmentID: ai.AssignmentID
@@ -641,7 +650,8 @@ class Grade {
             'Grades': {
                 'Assignment': ai_grade,
                 'Workflow': wi_grade,
-                'Task': ti_grade
+                'Task': ti_grade,
+                'SimpleGrade': simple_grade
             }
         }
 

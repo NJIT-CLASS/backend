@@ -494,7 +494,6 @@ class TaskFactory {
                     WorkflowStructure: workflow.WorkflowStructure,
                 }).then(function(workflowResult) {
                     //console.log('Workflow creation successful!');
-                    // console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
                     WA_array.push(workflowResult.WorkflowActivityID);
                     //Keep track all the task activities within each workflow
                     TA_array = [];
@@ -550,10 +549,13 @@ class TaskFactory {
                         //Replace all fake IDs within workflow activity grade distribution with real WorkflowActivityID
                         //(Assumed all task activities are created in order)
                         var WA_gradeDistribution = {};
-                        var WA_count = 0;
                         for (var item in assignment.WorkflowActivity[index].WA_grade_distribution) {
-                            WA_gradeDistribution[TA_array[WA_count]] = assignment.WorkflowActivity[index].WA_grade_distribution[item];
-                            WA_count++;
+                            console.log('item',item)
+                            if(item == 'simple'){
+                                WA_gradeDistribution[item] = assignment.WorkflowActivity[index].WA_grade_distribution[item]
+                            } else {
+                                WA_gradeDistribution[TA_array[parseInt(item)]] = assignment.WorkflowActivity[index].WA_grade_distribution[item];
+                            }
                         }
                         //Update the list of TaskActivities in WorkflowActivity and Grade Distribution
                         WorkflowActivity.update({
@@ -578,11 +580,10 @@ class TaskFactory {
                 }).then(function(done) {
                     //After all WorkflowActivities are created update the list of WorkflowActivities in Assignment
                     var AA_gradeDistribution = {};
-                    var AA_count = 0;
                     for (var item in assignment.AA_grade_distribution) {
-                        AA_gradeDistribution[WA_array[AA_count]] = assignment.AA_grade_distribution[item];
-                        AA_count++;
+                        AA_gradeDistribution[WA_array[parseInt(item)]] = assignment.AA_grade_distribution[item];
                     }
+
                     Assignment.update({
                         WorkflowActivityIDs: WA_array,
                         GradeDistribution: AA_gradeDistribution
