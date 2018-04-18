@@ -134,7 +134,7 @@ class Grade {
      * @param {any} max_grade 
      * @memberof Grade
      */
-    async addTaskGrade(ti_id, grade, max_grade, ) {
+    async addTaskGrade(ti_id, grade, max_grade) {
 
         var ti = await TaskInstance.find({
             where: {
@@ -152,6 +152,7 @@ class Grade {
 
         var task_grade = await TaskGrade.create({
             TaskInstanceID: ti_id,
+            TaskActivityID: ti.TaskActivityID,
             WorkflowInstanceID: ti.WorkflowInstanceID,
             AssignmentInstanceID: ti.AssignmentInstanceID,
             SectionUserID: sec_user,
@@ -159,6 +160,9 @@ class Grade {
             Grade: grade,
             IsExtraCredit: user_history[user_history.length - 1].is_extra_credit,
             MaxGrade: max_grade
+        }).catch(function(err){
+            console.log('err here')
+            console.log(err);
         });
 
 
@@ -450,28 +454,22 @@ class Grade {
             });
 
             var maxGrade = 0;
-            await Promise.mapSeries(Object.keys(JSON.parse(ti.Data)), function(val) {
-                 if (field[val].field_type === 'assessment') { //check if field type is assessment
-                let distribution = field.field_distribution[val];
-                if (field[val].assessment_type === 'grade') {
-                    final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
-                } else if (field[val].assessment_type === 'rating') {
-                    final_grade += (parseInt(data[val][0])/field[val].rating_max)*(distribution/100)*100;
-                } else if (field[val].assessment_type === 'pass') {
-                    if(data[val][0] == 'pass'){
-                        final_grade += (distribution/100)*100;
-                    }
-                } else if (field[val].assessment_type === 'evaluation') {
-                    let label_length = field[val].list_of_labels.length;
-                    final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
+            let field = JSON.parse(ta.Fields);
+
+            
+            await Promise.mapSeries(Object.keys(field), async function(val) {
+                if (val === 'field_distribution' && val != null) { //check if field type is assessment
+                    let distribution = field.field_distribution;
+                    await Promise.mapSeries(Object.keys(field.field_distribution), function(val) {
+                        maxGrade += distribution[val];
+                    });
                 }
-            }
             });
 
             logger.log('info', '/Workflow/Grade/gradeBelongsTo: userID found:', pre_ti.UserID);
             return {
                 'id': pre_ti.TaskInstanceID,
-                'max_grade': maxGrade
+                'max_grade': 100
             };
         } else {
             var pre_ti = await TaskInstance.find({
@@ -561,6 +559,94 @@ class Grade {
                 Points: points
             });
         }
+    }
+
+    async getGradeReport(ai_id){ //Should make a snapshot table to store all the info to save time when pull grades
+
+        var ai_grade = await AssignmentGrade.findAll({
+            where:{
+                AssignmentInstanceID: ai_id
+            }
+        }).catch(function(err){
+            console.log(err);
+        });
+
+        var ai = await AssignmentInstance.findOne({
+            where:{
+                AssignmentInstanceID: ai_id
+            },
+            attributes: ['AssignmentID']
+        }).catch(function(err){
+            console.log(err);
+        });
+
+        var assignment = await Assignment.findOne({
+            where:{
+                AssignmentID: ai.AssignmentID
+            },
+            attributes: ['GradeDistribution', 'DisplayName', 'CourseID', 'WorkflowActivityIDs']
+        }).catch(function(err){
+            console.log(err);
+        });
+
+        var course = await Course.findOne({
+            where:{
+                CourseID: assignment.CourseID
+            },
+            attributes: ['Number', 'Name']
+        }).catch(function(err){
+            console.log(err);
+        });
+
+        var wi_grade = await WorkflowGrade.findAll({
+            where:{
+                AssignmentInstanceID: ai_id
+            }
+        }).catch(function(err){
+            console.log(err);
+        });
+
+        var wa = await WorkflowActivity.findAll({
+            where:{
+                AssignmentID: ai.AssignmentID
+            },
+            attributes: ['WorkflowActivityID', 'GradeDistribution', 'TaskActivityCollection']
+        }).catch(function(err){
+            console.log(err);
+        });
+
+        var ti_grade = await TaskGrade.findAll({
+            where:{
+                AssignmentInstanceID: ai_id
+            }
+        }).catch(function(err){
+            console.log(err);
+        });
+
+        var ta = await TaskActivity.findAll({
+            where:{
+                AssignmentID: ai.AssignmentID
+            },
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName']
+        }).catch(function(err){
+            console.log(err);
+        });
+
+
+        let result = {
+            'Course': course,
+            'AssignmentActivity': assignment,
+            'WorkflowActivity': wa,
+            'TaskActivity': ta,
+            'Grades': {
+                'Assignment': ai_grade,
+                'Workflow': wi_grade,
+                'Task': ti_grade
+            }
+        }
+
+        return result;
+
     }
 
 }

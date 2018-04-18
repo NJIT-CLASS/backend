@@ -345,7 +345,7 @@ class TaskFactory {
         var ar = [];
         await Promise.mapSeries(pre_tis, async function(ti, i) {
             if (user_id == cur_ti.UserID) {
-                if (-1 != ['grade_problem', 'consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
+                if (-1 != ['grade_problem', 'critique','consolidation', 'dispute', 'resolve_dispute'].indexOf(cur_ti.TaskActivity.Type)) {
                     ar.push(await x.setDataVersion(ti, ti.TaskActivity.VersionEvaluation));
                 } else if (-1 != ['edit', 'comment'].indexOf(cur_ti.TaskActivity.Type) /*&& (i != pre_tis.length - 1)*/ ) {
                     ar.push(await x.setDataVersion(ti, 'last'));
@@ -357,6 +357,7 @@ class TaskFactory {
                 }
             } else {
                 // x.setDataVersion(ti, 'none') //TODO
+                // ar.push(await x.setDataVersion(ti, 'last'));
             }
         });
 

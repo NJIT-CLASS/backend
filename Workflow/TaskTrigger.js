@@ -116,7 +116,7 @@ class TaskTrigger {
             if (type === 'needs_consolidation') {
                 await x.needsConsolidate(next_task);
             } else {
-                if (JSON.parse(next_task.Status)[0] !== 'complete') {
+                if (JSON.parse(next_task.Status)[0] !== 'complete' && JSON.parse(next_task.Status)[0] !== 'bypassed') { // added bypassed for bypassed tasks 4-8-18
                     await x.triggerNext(next_task);
                 }
             }
@@ -140,6 +140,7 @@ class TaskTrigger {
         });
 
         var final_grade = await grade.findFinalGrade(ti);
+        console.log('herte', final_grade);
         if(final_grade != null){
             await grade.addTaskGrade(final_grade.id, final_grade.grade, final_grade.max_grade);
         }
@@ -154,7 +155,7 @@ class TaskTrigger {
 
             //Amadou
             let taskFactory = new TaskFactory;
-            taskFactory.updatePointInstance('high_grade', ti.AssignmentInstanceID, ti.UserID);
+            // taskFactory.updatePointInstance('high_grade', ti.AssignmentInstanceID, ti.UserID);
 
 
             await Promise.mapSeries(grades, async function(t_grade) {
@@ -342,7 +343,7 @@ class TaskTrigger {
      * @return {Promise}      [description]
      */
     async findGrades(task) {
-        logger.log('info', 'checking for grades...');
+        logger.log('info', '/findGrades:checking for grades...');
         //try{
         var x = this;
         var final_grade;
@@ -362,15 +363,16 @@ class TaskTrigger {
 
             if (pre.FinalGrade !== null) { //if no FinalGrade found, dont push
                 grades.push(pre.FinalGrade);
-
+                let data =  JSON.parse(pre.Data)[0];
+                console.log(data);
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function(val) {
                     let field = JSON.parse(pre.TaskActivity.Fields)
-                    if (field[val].field_type === 'assessment') { //check if field type is assessment
+                    if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
                         let distribution = field.field_distribution[val];
                         if (field[val].assessment_type === 'grade') {
                             final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
                         } else if (field[val].assessment_type === 'rating') {
-                            final_grade += (parseInt(data[val][0])/field[val].rating_max)*(distribution/100)*100;
+                            final_grade += (data[val][0]/field[val].rating_max)*(distribution/100)*100;
                         } else if (field[val].assessment_type === 'pass') {
                             if(data[val][0] == 'pass'){
                                 final_grade += (distribution/100)*100;
@@ -417,7 +419,7 @@ class TaskTrigger {
             } else if (ta.FunctionType === 'min') {
                 console.log('The needs consolidation grade is: ', min);
                 return [min, triggerConsolidate];
-            } else if (ta.FunctionType === 'average') {
+            } else if (ta.FunctionType === 'average' ||ta.FunctionType === 'avg') {
                 console.log('The needs consolidation grade is: ', (max + min) / 2);
                 return [(max + min) / 2, triggerConsolidate];
             } else {
@@ -651,7 +653,7 @@ class TaskTrigger {
      */
     async finalGrade(ti, data) {
 
-        logger.log('info', 'checking for grades...');
+        logger.log('info', '/finalGrade:checking for grades...');
         var x = this;
         var final_grade = 0;
         
@@ -661,15 +663,15 @@ class TaskTrigger {
             }
         });
         let field = JSON.parse(ta.Fields);
-        console.log('type of data', typeof data)
+
         if (typeof data === 'string') {
             var keys = Object.keys(JSON.parse(data)); //find the latest version of the data
         } else {
             var keys = Object.keys(data); //find the latest version of the data
         }
-
         await Promise.mapSeries(keys, function(val) {
-            if (field[val].field_type === 'assessment') { //check if field type is assessment
+            
+            if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution') && field[val].field_type === 'assessment') { //check if field type is assessment
                 let distribution = field.field_distribution[val];
                 if (field[val].assessment_type === 'grade') {
                     final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;

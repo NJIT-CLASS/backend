@@ -316,7 +316,7 @@ class Make {
                     'users': users
                 };
 
-                console.log('obj',obj);
+                // console.log('obj',obj);
 
                 var ti = await x.createTaskInstance(obj); //creates a task instance and returns the instance id
                 tis = ti[0];
@@ -479,7 +479,8 @@ class Make {
         var x = this;
         var isSubWorkflow = await x.getIsSubWorkflow(obj.flat_tree, obj.ta);
         var num_participants = await x.getNumParticipants(obj.ta.id); //returns number of participants of a task and whether the task has subworkflow
-        // console.log(num_participants.length);
+        
+        console.log(num_participants.length);
         var u_id_and_index = await x.getAllocUser(obj.ta, obj.ta_to_u_id, obj.users, obj.i, obj.index, num_participants,obj.ai_id); //returns users id and new index of the pointer
         var user_ids = u_id_and_index[0];
         obj.index = u_id_and_index[1];
@@ -791,15 +792,33 @@ class Make {
                             }
                         }
                     }
-                } else {
+                } else if (assign_constr[2].hasOwnProperty('not_in_workflow_instance')) { //temporary fix for 2nd grader not showing
+                    var void_users = await x.getVoidUsers(assign_constr[2].not_in_workflow_instance, ta_to_u_id); //*
+                    //console.log('void_users', void_users);
+                    if (void_users.length >= users.length) {
+                        logger.log('error', 'Fatal! No user to allocate! Reallocate to instructor');
+                        var owner = await x.getInstructorID(ai_id);
+                        alloc_users.push(owner);
+                    } else {
+                        if (void_users.length > 0) {
+                            if (_.contains(void_users, users[index])) { //check if the void users contains the user
+                                index++;
+                                console.log('here')
+                            } else {
+                                alloc_users.push(users[index]);
+                                index++;
+                            }
+                        }
+                    }
+                }else {
                     logger.log('error', 'Fatal! No user to allocate! ');
-                    // var owner = await x.getInstructorID(ai_id);
-                    // alloc_users.push(owner);
+                    var owner = await x.getInstructorID(ai_id);
+                    alloc_users.push(owner);
                 }
             }
         });
         
-        // console.log('alloc users', alloc_users)
+        console.log('alloc users', alloc_users)
         return [alloc_users, index];
     }
 
