@@ -1043,11 +1043,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 				PartialAssignmentID: req.params.partialAssignmentId,
 			}
 		}).then(result => {
+		    let data = JSON.parse(result.Data);
+		    data.AA_name = result.PartialAssignmentName+'-copy-'+newid;
+	        data.AA_display_name = result.PartialAssignmentName+'-copy-'+newid;
+
 			PartialAssignments.create({
 				UserID:result.UserID,
 				CourseID: result.CourseID,
 				PartialAssignmentName: result.PartialAssignmentName+'-copy-'+newid,
-				Data: JSON.parse(result.Data)
+				Data: data
 			}).then(function(){
 			    return res.json({
 					'Error': false
@@ -1073,11 +1077,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 					PartialAssignmentID: req.params.partialAssignmentId,
 				}
 			}).then(result => {
+		        let data = JSON.parse(result.Data);
+		        data.AA_name = result.PartialAssignmentName+'-copy-'+newid;
+		        data.AA_display_name = result.PartialAssignmentName+'-copy-'+newid;
+		        data.AA_course = parseInt(req.params.CourseID);
+
 				PartialAssignments.create({
 					UserID:result.UserID,
 					CourseID: req.params.CourseID,
 					PartialAssignmentName: result.PartialAssignmentName+'-copy-'+newid,
-					Data: JSON.parse(result.Data)
+					Data: data
 				}).then(function() {
 					return res.json({
 						'Error': false
