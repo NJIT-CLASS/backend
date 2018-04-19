@@ -793,7 +793,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 Data: req.body.assignment
             }).then((result) => {
 
-                console.log('assignment: ', req.body.assignment);
+                //console.log('assignment: ', req.body.assignment);
                 taskFactory.createAssignment(req.body.assignment).then(function (done) {
                     if (done) {
                         res.json({
@@ -817,7 +817,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     PartialAssignmentID: req.body.partialAssignmentId
                 }
             }).then((result) => {
-                console.log('assignment: ', req.body.assignment);
+                //console.log('assignment: ', req.body.assignment);
                 taskFactory.createAssignment(req.body.assignment).then(function (done) {
                     if (done) {
                         res.json({
@@ -1024,7 +1024,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
             }
         }).then(result => {
-            console.log(result);
+            //console.log(result);
             res.json({
                 'Error': false,
                 'PartialAssignment': result
