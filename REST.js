@@ -645,25 +645,50 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Endpoint to return general user data
     router.get('/generalUser/:userid', function (req, res) {
-        User.find({
+        User.findOne({
             where: {
                 UserID: req.params.userid
             },
-            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin', 'Role'],
+            attributes: ['UserID', 'FirstName', 'LastName', 'Instructor', 'Admin', 'Role', 'OrganizationGroup' ],
             include: [{
                 model: UserLogin,
                 attributes: ['Email']
             },
             {
                 model: UserContact,
-                attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar']
+                attributes: ['FirstName', 'LastName', 'Email', 'Phone', 'Alias', 'ProfilePicture', 'Avatar', 'UseAlternateEmail', 'AdministrativeSupport', 'TechnicalSupport'] 
             }
             ]
         }).then(function (user) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'User': user
+            if(user.UserContact.AdministrativeSupport == null){          // substitute null for old database fields TODO: remove in the future
+                user.UserContact.AdministrativeSupport = [ 0, [] ];
+            }
+            if(user.UserContact.TechnicalSupport == null){      // substitute null for old database fields TODO: remove in the future
+                user.UserContact.TechnicalSupport = [ 0, [] ];
+            }
+            var org_group = JSON.parse(user.OrganizationGroup)
+            if(org_group != null){
+                var org_ids = org_group.OrganizationID;  // array of organization IDS user is part of
+            }else{
+                var org_ids = [];                       // if field is null
+            }
+                Organization.findAll({
+                    where: {
+                        OrganizationID: {
+                            $in: org_ids
+                        }
+                    },
+                    attributes: ['OrganizationID', 'Name']
+                }).then(function(organizations){
+                    res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'User': user,
+                    'OrganizationIDs': organizations
+                });
+            }).catch(function (err) {
+                console.log('/generalUser : ' + err.message);
+                res.status(400).end();
             });
         }).catch(function (err) {
             console.log('/generalUser : ' + err.message);
@@ -2309,7 +2334,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             attributes: ['UserID']
         }).then(function (response) {
-            console.log('User response:', response.UserID);
+    //        console.log('User response:', response.UserID);
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
                     .then(function () {
@@ -2351,7 +2376,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         UserID: user.UserID,
                                         FirstName: req.body.firstName,
                                         LastName: req.body.lastName,
-                                        Email: req.body.email,
+                                        AdministrativeSupport: [0,[]],
+                                        TechnicalSupport: [0,[]],
+                                        Email: req.body.email,   //TODO: remove this, default should be null or ''
                                         Phone: '(XXX) XXX-XXXX'
                                     }, {
                                         transaction: t
@@ -3251,7 +3278,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
 
         UserContact.create({
-            Email: req.body.email,
+            Email: req.body.email,      //TODO: remove this, default should be null or ''
+            AdministrativeSupport: [0,[]],
+            TechnicalSupport: [0,[]],
             Phone: req.body.phone
         }).then(function (userContact) {
             sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
@@ -3318,7 +3347,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                 UserID: user.UserID,
                                 FirstName: req.body.firstname,
                                 LastName: req.body.lastname,
-                                Email: req.body.email,
+                                AdministrativeSupport: [0,[]],
+                                TechnicalSupport: [0,[]],
+                                Email: req.body.email,              //TODO: remove this, default should be null or ''
                                 Phone: '(XXX) XXX-XXXX'
                             }).catch(function(err) {
                                 console.log(err);
@@ -3387,7 +3418,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function (userLogin) {
             if (userLogin == null || userLogin.UserID == null) {
                 UserContact.create({
-                    Email: req.body.email,
+                    Email: req.body.email,      //TODO: remove this, default should be null or ''
+                    AdministrativeSupport: [0,[]],
+                    TechnicalSupport: [0,[]],
                     Phone: 'XXX-XXX-XXXX'
                 }).catch(function (err) {
                     console.log(err);
@@ -4516,15 +4549,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     // endpoint to insert or update a user's contact information
-    router.post('/userContact', participantAuthentication, function (req, res) {
+    router.post('/update/userContact', participantAuthentication, function (req, res) {
         if (req.body.UserID == null) {
             console.log('userContact: UserID cannot be null');
             res.status(400).end();
             return;
         }
-        else{
-            // var va2 = va[0];
-        }
+
         UserContact.upsert(
             req.body, {
                 where: {
@@ -4532,13 +4563,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
             }
         ).then(function (result) {
-            sequelize.options.omitNull = true;
+            //sequelize.options.omitNull = true;
             res.json({
+                Error: false,
+                Message: "Preferences Saved",
                 success: true
             });
         }).catch(function (err) {
-            sequelize.options.omitNull = true;
-            console.log('/userContact: ' + err);
+            //sequelize.options.omitNull = true;
+            console.log('/update/userContact: ' + err);
             res.status(400).end();
         });
     });
@@ -4727,6 +4760,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         model: User,
                         attributes: ['UserID', 'FirstName', 'LastName'],
                         include: [{
+                            model: UserLogin,
+                            attributes: ['Email']
+                        },{
                             model: UserContact,
                             attributes: ['Email', 'Alias']
                         }]
@@ -4800,6 +4836,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         model: User,
                         attributes: ['UserID', 'FirstName', 'LastName'],
                         include: [{
+                            model: UserLogin,
+                            attributes: ['Email']
+                        },{
                             model: UserContact,
                             attributes: ['Email', 'Alias']
                         }]
@@ -6826,10 +6865,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 })
                     .then(function (user) {
                         UserContact.create({
-                            Email: email,
+                            Email: email,               //TODO: remove this, default should be null or ''
                             Phone: 'XXX-XXX-XXXX',
                             FirstName: 'Temp',
                             LastName: 'Temp',
+                            AdministrativeSupport: [0,[]],
+                            TechnicalSupport: [0,[]],
                             UserID: user.UserID
                         }).then(async function (userCon) {
                             UserLogin.create({
