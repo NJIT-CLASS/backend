@@ -3281,7 +3281,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     // adding the user, called on add user page
-    router.post('/adduser', function (req, res) {
+    router.post('/adduser', teacherAuthentication, function (req, res) {
         console.log('/adduser:called');
         console.log(req.body);
         var email = new Email();
@@ -3344,8 +3344,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                 }).then(function(userLogin) {
                                     if(!isTestUSer){
                                         let email = new Email();
-                                        console.log("Password: ");
-                                        console.log(req.body.password);
                                         email.sendNow(user.UserID, 'invite user', {'pass':req.body.password});
                                     }
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
