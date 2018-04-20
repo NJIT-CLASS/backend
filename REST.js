@@ -3281,7 +3281,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     // adding the user, called on add user page
-    router.post('/adduser', teacherAuthentication, function (req, res) {
+    router.post('/adduser', function (req, res) {
         console.log('/adduser:called');
         console.log(req.body);
         var email = new Email();
@@ -3290,12 +3290,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         }
 
-<<<<<<< HEAD
         var isTestUSer = "test" in req.body ? req.body.test : false; 
         var organization = "organization" in req.body ? req.body.organization : null;
-=======
-        var isTestUSer = 'test' in req.body ? req.body.test : false; 
->>>>>>> dev
 
         UserLogin.find({
             where: {
@@ -3348,6 +3344,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                 }).then(function(userLogin) {
                                     if(!isTestUSer){
                                         let email = new Email();
+                                        console.log("Password: ");
+                                        console.log(req.body.password);
                                         email.sendNow(user.UserID, 'invite user', {'pass':req.body.password});
                                     }
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
@@ -3356,7 +3354,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                 'Message': 'User has succesfully added'
                                             });
                                         });
-
                                 });
                             });
                         });
