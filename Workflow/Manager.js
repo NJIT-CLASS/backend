@@ -132,7 +132,7 @@ class Manager {
                 var users = await make.getUsersFromSection(secId);
                 logger.log('info', 'no volunteer found from the section, use everyone instead');
             }
-            console.log(users);
+            // console.log(users);
             Promise.each(res[secId].tasks, async function (task) {
                 await x.checkTask(task, users);
             });

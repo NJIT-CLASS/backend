@@ -1,5 +1,5 @@
 module.exports = function (sequelize, DataTypes) {
-    return sequelize.define('TaskSimpleGrade', {
+    return sequelize.define('RemovedTaskSimpleGrade', {
         TaskSimpleGradeID: {
             //TaskSimple grade ID
             type: DataTypes.INTEGER.UNSIGNED,
@@ -16,14 +16,6 @@ module.exports = function (sequelize, DataTypes) {
             field: 'TaskInstanceID',
             allowNull: false,
             unique: 'ti_sectionUserId_unq_idx',
-        },
-
-        AssignmentInstanceID: {
-            //Unique with SectionUserID.
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'AssignmentInstanceID',
-            allowNull: false,
         },
         SectionUserID: {
             //Unique with TaskInstanceID
@@ -78,6 +70,6 @@ module.exports = function (sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'tasksimplegrade'
+        tableName: 'removedtasksimplegrade'
     });
 };
