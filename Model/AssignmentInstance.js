@@ -55,7 +55,8 @@ module.exports = function(sequelize, DataTypes) {
         DisplayName: {
             type: DataTypes.STRING,
             field: 'DisplayName',
-            allowNull: false
+            allowNull: false,
+            default: ''
         }
 
     }, {
