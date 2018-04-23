@@ -2038,7 +2038,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                 }, {
                                     model: TaskActivity,
 
-                                    attributes: ['Name', 'Type']
+                                    attributes: ['Name', 'DisplayName', 'Type']
                                 }]
                             }).then(function (taskInstanceResult) {
 
