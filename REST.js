@@ -4710,7 +4710,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
                     include: [{
                         model: TaskActivity,
-                        attributes: ['Name', 'Type', 'TaskActivityID', 'NumberParticipants']
+                        attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
                     },
                     {
                         model: WorkflowInstance,
