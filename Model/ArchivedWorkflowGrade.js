@@ -1,58 +1,39 @@
 module.exports = function (sequelize, DataTypes) {
-    return sequelize.define('TaskSimpleGrade', {
-        TaskSimpleGradeID: {
-            //TaskSimple grade ID
+    return sequelize.define('ArchivedWorkflowGrade', {
+        WorkflowGradeID: {
+            //Workflow grade ID
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskSimpleGradeID',
+            field: 'WorkflowGradeID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true,
         },
-        TaskInstanceID: {
+        WorkflowActivityID: {
             //Unique with SectionUserID.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'TaskInstanceID',
+            field: 'WorkflowActivityID',
             allowNull: false,
-            unique: 'ti_sectionUserId_unq_idx',
+            unique: 'wf_sectionUserId_unq_idx',
         },
-
+        SectionUserID: {
+            //Unique with WorkflowActivityID
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'SectionUserID',
+            allowNull: false,
+            unique: 'wf_sectionUserId_unq_idx',
+        },
         AssignmentInstanceID: {
-            //Unique with SectionUserID.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'AssignmentInstanceID',
             allowNull: false,
         },
-        SectionUserID: {
-            //Unique with TaskInstanceID
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SectionUserID',
-            allowNull: false,
-            unique: 'ti_sectionUserId_unq_idx',
-        },
-        WorkflowActivityID: {
-            //Foreign Key
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'WorkflowActivityID',
-            allowNull: false,
-        },
-        /*AssignmentInstanceID: {
-         //Foreign Key
-         type: DataTypes.INTEGER.UNSIGNED,
-         field: 'AssignmentInstanceID',
-         allowNull: false,
-         },*/
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'Grade',
-            allowNull: false,
-        },
-        IsExtraCredit: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'IsExtraCredit',
             allowNull: false,
         },
         Comments: {
@@ -78,6 +59,6 @@ module.exports = function (sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'tasksimplegrade'
+        tableName: 'archivedworkflowgrade'
     });
 };

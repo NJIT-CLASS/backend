@@ -92,7 +92,7 @@ class TaskFactory {
         });
     }
 
-    async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
+    async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing, ai_displayName) {
         var x = this;
         var assingmentInstancesCreated = [];
         console.log('Creating assignment instance... WTIH ', a_id, sectionIDs, startDate, wf_timing);
@@ -104,7 +104,8 @@ class TaskFactory {
                 AssignmentID: a_id,
                 SectionID: sectionid,
                 StartDate: startDate,
-                WorkflowTiming: wf_timing
+                WorkflowTiming: wf_timing,
+                DisplayName: ai_displayName
             });
             assingmentInstancesCreated.push(ai.AssignmentInstanceID);
             await x.updateWorkflowTiming(wf_timing);
@@ -442,8 +443,20 @@ class TaskFactory {
                         assigneeConstraints[2][item] = temp;
                         //console.log('AssigneeConstraints', temp);
                     }
+
+                    //Clean task field default_refers_to here to minimize DB calls
+                    var fields = JSON.parse(result.Fields);
+                    if(fields !== null){
+                        for(var fieldIndex = 0; fieldIndex < fields.number_of_fields; fieldIndex++){
+                            if(fields[fieldIndex].default_refers_to !== null && fields[fieldIndex].default_refers_to[0] !== null){
+                                fields[fieldIndex].default_refers_to[0] = ta_array[fields[fieldIndex].default_refers_to[0]];
+                            }
+                        }
+                    }
+
                     return TaskActivity.update({
-                        AssigneeConstraints: assigneeConstraints
+                        AssigneeConstraints: assigneeConstraints,
+                        Fields: fields
                     }, {
                         where: {
                             TaskActivityID: result.TaskActivityID
@@ -494,7 +507,6 @@ class TaskFactory {
                     WorkflowStructure: workflow.WorkflowStructure,
                 }).then(function(workflowResult) {
                     //console.log('Workflow creation successful!');
-                    // console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
                     WA_array.push(workflowResult.WorkflowActivityID);
                     //Keep track all the task activities within each workflow
                     TA_array = [];
@@ -550,10 +562,13 @@ class TaskFactory {
                         //Replace all fake IDs within workflow activity grade distribution with real WorkflowActivityID
                         //(Assumed all task activities are created in order)
                         var WA_gradeDistribution = {};
-                        var WA_count = 0;
                         for (var item in assignment.WorkflowActivity[index].WA_grade_distribution) {
-                            WA_gradeDistribution[TA_array[WA_count]] = assignment.WorkflowActivity[index].WA_grade_distribution[item];
-                            WA_count++;
+                            console.log('item',item);
+                            if(item == 'simple'){
+                                WA_gradeDistribution[item] = assignment.WorkflowActivity[index].WA_grade_distribution[item];
+                            } else {
+                                WA_gradeDistribution[TA_array[parseInt(item)]] = assignment.WorkflowActivity[index].WA_grade_distribution[item];
+                            }
                         }
                         //Update the list of TaskActivities in WorkflowActivity and Grade Distribution
                         WorkflowActivity.update({
@@ -578,11 +593,10 @@ class TaskFactory {
                 }).then(function(done) {
                     //After all WorkflowActivities are created update the list of WorkflowActivities in Assignment
                     var AA_gradeDistribution = {};
-                    var AA_count = 0;
                     for (var item in assignment.AA_grade_distribution) {
-                        AA_gradeDistribution[WA_array[AA_count]] = assignment.AA_grade_distribution[item];
-                        AA_count++;
+                        AA_gradeDistribution[WA_array[parseInt(item)]] = assignment.AA_grade_distribution[item];
                     }
+
                     Assignment.update({
                         WorkflowActivityIDs: WA_array,
                         GradeDistribution: AA_gradeDistribution

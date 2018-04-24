@@ -140,6 +140,7 @@ class TaskTrigger {
         });
 
         var final_grade = await grade.findFinalGrade(ti);
+        console.log('herte', final_grade);
         if(final_grade != null){
             await grade.addTaskGrade(final_grade.id, final_grade.grade, final_grade.max_grade);
         }
@@ -154,7 +155,7 @@ class TaskTrigger {
 
             //Amadou
             let taskFactory = new TaskFactory;
-            taskFactory.updatePointInstance('high_grade', ti.AssignmentInstanceID, ti.UserID);
+            // taskFactory.updatePointInstance('high_grade', ti.AssignmentInstanceID, ti.UserID);
 
 
             await Promise.mapSeries(grades, async function(t_grade) {

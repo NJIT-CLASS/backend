@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('Assignment_Archive', {
+    return sequelize.define('ArchivedAssignment', {
         AssignmentID: {
             //Unique identifier for Assignment (activity)
             type: DataTypes.INTEGER.UNSIGNED,
@@ -85,7 +85,7 @@ module.exports = function(sequelize, DataTypes) {
 
         // don't use camelcase for automatically added attributes but underscore style
         // so updatedAt will be updated_at
-        underscored: true,
+        underscored: false,
 
         // disable the modification of table names; By default, sequelize will automatically
         // transform all passed model names (first parameter of define) into plural.
@@ -93,6 +93,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'Assignment_Archive'
+        tableName: 'archivedassignment'
     });
 };
