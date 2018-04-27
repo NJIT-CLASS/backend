@@ -3850,6 +3850,192 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
+    // New Supercall, Not DONE!
+    router.get('/superCall2/:taskInstanceId', participantAuthentication, async function (req, res) {
+        logger.log('info', 'get: /superCall2/:taskInstanceId', {
+            req_query: req.query,
+            req_params: req.params
+        });
+        var current_user_id = Number(req.query.userID);
+        var view_constraint;
+        var allocator = new TaskFactory();
+        let taskInstanceAttributes = ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask','AssignmentInstanceID','WorkflowInstanceID'];
+        let taskActivityAttributes = ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName', 'AllowRevision', 'SeeSibblings', 'SeeSameActivity'];
+        
+        /*  find the current task being viewed */
+        var current_ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.taskInstanceId
+            },
+            attributes: taskInstanceAttributes,
+            include: [{
+                model: TaskActivity,
+            }]
+        });
+
+        /* Make MultipleUsers parameter  */
+        var ti = current_ti;
+        var MultipleUsers = [];
+        if(ti.TaskActivity.SeeSibblings){
+            // MultipleUsers stays empty
+        }else if (ti.TaskActivity.NumberParticipants > 1){
+            var ti_temp = await TaskInstance.findAll({
+                where: {
+                    AssignmentInstanceID: ti.AssignmentInstanceID,
+                    WorkflowInstanceID: ti.WorkflowInstanceID,
+                    TaskActivityID: ti.TaskActivity.TaskActivityID
+                },
+                attributes: ['UserID'],
+            });
+            //console.log('heeeee')
+            //console.log(ti_temp);
+            await Promise.map(ti_temp, async(ti) =>{
+                MultipleUsers.push(ti.UserID);
+            });
+        }else{
+            MultipleUsers.push(current_user_id);
+        }
+
+        /* fullPath parameter    */
+        var fullPath = await allocator.makeFullPath(req.params.taskInstanceId, new Array()) || [];
+        fullPath.push(current_ti.TaskInstanceID);
+
+        /*  BlockableTAs parameter    */
+        var BlockableTAs = []
+        var a = await AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: ti.AssignmentInstanceID,
+            },
+            attributes: ['AssignmentID'],
+        });
+        var ti_temp = await TaskActivity.findAll({
+            where: {
+                AssignmentID: a.AssignmentID,
+                MustCompleteThisFirst: 1
+            },
+        });
+        await Promise.map(ti_temp, async(ti) =>{
+            BlockableTAs.push(ti.TaskActivityID);
+        });
+
+        /*  PendingTaskInstance      */
+        var PendingTaskInstances = [];
+        if(BlockableTAs.lenth !== 0){
+            var ti_temp = await TaskInstance.findAll({
+                where: {
+                    AssignmentInstanceID: ti.AssignmentInstanceID,
+                    UserID: current_user_id,
+                    Status: {
+                        $like: '%"started"%',
+                    }
+                },
+                include: [{
+                    model: TaskActivity,
+                }]
+            });
+            await Promise.map(ti_temp, async(ti) =>{
+                PendingTaskInstances.push(ti);   
+            });
+        }
+
+        console.log(MultipleUsers)
+        console.log(BlockableTAs)
+        console.log(fullPath);
+        //console.log(PendingTaskInstances);
+        //return;
+
+
+        //current_ti = await allocator.getTifromTi_id(1193)
+        //fullPath = [];
+        var view_constraint = await allocator.View_Access(res, current_user_id, current_ti, MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances );
+        console.log(view_constraint);
+        res.json(
+            view_constraint
+        );
+        return;
+        // check for view error, respod immiediently
+        //var pre_tis = await allocator.findPreviousTasks(req.params.taskInstanceId, new Array());
+        //var prr = 
+        //console.log(pre_tis);
+        //console.log(prr);
+        return;
+        var ar = new Array();
+        if (pre_tis == null) {
+                ar.push(current_ti);
+                res.json({
+                    'previousTasksList': pre_tis,
+                    'superTask': ar
+                });
+        } else {
+            await Promise.mapSeries(pre_tis, async function (task) {
+                    var pre_ti = await TaskInstance.find({
+                        where: {
+                            TaskInstanceID: task
+                        },
+                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                        include: [{
+                            model: TaskActivity,
+                        }]
+                    });
+                    fullPath.push(pre_ti);
+                    ar.push(pre_ti);
+                    // view_constraint = await allocator.applyViewContstraints(res, req.query.userID, result);
+            });
+
+                if (view_constraint === false || view_constraint === undefined) {
+                    var ti = await TaskInstance.find({
+                        where: {
+                            TaskInstanceID: req.params.taskInstanceId
+                        },
+                        attributes: ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask'],
+                        include: [{
+                            model: TaskActivity,
+                        }]
+                    });
+                    //check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
+                    view_constraint = await allocator.applyViewContstraints(res, req.query.userID, ti);
+                    if (view_constraint === false || view_constraint === undefined) {
+                        if (res._headerSent) { // if already responded (response sent)
+                            return;
+                        }
+                        // update data field of all tasks with the appropriate allowed version
+                        ar = await allocator.applyVersionContstraints(ar, ti, req.query.userID);
+                        ar.push(ti);
+                        res.json({
+                            error: false,
+                            previousTasksList: pre_tis,
+                            superTask: ar,
+                        });
+
+                    } else {
+                        res.json(view_constraint);
+                    }
+                } else {
+                    res.json(view_constraint);
+                }
+            }
+
+        await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.taskInstanceId
+            }
+        }).then(async function (ti) {
+            var newStatus = JSON.parse(ti.Status);
+            if (newStatus[4] === 'not_opened') {
+                newStatus[4] = 'viewed';
+                logger.log('info', 'task opened for the first time, updating status...');
+                await TaskInstance.update({
+                    Status: JSON.stringify(newStatus)
+                }, {
+                    where: {
+                        TaskInstanceID: req.params.taskInstanceId
+                    }
+                });
+            }
+        });
+    });
+
+
 
     //Endpoint for all current task data and previous task data and put it in an array
     router.get('/superCall/:taskInstanceId', participantAuthentication, async function (req, res) {
