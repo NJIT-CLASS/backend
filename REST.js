@@ -10909,12 +10909,36 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
             return;
         };
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.ti_id,
+            },
+            include: [{
+                model: TaskActivity,
+                attributes: ['Type'],
+            }]
+        });
 
-        var allocate = new Allocator([],0);
-        await allocate.cancel_task(req.body.ti_id);
+        var ti_status = JSON.parse(ti.Status);
+        if(ti_status[0] == 'bypassed' || ti_status[0] == 'complete' || ti_status[1] == 'cancelled'){
+            res.json({
+                Error: true,
+                Message: 'Completed task cannot be cancelled'
+            });
+            return;
+        }
+        var trigger = new TaskTrigger();
+
+        if (ti.TaskActivity.Type === 'edit' ) {      
+            var first_task = await trigger.getEdittingTask(ti);
+            await trigger.cancelAll(first_task);
+        } 
+
+        await trigger.cancelAll(ti);
+
         res.json({
             Error: false,
-            Message: 'Task Successfully Cancelled'
+            Message: 'Tasks Successfully Cancelled'
         });
     });
 

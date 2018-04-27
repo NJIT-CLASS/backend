@@ -898,6 +898,50 @@ class TaskTrigger {
             });
         }
     }
-}
 
+    /*
+    * Cancel All Tasks
+    */
+    async cancelAll(ti){
+        var x = this;
+        await x.cancel(ti);
+
+        if (JSON.parse(ti.NextTask) !== '[]') {
+            await Promise.map(JSON.parse(ti.NextTask), async function(task) {
+                var next = await TaskInstance.find({ //assumed needs_consolidation's next task is always consolidation
+                    where: {
+                        TaskInstanceID: task.id
+                    }
+                });
+                await x.cancelAll(next);
+            });
+        }
+    }
+    /*
+    * Cancel Task Instance
+    */
+    async cancel(ti){
+        logger.log('info',{
+            call:'cancel_task', 
+            ti_id: ti.TaskInstanceID
+        });
+        var ti_status = JSON.parse(ti.Status);
+        if(ti_status[0] == 'bypassed' || ti_status[0] == 'complete' ){
+            return;
+        }
+        ti_status[1] = 'cancelled';  
+
+        await TaskInstance.update({
+            Status: JSON.stringify(ti_status),
+            ActualEndDate: new Date()
+            }, {
+                where: {
+                    TaskInstanceID: ti.TaskInstanceID
+                }
+        }).catch(function (err) {
+            logger.log('error', 'cancel_task, failed to update', err);
+        });
+    }
+
+}
 module.exports = TaskTrigger;
