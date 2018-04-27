@@ -94,7 +94,7 @@ class TaskFactory {
         });
     }
 
-    async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing) {
+    async createAssignmentInstances(a_id, sectionIDs, startDate, wf_timing, ai_displayName) {
         var x = this;
         var assingmentInstancesCreated = [];
         console.log('Creating assignment instance... WTIH ', a_id, sectionIDs, startDate, wf_timing);
@@ -106,7 +106,8 @@ class TaskFactory {
                 AssignmentID: a_id,
                 SectionID: sectionid,
                 StartDate: startDate,
-                WorkflowTiming: wf_timing
+                WorkflowTiming: wf_timing,
+                DisplayName: ai_displayName
             });
             assingmentInstancesCreated.push(ai.AssignmentInstanceID);
             await x.updateWorkflowTiming(wf_timing);
@@ -783,8 +784,20 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
                         assigneeConstraints[2][item] = temp;
                         //console.log('AssigneeConstraints', temp);
                     }
+
+                    //Clean task field default_refers_to here to minimize DB calls
+                    var fields = JSON.parse(result.Fields);
+                    if(fields !== null){
+                        for(var fieldIndex = 0; fieldIndex < fields.number_of_fields; fieldIndex++){
+                            if(fields[fieldIndex].default_refers_to !== null && fields[fieldIndex].default_refers_to[0] !== null){
+                                fields[fieldIndex].default_refers_to[0] = ta_array[fields[fieldIndex].default_refers_to[0]];
+                            }
+                        }
+                    }
+
                     return TaskActivity.update({
-                        AssigneeConstraints: assigneeConstraints
+                        AssigneeConstraints: assigneeConstraints,
+                        Fields: fields
                     }, {
                         where: {
                             TaskActivityID: result.TaskActivityID
@@ -891,9 +904,9 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
                         //(Assumed all task activities are created in order)
                         var WA_gradeDistribution = {};
                         for (var item in assignment.WorkflowActivity[index].WA_grade_distribution) {
-                            console.log('item',item)
+                            console.log('item',item);
                             if(item == 'simple'){
-                                WA_gradeDistribution[item] = assignment.WorkflowActivity[index].WA_grade_distribution[item]
+                                WA_gradeDistribution[item] = assignment.WorkflowActivity[index].WA_grade_distribution[item];
                             } else {
                                 WA_gradeDistribution[TA_array[parseInt(item)]] = assignment.WorkflowActivity[index].WA_grade_distribution[item];
                             }

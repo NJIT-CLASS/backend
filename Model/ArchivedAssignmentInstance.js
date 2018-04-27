@@ -1,5 +1,5 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('AssignmentInstance', {
+    return sequelize.define('ArchivedAssignmentInstance', {
         AssignmentInstanceID: {
             //Assignment instance ID
             type: DataTypes.INTEGER.UNSIGNED,
@@ -51,14 +51,7 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.JSON,
             field: 'Volunteers',
             default: '[]'
-        },
-        DisplayName: {
-            type: DataTypes.STRING,
-            field: 'DisplayName',
-            allowNull: false,
-            default: ''
         }
-
     }, {
         timestamps: false,
 
@@ -77,6 +70,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'assignmentinstance'
+        tableName: 'archivedassignmentinstance'
     });
 };

@@ -19,15 +19,74 @@ var sequelize = new Sequelize(settings.DATABASE, settings.DB_USER, settings.DB_P
     logging: false
 });
 
-var models = ['Assignment', 'AssignmentInstance', 'Course', 'EmailNotification', 'Group',
-    'GroupUser', 'Organization', 'ResetPasswordRequest', 'Section',
-    'SectionUser', 'Semester', 'TaskActivity','User',
-    'UserContact', 'UserLogin', 'WorkflowActivity', 'WorkflowInstance', 'VolunteerPool',
-    'AssignmentGrade', 'WorkflowGrade', 'TaskGrade', 'TaskSimpleGrade', 'PartialAssignments',
-    'FileReference','TaskInstance','Comments','CommentsArchive', 'CommentsViewed', 'Contact','Notifications',
-    'BadgeInstance', 'Badge', 'CategoryInstance', , 'Category', 'UserBadgeInstances', 'UserPointInstances',
-    'StudentRankSnapchot', 'SectionRankSnapchot', 'UserPointInstances', 'Level',
-    'Goal', 'GoalInstance', 'Level', 'LevelInstance', 'SectionUserRecord', 'ExtraCredit','APIStatistics'
+var models = [
+    'Assignment',
+    'ArchivedAssignment',
+    'ArchivedAssignmentInstance',
+    'AssignmentInstance',
+    'Course',
+    'EmailNotification',
+    'Group',
+    'GroupUser',
+    'Organization',
+    'ResetPasswordRequest',
+    'Section',
+    'SectionUser',
+    'Semester',
+    'TaskActivity',
+    'User',
+    'UserContact',
+    'UserLogin',
+    'WorkflowActivity',
+    'ArchivedWorkflowInstance',
+    'WorkflowInstance',
+    'VolunteerPool',
+    'AssignmentGrade',
+    'WorkflowGrade',
+    'TaskGrade',
+    'TaskSimpleGrade',
+    'PartialAssignments',
+    'FileReference',
+    'ArchivedTaskInstance',
+    'TaskInstance',
+    'Comments',
+    'CommentsArchive',
+    'CommentsViewed',
+    'Contact',
+    'Notifications',
+    'BadgeInstance',
+    'Badge',
+    'CategoryInstance',
+    'Category',
+    'UserBadgeInstances',
+    'UserPointInstances',
+    'StudentRankSnapchot',
+    'SectionRankSnapchot',
+    'UserPointInstances',
+    'Level',
+    'Goal',
+    'GoalInstance',
+    'Level',
+    'LevelInstance',
+    'SectionUserRecord',
+    'ExtraCredit',
+    'APIStatistics',
+    'RemovedAssignmentInstance',
+    'RemovedWorkflowInstance',
+    'RemovedTaskInstance',
+    'ArchivedTaskGrade',
+    'ArchivedWorkflowGrade',
+    'ArchivedTaskSimpleGrade',
+    'ArchivedAssignmentGrade',
+    'ArchivedWorkflowActivity',
+    'ArchivedTaskActivity',
+	'RemovedTaskGrade',
+    'RemovedWorkflowGrade',
+    'RemovedTaskSimpleGrade',
+    'RemovedAssignmentGrade',
+    'RemovedWorkflowActivity',
+    'RemovedTaskActivity',
+    'RemovedAssignment'
 ];
 
 
@@ -241,7 +300,41 @@ models.forEach(function(model) {
         foreignKey: 'AssignmentID'
     });
 
+	m.ArchivedAssignmentInstance.belongsTo(m.Section, {
+		foreignKey: 'SectionID'
+	});
 
+	m.RemovedAssignmentInstance.belongsTo(m.Section, {
+		foreignKey: 'SectionID'
+	});
+
+	m.ArchivedAssignmentInstance.belongsTo(m.ArchivedAssignment, {
+		foreignKey: 'AssignmentID'
+	});
+
+	m.RemovedAssignmentInstance.belongsTo(m.RemovedAssignment, {
+		foreignKey: 'AssignmentID'
+	});
+
+	m.ArchivedAssignmentInstance.belongsTo(m.Assignment, {
+		foreignKey: 'AssignmentID'
+	});
+
+	m.RemovedAssignmentInstance.belongsTo(m.Assignment, {
+		foreignKey: 'AssignmentID'
+	});
+
+	m.Assignment.belongsTo(m.Course, {
+		foreignKey: 'CourseID'
+	});
+
+	m.ArchivedAssignment.belongsTo(m.Course, {
+		foreignKey: 'CourseID'
+	});
+
+	m.RemovedAssignment.belongsTo(m.Course, {
+		foreignKey: 'CourseID'
+	});
 
     //has Many Relations
     m.CategoryInstance.hasMany(m.BadgeInstance, {
