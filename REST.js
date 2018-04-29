@@ -10926,7 +10926,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
             return;
         };
-        var ti = await TaskInstance.find({
+        await TaskInstance.find({
             where: {
                 TaskInstanceID: req.body.ti_id,
             },
@@ -10934,28 +10934,34 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 model: TaskActivity,
                 attributes: ['Type'],
             }]
-        });
+        }).then(async function (ti) {
 
-        var ti_status = JSON.parse(ti.Status);
-        if(ti_status[0] == 'bypassed' || ti_status[0] == 'complete' || ti_status[1] == 'cancelled'){
+            var ti_status = JSON.parse(ti.Status);
+            if(ti_status[0] == 'bypassed' || ti_status[0] == 'complete' || ti_status[1] == 'cancelled'){
+                res.json({
+                    Error: true,
+                    Message: 'Completed task cannot be cancelled'
+                });
+                return;
+            }
+            var trigger = new TaskTrigger();
+
+            if (ti.TaskActivity.Type === 'edit' ) {      
+                var first_task = await trigger.getEdittingTask(ti);
+                await trigger.cancelAll(first_task);
+            } 
+
+            await trigger.cancelAll(ti);
+            var email = new Email();
+            await email.sendNow(ti.UserID, 'task_cancelled');   // send email only to the task that was cancelled, not follow on
+
             res.json({
-                Error: true,
-                Message: 'Completed task cannot be cancelled'
+                Error: false,
+                Message: 'Tasks Successfully Cancelled'
             });
-            return;
-        }
-        var trigger = new TaskTrigger();
-
-        if (ti.TaskActivity.Type === 'edit' ) {      
-            var first_task = await trigger.getEdittingTask(ti);
-            await trigger.cancelAll(first_task);
-        } 
-
-        await trigger.cancelAll(ti);
-
-        res.json({
-            Error: false,
-            Message: 'Tasks Successfully Cancelled'
+        }).catch(function (err) {
+            logger.log('error', err);
+            res.status(400).end();
         });
     });
 
@@ -10972,7 +10978,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
             return;
         };
-        var ti = await TaskInstance.find({
+        await TaskInstance.find({
             where: {
                 TaskInstanceID: req.body.ti_id,
             },
@@ -10980,49 +10986,56 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 model: TaskActivity,
                 attributes: ['Type', 'AllowRevision', 'AllowReflection'],
             }, ],
-        });
-        var trigger = new TaskTrigger();
-        var status = JSON.parse(ti.Status);
-        var Message;
-        var Success;
-        if(status[0] !== 'complete' && status[0] !== 'bypassed' && status[0] !== 'not_yet_started'){
-            var date = new Date();
-            status[0] = 'bypassed';
-            logger.log('info', 'updating TaskInstanceID:',req.body.ti_id, 'to bypassed');
-            await TaskInstance.update({     // update task before triggering
-                Status: JSON.stringify(status),
-                StartDate: date,
-                EndDate: date,
-                ActualEndDate: date
-            }, {
-                where: {
-                    TaskInstanceID: req.body.ti_id,
+        }).then(async function (ti) {
+            var trigger = new TaskTrigger();
+            var status = JSON.parse(ti.Status);
+            var Message;
+            var Success;
+            if(status[0] !== 'complete' && status[0] !== 'bypassed' && status[0] !== 'not_yet_started'){
+                var date = new Date();
+                status[0] = 'bypassed';
+                logger.log('info', 'updating TaskInstanceID:',req.body.ti_id, 'to bypassed');
+                await TaskInstance.update({     // update task before triggering
+                    Status: JSON.stringify(status),
+                    //StartDate: date,
+                    //EndDate: date,
+                    ActualEndDate: date
+                }, {
+                    where: {
+                        TaskInstanceID: req.body.ti_id,
+                    }
+                });
+               
+                var email = new Email();
+                await email.sendNow(ti.UserID, 'task_bypassed');   // send email only to the task that was cancelled, not follow on
+            
+                Message = 'Task Successfully Bypassed';
+                Success = true;
+                try{
+                    if (ti.TaskActivity.Type === 'edit' ) {      // edit tasks always have [] as next task, treat differently
+                        var original_task = await trigger.getEdittingTask(ti);
+                        await trigger.trigger(original_task);       // trigger next tasks
+                        trigger.next(req.body.ti_id);               // same action as in trigger.approved() function
+                    } else {
+                        await trigger.next(req.body.ti_id);         // trigger next task
+                        await trigger.bypass(ti);                   // changes status to bypassed, checks if final task
+                    }
+                }catch(e){                                      // error with missing grades occurs sometimes
+                    Message = 'Task Bypassed, with Server Error';
+                    Success = false;
+                    logger.log('error','/task/bypass', e);
                 }
-            });
-
-            Message = 'Task Successfully Bypassed';
-            Success = true;
-            try{
-                if (ti.TaskActivity.Type === 'edit' ) {      // edit tasks always have [] as next task, treat differently
-                    var original_task = await trigger.getEdittingTask(ti);
-                    await trigger.trigger(original_task);       // trigger next tasks
-                    trigger.next(req.body.ti_id);               // same action as in trigger.approved() function
-                } else {
-                    await trigger.next(req.body.ti_id);         // trigger next task
-                    await trigger.bypass(ti);                   // changes status to bypassed, checks if final task
-                }
-            }catch(e){                                      // error with missing grades occurs sometimes
-                Message = 'Task Bypassed, with Server Error';
+            }else{
+                Message = 'Cannot Bypass Completed or Not Started Tasks';
                 Success = false;
-                logger.log('error','/task/bypass', e);
             }
-        }else{
-            Message = 'Cannot Bypass Completed or Not Started Tasks';
-            Success = false;
-        }
-        res.json({
-            Error: !Success,
-            Message: Message
+            res.json({
+                Error: !Success,
+                Message: Message
+            });
+        }).catch(function (err) {
+            logger.log('error', err);
+            res.status(400).end();
         });
     });
 

@@ -256,6 +256,28 @@ class Email {
                     });
                     break;
 
+                case 'task_cancelled':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: 'Your task has been cancelled - PLA',
+                        text: 'One of your tasks has been cancelled, you will no longer be able to complete it',
+                        html: ''
+                    });
+                    break;
+                    
+                case 'task_bypassed':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: 'Your task has been bypassed - PLA',
+                        text: 'One of your tasks has been bypassed, you will no longer be able to complete it',
+                        html: ''
+                    });
+                    break;
+
                 case 'reset password':
                     console.log('resetting password');
                     let template2 = await RESET_PASS(data);
