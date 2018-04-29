@@ -199,8 +199,8 @@ class TaskFactory {
 
     }
 */
- /// added from here   
-    // finds the index of this task in the fullPath during Access Constrains checking created 4-20-18 mss86
+    /*  functions for SUPER Call start here    */
+// finds the index of this task in the fullPath during Access Constrains checking created 4-20-18 mss86
 async TaskIndexInFullPath(ti_id, fullPath){
         console.log(ti_id);
         var n;
@@ -313,28 +313,34 @@ async TaskInAssessmentBranch(ti_id, fullPath){
 // checks if full Branch had dispute with user and started/complete created 4-20-18 mss86
 async FullPathHasDisputeWithUserAndStartedOrComplete(user_id, fullPath){
     var result = false;
+    var ti;
         loop1:  
-        for(var i = 0; i <= fullPath.length; i++){
+        for(var i = 0; i < fullPath.length; i++){
             if(fullPath[i].constructor === Array){          // Array of Task Instances
                 for(var j = 0; j < fullPath[i].length; j++){
-                    if(fullPath[i][j].TaskActivity.Type === 'dispute' && fullPath[i][j].UserID === user_id ){
-                        var status = JSON.parse(fullPath[i][j].Status)[0];
-                        if(status === 'complete' || status === 'bypassed' || status === 'started'){
+                    ti = await this.getTifromTi_id(fullPath[i][j]);
+                    console.log( ti.TaskActivity.Type , ti.UserID, user_id)
+                    if(ti.TaskActivity.Type == 'dispute' && ti.UserID == user_id ){
+                        var status = JSON.parse(ti.Status)[0];
+                        if(status == 'complete' || status == 'bypassed' || status == 'started'){
                             result = true;
                             break loop1;  
                         }                       
                     }
                 }
             }else{                                          //Task Instance
-                if(fullPath[i][j].TaskActivity.Type === 'dispute' && fullPath[i][j].UserID === user_id ){
-                    var status = JSON.parse(fullPath[i][j].Status)[0];
-                    if(status === 'complete' || status === 'bypassed' || status === 'started'){
+                ti = await this.getTifromTi_id(fullPath[i]);
+                console.log( ti.TaskActivity.Type , ti.UserID, user_id)
+                if(ti.TaskActivity.Type == 'dispute' && ti.UserID == user_id ){
+                    var status = JSON.parse(ti.Status)[0];
+                    if(status == 'complete' || status == 'bypassed' || status == 'started'){
                         result = true;
                         break loop1;  
                     }                       
                 }
             }
         }
+    console.log(result,"dispute started or complete");
     return result;
 }
 
@@ -401,9 +407,9 @@ async Sibling_Ti_Complete(ti, user_id){
         return true;
     }
 }
-// View Access Function to determine if user can see this task
+// View Access Function to determine if user can see this task created 4-22-18 mss86
 async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pendingTaskInstances) {
-
+    var x = this;
     var r = {
         ViewTask:1, 
         WhichVersion: 'all', 
@@ -411,32 +417,34 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
     }
     
           /* 1 */
-        if (JSON.parse(ti.Status)[0] === 'not_yet_started') {
+        if (JSON.parse(ti.Status)[0] == 'not_yet_started') {
                 logger.log('info', ' Algorithm 1');
                 r.ViewTask = 0;
                 return r;
         }
 
           /* 2 */
-        if (JSON.parse(ti.Status)[0] === 'started' && (ti.UserID !== user_id) ) {
+        if (JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != user_id) ) {
                 logger.log('info', ' Algorithm 2');
                 r.ViewTask = 0;
                 return r;
         }
 
           /* 3 */
-        if (JSON.parse(ti.Status)[0] === 'started' &&  (ti.UserID === user_id) ){
-            logger.log('info', ' Algorithm 3');
+        if (JSON.parse(ti.Status)[0] == 'started' &&  (ti.UserID == user_id) ){
+            logger.log('info', ' Algorithm 3.0');
             if(  !ti.TaskActivity.MustCompleteThisFirst &&                                  // XTI not blockable
                 pendingTaskInstances.some( function( pendingTaskInstance) {                 // any other blockable
                     return _.contains(blockableTA_IDs, pendingTaskInstance.TaskActivityID);
                 })
             ){
+                logger.log('info', ' Algorithm 3.1');
                 r.ViewTask = 1;
                 r.BlockedView = 1;
                 return r;
             }
             else {
+                logger.log('info', ' Algorithm 3.2');
                 r.ViewTask = 1;
                 r.WhichVersion = 'all';
                 r.BlockedView = 0 ;
@@ -445,7 +453,7 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         }
 
           /* 4 */
-        if (JSON.parse(ti.Status)[0] !== 'started') {
+        if (JSON.parse(ti.Status)[0] != 'started') {
               logger.log('info', ' Algorithm 4');
               r.BlockedView = 0;
         }
@@ -459,26 +467,25 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         }
 
           /* 6 */
-        var NextTaskInPath = await this.NextTaskInFullPath(ti.TaskInstanceID, fullPath);
-        console.log(NextTaskInPath, 'here')
-        if(NextTaskInPath !== null){    // if next task exists
+        var NextTaskInPath = await x.NextTaskInFullPath(ti.TaskInstanceID, fullPath);
+        if(NextTaskInPath != null){    // if next task exists
             var ti = await this.getTifromTi_id(NextTaskInPath);
             var NextTaskInFullPathType = ti.TaskActivity.Type;
             console.log(NextTaskInFullPathType)
-            if ((ti.TaskActivity.Type === 'edit' || ti.TaskActivity.Type === 'comment') && (NextTaskInFullPathType === 'grade_problem' || NextTaskInFullPathType === 'critique')){
-                    logger.log('info', ' Algorithm 6');
+            if ((ti.TaskActivity.Type == 'edit' || ti.TaskActivity.Type == 'comment') && (NextTaskInFullPathType == 'grade_problem' || NextTaskInFullPathType == 'critique')){
+                    logger.log('info', ' Algorithm 6.1');
                 r.WhichVersion = 'all';
             }
-            else if (NextTaskInFullPathType === 'grade_problem' || NextTaskInFullPathType === 'critique') {
-                    logger.log('info', ' Algorithm 6');
+            else if (NextTaskInFullPathType == 'grade_problem' || NextTaskInFullPathType == 'critique') {
+                    logger.log('info', ' Algorithm 6.2');
                 r.WhichVersion = 'first';
             }
-            else if (NextTaskInFullPathType === 'edit' || NextTaskInFullPathType === 'comment') {
-                    logger.log('info', ' Algorithm 6');
+            else if (NextTaskInFullPathType == 'edit' || NextTaskInFullPathType == 'comment') {
+                    logger.log('info', ' Algorithm 6.3');
                 r.WhichVersion = 'all';
             } 
         }else {
-                logger.log('info', ' Algorithm 6');
+                logger.log('info', ' Algorithm 6.0');
             r.WhichVersion = 'last';
         }
 
@@ -490,45 +497,49 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         }
 
           /* 8 */
-        if( (multipleUsers.length > 1) && (ti.TaskActivity.SeeSibblings === 0) &&
-              (_.contains(multipleUsers, user_id)) && this.Sibling_Ti_Complete(ti, user_id )) {
+        if( (multipleUsers.length > 1) && (ti.TaskActivity.SeeSibblings == 0) &&
+              (_.contains(multipleUsers, user_id)) && x.Sibling_Ti_Complete(ti, user_id )) {
                 logger.log('info', ' Algorithm 8');
                 r.ViewTask = 0;
                 return r;
         }
-        console.log('after 8');
+
           /* 9 */
-        var n =  await this.TaskInAssessmentBranch(ti.TaskInstanceID, fullPath);      // is it an Assessment branch?
-        var PriviousTask = await this.PreviousTaskInFullPath(n, fullPath);  // get privious task
+        var n =  await x.TaskInAssessmentBranch(ti.TaskInstanceID, fullPath);      // is it an Assessment branch?
+        console.log('this is assesment branck?',n)
+        var PriviousTaskID = await x.PreviousTaskInFullPath(n, fullPath);  // get privious task
+        var PriviousTask;
         var AssessmentBranch         = false;
         var UserInTargerOfAssessment = false;
-        if(n !== null){ AssessmentBranch = true;}                           
-        if(PriviousTask !== null){                                          // is there a privius task?
-            if(PriviousTask.constructor === Array){                          // if has siblings
+        if(n != null){ AssessmentBranch = true;}                           
+        if(PriviousTaskID != null){                                          // is there a privius task?
+            if(PriviousTaskID.constructor === Array){                        // if has siblings
                 for(var i=0; i < fullPath[i].length ; i++){
-                    if(PriviousTask.UserID === user_id){
+                    PriviousTask = await x.getTifromTi_id(PriviousTaskID);
+                    if(PriviousTask.UserID == user_id){
                         UserInTargerOfAssessment = true;
                         break;
                     }
                 }
             }else{                                                          // no siblings
-                if(PriviousTask.UserID === user_id){
+                PriviousTask = await x.getTifromTi_id(PriviousTaskID);
+                if(PriviousTask.UserID == user_id){
                     UserInTargerOfAssessment = true;
                 }
             }
         }
         if( AssessmentBranch && !UserInTargerOfAssessment ){
-                logger.log('info', ' Algorithm 9');
+                logger.log('info', ' Algorithm 9.1');
             r.ViewTask = 1;
             return r;
-        }else if( await this.FullPathHasDisputeWithUserAndStartedOrComplete(user_id, fullPath) ){
-                logger.log('info', ' Algorithm 9');
+        }else if( await x.FullPathHasDisputeWithUserAndStartedOrComplete(user_id, fullPath) ){
+                logger.log('info', ' Algorithm 9.2');
             r.ViewTask = 1;
             return r;
         }else if(AssessmentBranch && UserInTargerOfAssessment){
-                logger.log('info', ' Algorithm 9');
-            ViewTask = 0;
-            return result;
+                logger.log('info', ' Algorithm 9.3');
+            r.ViewTask = 0;
+            return r;
         }
         
           /* 10 */
@@ -537,9 +548,37 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         return r;
 
 }
+
+// set the data field of the task
+async SetDataVersion(ti, version_eval) {
+        logger.log('info', 'Setting View Data According to Version', {
+            task_instance: ti.toJSON(),
+            version_evaluation: version_eval
+        });
+
+        ti.Data = JSON.parse(ti.Data);
+        if (version_eval == 'none' || !ti.Data) {
+            //ti.Data = JSON.stringify([]);
+            return ti;
+        }
+        if (version_eval == 'all') {
+            ti.Data = JSON.stringify(ti.Data);
+            return ti;
+        }
+        if (version_eval == 'first') {
+            ti.Data = JSON.stringify([ti.Data[0]]);
+            return ti;
+        }
+        if (version_eval == 'last') {
+            ti.Data = JSON.stringify([ti.Data[ti.Data.length - 1]]);
+            return ti;
+        }
+      
+        logger.log('error', 'invalid version evaluation');
+    }
 // added up to here
 
-    // check to see if the user has view access to the task and if not: immediately respond with error
+    // check to see if the user has view access to the task and if not: immediately respond with error 
     async applyViewContstraints(res, user_id, ti) {
         logger.log('info', 'apply view constraints to task instance', {
             user_id: user_id,
@@ -677,7 +716,7 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         // });
     }
 
-    // update data field of all tasks with the appropriate allowed version according to the current task
+    // update data field of all tasks with the appropriate allowed version according to the current task 
     async applyVersionContstraints(pre_tis, cur_ti, user_id) {
         logger.log('info', 'apply version constraints to previous task instances based on a current task instance', {
             task_instance: cur_ti.toJSON(),
@@ -711,7 +750,7 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         // }
     }
 
-    // set the data field of the task
+    // set the data field of the task  
     setDataVersion(ti, version_eval) {
         logger.log('info', 'update task instance data with appropriate version', {
             task_instance: ti.toJSON(),
