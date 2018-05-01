@@ -898,6 +898,7 @@ class TaskTrigger {
             });
         }
     }
+
 }
 
 module.exports = TaskTrigger;

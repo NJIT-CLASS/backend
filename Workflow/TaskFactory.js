@@ -419,7 +419,9 @@ class TaskFactory {
         });
     }
 
-    updateAssigneeConstraints(ta_array) {
+    
+
+    updateIDs(ta_array) {
         console.log('Updating Assignee Constraints...');
 
         if (typeof ta_array === undefined) {
@@ -433,6 +435,7 @@ class TaskFactory {
                     }
                 }).then(function(result) {
                     var assigneeConstraints = JSON.parse(result.AssigneeConstraints);
+                    var refersToWhichTask = JSON.parse(result.RefersToWhichTask);
                     //Loop through Assignee Constraints
                     for (var item in assigneeConstraints[2]) {
                         var temp = [];
@@ -442,13 +445,26 @@ class TaskFactory {
                         assigneeConstraints[2][item] = temp;
                         //console.log('AssigneeConstraints', temp);
                     }
-                    return TaskActivity.update({
-                        AssigneeConstraints: assigneeConstraints
-                    }, {
-                        where: {
-                            TaskActivityID: result.TaskActivityID
-                        }
-                    });
+
+                    if(refersToWhichTask != null){
+                        return TaskActivity.update({
+                            AssigneeConstraints: assigneeConstraints,
+                            RefersToWhichTask: ta_array[refersToWhichTask]
+                        }, {
+                            where: {
+                                TaskActivityID: result.TaskActivityID
+                            }
+                        });
+                    } else {
+                        return TaskActivity.update({
+                            AssigneeConstraints: assigneeConstraints
+                        }, {
+                            where: {
+                                TaskActivityID: result.TaskActivityID
+                            }
+                        });
+                    }
+                    
                 });
             }).catch(function(err) {
                 console.log('Updating Assignee Constraint Failure');
@@ -534,6 +550,7 @@ class TaskFactory {
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
                             AssessmentTask: task.AssessmentTask,
+                            RefersToWhichTask: task.RefersToWhichTask,
                             MustCompleteThisFirst: task.MustCompleteThisFirst
                         }).then(function(taskResult) {
                             //console.log('Task creation successful!');
@@ -567,7 +584,7 @@ class TaskFactory {
                             }
                         });
                         //Update AssigneeConstraints replace fake IDs with real TaskActivityID
-                        x.updateAssigneeConstraints(TA_array);
+                        x.updateIDs(TA_array);
                         x.replaceTreeID(workflowResult.WorkflowActivityID, TA_array, workflowResult.WorkflowStructure);
                         //reset TA_array
                         TA_array = [];
