@@ -789,7 +789,9 @@ class Allocator {
     //         new_user_id: new_u_id,
     //         user_history: ti_u_hist
     //     });
-
+//
+// change_date: true / false
+// change_date_option: 'extend_only_if_late'   used during workflow cancellation and realocations
     async reallocate_user_to_task(ti, new_u_id, is_extra_credit, change_date, change_date_option) {
         if (is_extra_credit == null) {
             is_extra_credit = true;
@@ -820,6 +822,14 @@ class Allocator {
         var task_id = ti.TaskInstanceID;
         var ti_u_hist = JSON.parse(ti.UserHistory) || [];
         var ti_status = JSON.parse(ti.Status);
+
+        /* send emails */
+        if(change_date_option != 'extend_only_if_late'){ // dont send emails when canceling workflow
+            if(ti_status[0] == 'started'){
+                email.sendNow(ti.UserID, 'remove_reallocated'); // old user
+                email.sendNow(new_u_id, 'new_reallocated' );        // new user
+            }
+        }
 
         ti_status[5] = reallocation_status;  // change reallocation status
         ti_status[4] = 'not_opened';         // change view back to deafult

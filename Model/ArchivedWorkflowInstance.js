@@ -1,63 +1,57 @@
 module.exports = function(sequelize, DataTypes) {
-    return sequelize.define('AssignmentInstance', {
-        AssignmentInstanceID: {
-            //Assignment instance ID
+    return sequelize.define('ArchivedWorkflowInstance', {
+        WorkflowInstanceID: {
+            //Unique identifier for the workflow instance.
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'AssignmentInstanceID',
+            field: 'WorkflowInstanceID',
             allowNull: false,
             primaryKey: true,
             autoIncrement: true,
             unique: true
         },
-        AssignmentID: {
-            //identifier for Assignment (activity)
+        WorkflowActivityID: {
+            //Unique identifier for workflow activity.
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'AssignmentID',
+            field: 'WorkflowActivityID',
             allowNull: false
         },
-        SectionID: {
-            //identifier for a section.
+        AssignmentInstanceID: {
+            //Unique identifier for assignment instance
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'SectionID',
+            field: 'AssignmentInstanceID',
             allowNull: false
         },
-        StartDate: {
-            //Start date for the assignment. 0 means start immediately.
+        StartTime: {
+            //Start date of the workflow instance
             type: DataTypes.DATE,
-            field: 'StartDate',
+            field: 'StartTime',
             allowNull: true
         },
-        EndDate: {
-            //Overall end date for all the workflows associated to this assignment to finish.
+        EndTime: {
+            //Scheduled end date of the workflow instance
             type: DataTypes.DATE,
-            field: 'EndDate',
+            field: 'EndTime',
             allowNull: true
         },
-        WorkflowCollection: {
-            //Array of workflow instance ids corresponding to this assignment instance.
+        TaskCollection: {
+            //Array of task instance ids corresponding to this workflow instance.
             type: DataTypes.JSON,
-            field: 'WorkflowCollection',
+            field: 'TaskCollection',
             allowNull: true
         },
-        WorkflowTiming: {
-            //Array of arrays of workflow instance and task instance timing parameters
+        Data: {
+            //Any data for the workflow instance instead of tasks. (Not currently used.)
             type: DataTypes.JSON,
-            field: 'WorkflowTiming',
-            allowNull: true
+            field: 'Data',
+            allownull: true
         },
-        Volunteers: {
+        /*Volunteers: {
             type: DataTypes.JSON,
             field: 'Volunteers',
             default: '[]'
-        },
-        DisplayName: {
-            type: DataTypes.STRING,
-            field: 'DisplayName',
-            allowNull: false,
-            default: ''
-        }
+        }*/
 
     }, {
         timestamps: false,
@@ -77,6 +71,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'assignmentinstance'
+        tableName: 'archivedworkflowinstance'
     });
 };

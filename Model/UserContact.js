@@ -49,6 +49,25 @@ module.exports = function(sequelize, DataTypes) {
             type: DataTypes.JSON,
             field: 'Avatar',
             allowNull: true
+        },
+        UseAlternateEmail: {
+            // keep note if user wants alternate email for notifications
+            type: DataTypes.BOOLEAN,
+            field: 'UseAlternateEmail',
+            allowNull: false,
+            defaultValue: false
+        },
+        AdministrativeSupport: { 
+            //Is OverAll admin Support, Or support for listed Organizations
+            type: DataTypes.JSON,
+            field: 'AdministrativeSupport',
+            allowNull: true
+        },
+        TechnicalSupport: { 
+            //Is OverAll Technical Support, Or support for listed Organizations
+            type: DataTypes.JSON,
+            field: 'TechnicalSupport',
+            allowNull: true
         }
     }, {
         timestamps: false,
