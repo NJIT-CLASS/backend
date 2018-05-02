@@ -4185,7 +4185,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             
         } else {
             var taskStatusArray = typeof t.Status === 'string' ? JSON.parse(t.Status) : t.Status;
-            if((!taskStatusArray.includes('complete')) && req.body.userID != t.UserID){
+            console.log('UserID:', req.query.userID);
+            if((!taskStatusArray.includes('complete')) && req.query.userID != t.UserID){
                 res.status(418).end();
                 return;
             }
