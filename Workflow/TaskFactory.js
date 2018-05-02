@@ -800,7 +800,9 @@ async SetDataVersion(ti, version_eval) {
         });
     }
 
-    updateAssigneeConstraints(ta_array) {
+    
+
+    updateIDs(ta_array) {
         console.log('Updating Assignee Constraints...');
 
         if (typeof ta_array === undefined) {
@@ -814,6 +816,7 @@ async SetDataVersion(ti, version_eval) {
                     }
                 }).then(function(result) {
                     var assigneeConstraints = JSON.parse(result.AssigneeConstraints);
+                    var refersToWhichTask = JSON.parse(result.RefersToWhichTask);
                     //Loop through Assignee Constraints
                     for (var item in assigneeConstraints[2]) {
                         var temp = [];
@@ -824,6 +827,25 @@ async SetDataVersion(ti, version_eval) {
                         //console.log('AssigneeConstraints', temp);
                     }
 
+                    if(refersToWhichTask != null){
+                        return TaskActivity.update({
+                            AssigneeConstraints: assigneeConstraints,
+                            RefersToWhichTask: ta_array[refersToWhichTask]
+                        }, {
+                            where: {
+                                TaskActivityID: result.TaskActivityID
+                            }
+                        });
+                    } else {
+                        return TaskActivity.update({
+                            AssigneeConstraints: assigneeConstraints
+                        }, {
+                            where: {
+                                TaskActivityID: result.TaskActivityID
+                            }
+                        });
+                    }
+                    
                     //Clean task field default_refers_to here to minimize DB calls
                     var fields = JSON.parse(result.Fields);
                     if(fields !== null){
@@ -927,6 +949,7 @@ async SetDataVersion(ti, version_eval) {
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
                             AssessmentTask: task.AssessmentTask,
+                            RefersToWhichTask: task.RefersToWhichTask,
                             MustCompleteThisFirst: task.MustCompleteThisFirst
                         }).then(function(taskResult) {
                             //console.log('Task creation successful!');
@@ -960,7 +983,7 @@ async SetDataVersion(ti, version_eval) {
                             }
                         });
                         //Update AssigneeConstraints replace fake IDs with real TaskActivityID
-                        x.updateAssigneeConstraints(TA_array);
+                        x.updateIDs(TA_array);
                         x.replaceTreeID(workflowResult.WorkflowActivityID, TA_array, workflowResult.WorkflowStructure);
                         //reset TA_array
                         TA_array = [];

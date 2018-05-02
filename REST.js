@@ -803,7 +803,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/assignment/create', teacherAuthentication, function (req, res) {
 
         //
-        // console.log('assignment: ', req.body.assignment);
+        console.log('assignment: ', req.body.assignment);
         // allocator.createAssignment(req.body.assignment).then(function(done) {
         //     if (done === false) {
         //         res.status(400).end();
@@ -4170,8 +4170,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/superCall/:taskInstanceId', participantAuthentication, async function (req, res) {
         logger.log('info', 'get: /superCall/:taskInstanceId', {
             req_query: req.query,
-            req_params: req.params
+            req_params: req.params,
+            req_body: req.body
         });
+
+        var t = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.taskInstanceId
+            },
+            attributes: ['UserID'],
+        });
+
+        if(req.body.userID != t.UserID){
+            res.status(418).end();
+            return
+        }
+
+
         var view_constraint;
         var allocator = new TaskFactory();
 

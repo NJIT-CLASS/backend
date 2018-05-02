@@ -899,6 +899,7 @@ class TaskTrigger {
         }
     }
 
+
     /*
     * Cancel All Tasks
     */

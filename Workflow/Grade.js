@@ -636,7 +636,7 @@ class Grade {
             where:{
                 AssignmentID: ai.AssignmentID
             },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName']
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName', 'RefersToWhichTask']
         }).catch(function(err){
             console.log(err);
         });
