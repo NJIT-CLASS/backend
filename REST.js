@@ -604,11 +604,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Endpoint for intial password change check
     router.get('/user/pendingStatus/:userId', async function(req,res){
-        console.log('Called user/pendingStatus with ', req.params.userId)
+        console.log('Called user/pendingStatus with ', req.params.userId);
         var user = await UserLogin.findOne({
             
-                where: {UserID: req.params.userId},
-                attributes: ['Pending']
+            where: {UserID: req.params.userId},
+            attributes: ['Pending']
             
         });
 
@@ -4181,10 +4181,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['UserID'],
         });
 
-        if(req.body.userID != t.UserID){
-            res.status(418).end();
-            return
+        if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
+            
+        } else {
+            if(req.body.userID != t.UserID){
+                res.status(418).end();
+                return;
+            }
         }
+        
 
 
         var view_constraint;
