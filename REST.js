@@ -109,7 +109,7 @@ const randtoken = require('rand-token');
 //In-memory object to store refresh tokens
 const refreshTokens = {};
 // const USE_TOKENS = process.env.NODE_ENV === 'production';
-const USE_TOKENS = false;
+const USE_TOKENS = true;
 var storage = multer({
     dest: './files/',
     limits: { //Max 3 files and total of 50MB
@@ -601,6 +601,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////                 Guest Level APIs
+
+    //Endpoint for intial password change check
+    router.get('/user/pendingStatus/:userId', async function(req,res){
+        console.log('Called user/pendingStatus with ', req.params.userId)
+        var user = await UserLogin.findOne({
+            
+                where: {UserID: req.params.userId},
+                attributes: ['Pending']
+            
+        });
+
+        if(user.Pending == 1 ){
+            return res.status(200).end();
+        } else {
+            return res.status(403).end();
+        }
+    });
+
     //Endpoint to update a User's Email
     router.put('/update/email', function (req, res) {
         if (req.body.password == null || req.body.email == null || req.body.userid == null) {
@@ -680,6 +698,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
             ]
         }).then(function (user) {
+            if(user == null){
+                console.log('/generalUser : Not found');
+                res.status(400).end();
+            }
             if(user.UserContact.AdministrativeSupport == null){          // substitute null for old database fields TODO: remove in the future
                 user.UserContact.AdministrativeSupport = [ 0, [] ];
             }
@@ -1585,14 +1607,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     router.post('/getUserID/',  participantAuthentication, function (req, res) {
-        UserLogin.find({
+        UserLogin.findOne({
             where: {
                 Email: req.body.email
             }
         }).then(function (user) {
             if(user === null){
-                UserContact.find({
-                    Email: req.body.email
+                UserContact.findOne({
+                    where: {Email: req.body.email}
 
                 }).then(function(userCon) {
                     if(userCon === null){
@@ -4014,7 +4036,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             fullPath.push(current_ti.TaskInstanceID);
 
             /*  BlockableTAs parameter    */
-            var BlockableTAs = []
+            var BlockableTAs = [];
             var a = await AssignmentInstance.findOne({
                 where: {
                     AssignmentInstanceID: ti.AssignmentInstanceID,
@@ -4067,13 +4089,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     await allocator.SetDataVersion(current_ti, view_constraint.WhichVersion); // set version on current task if not first
                     await Promise.mapSeries(pre_tis, async function (task) {
                         var pre_ti = await TaskInstance.find({
-                                where: {
-                                    TaskInstanceID: task
-                                },
-                                attributes: taskInstanceAttributes,
-                                include: [{
-                                    model: TaskActivity,
-                                }]
+                            where: {
+                                TaskInstanceID: task
+                            },
+                            attributes: taskInstanceAttributes,
+                            include: [{
+                                model: TaskActivity,
+                            }]
                         });
                         /* Skip Tasks that were Cancelled  */
                         if(JSON.parse(pre_ti.Status)[1] != 'cancelled'){
