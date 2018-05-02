@@ -4178,13 +4178,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 TaskInstanceID: req.params.taskInstanceId
             },
-            attributes: ['UserID'],
+            attributes: ['UserID', 'Status'],
         });
 
         if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
             
         } else {
-            if(req.body.userID != t.UserID){
+            var taskStatusArray = typeof t.Status === 'string' ? JSON.parse(t.Status) : t.Status;
+            if((!taskStatusArray.includes('complete')) && req.body.userID != t.UserID){
                 res.status(418).end();
                 return;
             }
