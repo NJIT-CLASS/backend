@@ -3865,14 +3865,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
     
-    //Endpoint for all current task data and previous task data   created 4-28-18 mss86  TODO: test
-    router.get('/superCall2/:taskInstanceId', participantAuthentication, async function (req, res) {
+    //Endpoint for all current task data and previous task data   created 4-28-18 mss86  TODO: Test on Server
+    router.get('/superCall/:taskInstanceId', participantAuthentication, async function (req, res) {
         logger.log('info', 'get: /superCall2/:taskInstanceId', {
             req_query: req.query,
             req_params: req.params
         });
+        var pre_tis =[];
+        var pre_tis_version = [];
         var BlockedView = false;
-        var ViewTask = true;
+        var ViewTask    = true;
         var current_user_id = Number(req.query.userID);
         var view_constraint;
         var allocator = new TaskFactory();
@@ -3891,29 +3893,39 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(async function (current_ti) {
             var ti = current_ti;
             /* Pre check task and return immidiently to save processing */
-            if (JSON.parse(ti.Status)[1] == 'cancelled' ) {
+            if (JSON.parse(ti.Status)[1] == 'cancelled' || JSON.parse(ti.Status)[0] == 'bypassed' ) {
                 logger.log('info', ' Algorithm Cancelled returning error');
                 ViewTask = 0;
                 res.json({
                     'error': true,
-                    'message': 'You cannot view this task, it was cancelled'
+                    'message': 'It was cancelled / bypassed'
                 });
                 return;     
             }
-            /* 1  +  2 */
-            if (JSON.parse(ti.Status)[0] == 'not_yet_started' || (JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != current_user_id) ) ) {
-                logger.log('info', ' Algorithm 1 + 2 returning error');
+            /*    1   */
+            if (JSON.parse(ti.Status)[0] == 'not_yet_started' ) {
+                logger.log('info', ' Algorithm 1  returning denided access');
                 ViewTask = 0;
                 res.json({
                     'error': true,
-                    'message': 'You cannot view this task at this time'
+                    'message': "Not yet started"
                 });
                 return;     
             }
-            
+            /*   2    */
+            console.log(ti.UserID, current_user_id);
+            if ((JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != current_user_id) ) ) {
+                logger.log('info', ' Algorithm  2 returning denied access');
+                ViewTask = 0;
+                res.json({
+                    'error': true,
+                    'message': "It hasn't been completed yet"
+                });
+                return;     
+            }
 
-            /* Make MultipleUsers parameter  */
-            
+            var sibling_ti=[];                      // for current task sibling
+            /* Make MultipleUsers parameter  + get sibling */
             var MultipleUsers = [];
             if(ti.TaskActivity.SeeSibblings){
                 // MultipleUsers stays empty
@@ -3924,18 +3936,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         WorkflowInstanceID: ti.WorkflowInstanceID,
                         TaskActivityID: ti.TaskActivity.TaskActivityID
                     },
-                    attributes: ['UserID'],
+                    include: [{
+                        model: TaskActivity,
+                    }]
                 });
                 await Promise.map(ti_temp, async(ti) =>{
                     MultipleUsers.push(ti.UserID);
+                    if(ti.TaskInstanceID != req.params.taskInstanceId) {
+                        sibling_ti.push(ti)
+                    }
                 });
             }else{
                 MultipleUsers.push(current_user_id);
             }
 
             /*   fullPath parameter    */
-            var fullPath = await allocator.makeFullPath(req.params.taskInstanceId, new Array()) || [];
-            fullPath.push(current_ti.TaskInstanceID);
+            var fullPath = await allocator.makeFullPath(current_ti , new Array()) || [];
+            if(sibling_ti.length == 0){
+                fullPath.push(current_ti);
+            }else{
+                sibling_ti.push(current_ti);
+                fullPath.push(sibling_ti);
+            }
 
             /*  BlockableTAs parameter    */
             var BlockableTAs = [];
@@ -3975,41 +3997,42 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 });
             }
 
-            //console.log('multipleusers:' ,MultipleUsers)
-            //console.log(BlockableTAs)
-            //console.log('fullpath', fullPath);
-            //console.log(PendingTaskInstances);
-
             var view_constraint = await allocator.View_Access(res, current_user_id, current_ti, MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances );
             BlockedView = view_constraint.BlockedView;
-            ViewTask = view_constraint.ViewTask;
-            
+            ViewTask    = view_constraint.ViewTask;
+            /*  Process Privious Tasks */
             if(! BlockedView && ViewTask ){
-                var pre_tis = await allocator.findPreviousTasks(req.params.taskInstanceId, new Array());
                 var ar = new Array();
-                if (pre_tis != null) {  // if this is not the first task
+                var PathLength = fullPath.length;
+                console.log('debug' , 'pathlength' , PathLength)
+                if (PathLength > 1) {  // if this is not the first task
                     await allocator.SetDataVersion(current_ti, view_constraint.WhichVersion); // set version on current task if not first
-                    await Promise.mapSeries(pre_tis, async function (task) {
-                        var pre_ti = await TaskInstance.find({
-                            where: {
-                                TaskInstanceID: task
-                            },
-                            attributes: taskInstanceAttributes,
-                            include: [{
-                                model: TaskActivity,
-                            }]
-                        });
-                        /* Skip Tasks that were Cancelled  */
-                        if(JSON.parse(pre_ti.Status)[1] != 'cancelled'){
-                            view_constraint = await allocator.View_Access(res, current_user_id, pre_ti, MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances );
-                            if(view_constraint.ViewTask != 0){
-                                await allocator.SetDataVersion(pre_ti , view_constraint.WhichVersion);  // set the data version
-                                ar.push(pre_ti);
+                    for(var t = PathLength -2; t >= 0; t--){  // Go in reverse Order
+                        var task = fullPath[t];
+                        var prev_tis =[];
+                        if( task.constructor === Array){
+                            await Promise.map(task, async (taskInstance)=>{
+                                prev_tis.push(taskInstance)
+                                //pre_tis.push(taskInstance.TaskInstanceID)
+                            });
+                        }else{
+                            prev_tis.push(task);
+                            //pre_tis.push(task.TaskInstanceID)
+                        }
+                        await Promise.map(prev_tis, async(pre_ti)=>{
+                    /* Skip Tasks that were Cancelled  */
+                            if(JSON.parse(pre_ti.Status)[1] != 'cancelled'){
+                                view_constraint = await allocator.View_Access(res, current_user_id, pre_ti, [] , fullPath, BlockableTAs, PendingTaskInstances );
+                                if(view_constraint.ViewTask != 0){
+                                    await allocator.SetDataVersion(pre_ti , view_constraint.WhichVersion);  // set the data version
+                                    ar.push(pre_ti);
+                                    pre_tis.push(pre_ti.TaskInstanceID);
+                                    pre_tis_version.push(view_constraint.WhichVersion);
+                                }
                             }
-                        }    
-                    });     
+                        });   
+                    }    
                 }
-                
                 /* Change Status if Task Opened for First Time */
                 var newStatus = JSON.parse(current_ti.Status);
                 if (newStatus[4] === 'not_opened') {
@@ -4027,16 +4050,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             /* User Not Allowed to Do this task    */
             if(BlockedView){
                 var Ta_Names='';
-                await Promise.map(BlockableTAs, async(ta_id)=>{
-                    var ta = await TaskActivity.find({
-                        where: {
-                            TaskActivityID: ta_id
-                        },
-                        attributes: ['Name']
-                    });
-                    Ta_Names+= ta.Name;
-                    if(BlockableTAs.length > 1){
-                        Ta_Names+=', ';
+                await Promise.map(PendingTaskInstances, async(ti)=>{
+                    if( BlockableTAs.includes( ti.TaskActivity.TaskActivityID) ){
+                        Ta_Names+= ti.TaskActivity.Name;
+                        if(BlockableTAs.length > 1){
+                            Ta_Names+=', ';
+                        }
                     }
                 });
                 res.json({
@@ -4048,7 +4067,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }else if(!ViewTask){
                 res.json({
                     'error': true,
-                    'message': 'You cannot view this task at this time'
+                    'message': 'At at this time'
                 }); 
                 return;
             } else {
@@ -4057,19 +4076,20 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 res.json({
                     'error': false,
                     'previousTasksList': pre_tis,
+                    'previousTasksVersions': pre_tis_version,
                     'superTask': ar
                 });     
             }
         }).catch(function (err) {
-            console.log(err);
+            logger.log('error', err);
             res.status(400).end();
         });
     });
 
-
+    /* TODO: Delete this once the one above works
 
     //Endpoint for all current task data and previous task data and put it in an array
-    router.get('/superCall/:taskInstanceId', participantAuthentication, async function (req, res) {
+    router.get('/superCall2/:taskInstanceId', participantAuthentication, async function (req, res) {
         logger.log('info', 'get: /superCall/:taskInstanceId', {
             req_query: req.query,
             req_params: req.params,
@@ -4087,7 +4107,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             
         } else {
             var taskStatusArray = typeof t.Status === 'string' ? JSON.parse(t.Status) : t.Status;
-            if((!taskStatusArray.includes('complete')) && req.body.userID != t.UserID){
+            console.log('UserID:', req.query.userID);
+            if((!taskStatusArray.includes('complete')) && req.query.userID != t.UserID){
                 res.status(418).end();
                 return;
             }
@@ -4216,6 +4237,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     });
+    */
 
     //Endpoint to get all the sections assoicate with course and all the task activities within the workflow activities
     router.get('/getAssignToSection/', teacherAuthentication, function (req, res) {
