@@ -89,7 +89,7 @@ const randtoken = require('rand-token');
 //In-memory object to store refresh tokens
 const refreshTokens = {};
 // const USE_TOKENS = process.env.NODE_ENV === 'production';
-const USE_TOKENS = false;
+const USE_TOKENS = true;
 var storage = multer({
     dest: './files/',
     limits: { //Max 3 files and total of 50MB
@@ -581,6 +581,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //-------------------------------------------------------------------
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////                 Guest Level APIs
+
+    //Endpoint for intial password change check
+    router.get('/user/pendingStatus/:userId', async function(req,res){
+        console.log('Called user/pendingStatus with ', req.params.userId);
+        var user = await UserLogin.findOne({
+            
+            where: {UserID: req.params.userId},
+            attributes: ['Pending']
+            
+        });
+
+        if(user.Pending == 1 ){
+            return res.status(200).end();
+        } else {
+            return res.status(403).end();
+        }
+    });
+
     //Endpoint to update a User's Email
     router.put('/update/email', function (req, res) {
         if (req.body.password == null || req.body.email == null || req.body.userid == null) {
@@ -660,10 +678,39 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
             ]
         }).then(function (user) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'User': user
+            if(user == null){
+                console.log('/generalUser : Not found');
+                res.status(400).end();
+            }
+            if(user.UserContact.AdministrativeSupport == null){          // substitute null for old database fields TODO: remove in the future
+                user.UserContact.AdministrativeSupport = [ 0, [] ];
+            }
+            if(user.UserContact.TechnicalSupport == null){      // substitute null for old database fields TODO: remove in the future
+                user.UserContact.TechnicalSupport = [ 0, [] ];
+            }
+            var org_group = typeof user.OrganizationGroup == 'string'? JSON.parse(user.OrganizationGroup):user.OrganizationGroup;
+            if(org_group != null){
+                var org_ids = org_group.OrganizationID;  // array of organization IDS user is part of
+            }else{
+                var org_ids = [];                       // if field is null
+            }
+            Organization.findAll({
+                where: {
+                    OrganizationID: {
+                        $in: org_ids
+                    }
+                },
+                attributes: ['OrganizationID', 'Name']
+            }).then(function(organizations){
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'User': user,
+                    'OrganizationIDs': organizations
+                });
+            }).catch(function (err) {
+                console.log('/generalUser : ' + err.message);
+                res.status(400).end();
             });
         }).catch(function (err) {
             console.log('/generalUser : ' + err.message);
@@ -1472,15 +1519,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     router.post('/getUserID/',  participantAuthentication, function (req, res) {
-        UserLogin.find({
+        UserLogin.findOne({
             where: {
                 Email: req.body.email
             }
         }).then(function (user) {
             if(user === null){
-                UserContact.find({
-                    Email: req.body.email
-    
+                UserContact.findOne({
+                    where: {Email: req.body.email}
+
                 }).then(function(userCon) {
                     if(userCon === null){
                         res.json({
@@ -3817,6 +3864,209 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //---------------------------------------------------------------------------------------------------------------------------------------------
+    
+    //Endpoint for all current task data and previous task data   created 4-28-18 mss86  TODO: test
+    router.get('/superCall2/:taskInstanceId', participantAuthentication, async function (req, res) {
+        logger.log('info', 'get: /superCall2/:taskInstanceId', {
+            req_query: req.query,
+            req_params: req.params
+        });
+        var BlockedView = false;
+        var ViewTask = true;
+        var current_user_id = Number(req.query.userID);
+        var view_constraint;
+        var allocator = new TaskFactory();
+        let taskInstanceAttributes = ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask','AssignmentInstanceID','WorkflowInstanceID'];
+        let taskActivityAttributes = ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName', 'AllowRevision', 'SeeSibblings', 'SeeSameActivity'];
+        
+        /*  find the current task being viewed  */
+        await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.params.taskInstanceId
+            },
+            attributes: taskInstanceAttributes,
+            include: [{
+                model: TaskActivity,
+            }]
+        }).then(async function (current_ti) {
+            var ti = current_ti;
+            /* Pre check task and return immidiently to save processing */
+            if (JSON.parse(ti.Status)[1] == 'cancelled' ) {
+                logger.log('info', ' Algorithm Cancelled returning error');
+                ViewTask = 0;
+                res.json({
+                    'error': true,
+                    'message': 'You cannot view this task, it was cancelled'
+                });
+                return;     
+            }
+            /* 1  +  2 */
+            if (JSON.parse(ti.Status)[0] == 'not_yet_started' || (JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != current_user_id) ) ) {
+                logger.log('info', ' Algorithm 1 + 2 returning error');
+                ViewTask = 0;
+                res.json({
+                    'error': true,
+                    'message': 'You cannot view this task at this time'
+                });
+                return;     
+            }
+            
+
+            /* Make MultipleUsers parameter  */
+            
+            var MultipleUsers = [];
+            if(ti.TaskActivity.SeeSibblings){
+                // MultipleUsers stays empty
+            }else if (ti.TaskActivity.NumberParticipants > 1){
+                var ti_temp = await TaskInstance.findAll({
+                    where: {
+                        AssignmentInstanceID: ti.AssignmentInstanceID,
+                        WorkflowInstanceID: ti.WorkflowInstanceID,
+                        TaskActivityID: ti.TaskActivity.TaskActivityID
+                    },
+                    attributes: ['UserID'],
+                });
+                await Promise.map(ti_temp, async(ti) =>{
+                    MultipleUsers.push(ti.UserID);
+                });
+            }else{
+                MultipleUsers.push(current_user_id);
+            }
+
+            /*   fullPath parameter    */
+            var fullPath = await allocator.makeFullPath(req.params.taskInstanceId, new Array()) || [];
+            fullPath.push(current_ti.TaskInstanceID);
+
+            /*  BlockableTAs parameter    */
+            var BlockableTAs = [];
+            var a = await AssignmentInstance.findOne({
+                where: {
+                    AssignmentInstanceID: ti.AssignmentInstanceID,
+                },
+                attributes: ['AssignmentID'],
+            });
+            var ti_temp = await TaskActivity.findAll({
+                where: {
+                    AssignmentID: a.AssignmentID,
+                    MustCompleteThisFirst: 1
+                },
+            });
+            await Promise.map(ti_temp, async(ti) =>{
+                BlockableTAs.push(ti.TaskActivityID);
+            });
+
+            /*  PendingTaskInstance      */
+            var PendingTaskInstances = [];
+            if(BlockableTAs.lenth !== 0){
+                var ti_temp = await TaskInstance.findAll({
+                    where: {
+                        AssignmentInstanceID: ti.AssignmentInstanceID,
+                        UserID: current_user_id,
+                        Status: {
+                            $like: '%"started"%',
+                        }
+                    },
+                    include: [{
+                        model: TaskActivity,
+                    }]
+                });
+                await Promise.map(ti_temp, async(ti) =>{
+                    PendingTaskInstances.push(ti);   
+                });
+            }
+
+            //console.log('multipleusers:' ,MultipleUsers)
+            //console.log(BlockableTAs)
+            //console.log('fullpath', fullPath);
+            //console.log(PendingTaskInstances);
+
+            var view_constraint = await allocator.View_Access(res, current_user_id, current_ti, MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances );
+            BlockedView = view_constraint.BlockedView;
+            ViewTask = view_constraint.ViewTask;
+            
+            if(! BlockedView && ViewTask ){
+                var pre_tis = await allocator.findPreviousTasks(req.params.taskInstanceId, new Array());
+                var ar = new Array();
+                if (pre_tis != null) {  // if this is not the first task
+                    await allocator.SetDataVersion(current_ti, view_constraint.WhichVersion); // set version on current task if not first
+                    await Promise.mapSeries(pre_tis, async function (task) {
+                        var pre_ti = await TaskInstance.find({
+                            where: {
+                                TaskInstanceID: task
+                            },
+                            attributes: taskInstanceAttributes,
+                            include: [{
+                                model: TaskActivity,
+                            }]
+                        });
+                        /* Skip Tasks that were Cancelled  */
+                        if(JSON.parse(pre_ti.Status)[1] != 'cancelled'){
+                            view_constraint = await allocator.View_Access(res, current_user_id, pre_ti, MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances );
+                            if(view_constraint.ViewTask != 0){
+                                await allocator.SetDataVersion(pre_ti , view_constraint.WhichVersion);  // set the data version
+                                ar.push(pre_ti);
+                            }
+                        }    
+                    });     
+                }
+                
+                /* Change Status if Task Opened for First Time */
+                var newStatus = JSON.parse(current_ti.Status);
+                if (newStatus[4] === 'not_opened') {
+                    newStatus[4] = 'viewed';
+                    logger.log('info', 'task opened for the first time, updating status...');
+                    await TaskInstance.update({
+                        Status: JSON.stringify(newStatus)
+                    }, {
+                        where: {
+                            TaskInstanceID: req.params.taskInstanceId
+                        }
+                    });
+                } 
+            }
+            /* User Not Allowed to Do this task    */
+            if(BlockedView){
+                var Ta_Names='';
+                await Promise.map(BlockableTAs, async(ta_id)=>{
+                    var ta = await TaskActivity.find({
+                        where: {
+                            TaskActivityID: ta_id
+                        },
+                        attributes: ['Name']
+                    });
+                    Ta_Names+= ta.Name;
+                    if(BlockableTAs.length > 1){
+                        Ta_Names+=', ';
+                    }
+                });
+                res.json({
+                    'error': true,
+                    'message': 'You cannot work on this task until you have completed your task(s): '+ Ta_Names
+                }); 
+                return; 
+            /* User Not Allowed to view this task  */
+            }else if(!ViewTask){
+                res.json({
+                    'error': true,
+                    'message': 'You cannot view this task at this time'
+                }); 
+                return;
+            } else {
+            /* Return All Viewable Data   */
+                ar.push(current_ti);
+                res.json({
+                    'error': false,
+                    'previousTasksList': pre_tis,
+                    'superTask': ar
+                });     
+            }
+        }).catch(function (err) {
+            console.log(err);
+            res.status(400).end();
+        });
+    });
+
+
 
     //Endpoint for all current task data and previous task data and put it in an array
     router.get('/superCall/:taskInstanceId', participantAuthentication, async function (req, res) {
@@ -3830,13 +4080,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 TaskInstanceID: req.params.taskInstanceId
             },
-            attributes: ['UserID'],
+            attributes: ['UserID', 'Status'],
         });
 
-        if(req.body.userID != t.UserID){
-            res.status(418).end();
-            return
+        if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
+            
+        } else {
+            var taskStatusArray = typeof t.Status === 'string' ? JSON.parse(t.Status) : t.Status;
+            if((!taskStatusArray.includes('complete')) && req.body.userID != t.UserID){
+                res.status(418).end();
+                return;
+            }
         }
+        
 
 
         var view_constraint;
