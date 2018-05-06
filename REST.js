@@ -4006,7 +4006,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 ViewTask = 0;
                 res.json({
                     'error': true,
-                    'message': "Not yet started"
+                    'message': 'Not yet started'
                 });
                 return;     
             }
@@ -4017,7 +4017,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 ViewTask = 0;
                 res.json({
                     'error': true,
-                    'message': "It hasn't been completed yet"
+                    'message': 'It hasn\'t been completed yet'
                 });
                 return;     
             }
@@ -4041,7 +4041,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 await Promise.map(ti_temp, async(ti) =>{
                     MultipleUsers.push(ti.UserID);
                     if(ti.TaskInstanceID != req.params.taskInstanceId) {
-                        sibling_ti.push(ti)
+                        sibling_ti.push(ti);
                     }
                 });
             }else{
@@ -4102,7 +4102,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             if(! BlockedView && ViewTask ){
                 var ar = new Array();
                 var PathLength = fullPath.length;
-                console.log('debug' , 'pathlength' , PathLength)
+                console.log('debug' , 'pathlength' , PathLength);
                 if (PathLength > 1) {  // if this is not the first task
                     await allocator.SetDataVersion(current_ti, view_constraint.WhichVersion); // set version on current task if not first
                     for(var t = PathLength -2; t >= 0; t--){  // Go in reverse Order
@@ -4110,7 +4110,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         var prev_tis =[];
                         if( task.constructor === Array){
                             await Promise.map(task, async (taskInstance)=>{
-                                prev_tis.push(taskInstance)
+                                prev_tis.push(taskInstance);
                                 //pre_tis.push(taskInstance.TaskInstanceID)
                             });
                         }else{
@@ -4118,7 +4118,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             //pre_tis.push(task.TaskInstanceID)
                         }
                         await Promise.map(prev_tis, async(pre_ti)=>{
-                    /* Skip Tasks that were Cancelled  */
+                            /* Skip Tasks that were Cancelled  */
                             if(JSON.parse(pre_ti.Status)[1] != 'cancelled'){
                                 view_constraint = await allocator.View_Access(res, current_user_id, pre_ti, [] , fullPath, BlockableTAs, PendingTaskInstances );
                                 if(view_constraint.ViewTask != 0){
@@ -5051,6 +5051,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 });
 
                 return {
+                    WorkflowInstanceID: wI.WorkflowInstanceID,
                     FirstTask: firstTask,
                     LatestTask: lastTask
                 };
