@@ -4974,6 +4974,104 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             'AssignmentInfo': everyones_work
         });
     });
+
+    //---------------------------------------------------------------------------
+
+    router.get('/EveryonesWork/alternate/:assignmentInstanceID', participantAuthentication, async function (req, res) {
+        console.log('/EveryonesWork/alternate/:assignmentInstanceID: was called');
+
+        var everyones_work = {};
+
+
+        var ai = await AssignmentInstance.findOne({
+            where: {
+                AssignmentInstanceID: req.params.assignmentInstanceID
+            }
+        });
+        var aa = await Assignment.findOne({
+            where: {
+                AssignmentID: ai.AssignmentID
+            }
+        });
+
+        var sec = await Section.find({
+            where: {
+                SectionID: ai.SectionID
+            },
+            attributes: ['SemesterID', 'CourseID', 'Name']
+        });
+
+        var ses = await Semester.find({
+            where: {
+                SemesterID: sec.SemesterID
+            },
+            attributes: ['Name']
+        });
+
+        var cou = await Course.find({
+            where: {
+                CourseID: sec.CourseID
+            },
+            attributes: ['Number']
+        });
+        var wa = await WorkflowActivity.findAll({
+            where: {
+                AssignmentID: ai.AssignmentID
+            }
+        });
+
+
+        Promise.map(wa, async workflowAct => {
+            let wA = workflowAct.WorkflowActivityID;
+            everyones_work[wA] = {
+                Name: workflowAct.Name
+            };
+
+            var wI = await WorkflowInstance.findAll({
+                where: {
+                    AssignmentInstanceID: req.params.assignmentInstanceID,
+                    WorkflowActivityID: wA
+                }
+            });
+
+            var workflowInstances = wI.map(async wI => {
+                
+                var tasks = await TaskInstance.findAll({
+                    where: {
+                        WorkflowInstanceID: wI.WorkflowInstanceID
+                    },
+                    attributes: ['TaskInstanceID', 'Data'],
+                    include: {
+                        model: TaskActivity,
+                        attributes: ['DisplayName']
+                    }
+                });
+
+                return {
+                    WorkflowInstanceID: wI.WorkflowInstanceID,
+                    Tasks: tasks
+                };
+            });
+
+            return Promise.all(workflowInstances).then(wIs => {
+                everyones_work[wA].WorkflowInstances = wIs;
+                return wIs;
+            });
+
+        }).then(done => {
+            return res.json({
+                'AssignmentInfo': {
+                    'Course': cou.Number,
+                    'Section': sec.Name,
+                    'Semester': ses.Name,
+                    'Name': ai.DisplayName
+                },
+                'Workflows': everyones_work
+            });
+        });
+
+    });
+
     //---------------------------------------------------------------------------
     router.get('/EveryonesWork/AssignmentInstanceID/:assignmentInstanceID', participantAuthentication, async function (req, res) {
         console.log('/EveryonesWork/AssignmentInstanceID/:assignmentInstanceID: was called');
