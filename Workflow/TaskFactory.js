@@ -392,7 +392,7 @@ async All_Ti_Complete(ta_id, ai_id){
 // checks if the user of activity with Sibling completed his task   created 4-20 mss86
 async Sibling_Ti_Complete(ti_id, user_id, fullPath){
     var i = await this.TaskIndexInFullPath(ti_id, fullPath);
-    console.log('i', i)
+    //console.log('i', i)
     if(i){
         var status;
         var ti;
@@ -429,7 +429,7 @@ async set_which_version(ti, fullPath){
     var NextTaskInPath = await x.NextTaskInFullPath(ti.TaskInstanceID, fullPath);
         if(NextTaskInPath != null){    // if next task exists
             var NextTaskInFullPathType = NextTaskInPath.TaskActivity.Type;
-            console.log(NextTaskInFullPathType)
+            //console.log(NextTaskInFullPathType)
             if ((ti.TaskActivity.Type == 'edit' || ti.TaskActivity.Type == 'comment') && (NextTaskInFullPathType == 'grade_problem' || NextTaskInFullPathType == 'critique')){
                     logger.log('info', ' Algorithm 6.1');
                 WhichVersion = 'all';
@@ -548,7 +548,7 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         var NextTaskInPath = await x.NextTaskInFullPath(ti.TaskInstanceID, fullPath);
         if(NextTaskInPath != null){    // if next task exists
             var NextTaskInFullPathType = NextTaskInPath.TaskActivity.Type;
-            console.log(NextTaskInFullPathType)
+           // console.log(NextTaskInFullPathType)
             if ((ti.TaskActivity.Type == 'edit' || ti.TaskActivity.Type == 'comment') && (NextTaskInFullPathType == 'grade_problem' || NextTaskInFullPathType == 'critique')){
                     logger.log('info', ' Algorithm 6.1');
                 r.WhichVersion = 'all';
@@ -574,7 +574,7 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         }
 
           /* 8 */
-        console.log(await x.Sibling_Ti_Complete(ti.TaskInstanceID, user_id, fullPath));
+        //console.log(await x.Sibling_Ti_Complete(ti.TaskInstanceID, user_id, fullPath));
         if( (multipleUsers.length > 1) && (ti.TaskActivity.SeeSibblings == 0) &&
               (_.contains(multipleUsers, user_id)) && ! await x.Sibling_Ti_Complete(ti.TaskInstanceID, user_id, fullPath )) {
                 logger.log('info', ' Algorithm 8');

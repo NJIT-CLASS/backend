@@ -1659,7 +1659,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let taskFactory = new TaskFactory;
         // taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, req.body.userid);
 
-        logger.log('info', 'task instance found', ti.toJSON());
+        //logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
         if (req.body.userid != ti.UserID) {
             logger.log('error', 'UserID Not Matched');
@@ -1677,9 +1677,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
             await ti_data.push(req.body.taskInstanceData);
 
-            logger.log('info', 'updating task instance', {
-                ti_data: ti_data
-            });
+            // logger.log('info', 'updating task instance', {
+            //     ti_data: ti_data
+            // });
 
             var newStatus = JSON.parse(ti.Status);
             newStatus[0] = 'complete';
@@ -1708,7 +1708,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }, ],
             });
 
-            console.log(JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
+            //console.log(JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
 
             logger.log('info', 'task instance updated');
             logger.log('info', 'triggering next task');
@@ -2062,17 +2062,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }).then(function (WI_Result) {
 
                 if (WI_Result === null || typeof WI_Result === undefined) {
-                    console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
+                    //console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
                 } else {
                     //Iterate through all workflow instances found
                     return Promise.mapSeries(WI_Result, function (workflowInstance) {
 
-                        console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
+                        //console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
                         var tempTasks = [];
 
                         return Promise.mapSeries(JSON.parse(workflowInstance.TaskCollection), function (task) {
 
-                            console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
+                            //console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
                             //each task is TaskInstanceID
                             return TaskInstance.find({
                                 where: {
@@ -4381,7 +4381,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         logger.log('info', 'Assing TO Section submit', req.body);
 
         //create assignment instance
-        await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing).then(async function (done) {
+        await taskFactory.createAssignmentInstances(req.body.assignmentid, req.body.sectionIDs, req.body.startDate, req.body.wf_timing, req.body.assignmentDisplayName).then(async function (done) {
             console.log('/getAssignToSection/submit/ All Done!');
             console.log('Done value:', done);
             console.log(typeof req.body.wf_timing, req.body.startDate);

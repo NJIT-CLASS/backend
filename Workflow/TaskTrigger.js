@@ -140,7 +140,7 @@ class TaskTrigger {
         });
 
         var final_grade = await grade.findFinalGrade(ti);
-        console.log('herte', final_grade);
+        //console.log('herte', final_grade);
         if(final_grade != null){
             await grade.addTaskGrade(final_grade.id, final_grade.grade, final_grade.max_grade);
         }
@@ -364,7 +364,7 @@ class TaskTrigger {
             if (pre.FinalGrade !== null) { //if no FinalGrade found, dont push
                 grades.push(pre.FinalGrade);
                 let data =  JSON.parse(pre.Data)[0];
-                console.log(data);
+                //console.log(data);
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function(val) {
                     let field = JSON.parse(pre.TaskActivity.Fields)
                     if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
