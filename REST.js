@@ -11123,11 +11123,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 var first_task = await trigger.getEdittingTask(ti);
                 await trigger.cancelAll(first_task);
             } 
-
+            
             await trigger.cancelAll(ti);
-            var email = new Email();
-            await email.sendNow(ti.UserID, 'task_cancelled');   // send email only to the task that was cancelled, not follow on
-
+            if(ti_status[0] == 'started'){
+                var email = new Email();
+                email.sendNow(ti.UserID, 'task_cancelled');   // send email only to the task that was cancelled, not follow on
+            }
             res.json({
                 Error: false,
                 Message: 'Tasks Successfully Cancelled'
