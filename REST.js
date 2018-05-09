@@ -109,7 +109,7 @@ const randtoken = require('rand-token');
 //In-memory object to store refresh tokens
 const refreshTokens = {};
 // const USE_TOKENS = process.env.NODE_ENV === 'production';
-const USE_TOKENS = true;
+const USE_TOKENS = false;
 var storage = multer({
     dest: './files/',
     limits: { //Max 3 files and total of 50MB
@@ -2018,15 +2018,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
-                $or: [{
-                    Status: {
-                        $like: '%"incomplete"%'
-                    }
-                }, {
-                    Status: {
-                        $like: '%"started"%'
-                    }
-                }]
+                $and: [
+                        {
+                        Status:{
+                            $notLike: '%"cancelled"%'
+                        }
+                    },
+                    {$or: [{
+                        Status: {
+                            $like: '%"incomplete"%'
+                        }
+                    }, {
+                        Status: {
+                            $like: '%"started"%'
+                        }
+                    }]
+                }
+                ]            
             },
 
             attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status'],
@@ -5341,8 +5349,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     .then((result) => {
                         assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
                             WorkflowInstances: {},
-                            Structure: result.WorkflowActivity.WorkflowStructure,
-                            Name: result.WorkflowActivity.Name
+                            Structure: result.WorkflowActivity.WorkflowStructure
                         };
 
                         let mappedTasks = JSON.parse(result.TaskCollection);
