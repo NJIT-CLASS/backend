@@ -5349,7 +5349,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     .then((result) => {
                         assignmentObject[result.WorkflowActivity.WorkflowActivityID] = {
                             WorkflowInstances: {},
-                            Structure: result.WorkflowActivity.WorkflowStructure
+                            Structure: result.WorkflowActivity.WorkflowStructure,
+                            Name: result.WorkflowActivity.Name
                         };
 
                         let mappedTasks = JSON.parse(result.TaskCollection);
