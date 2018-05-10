@@ -11038,9 +11038,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     var wi_ids = data.wi_ids;
                     var ai_id = data.ai_id;
                     var users_to_realocate = data.users_to_realocate_later;
-                    var replace_users = data.users_to_realocate_later;
+                    var old_users = data.old_users;
                     if(wi_ids.length > 0){
-                        result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id);
+                        result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id, old_users);
                     }
                 });
                 array_of_results=[];
@@ -11079,8 +11079,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             var wi_ids = data.wi_ids;
             var ai_id = data.ai_id;
             var users_to_realocate = data.users_to_realocate_later;
-            var replace_users = data.users_to_realocate_later;
-            result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id);
+            var old_users = data.old_users;
+            result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id, old_users);
         });
         res.json( result );
     });
