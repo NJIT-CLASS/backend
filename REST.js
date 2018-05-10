@@ -5212,7 +5212,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         attributes: ['WorkflowInstanceID', 'WorkflowActivityID'],
                         include: {
                             model: WorkflowActivity,
-                            attributes: ['WorkflowStructure']
+                            attributes: ['WorkflowStructure', 'Name']
                         }
                     },
                     {
