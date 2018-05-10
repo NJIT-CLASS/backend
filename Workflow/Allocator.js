@@ -1274,8 +1274,8 @@ class Allocator {
             var wi = await x.get_wi_from_wi_id(wi_id); 
             //var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id); 
             var avoid_u_ids = await x.get_constrained_users(wi, ti_id, ti.UserID); // get users that cannot be used for this task
-            console.log(avoid_u_ids);
-            return;
+            //console.log(avoid_u_ids);
+            //return;
             avoid_u_ids  = _.union(avoid_u_ids,ignore_users);  // merge cancelled users with ignore users    
             logger.log('debug',{avoid_u_ids: avoid_u_ids});
             var vol_u_ids  = await x.get_ai_volunteers(ai_id) || [];    // get used valuenteers for assigment instance
@@ -1456,7 +1456,14 @@ class Allocator {
                     attributes: ['AssigneeConstraints','NumberParticipants']
                 });
                 var task_constrains = JSON.parse(ta.AssigneeConstraints);
-    
+                if(old_ti_id == ti_id){
+                    if(_.has(task_constrains[2], 'same_as')){  // if task has same as, use constrains of the first same as
+                        var temp_tis = await x.get_tis_from_wi_id_and_ta_id(wi.WorkflowInstanceID, task_constrains[2].same_as[0] );
+                        var temp_c = await x.get_constrained_users(wi, temp_tis[0].TaskInstanceID);
+                        constrained_users = _.union(constrained_users, temp_c);
+                        //logger.log('debug','users from sameAs:', temp);
+                    }
+                }
                 //if(_.has(task_constrains[2], 'not')){                   // honor only not_in
                 if(_.has(task_constrains[2], 'not') || (_.has(task_constrains[2], 'not_in_workflow_instance') && task_constrains[2].not_in_workflow_instance.length > 0)){                                                 // else honor only not_in
                     var not_ins =[];
@@ -1513,6 +1520,7 @@ class Allocator {
                 } 
             }
         });
+        logger.log('debug', 'users to avoid:', constrained_users);
         return constrained_users;
     }
     // Return ti from workflow ID and task instance id created 3-28-18 mss86
