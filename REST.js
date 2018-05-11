@@ -1928,15 +1928,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
-                $or: [{
-                    Status: {
-                        $like: '%"incomplete"%'
-                    }
-                }, {
-                    Status: {
-                        $like: '%"started"%'
-                    }
-                }]
+                $and: [
+                        {
+                        Status:{
+                            $notLike: '%"cancelled"%'
+                        }
+                    },
+                    {$or: [{
+                        Status: {
+                            $like: '%"incomplete"%'
+                        }
+                    }, {
+                        Status: {
+                            $like: '%"started"%'
+                        }
+                    }]
+                }
+                ]            
             },
 
             attributes: ['TaskInstanceID', 'UserID', 'WorkflowInstanceID', 'StartDate', 'EndDate', 'Status'],
@@ -8316,9 +8324,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     var wi_ids = data.wi_ids;
                     var ai_id = data.ai_id;
                     var users_to_realocate = data.users_to_realocate_later;
-                    var replace_users = data.users_to_realocate_later;
+                    var old_users = data.old_users;
                     if(wi_ids.length > 0){
-                        result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id);
+                        result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id, old_users);
                     }
                 });
                 array_of_results=[];
@@ -8357,18 +8365,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             var wi_ids = data.wi_ids;
             var ai_id = data.ai_id;
             var users_to_realocate = data.users_to_realocate_later;
-            var replace_users = data.users_to_realocate_later;
-            result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id);
+            var old_users = data.old_users;
+            result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id, old_users);
         });
         res.json( result );
     });
 
+
     // API to cancell a Ti  created 4-7-18 mss86
     //@ ti_id: task instance id
-    // changes status from "normal" to "cancelled" 
+    // changes status from "normal" to "cancelled"
     router.post('/task/cancel', teacherAuthentication, async function (req, res){
-        logger.log('info',{ 
-            call:'/task/cancel', 
+        logger.log('info',{
+            call:'/task/cancel',
             ti_id: req.body.ti_id
         });
 
@@ -8377,12 +8386,43 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
             return;
         };
+        await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.ti_id,
+            },
+            include: [{
+                model: TaskActivity,
+                attributes: ['Type'],
+            }]
+        }).then(async function (ti) {
 
-        var allocate = new Allocator([],0);
-        await allocate.cancel_task(req.body.ti_id);
-        res.json({ 
-            Error: false,
-            Message: 'Task Successfully Cancelled'
+            var ti_status = JSON.parse(ti.Status);
+            if(ti_status[0] == 'bypassed' || ti_status[0] == 'complete' || ti_status[1] == 'cancelled'){
+                res.json({
+                    Error: true,
+                    Message: 'Completed task cannot be cancelled'
+                });
+                return;
+            }
+            var trigger = new TaskTrigger();
+
+            if (ti.TaskActivity.Type === 'edit' ) {      
+                var first_task = await trigger.getEdittingTask(ti);
+                await trigger.cancelAll(first_task);
+            } 
+            
+            await trigger.cancelAll(ti);
+            if(ti_status[0] == 'started'){
+                var email = new Email();
+                email.sendNow(ti.UserID, 'task_cancelled');   // send email only to the task that was cancelled, not follow on
+            }
+            res.json({
+                Error: false,
+                Message: 'Tasks Successfully Cancelled'
+            });
+        }).catch(function (err) {
+            logger.log('error', err);
+            res.status(400).end();
         });
     });
 
