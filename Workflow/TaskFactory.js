@@ -629,10 +629,10 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
 
 // set the data field of the task
 async SetDataVersion(ti, version_eval) {
-        logger.log('info', 'Setting View Data According to Version', {
-            task_instance_Data: ti.Data,
-            version_evaluation: version_eval
-        });
+        // logger.log('info', 'Setting View Data According to Version', {
+        //     task_instance_Data: ti.Data,
+        //     version_evaluation: version_eval
+        // });
 
         ti.Data = JSON.parse(ti.Data);
         if (version_eval == 'none' || !ti.Data) {

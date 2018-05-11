@@ -188,7 +188,7 @@ class Make {
             AssignmentInstance: ai_id
         });
 
-        console.log(ai_id);
+        //console.log(ai_id);
         var ais = await AssignmentInstance.find({
             where: {
                 AssignmentInstanceID: ai_id

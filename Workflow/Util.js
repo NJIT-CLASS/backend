@@ -126,6 +126,7 @@ class Util {
 
     async findSectionUserID(ai_id, user_id) {
         try {
+            console.log('ai_id',ai_id,user_id )
             var ai_id = await AssignmentInstance.find({
                 where: {
                     AssignmentInstanceID: ai_id
@@ -142,7 +143,6 @@ class Util {
             return sec_user.SectionUserID;
         } catch (err) {
             logger.log('error', 'cannot find section user id ', {
-                ai_id: ai_id,
                 user_id: user_id,
                 error: err
             });

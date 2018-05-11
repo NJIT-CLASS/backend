@@ -89,7 +89,7 @@ const randtoken = require('rand-token');
 //In-memory object to store refresh tokens
 const refreshTokens = {};
 // const USE_TOKENS = process.env.NODE_ENV === 'production';
-const USE_TOKENS = true;
+const USE_TOKENS = false;
 var storage = multer({
     dest: './files/',
     limits: { //Max 3 files and total of 50MB
@@ -1623,9 +1623,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var grade = new Grade();
         var trigger = new TaskTrigger();
 
-        logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
-            req_body: req.body
-        });
+        // logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
+        //     req_body: req.body
+        // });
 
         if (req.body.taskInstanceid == null) {
             logger.log('info', 'TaskInstanceID cannot be null');
