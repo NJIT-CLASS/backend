@@ -812,7 +812,7 @@ module.exports = function (sequelize, DataTypes) {
                                 });
                             });
                         });
-                        console.log(grade);
+                        //console.log(grade);
                         // return TaskGrade.create({
                         //
                         // })

@@ -330,7 +330,7 @@ class Manager {
                 await alloc.reallocate(task, users, false, {
                     '5': 'reallocated_no_extra_credit'
                 }).then(async function (done) {
-                    console.log(done);
+                    //console.log(done);
                     if (!done || !done[0]) {
                         return;
                     } else {
@@ -349,7 +349,7 @@ class Manager {
                 await alloc.reallocate(task, users, true, {
                     '5': 'reallocated_extra_credit'
                 }).then(async function (done) {
-                    console.log(done);
+                    //console.log(done);
                     if (!done || !done[0]) {
                         return;
                     } else {

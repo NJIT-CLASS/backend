@@ -188,7 +188,7 @@ class Make {
             AssignmentInstance: ai_id
         });
 
-        console.log(ai_id);
+        //console.log(ai_id);
         var ais = await AssignmentInstance.find({
             where: {
                 AssignmentInstanceID: ai_id
@@ -480,7 +480,7 @@ class Make {
         var isSubWorkflow = await x.getIsSubWorkflow(obj.flat_tree, obj.ta);
         var num_participants = await x.getNumParticipants(obj.ta.id); //returns number of participants of a task and whether the task has subworkflow
         
-        console.log(num_participants.length);
+        //console.log(num_participants.length);
         var u_id_and_index = await x.getAllocUser(obj.ta, obj.ta_to_u_id, obj.users, obj.i, obj.index, num_participants,obj.ai_id); //returns users id and new index of the pointer
         var user_ids = u_id_and_index[0];
         obj.index = u_id_and_index[1];
@@ -818,7 +818,7 @@ class Make {
             }
         });
         
-        console.log('alloc users', alloc_users)
+        //console.log('alloc users', alloc_users)
         return [alloc_users, index];
     }
 
