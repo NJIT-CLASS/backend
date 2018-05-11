@@ -3874,16 +3874,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //---------------------------------------------------------------------------------------------------------------------------------------------
     
     //Endpoint for all current task data and previous task data   created 4-28-18 mss86  TODO: Test on Server
+    // Checks the current task, and all privious, and return the vieable tasks to the frontend in order
     router.get('/superCall/:taskInstanceId', participantAuthentication, async function (req, res) {
-        logger.log('info', 'get: /superCall2/:taskInstanceId', {
+        logger.log('info', 'get: /superCall/:taskInstanceId', {
             req_query: req.query,
             req_params: req.params
         });
-        var pre_tis =[];
-        var pre_tis_version = [];
-        var BlockedView = false;
-        var ViewTask    = true;
-        var current_user_id = Number(req.query.userID);
+        var pre_tis =[];                // previous ti_ids
+        var pre_tis_version = [];       // previous versions
+        var BlockedView = false;        // is the current task blocked?
+        var ViewTask    = true;         // is the task Viewable?
+        var current_user_id = Number(req.query.userID);     // the user trying to access the task
         var view_constraint;
         var allocator = new TaskFactory();
         let taskInstanceAttributes = ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask','AssignmentInstanceID','WorkflowInstanceID'];
@@ -3900,7 +3901,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }]
         }).then(async function (current_ti) {
             var ti = current_ti;
-            /* Pre check task and return immidiently to save processing */
+            /* Pre check current task and return immidiently with error to save processing */
             if (JSON.parse(ti.Status)[1] == 'cancelled' || JSON.parse(ti.Status)[0] == 'bypassed' ) {
                 logger.log('info', ' Algorithm Cancelled returning error');
                 ViewTask = 0;
@@ -3931,9 +3932,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 });
                 return;     
             }
-
+            ////////////////////////////////////////////////////////////////////////////////////////////
+            ////////    Here we gather required parameters for view_access function
+            ////////    MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances
+            ////////////////////////////////////////////////////////////////////////////////////////////
             var sibling_ti=[];                      // for current task sibling
-            /* Make MultipleUsers parameter  + get sibling */
+            /* Make MultipleUsers parameter  + get sibling  for view_access function*/
             var MultipleUsers = [];
             if(ti.TaskActivity.SeeSibblings){
                 // MultipleUsers stays empty
@@ -3958,7 +3962,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 MultipleUsers.push(current_user_id);
             }
 
-            /*   fullPath parameter    */
+            /*   fullPath parameter  for view_access function  */
             var fullPath = await allocator.makeFullPath(current_ti , new Array()) || [];
             if(sibling_ti.length == 0){
                 fullPath.push(current_ti);
@@ -3967,7 +3971,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 fullPath.push(sibling_ti);
             }
 
-            /*  BlockableTAs parameter    */
+            /*  BlockableTAs parameter for view_access function  */
             var BlockableTAs = [];
             var a = await AssignmentInstance.findOne({
                 where: {
@@ -3985,7 +3989,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 BlockableTAs.push(ti.TaskActivityID);
             });
 
-            /*  PendingTaskInstance      */
+            /*  PendingTaskInstance for view_access function     */
             var PendingTaskInstances = [];
             if(BlockableTAs.lenth !== 0){
                 var ti_temp = await TaskInstance.findAll({
@@ -4004,34 +4008,47 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     PendingTaskInstances.push(ti);   
                 });
             }
+            /////////////////////////////////////////////////////////////////////////////////
+            ////////        Once All Parameters are collected
+            ////////        Call View Access Function for current task
+            ////////        View access determines if task can be viewed and sets the version
+            /////////////////////////////////////////////////////////////////////////////////
 
+            // if its blocked/ not viewable, skip the below code and return blocked message
             var view_constraint = await allocator.View_Access(res, current_user_id, current_ti, MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances );
             BlockedView = view_constraint.BlockedView;
             ViewTask    = view_constraint.ViewTask;
-            /*  Process Privious Tasks */
+            /////////////////////////////////////////////////////////////////////////////////
+            //////  If the current task can be viewed and is not Blocked
+            //////  Process all privious tasks before this one, and apply view_access on it
+            //////  If task is not Viewabe, we dont include it in a list of privious tasks to be displayed
+            //////  View access determines if task can be viewed and sets the version
+            /////////////////////////////////////////////////////////////////////////////////
+            /*  Process Privious Tasks  if not blocked and viewable*/
             if(! BlockedView && ViewTask ){
                 var ar = new Array();
                 var PathLength = fullPath.length;
                 console.log('debug' , 'pathlength' , PathLength);
                 if (PathLength > 1) {  // if this is not the first task
-                    await allocator.SetDataVersion(current_ti, view_constraint.WhichVersion); // set version on current task if not first
+                    await allocator.SetDataVersion(current_ti, view_constraint.WhichVersion); // set version on current task if its not first task
+                    // go through each privious task before the current task, and appy view access on it
+                    // if task is not viewable, dont add it to the privious task list
                     for(var t = PathLength -2; t >= 0; t--){  // Go in reverse Order
                         var task = fullPath[t];
                         var prev_tis =[];
-                        if( task.constructor === Array){
+                        if( task.constructor === Array){    // if there were siblings add each to array
                             await Promise.map(task, async (taskInstance)=>{
                                 prev_tis.push(taskInstance);
-                                //pre_tis.push(taskInstance.TaskInstanceID)
                             });
                         }else{
-                            prev_tis.push(task);
-                            //pre_tis.push(task.TaskInstanceID)
+                            prev_tis.push(task);            // if no siblings add only this to array
                         }
-                        await Promise.map(prev_tis, async(pre_ti)=>{
+                        await Promise.map(prev_tis, async(pre_ti)=>{  // for each sibling or single task
                             /* Skip Tasks that were Cancelled  */
                             if(JSON.parse(pre_ti.Status)[1] != 'cancelled'){
                                 view_constraint = await allocator.View_Access(res, current_user_id, pre_ti, [] , fullPath, BlockableTAs, PendingTaskInstances );
                                 if(view_constraint.ViewTask != 0){
+                                    // set the data version based on the view_access function, and add it to array
                                     await allocator.SetDataVersion(pre_ti , view_constraint.WhichVersion);  // set the data version
                                     ar.push(pre_ti);
                                     pre_tis.push(pre_ti.TaskInstanceID);
@@ -4058,6 +4075,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             /* User Not Allowed to Do this task    */
             if(BlockedView){
                 var Ta_Names='';
+                // find the names of the tasks that are blocking the user from doing this task
                 await Promise.map(PendingTaskInstances, async(ti)=>{
                     if( BlockableTAs.includes( ti.TaskActivity.TaskActivityID) ){
                         Ta_Names+= ti.TaskActivity.Name;
