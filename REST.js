@@ -1060,6 +1060,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 	//Endpoint to get the duplicate a saved assignment from a partial assignment
 	router.get('/partialAssignments/duplicate/:partialAssignmentId', function (req, res) {
 		var newid;
+		logger.log('info', 'get: /partialAssignments/duplicate/:partialAssignmentId', {
+			req_query: req.query,
+			req_params: req.params
+		});
 		PartialAssignments.max('PartialAssignmentID').then(max => {
 			newid = max+1;
 		}).then(
@@ -8492,6 +8496,37 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 		// 		res.status(201).end();
 		// 	})
 	});
+
+	router.post('/log/', function (req, res) {
+		const options = {
+			from: new Date() - (30 * 24 * 60 * 60 * 1000), //30 days of logs from now
+			until: new Date(),
+			limit: 100000,
+			start: 0,
+			order: 'desc',
+		};
+
+//
+// Find items logged between today and yesterday.
+//
+		logger.query(options, function (err, logs) {
+			var filterresults;
+			if (err) {
+				/* TODO: handle me */
+				throw err;
+			}
+
+			var fun = Function("logs", "res", req.body.query);
+			try {
+				fun(logs, res);
+            }
+            catch(err){
+			    res.json({"err":true, error: err})
+            }
+		});
+
+	});
+
 
 	router.get('/restoreremovedactivity/:AssignmentID', function (req, res) {
 		var assignmentArray = new Array();
