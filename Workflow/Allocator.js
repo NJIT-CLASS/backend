@@ -789,7 +789,10 @@ class Allocator {
     //         new_user_id: new_u_id,
     //         user_history: ti_u_hist
     //     });
-
+//
+// change_date: true / false
+// change_date_option: 'extend_only_if_late'   used during workflow cancellation and realocations
+//                                             date is only extended if task is late
     async reallocate_user_to_task(ti, new_u_id, is_extra_credit, change_date, change_date_option) {
         if (is_extra_credit == null) {
             is_extra_credit = true;
@@ -820,6 +823,14 @@ class Allocator {
         var task_id = ti.TaskInstanceID;
         var ti_u_hist = JSON.parse(ti.UserHistory) || [];
         var ti_status = JSON.parse(ti.Status);
+
+        /* send emails */
+        if(change_date_option != 'extend_only_if_late'){ // dont send emails when canceling workflow, emails send before calling this function
+            if(ti_status[0] == 'started'){
+                email.sendNow(ti.UserID, 'remove_reallocated'); // old user
+                email.sendNow(new_u_id, 'new_reallocated' );        // new user
+            }
+        }
 
         ti_status[5] = reallocation_status;  // change reallocation status
         ti_status[4] = 'not_opened';         // change view back to deafult
@@ -1263,6 +1274,8 @@ class Allocator {
             var wi = await x.get_wi_from_wi_id(wi_id); 
             //var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id); 
             var avoid_u_ids = await x.get_constrained_users(wi, ti_id, ti.UserID); // get users that cannot be used for this task
+            //console.log(avoid_u_ids);
+            //return;
             avoid_u_ids  = _.union(avoid_u_ids,ignore_users);  // merge cancelled users with ignore users    
             logger.log('debug',{avoid_u_ids: avoid_u_ids});
             var vol_u_ids  = await x.get_ai_volunteers(ai_id) || [];    // get used valuenteers for assigment instance
@@ -1287,51 +1300,7 @@ class Allocator {
         });
         return response;  
     }
-    // reallocate late tasks withing workflows created 3-2-18 mss86
-    //@ helper function for reallocate_tasks_based
-    //@ wi_ids: WorkFlowInstanceIds
-    /* will remove since no longer needed 3-16-18 mss86
-    async reallocate_workflow(wi_ids,user_pool_wc, user_pool_woc, is_extra_credit){
-        logger.log('info',{
-            call:"reallocate_workflow",
-            wi_ids: wi_ids,
-            user_pool_wc: user_pool_wc,
-            user_pool_woc: user_pool_woc,
-            is_extra_credit: is_extra_credit
-        });
-        var x = this;
-        var ignore_users=[];
-        var tis_array=[];
-        var response=[];
-        await Promise.mapSeries(wi_ids, async (wi_id) => {    // Find late users to not use them in reallocation 
-            var tis = await x.get_late_tis(wi_id);           // get all late tasks
-            tis_array.push(tis);
-            await Promise.map(tis, async(ti) =>{
-                ignore_users.push(ti.UserID);
-            })
-        });
-        await Promise.mapSeries(wi_ids, async (wi_id, idx) => {
-            if(! tis_array[idx].length > 0){
-                response.push( {'Error':true, 'wi_id':wi_id, 'Message': 'No late Tasks found in workflows'});
-                return;
-            }
-            var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);
-            avoid_u_ids = _.union(avoid_u_ids, ignore_users);
-            await Promise.mapSeries(tis_array[idx], async(ti) => {
-                var vol_u_ids   = await x.get_ai_volunteers(ti.AssignmentInstanceID) || []; 
-                var new_u_id    = await x.find_new_user_from_pool(user_pool_wc,user_pool_woc,vol_u_ids, avoid_u_ids);
-                if(!new_u_id){
-                    response.push({'Error': true, 'wi_id':wi_id, 'Message': 'None of provided users could be used as replacement for late tasks in workflow'});
-                    return;
-                }
-                await x.reallocate_user_to_workflow(ti, new_u_id, is_extra_credit);
-                await x.update_ai_volunteers(vol_u_ids, ti.AssignmentInstanceID);
-            });
-            response.push({'Error':false, 'wi_id':wi_id, 'Message': null});
-        });
-        return response;
-    }
-    */
+ 
     // User Based, Updated version of realocate created 2-27-18 mss86
     //@ ais: AssigmentInstace
     //@ old_user_ids: [] ids to replace
@@ -1466,6 +1435,7 @@ class Allocator {
         var x = this;
         var constrained_users = [];  // users so far constrained
         var users_in_workflow = [];  // users so far in the workflow
+        var constrains
         var ti_ids = JSON.parse(wi.TaskCollection);
         var user_reached = false;
         await Promise.mapSeries(ti_ids, async (ti_id) =>{   // scan the workflow and make array of users not to be used
@@ -1474,7 +1444,7 @@ class Allocator {
             if(old_ti_id === ti_id){             // Task to be realocated Reached     
                 user_reached = true;
                 var temp_tis = await x.get_tis_from_wi_id_and_ta_id(wi.WorkflowInstanceID, ti.TaskActivityID)
-                await Promise.mapSeries(temp_tis, async(temp_ti)=>{
+                await Promise.mapSeries(temp_tis, async(temp_ti)=>{     // Load all if there are sibling tasks
                     constrained_users.push(temp_ti.UserID);
                 });
             }
@@ -1486,7 +1456,14 @@ class Allocator {
                     attributes: ['AssigneeConstraints','NumberParticipants']
                 });
                 var task_constrains = JSON.parse(ta.AssigneeConstraints);
-    
+                if(old_ti_id == ti_id){
+                    if(_.has(task_constrains[2], 'same_as')){  // if task has same as, use constrains of the first same as
+                        var temp_tis = await x.get_tis_from_wi_id_and_ta_id(wi.WorkflowInstanceID, task_constrains[2].same_as[0] );
+                        var temp_c = await x.get_constrained_users(wi, temp_tis[0].TaskInstanceID);
+                        constrained_users = _.union(constrained_users, temp_c);
+                        //logger.log('debug','users from sameAs:', temp);
+                    }
+                }
                 //if(_.has(task_constrains[2], 'not')){                   // honor only not_in
                 if(_.has(task_constrains[2], 'not') || (_.has(task_constrains[2], 'not_in_workflow_instance') && task_constrains[2].not_in_workflow_instance.length > 0)){                                                 // else honor only not_in
                     var not_ins =[];
@@ -1543,6 +1520,7 @@ class Allocator {
                 } 
             }
         });
+        logger.log('debug', 'users to avoid:', constrained_users);
         return constrained_users;
     }
     // Return ti from workflow ID and task instance id created 3-28-18 mss86
@@ -1815,10 +1793,10 @@ class Allocator {
                 var completed = false;
                 var is_extra_credit = false;
                 var Status = JSON.parse(ti.Status);
-                if(Status[4] === 'viewed'   || Status[0] === 'bypassed' || Status[0] === 'complete'){ // if any, task considered viewed 4-8-18
+                if(Status[4] === 'viewed'   || Status[0] === 'bypassed' || Status[0] === 'complete' || Status[1] == 'cancelled'){ // if any, task considered viewed 4-8-18
                     viewed = true;
                 }
-                if(Status[0] === 'complete' || Status[0] === 'bypassed'){
+                if(Status[0] === 'complete' || Status[0] === 'bypassed' || Status[1] == 'cancelled'){
                     completed = true;
                 }
                 if(Status[5]=='reallocated_extra_credit'){
@@ -2027,6 +2005,7 @@ class Allocator {
             extra_task_for_extra_credit: extra_task_for_extra_credit,  
             data: {Graph: Graph, wi_ids: wi_ids,
             users_to_realocate_later: users_to_realocate_later,
+            old_users: old_users,
             ai_id: ai_id}
         }
     }
@@ -2037,7 +2016,13 @@ class Allocator {
     //@ wi_ids: [ ] workflow IDS that are to be cancelled
     //@ user_ids: users to be replaced for extra credit, when first activity had multiple users
     //@ ai_id: assigment instance ID
-    async apply_cancellation_graph(Graph, wi_ids, user_ids, ai_id){
+    //@ old_users: [] of users that were removed from assigment
+    async apply_cancellation_graph(Graph, wi_ids, user_ids, ai_id, old_users){
+        logger.log('info', {
+            call:'apply_cancellation_graph',
+            wi_ids: wi_ids,
+            user_ids: user_ids
+        });
         var x = this;
             //////////////////////////////////////////// cancel all the task intances in the workflow
             await Promise.map(wi_ids, async(wi_id) =>{ 
@@ -2085,8 +2070,13 @@ class Allocator {
                             var ti = await x.get_ti_from_ti_id(task.ti_id);
                             await x.reallocate_user_to_task(ti,task.userID, task.is_extra_credit, true, 'extend_only_if_late'); 
                             if(task.viewed && task.was_extra_credit){   // if task was extra credit, viewed, and relocated, notify the user he was removed
-                                await x.Email.sendNow(task.previous_userID,'remove_reallocated', null );
+                                await email.sendNow(task.previous_userID,'remove_reallocated', null );
                                 logger.log('debug', 'sending email to removed user of extra credit task in workflow cancellation');
+                            }
+                            if(_.contains(old_users, task.previous_userID)){ // if task of user that was removed, notify new user
+                                if(JSON.parse(ti.Status)[0] == 'started'){
+                                    email.sendNow(task.userID, 'new_reallocated', null );
+                                }
                             }
                         }
                     });
@@ -2105,6 +2095,7 @@ class Allocator {
         return {Error: false , Message: "Workflows Successfully Cancelled"};
     }
     // Debug to print the graphs  created 3-12-18 mss86
+    // helps debug the workflow cancellation
     async print_graph(Graph){
         var output="\n";
         await Promise.mapSeries(Graph, async(g) => {
@@ -2126,6 +2117,7 @@ class Allocator {
     }
     // creates array of users in each workflow that are already in activity
     // these users will permanently stay in those activities
+    // used during workflow cancelation to make sure same user doesnt do sibling task
     async create_users_in_activity_array(Graph , ta_index, old_users){
         var users_in_activity = [];
         var task_instance;
@@ -2142,6 +2134,7 @@ class Allocator {
         return users_in_activity;
     }
     // checks if the users to be removed completed some tasks already
+    // this will result in uneven task distribution
     async check_old_users_in_graph(Graph, old_users){
         var some_tasks_complete = false;
         await Promise.map(old_users, async (old_user) =>{
@@ -2218,8 +2211,9 @@ class Allocator {
         return constrains;
     }
     // converts task activity to index in the cancellation graph created 3-20-18 mss86
+    // returns the index in the cancellation graph from taskActivity id
     async get_graph_activity_index_from_ta(wi, ta_id ) {
-        for(var i = 1; i< wi.length ; i++){ /// no no no 
+        for(var i = 1; i< wi.length ; i++){ 
             if(wi[i][0].ta_id === ta_id){
                 return i;
             }
@@ -2227,6 +2221,7 @@ class Allocator {
         return null;
     }
     // checks costrains when cancelling workflow created 3-22-18 mss86
+    // checks if the user is valid for this task during workflow cancellation
     async check_constrains_for_workflow(workflow, constrains, index, userID){
         //console.log( {cons: constrains[index], idx:index , userID:userID })
         if(constrains[index].who === 'instructor'){
@@ -2253,6 +2248,9 @@ class Allocator {
         return userID;
     }
     // make arrays of users from cancellation Graph created 3-22 18 mss86
+    // the functon shifts the user in a specific way, by pushing them upwards untill the task that is to be replaced
+    // this helps as it makes the array of users as if they were first being allocated to assigment
+    // which helps prevent constraints conflict
     // [ [ [userID, is_extra_credit]]]     workflow|activity|task|userID&is_extra_credit
     async make_array_of_usable_users(Graph, old_indexes, old_users){
         var Users = [[[[]]]];

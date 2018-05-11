@@ -162,7 +162,6 @@ class Grade {
             IsExtraCredit: user_history[user_history.length - 1].is_extra_credit,
             MaxGrade: max_grade
         }).catch(function(err){
-            console.log('err here')
             console.log(err);
         });
 
@@ -181,7 +180,7 @@ class Grade {
      */
     async addWorkflowGrade(wi_id, sec_user, grade) {
 
-        console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
+        //console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
         var wi = await WorkflowInstance.find({
             where: {
                 WorkflowInstanceID: wi_id
@@ -438,7 +437,7 @@ class Grade {
 
     async gradeBelongsTo(ti) {
         var x = this;
-        //logger.log('info', '/Workflow/Grade/gradeBelongsTo: searching for user...');
+        logger.log('info', '/Workflow/Grade/gradeBelongsTo: searching for user...');
         var ta = await TaskActivity.find({
             where: {
                 TaskActivityID: ti.TaskActivityID
@@ -576,7 +575,7 @@ class Grade {
             where:{
                 AssignmentInstanceID: ai_id
             },
-            attributes: ['AssignmentID']
+            attributes: ['AssignmentID', 'SectionID']
         }).catch(function(err){
             console.log(err);
         });
@@ -636,7 +635,18 @@ class Grade {
             where:{
                 AssignmentID: ai.AssignmentID
             },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName']
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName', 'RefersToWhichTask']
+        }).catch(function(err){
+            console.log(err);
+        });
+
+        var sec_users = await SectionUser.findAll({
+            where:{
+                SectionID: ai.SectionID
+            },
+            include:{
+                model: User,
+            }
         }).catch(function(err){
             console.log(err);
         });
@@ -647,6 +657,7 @@ class Grade {
             'AssignmentActivity': assignment,
             'WorkflowActivity': wa,
             'TaskActivity': ta,
+            'SectionUsers': sec_users,
             'Grades': {
                 'Assignment': ai_grade,
                 'Workflow': wi_grade,

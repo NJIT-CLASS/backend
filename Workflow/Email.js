@@ -151,6 +151,7 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
+                //send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
@@ -251,6 +252,28 @@ class Email {
                         to: send,
                         subject: 'Reallocated to a new task - PLA',
                         text: 'Hi, you have been reallocated to a new task, please complete as soon as possible',
+                        html: ''
+                    });
+                    break;
+
+                case 'task_cancelled':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: 'Your task has been cancelled - PLA',
+                        text: 'One of your tasks has been cancelled, you will no longer be able to complete it',
+                        html: ''
+                    });
+                    break;
+                    
+                case 'task_bypassed':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: 'Your task has been bypassed - PLA',
+                        text: 'One of your tasks has been bypassed, you will no longer be able to complete it',
                         html: ''
                     });
                     break;

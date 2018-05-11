@@ -140,7 +140,7 @@ class TaskTrigger {
         });
 
         var final_grade = await grade.findFinalGrade(ti);
-        console.log('herte', final_grade);
+        //console.log('herte', final_grade);
         if(final_grade != null){
             await grade.addTaskGrade(final_grade.id, final_grade.grade, final_grade.max_grade);
         }
@@ -203,7 +203,8 @@ class TaskTrigger {
             }
         });
 
-        console.log('result', bool);
+        //console.log('result', bool);
+
         return bool;
 
         // } catch(err){
@@ -277,7 +278,7 @@ class TaskTrigger {
             logger.log('info', 'consolidating tasks...');
 
             var final_grade = await x.findGrades(ti);
-            console.log('final_grade', final_grade);
+            //console.log('final_grade', final_grade);
 
             if (final_grade !== null) { //update final grade if something has returned
                 await TaskInstance.update({
@@ -364,7 +365,7 @@ class TaskTrigger {
             if (pre.FinalGrade !== null) { //if no FinalGrade found, dont push
                 grades.push(pre.FinalGrade);
                 let data =  JSON.parse(pre.Data)[0];
-                console.log(data);
+                //console.log(data);
                 await Promise.mapSeries(Object.keys(JSON.parse(pre.Data)[JSON.parse(pre.Data).length - 1]), function(val) {
                     let field = JSON.parse(pre.TaskActivity.Fields)
                     if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution')&&field[val].field_type === 'assessment') { //check if field type is assessment
@@ -414,13 +415,13 @@ class TaskTrigger {
 
             //determine function type and return appropriate grade
             if (ta.FunctionType === 'max') {
-                console.log('The needs consolidation grade is: ', max);
+                //console.log('The needs consolidation grade is: ', max);
                 return [max, triggerConsolidate];
             } else if (ta.FunctionType === 'min') {
-                console.log('The needs consolidation grade is: ', min);
+                //console.log('The needs consolidation grade is: ', min);
                 return [min, triggerConsolidate];
             } else if (ta.FunctionType === 'average' ||ta.FunctionType === 'avg') {
-                console.log('The needs consolidation grade is: ', (max + min) / 2);
+                //console.log('The needs consolidation grade is: ', (max + min) / 2);
                 return [(max + min) / 2, triggerConsolidate];
             } else {
                 logger.log('error', 'unknown function type', {
@@ -691,10 +692,11 @@ class TaskTrigger {
         if (final_grade === 0) {
             logger.log('info', 'no grade has been found!');
             return null;
+
         } else {
-            logger.log('info', 'grade has been found!', {
-                'grade': final_grade
-            });
+            // logger.log('info', 'grade has been found!', {
+            //     'grade': final_grade
+            // });
             return final_grade;
         }
     }
@@ -898,6 +900,7 @@ class TaskTrigger {
             });
         }
     }
+
 
     /*
     * Cancel All Tasks
