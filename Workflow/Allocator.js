@@ -443,7 +443,7 @@ class Allocator {
         })
     }*/
 
-    //TODO: need an api call for this
+    //TODO: need an api call for this  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     // reallocate new users to all tasks of all users in all assignments of a section with volunteers
     reallocate_section(section_id, user_ids, volunteer_u_ids, is_extra_credit) {
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
@@ -471,7 +471,7 @@ class Allocator {
             });
         });
     }
-
+    // TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     reallocate_ais_of_users(user_ids, volunteer_u_ids) {
         logger.log('info', 'reallocate new users to all assignments of all users with volunteers', {
             user_ids: user_ids,
@@ -499,7 +499,7 @@ class Allocator {
         })
     }
 
-    //TODO: need an api call for this
+    //TODO: need an api call for this   Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     // reallocate new users to all tasks of all users in an assignment with volunteers
     reallocate_ai(ai_id, user_ids, volunteer_u_ids, is_extra_credit) {
         if (is_extra_credit == null) { // if extra credit is not specified: assume it is extra credit by default
@@ -534,7 +534,7 @@ class Allocator {
         });
     }
 
-    //TODO: need an api call for this
+    //TODO: need an api call for this  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION 
     // reallocate given users to given tasks respectively
     reallocate_users_to_tasks(tis, u_ids, is_extra_credit) {
         logger.log('debug', {
@@ -643,7 +643,7 @@ class Allocator {
     // }
 
     // find a new appropriate user to reallocate
-    //get newUser
+    //get newUser TODO:  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     find_new_user(u_ids, vol_u_ids, avoid_u_ids) {
         logger.log('debug', {
             call: 'find_new_user'
@@ -720,6 +720,7 @@ class Allocator {
     }*/
  
     // reallocate new users to all tasks of a user in an assignment with volunteers
+    // TODO:  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     reallocate_ai(ai_id, user_id, volunteer_u_ids) {
         logger.log('info', 'reallocate new users to all tasks of a user in an assignment with volunteers', {
             ai_id: ai_id,
@@ -748,6 +749,7 @@ class Allocator {
     }
  
     // reallocate given users to given tasks respectively
+    // TODO:  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     reallocate_users_to_tasks(tis, u_ids) {
         logger.log('debug', {
             call: 'reallocate_users_to_tasks'
@@ -789,7 +791,9 @@ class Allocator {
     //         new_user_id: new_u_id,
     //         user_history: ti_u_hist
     //     });
-//
+
+
+// MAIN & ONLY function to realocate a task Instance, all realocation algorithms use this function. last updates by: mss86 5-11-18 
 // change_date: true / false
 // change_date_option: 'extend_only_if_late'   used during workflow cancellation and realocations
 //                                             date is only extended if task is late
@@ -809,9 +813,6 @@ class Allocator {
             reallocation_status = 'reallocated_extra_credit';
         }
 
-        // logger.log('debug', {
-        //     call: 'reallocate_user_to_task'
-        // });
         if(JSON.parse(ti.Status)[0] === 'complete'){
             return {
                 Error: true,
@@ -827,15 +828,15 @@ class Allocator {
         /* send emails */
         if(change_date_option != 'extend_only_if_late'){ // dont send emails when canceling workflow, emails send before calling this function
             if(ti_status[0] == 'started'){
-                email.sendNow(ti.UserID, 'remove_reallocated'); // old user
+                email.sendNow(ti.UserID, 'remove_reallocated');     // old user
                 email.sendNow(new_u_id, 'new_reallocated' );        // new user
             }
         }
 
         ti_status[5] = reallocation_status;  // change reallocation status
         ti_status[4] = 'not_opened';         // change view back to deafult
-        ti_status[3] = 'before_end_time';   // change from late to not late
-        var new_end_date = ti.EndDate;      // keep same date
+        ti_status[3] = 'before_end_time';    // change from late to not late
+        var new_end_date = ti.EndDate;       // keep same date
         if(change_date){
             new_end_date = await this.get_new_date(ti , change_date_option); // get time extension
         }
@@ -864,10 +865,6 @@ class Allocator {
                 TaskInstanceID: task_id
             }
         }).then(function (res) {
-            // logger.log('info', 'task instance updated', {
-            //     res: res
-            // });
-            //return res;
             return {
                 Error: false,
                 ti_id: ti.TaskInstanceID,
@@ -903,9 +900,7 @@ class Allocator {
     //     });
     // }
 
-    check_assign_constraint(ti) {
 
-    }
 
     get_ai_volunteers(ai_id) {
         logger.log('debug', {
@@ -993,8 +988,9 @@ class Allocator {
 
     // }
 
-
-    async reallocate_user_to_workflow(ti, new_u_id, is_extra_credit /*, new_status*/ ) {
+    // Realocates This and all TIs of this user in that workflow with same user updated 5-11-18 mss86
+    // function used in task realocation and user realocation
+    async reallocate_user_to_workflow(ti, new_u_id, is_extra_credit ) {
         var x = this;
         var wi = await WorkflowInstance.find({
             where: {
@@ -1002,8 +998,6 @@ class Allocator {
             }
         });
 
-        // await email.sendNow(old_ti.UserID, 'remove_reallocated');
-        // await email.sendNow(new_u_id, 'new_reallocated');
         // ignore if complete, bypassed, or cancelled.
         var tis = await TaskInstance.findAll({
             where:{
@@ -1037,7 +1031,7 @@ class Allocator {
     }
    
         // return volunteers userIds for section modified 3-30-18 mss86
-        async get_volunteers_ids(section_id){
+    async get_volunteers_ids(section_id){
             var volunteers=[];
             try{
                 var vols = await VolunteerPool.findAll({
@@ -1056,9 +1050,9 @@ class Allocator {
                 logger.log('error','get_volunteers_ids',e);
             }
             return volunteers;
-        }
+    }
         // return user for section
-        async get_section_users_ids(section_id, option){
+    async get_section_users_ids(section_id, option){
             var users;
             var user_ids=[];
             try{
@@ -1088,7 +1082,7 @@ class Allocator {
                 logger.log('error','get_section_users_ids',e);
             }
             return user_ids;
-        }
+    }
     // reallocate all tasks of a given users & ai_id with volutneers
     // wrap around the above api (get all assignments)
 
@@ -1166,7 +1160,7 @@ class Allocator {
     //     });
     // }
 
-
+    // TODO: Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     reallocate(ti, u_ids, is_extra_credit) {
         logger.log('debug', {
             call: 'reallocate'
@@ -1273,6 +1267,7 @@ class Allocator {
             var wi_id = await x.getWorkflowInstanceID(ti_id);    
             var wi = await x.get_wi_from_wi_id(wi_id); 
             //var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id); 
+            // TODO: when availabe, dont use users that are inactive in assigment
             var avoid_u_ids = await x.get_constrained_users(wi, ti_id, ti.UserID); // get users that cannot be used for this task
             //console.log(avoid_u_ids);
             //return;
@@ -1341,7 +1336,8 @@ class Allocator {
                         order: [ [ 'TaskInstanceID', 'ASC' ]]
                     }); 
                     if(ti != null){
-                    //var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);                  
+                    //var avoid_u_ids = await x.getUsersFromWorkflowInstance(wi_id);     
+                        //TODO: when availabe, dont use users inactive in assignment             
                         var avoid_u_ids = await x.get_constrained_users(wi, ti.TaskInstanceID);
                         avoid_u_ids = _.union(avoid_u_ids, old_user_ids);     // add old user ids to avoid list
                         var new_u_id = await x.find_new_user_from_pool(user_pool_wc, user_pool_woc, vol_u_ids, avoid_u_ids);
@@ -2009,7 +2005,6 @@ class Allocator {
             ai_id: ai_id}
         }
     }
-
     // Uses A graph Created during workflow Cancellation and Applies the realocation created 3-22-18 mss86
     // and cancellation to the database
     //@ Graph: A Graph created during workflow cancellation
@@ -2299,7 +2294,7 @@ class Allocator {
                 }
             });
         });
-    return Users;
+        return Users;
     }
 
 

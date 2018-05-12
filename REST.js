@@ -2364,7 +2364,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             },
             attributes: ['UserID']
         }).then(function (response) {
-            console.log('User response:', response.UserID);
+            //console.log('User response:', response.UserID);
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
                     .then(function () {
@@ -5350,7 +5350,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         console.log('/VolunteerPool/VolunteersInSection was called');
         VolunteerPool.findAll({
             where: {
-                SectionID: req.params.SectionID
+                SectionID: req.params.SectionID,
+                status: 'Approved'                  // Added for realocations, May 11, 2018 by mss86 
             },
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function (rows) {
@@ -8192,7 +8193,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     
-    // API to reallocate users in assigments instances created 3-4-18 mss86
+    // API to reallocate users in assigments instances created 3-4-18 mss86 last update: 5-11-18
     //@ sec_id: section ID
     //@ ai_ids: [] assigment instance ids
     //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
@@ -8211,22 +8212,27 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }else{
             inactivate_users = req.body.inactivate_users;
         }
-        var remove_from_all_assigments;
-        if(req.body.remove_from_all_assigments == null){
-            remove_from_all_assigments =false;
+        var remove_from_all_assignments;
+        if(req.body.remove_from_all_assignments == null){
+            remove_from_all_assignments =false;
         }else{
-            remove_from_all_assigments = req.body.remove_from_all_assigments;
+            remove_from_all_assignments = req.body.remove_from_all_assignments;
         }
         await Promise.map(req.body.old_user_ids, async (old_user_id)=>{
             if(inactivate_users == 'all_assignments'){
                 await allocate.inactivate_section_user(req.body.sec_id, old_user_id); // deactive user in section
             }
             await allocate.delete_volunteer(req.body.sec_id , old_user_id);     // remove user from voluenteers
+            // TODO: When database structore is established, deactive user in this assignment only
+            //if( inactivate_users == 'this_assignment'){
+            //
+            //
+            //}
         });
         logger.log('info','/reallocate/user_based called');
         
         var ais = [];
-        if(remove_from_all_assigments){                 // remove user from all Assigments
+        if(remove_from_all_assignments){                 // remove user from all Assigments
             ais = await AssignmentInstance.findAll({ 
                 where: { 
                     SectionID: req.body.sec_id          // TODO: get only active assigments in section
