@@ -10268,8 +10268,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
         var wi_ids = req.body.wi_ids;
         var allocate = new Allocator([],0);
-        var assigment_array = [];
+        var assigment_array = []; // array that stores each WA seperate and processes them seperatly
         var index = 0;
+        // group the assignments per WA
+        // each WA will be processed seperatly as they have different types of tasks
+        // TODO: look in Allocator.js in function 'make_array_of_usable_users' for description
+        //     : here we would split the Tis into sections, similarlt to how WA are split, to implement solution 2.
         await Promise.mapSeries(wi_ids, async(wi_id) =>{    // group the assigments per Workflow Activity
             var wi = await allocate.get_wi_from_wi_id(wi_id);
             var wa_id = wi.WorkflowActivityID;
@@ -10326,6 +10330,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     Message = 'Extra tasks were allocated for extra credit';
                 }
             }
+            // if workflow cancellation went smoothly, then continue with the cancellation
+            // else send a message to the frontend to prompt instuctor with appropriate message
+            // and he will choose if it should procceed by calling different API
             if(!needs_confirmation){    // Use the graph and apply it to the database
                 await Promise.map( array_of_results , async (w_activity) => {
                     var data = w_activity.data;
@@ -10355,6 +10362,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         );
     });
     // API to Confirm Workfow Cancellation By Instructor   created 3-10-19 mss86
+    // Takes a Multi Dimensional Graph and applies it to the database
     //@ data: [] array of Json containing Graph and wi_ids
     router.post('/reallocate/confirm_cancellation', teacherAuthentication, async function (req, res){
         if(req.body.data == null ){
@@ -10371,9 +10379,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         await Promise.map( req.body.data , async (w_activity) => {
             var data = w_activity.data;
             var Graph = data.Graph;
-            var wi_ids = data.wi_ids;
+            var wi_ids = data.wi_ids;                                    // workflow ids to be cancelled
             var ai_id = data.ai_id;
-            var users_to_realocate = data.users_to_realocate_later;
+            var users_to_realocate = data.users_to_realocate_later;      // users that need to be realocated when first task had siblings
             var old_users = data.old_users;
             result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id, old_users);
         });
