@@ -8441,6 +8441,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 							    ArchivedAssignmentInstance.create({
 								    AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
 								    AssignmentID: assigninstancerows[x].AssignmentID,
+								    DisplayName: assigninstancerows[x].DisplayName,
 								    SectionID: assigninstancerows[x].SectionID,
 								    StartDate: assigninstancerows[x].StartDate,
 								    EndDate: assigninstancerows[x].EndDate,
@@ -8849,8 +8850,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 					ArchivedAssignmentInstance.findAll({
 						where: {
 							AssignmentID: req.params.AssignmentID
-						},
-						attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+						}
 					}).then(function (assigninstancerows) {
 						var arrayLength = assigninstancerows.length;
 						for (var x = 0; x < arrayLength; x++) {
@@ -9068,8 +9068,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 					RemovedAssignmentInstance.findAll({
 						where: {
 							AssignmentID: req.params.AssignmentID
-						},
-						attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+						}
 					}).then(function (assigninstancerows) {
 						var arrayLength = assigninstancerows.length;
 						for (var x = 0; x < arrayLength; x++) {
@@ -9516,8 +9515,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						.then(ArchivedAssignmentInstance.findAll({
 							where: {
 								AssignmentInstanceID: AssignInsID
-							},
-							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+							}
 						}).then(function (assigninstancerows) {
 							//console.log(rows[0].OwnerID);
 							var arrayLength = assigninstancerows.length;
@@ -9526,6 +9524,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 								AssignmentInstance.create({
 									AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
 									AssignmentID: assigninstancerows[x].AssignmentID,
+									DisplayName: assigninstancerows[x].DisplayName,
 									SectionID: assigninstancerows[x].SectionID,
 									StartDate: assigninstancerows[x].StartDate,
 									EndDate: assigninstancerows[x].EndDate,
@@ -9789,8 +9788,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						.then(RemovedAssignmentInstance.findAll({
 							where: {
 								AssignmentInstanceID: AssignInsID
-							},
-							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+							}
 						}).then(function (assigninstancerows) {
 							//console.log(rows[0].OwnerID);
 							var arrayLength = assigninstancerows.length;
@@ -9799,6 +9797,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 								AssignmentInstance.create({
 									AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
 									AssignmentID: assigninstancerows[x].AssignmentID,
+									DisplayName: assigninstancerows[x].DisplayName,
 									SectionID: assigninstancerows[x].SectionID,
 									StartDate: assigninstancerows[x].StartDate,
 									EndDate: assigninstancerows[x].EndDate,
@@ -10060,8 +10059,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 						.then(AssignmentInstance.findAll({
 							where: {
 								AssignmentInstanceID: AssignInsID
-							},
-							attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+							}
 						}).then(function (assigninstancerows) {
 							//console.log(rows[0].OwnerID);
 							var arrayLength = assigninstancerows.length;
@@ -10070,6 +10068,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 								RemovedAssignmentInstance.create({
 									AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
 									AssignmentID: assigninstancerows[x].AssignmentID,
+									DisplayName: assigninstancerows[x].DisplayName,
 									SectionID: assigninstancerows[x].SectionID,
 									StartDate: assigninstancerows[x].StartDate,
 									EndDate: assigninstancerows[x].EndDate,
