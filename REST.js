@@ -3,8 +3,10 @@ import {
     Assignment,
     AssignmentGrade,
     AssignmentInstance,
-    AssignmentInstance_Archive,
-    Assignment_Archive,
+    //AssignmentInstance_Archive,
+	ArchivedAssignment,
+	ArchivedAssignmentInstance,
+	RemovedAssignmentInstance,
     Badge,
     BadgeInstance,
     Category,
@@ -36,6 +38,8 @@ import {
     TaskActivity_Archive,
     TaskGrade,
     TaskInstance,
+    ArchivedTaskInstance,
+    RemovedTaskInstance,
     TaskInstance_Archive,
     TaskSimpleGrade,
     TestUser,
@@ -49,7 +53,23 @@ import {
     WorkflowActivity_Archive,
     WorkflowGrade,
     WorkflowInstance,
-    WorkflowInstance_Archive
+	ArchivedWorkflowInstance,
+	RemovedWorkflowInstance,
+    WorkflowInstance_Archive,
+    ArchivedTaskGrade,
+    ArchivedTaskSimpleGrade,
+    ArchivedWorkflowGrade,
+	ArchivedAssignmentGrade,
+	ArchivedWorkflowActivity,
+	ArchivedTaskActivity,
+	RemovedTaskGrade,
+	RemovedTaskSimpleGrade,
+	RemovedWorkflowGrade,
+	RemovedAssignmentGrade,
+	RemovedWorkflowActivity,
+	RemovedTaskActivity,
+	RemovedAssignment
+
 } from './Util/models.js';
 
 import {
@@ -5400,6 +5420,141 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+	router.get('/displayarchivedinstance/', function (req, res) {
+
+		ArchivedAssignmentInstance.findAll({
+            include:[
+                {
+                    model:Section,
+                    include:[{
+                        model: Semester
+                    },
+                    {
+		                model: Course
+                    }]
+                },
+                {
+                    model: ArchivedAssignment
+                },
+                {
+		            model: Assignment
+	            }
+                ]
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'ArchivedAssignmentInstance': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayarchivedinstance/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayremovedinstance/', function (req, res) {
+
+		RemovedAssignmentInstance.findAll({
+			include:[
+				{
+					model:Section,
+					include:[{
+						model: Semester
+					},
+						{
+							model: Course
+						}]
+				},
+				{
+					model: RemovedAssignment
+				},
+				{
+					model: Assignment
+				}]
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'RemovedAssignmentInstance': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayremovedinstance/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayarchivedactivity/', function (req, res) {
+		ArchivedAssignment.findAll({
+			include:[Course]
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'ArchivedAssignment': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayarchivedassignment/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayremovedactivity/', function (req, res) {
+
+		RemovedAssignment.findAll({
+			include:[Course]
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'RemovedAssignment': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayremovedassignment/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayactiveactivity/', function (req, res) {
+		Assignment.findAll({
+			include:[Course]
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'ActiveAssignment': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayactiveassignment/ ' + err.message);
+			res.status(400).end();
+		});
+	});
+
+	router.get('/displayactiveinstance/', function (req, res) {
+		AssignmentInstance.findAll({
+			include:[
+				{
+					model:Section,
+					include:[{
+						model: Semester
+					},
+						{
+							model: Course
+						}]
+				},
+				{
+					model: Assignment
+				}]
+		}).then(function (rows) {
+			res.json({
+				'Error': false,
+				'Message': 'Success',
+				'ActiveAssignmentInstance': rows
+			});
+		}).catch(function (err) {
+			console.log('/displayactiveinstance/ ' + err.message);
+			res.status(400).end();
+		});
+	});
     //Endpoint to return count total of Volunteers
     router.get('/VolunteerPool/countOfUsers', teacherAuthentication, function (req, res) {
         console.log('VolunteerPool/count was called');
@@ -7388,6 +7543,602 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Admin Level APIs
 
+	/**
+     * Drops existing archived and removed tables.
+     * and then create a new ones.
+	 */
+	router.get('/clear', function (req, res) {
+		//DROP exisiting table if exist to start fresh
+		return sequelize.query("DROP TABLE IF EXISTS `archivedassignmentinstance`;")
+			.spread((results, metadata) => {
+				// Results will be an empty array and metadata will contain the number of affected rows.
+			}).then(sequelize.query(              //CREATE new archivedassignment instance table
+				"   CREATE TABLE `archivedassignmentinstance` (\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL,\n" +
+				"  `SectionID` int(10) unsigned NOT NULL,\n" +
+				"  `StartDate` datetime DEFAULT NULL,\n" +
+				"  `EndDate` datetime DEFAULT NULL,\n" +
+				"  `WorkflowCollection` json DEFAULT NULL,\n" +
+				"  `WorkflowTiming` json DEFAULT NULL,\n" +
+				"  `Volunteers` json DEFAULT NULL,\n" +
+				"  `DisplayName` varchar(255) NOT NULL DEFAULT '',\n" +
+				"  PRIMARY KEY (`AssignmentInstanceID`),\n" +
+				"  UNIQUE KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  UNIQUE KEY `assignmentinstance_AssignmentInstanceID_unique` (`AssignmentInstanceID`),\n" +
+				"  KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  KEY `SectionID` (`SectionID`),\n" +
+				"  CONSTRAINT `archivedassignmentinstance_ibfk_1` FOREIGN KEY (`AssignmentID`) REFERENCES `assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedassignmentinstance_ibfk_2` FOREIGN KEY (`SectionID`) REFERENCES `section` (`SectionID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedworkflowinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `archivedworkflowinstance` (\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `StartTime` datetime DEFAULT NULL,\n" +
+				"  `EndTime` datetime DEFAULT NULL,\n" +
+				"  `TaskCollection` json DEFAULT NULL,\n" +
+				"  `Data` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`WorkflowInstanceID`),\n" +
+				"  UNIQUE KEY `WorkflowInstanceID` (`WorkflowInstanceID`),\n" +
+				"  UNIQUE KEY `workflowinstance_WorkflowInstanceID_unique` (`WorkflowInstanceID`),\n" +
+				"  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `archivedworkflowinstance_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedworkflowinstance_ibfk_2` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=256 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedtaskinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `archivedtaskinstance` (\n" +
+				"  `TaskInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `UserID` int(10) unsigned NOT NULL,\n" +
+				"  `TaskActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `GroupID` int(10) unsigned DEFAULT NULL,\n" +
+				"  `Status` varchar(255) DEFAULT NULL,\n" +
+				"  `StartDate` datetime DEFAULT NULL,\n" +
+				"  `EndDate` datetime DEFAULT NULL,\n" +
+				"  `ActualEndDate` datetime DEFAULT NULL,\n" +
+				"  `Data` json DEFAULT NULL,\n" +
+				"  `UserHistory` json DEFAULT NULL,\n" +
+				"  `FinalGrade` float unsigned DEFAULT NULL,\n" +
+				"  `Files` json DEFAULT NULL,\n" +
+				"  `ReferencedTask` int(10) unsigned DEFAULT NULL,\n" +
+				"  `IsSubworkflow` int(11) DEFAULT NULL,\n" +
+				"  `NextTask` json DEFAULT NULL,\n" +
+				"  `PreviousTask` json DEFAULT NULL,\n" +
+				"  `EmailLastSent` datetime NOT NULL DEFAULT '1999-01-01 00:00:00',\n" +
+				"  PRIMARY KEY (`TaskInstanceID`),\n" +
+				"  UNIQUE KEY `TaskInstanceID` (`TaskInstanceID`),\n" +
+				"  UNIQUE KEY `taskinstance_TaskInstanceID_unique` (`TaskInstanceID`),\n" +
+				"  KEY `UserID` (`UserID`),\n" +
+				"  KEY `TaskActivityID` (`TaskActivityID`),\n" +
+				"  KEY `WorkflowInstanceID` (`WorkflowInstanceID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `archivedtaskinstance_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `user` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedtaskinstance_ibfk_2` FOREIGN KEY (`TaskActivityID`) REFERENCES `taskactivity` (`TaskActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedtaskinstance_ibfk_3` FOREIGN KEY (`WorkflowInstanceID`) REFERENCES `workflowinstance` (`WorkflowInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedtaskinstance_ibfk_4` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=2066 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedassignmentinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query(              //CREATE new removedassignment instance table
+				"   CREATE TABLE `removedassignmentinstance` (\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL,\n" +
+				"  `SectionID` int(10) unsigned NOT NULL,\n" +
+				"  `StartDate` datetime DEFAULT NULL,\n" +
+				"  `EndDate` datetime DEFAULT NULL,\n" +
+				"  `WorkflowCollection` json DEFAULT NULL,\n" +
+				"  `WorkflowTiming` json DEFAULT NULL,\n" +
+				"  `Volunteers` json DEFAULT NULL,\n" +
+				"  `DisplayName` varchar(255) NOT NULL DEFAULT '',\n" +
+				"  PRIMARY KEY (`AssignmentInstanceID`),\n" +
+				"  UNIQUE KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  UNIQUE KEY `assignmentinstance_AssignmentInstanceID_unique` (`AssignmentInstanceID`),\n" +
+				"  KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  KEY `SectionID` (`SectionID`),\n" +
+				"  CONSTRAINT `removedassignmentinstance_ibfk_1` FOREIGN KEY (`AssignmentID`) REFERENCES `assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedassignmentinstance_ibfk_2` FOREIGN KEY (`SectionID`) REFERENCES `section` (`SectionID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedworkflowinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedworkflowinstance` (\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `StartTime` datetime DEFAULT NULL,\n" +
+				"  `EndTime` datetime DEFAULT NULL,\n" +
+				"  `TaskCollection` json DEFAULT NULL,\n" +
+				"  `Data` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`WorkflowInstanceID`),\n" +
+				"  UNIQUE KEY `WorkflowInstanceID` (`WorkflowInstanceID`),\n" +
+				"  UNIQUE KEY `workflowinstance_WorkflowInstanceID_unique` (`WorkflowInstanceID`),\n" +
+				"  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `removedworkflowinstance_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedworkflowinstance_ibfk_2` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=256 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedtaskinstance`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedtaskinstance` (\n" +
+				"  `TaskInstanceID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `UserID` int(10) unsigned NOT NULL,\n" +
+				"  `TaskActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `GroupID` int(10) unsigned DEFAULT NULL,\n" +
+				"  `Status` varchar(255) DEFAULT NULL,\n" +
+				"  `StartDate` datetime DEFAULT NULL,\n" +
+				"  `EndDate` datetime DEFAULT NULL,\n" +
+				"  `ActualEndDate` datetime DEFAULT NULL,\n" +
+				"  `Data` json DEFAULT NULL,\n" +
+				"  `UserHistory` json DEFAULT NULL,\n" +
+				"  `FinalGrade` float unsigned DEFAULT NULL,\n" +
+				"  `Files` json DEFAULT NULL,\n" +
+				"  `ReferencedTask` int(10) unsigned DEFAULT NULL,\n" +
+				"  `IsSubworkflow` int(11) DEFAULT NULL,\n" +
+				"  `NextTask` json DEFAULT NULL,\n" +
+				"  `PreviousTask` json DEFAULT NULL,\n" +
+				"  `EmailLastSent` datetime NOT NULL DEFAULT '1999-01-01 00:00:00',\n" +
+				"  PRIMARY KEY (`TaskInstanceID`),\n" +
+				"  UNIQUE KEY `TaskInstanceID` (`TaskInstanceID`),\n" +
+				"  UNIQUE KEY `taskinstance_TaskInstanceID_unique` (`TaskInstanceID`),\n" +
+				"  KEY `UserID` (`UserID`),\n" +
+				"  KEY `TaskActivityID` (`TaskActivityID`),\n" +
+				"  KEY `WorkflowInstanceID` (`WorkflowInstanceID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `removedtaskinstance_ibfk_1` FOREIGN KEY (`UserID`) REFERENCES `user` (`UserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskinstance_ibfk_2` FOREIGN KEY (`TaskActivityID`) REFERENCES `taskactivity` (`TaskActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskinstance_ibfk_3` FOREIGN KEY (`WorkflowInstanceID`) REFERENCES `workflowinstance` (`WorkflowInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskinstance_ibfk_4` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=2066 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedtaskgrade`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+            .then(sequelize.query("CREATE TABLE `archivedtaskgrade` (\n" +
+	            "  `TaskGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+	            "  `TaskInstanceID` int(10) unsigned NOT NULL,\n" +
+	            "  `SectionUserID` int(10) unsigned NOT NULL,\n" +
+	            "  `WorkflowInstanceID` int(10) unsigned NOT NULL,\n" +
+	            "  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+	            "  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+	            "  `Grade` float unsigned NOT NULL,\n" +
+	            "  `IsExtraCredit` int(10) unsigned NOT NULL,\n" +
+	            "  `MaxGrade` float unsigned NOT NULL,\n" +
+	            "  `Comments` varchar(255) DEFAULT NULL,\n" +
+	            "  PRIMARY KEY (`TaskGradeID`),\n" +
+	            "  UNIQUE KEY `TaskGradeID` (`TaskGradeID`),\n" +
+	            "  UNIQUE KEY `taskgrade_TaskGradeID_unique` (`TaskGradeID`),\n" +
+	            "  UNIQUE KEY `ti_sectionUserId_unq_idx` (`TaskInstanceID`,`SectionUserID`),\n" +
+	            "  KEY `SectionUserID` (`SectionUserID`),\n" +
+	            "  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+	            "  CONSTRAINT `archivedtaskgrade_ibfk_1` FOREIGN KEY (`TaskInstanceID`) REFERENCES `taskinstance` (`TaskInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+	            "  CONSTRAINT `archivedtaskgrade_ibfk_2` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+	            "  CONSTRAINT `archivedtaskgrade_ibfk_3` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+	            ") ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=latin1;")
+	            .spread((results, metadata) => {
+		            // Results will be an empty array and metadata will contain the number of affected rows.
+		            //console.log(results);
+	            }))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedtasksimplegrade`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+            .then(sequelize.query("CREATE TABLE `archivedtasksimplegrade` (\n" +
+	            "  `TaskSimpleGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+	            "  `TaskInstanceID` int(10) unsigned NOT NULL,\n" +
+	            "  `SectionUserID` int(10) unsigned NOT NULL,\n" +
+	            "  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+	            "  `Grade` float unsigned NOT NULL,\n" +
+	            "  `IsExtraCredit` int(10) unsigned NOT NULL,\n" +
+	            "  `Comments` varchar(255) DEFAULT NULL,\n" +
+	            "  PRIMARY KEY (`TaskSimpleGradeID`),\n" +
+	            "  UNIQUE KEY `TaskSimpleGradeID` (`TaskSimpleGradeID`),\n" +
+	            "  UNIQUE KEY `tasksimplegrade_TaskSimpleGradeID_unique` (`TaskSimpleGradeID`),\n" +
+	            "  UNIQUE KEY `ti_sectionUserId_unq_idx` (`TaskInstanceID`,`SectionUserID`),\n" +
+	            "  KEY `SectionUserID` (`SectionUserID`),\n" +
+	            "  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+	            "  CONSTRAINT `archivedtasksimplegrade_ibfk_1` FOREIGN KEY (`TaskInstanceID`) REFERENCES `taskinstance` (`TaskInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+	            "  CONSTRAINT `archivedtasksimplegrade_ibfk_2` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+	            "  CONSTRAINT `archivedtasksimplegrade_ibfk_3` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+	            ") ENGINE=InnoDB AUTO_INCREMENT=225 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedworkflowgrade`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `archivedworkflowgrade` (\n" +
+				"  `WorkflowGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `SectionUserID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `Grade` float unsigned NOT NULL,\n" +
+				"  `Comments` varchar(255) DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`WorkflowGradeID`),\n" +
+				"  UNIQUE KEY `WorkflowGradeID` (`WorkflowGradeID`),\n" +
+				"  UNIQUE KEY `workflowgrade_WorkflowGradeID_unique` (`WorkflowGradeID`),\n" +
+				"  UNIQUE KEY `wf_sectionUserId_unq_idx` (`WorkflowActivityID`,`SectionUserID`),\n" +
+				"  KEY `SectionUserID` (`SectionUserID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `archivedworkflowgrade_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedworkflowgrade_ibfk_2` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedworkflowgrade_ibfk_3` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedassignment`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `archivedassignment` (\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `OwnerID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowActivityIDs` json DEFAULT NULL,\n" +
+				"  `Instructions` text,\n" +
+				"  `Documentation` text,\n" +
+				"  `GradeDistribution` json DEFAULT NULL,\n" +
+				"  `Name` varchar(255) DEFAULT NULL,\n" +
+				"  `Type` varchar(255) DEFAULT NULL,\n" +
+				"  `DisplayName` varchar(255) DEFAULT NULL,\n" +
+				"  `SectionID` blob,\n" +
+				"  `CourseID` int(10) unsigned NOT NULL,\n" +
+				"  `SemesterID` int(10) unsigned DEFAULT NULL,\n" +
+				"  `VersionHistory` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`AssignmentID`),\n" +
+				"  UNIQUE KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  UNIQUE KEY `assignment_AssignmentID_unique` (`AssignmentID`),\n" +
+				"  KEY `CourseID` (`CourseID`),\n" +
+				"  CONSTRAINT `archivedassignment_ibfk_1` FOREIGN KEY (`CourseID`) REFERENCES `course` (`CourseID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+			}))
+            .then(sequelize.query("DROP TABLE IF EXISTS `archivedtaskactivity`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `archivedtaskactivity` (\n" +
+				"  `TaskActivityID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL,\n" +
+				"  `Name` varchar(255) DEFAULT NULL,\n" +
+				"  `Type` varchar(40) DEFAULT NULL,\n" +
+				"  `FileUpload` json DEFAULT NULL,\n" +
+				"  `DueType` json DEFAULT NULL,\n" +
+				"  `StartDelay` int(10) unsigned DEFAULT NULL,\n" +
+				"  `AtDUrationEnd` json DEFAULT NULL,\n" +
+				"  `WhatIfLate` json DEFAULT NULL,\n" +
+				"  `DisplayName` varchar(255) DEFAULT NULL,\n" +
+				"  `Documentation` varchar(255) DEFAULT NULL,\n" +
+				"  `OneOrSeparate` varchar(5) DEFAULT NULL,\n" +
+				"  `AssigneeConstraints` json DEFAULT NULL,\n" +
+				"  `Difficulty` blob,\n" +
+				"  `SimpleGrade` varchar(20) DEFAULT NULL,\n" +
+				"  `IsFinalGradingTask` tinyint(1) DEFAULT NULL,\n" +
+				"  `Instructions` text,\n" +
+				"  `Rubric` text,\n" +
+				"  `Fields` json DEFAULT NULL,\n" +
+				"  `AllowReflection` json DEFAULT NULL,\n" +
+				"  `AllowRevision` tinyint(1) DEFAULT NULL,\n" +
+				"  `AllowAssessment` varchar(255) DEFAULT NULL,\n" +
+				"  `NumberParticipants` int(10) unsigned DEFAULT '1',\n" +
+				"  `RefersToWhichTaskThreshold` json DEFAULT NULL,\n" +
+				"  `FunctionType` varchar(255) DEFAULT NULL,\n" +
+				"  `Function` text,\n" +
+				"  `AllowDispute` tinyint(1) DEFAULT NULL,\n" +
+				"  `LeadsToNewProblem` tinyint(1) DEFAULT NULL,\n" +
+				"  `LeadsToNewSolution` tinyint(1) DEFAULT NULL,\n" +
+				"  `VisualID` varchar(255) DEFAULT NULL,\n" +
+				"  `VersionHistory` json DEFAULT NULL,\n" +
+				"  `RefersToWhichTask` int(10) unsigned DEFAULT NULL,\n" +
+				"  `TriggerCondition` json DEFAULT NULL,\n" +
+				"  `PreviousTasks` json DEFAULT NULL,\n" +
+				"  `NextTasks` json DEFAULT NULL,\n" +
+				"  `MinimumDuration` int(10) unsigned DEFAULT NULL,\n" +
+				"  `VersionEvaluation` varchar(255) DEFAULT NULL,\n" +
+				"  `SeeSibblings` tinyint(1) DEFAULT NULL,\n" +
+				"  `SeeSameActivity` tinyint(1) DEFAULT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`TaskActivityID`),\n" +
+				"  UNIQUE KEY `TaskActivityID` (`TaskActivityID`),\n" +
+				"  UNIQUE KEY `taskactivity_TaskActivityID_unique` (`TaskActivityID`),\n" +
+				"  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `archivedtaskactivity_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedtaskactivity_ibfk_2` FOREIGN KEY (`AssignmentID`) REFERENCES `assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `archivedtaskactivity_ibfk_3` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE SET NULL ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=141 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `archivedworkflowactivity`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+            .then(sequelize.query("CREATE TABLE `archivedworkflowactivity` (\n" +
+	            "  `WorkflowActivityID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+	            "  `AssignmentID` int(10) unsigned NOT NULL,\n" +
+	            "  `TaskActivityCollection` json DEFAULT NULL,\n" +
+	            "  `Name` varchar(30) DEFAULT NULL,\n" +
+	            "  `Type` varchar(40) DEFAULT NULL,\n" +
+	            "  `GradeDistribution` json DEFAULT NULL,\n" +
+	            "  `NumberOfSets` int(10) unsigned DEFAULT NULL,\n" +
+	            "  `Documentation` varchar(100) DEFAULT NULL,\n" +
+	            "  `GroupSize` int(10) unsigned DEFAULT '1',\n" +
+	            "  `StartTaskActivity` json DEFAULT NULL,\n" +
+	            "  `WorkflowStructure` json DEFAULT NULL,\n" +
+	            "  `VersionHistory` json DEFAULT NULL,\n" +
+	            "  PRIMARY KEY (`WorkflowActivityID`),\n" +
+	            "  UNIQUE KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+	            "  UNIQUE KEY `workflowactivity_WorkflowActivityID_unique` (`WorkflowActivityID`),\n" +
+	            "  KEY `AssignmentID` (`AssignmentID`),\n" +
+	            "  CONSTRAINT `archivedworkflowactivity_ibfk_1` FOREIGN KEY (`AssignmentID`) REFERENCES `assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+	            ") ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				})).then(sequelize.query("DROP TABLE IF EXISTS `removedtaskgrade`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedtaskgrade` (\n" +
+				"  `TaskGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `TaskInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `SectionUserID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `Grade` float unsigned NOT NULL,\n" +
+				"  `IsExtraCredit` int(10) unsigned NOT NULL,\n" +
+				"  `MaxGrade` float unsigned NOT NULL,\n" +
+				"  `Comments` varchar(255) DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`TaskGradeID`),\n" +
+				"  UNIQUE KEY `TaskGradeID` (`TaskGradeID`),\n" +
+				"  UNIQUE KEY `taskgrade_TaskGradeID_unique` (`TaskGradeID`),\n" +
+				"  UNIQUE KEY `ti_sectionUserId_unq_idx` (`TaskInstanceID`,`SectionUserID`),\n" +
+				"  KEY `SectionUserID` (`SectionUserID`),\n" +
+				"  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  CONSTRAINT `removedtaskgrade_ibfk_1` FOREIGN KEY (`TaskInstanceID`) REFERENCES `taskinstance` (`TaskInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskgrade_ibfk_2` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskgrade_ibfk_3` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedtasksimplegrade`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedtasksimplegrade` (\n" +
+				"  `TaskSimpleGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `TaskInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `SectionUserID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `Grade` float unsigned NOT NULL,\n" +
+				"  `IsExtraCredit` int(10) unsigned NOT NULL,\n" +
+				"  `Comments` varchar(255) DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`TaskSimpleGradeID`),\n" +
+				"  UNIQUE KEY `TaskSimpleGradeID` (`TaskSimpleGradeID`),\n" +
+				"  UNIQUE KEY `tasksimplegrade_TaskSimpleGradeID_unique` (`TaskSimpleGradeID`),\n" +
+				"  UNIQUE KEY `ti_sectionUserId_unq_idx` (`TaskInstanceID`,`SectionUserID`),\n" +
+				"  KEY `SectionUserID` (`SectionUserID`),\n" +
+				"  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  CONSTRAINT `removedtasksimplegrade_ibfk_1` FOREIGN KEY (`TaskInstanceID`) REFERENCES `taskinstance` (`TaskInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtasksimplegrade_ibfk_2` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtasksimplegrade_ibfk_3` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=225 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedworkflowgrade`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedworkflowgrade` (\n" +
+				"  `WorkflowGradeID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `SectionUserID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned NOT NULL,\n" +
+				"  `Grade` float unsigned NOT NULL,\n" +
+				"  `Comments` varchar(255) DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`WorkflowGradeID`),\n" +
+				"  UNIQUE KEY `WorkflowGradeID` (`WorkflowGradeID`),\n" +
+				"  UNIQUE KEY `workflowgrade_WorkflowGradeID_unique` (`WorkflowGradeID`),\n" +
+				"  UNIQUE KEY `wf_sectionUserId_unq_idx` (`WorkflowActivityID`,`SectionUserID`),\n" +
+				"  KEY `SectionUserID` (`SectionUserID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `removedworkflowgrade_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedworkflowgrade_ibfk_2` FOREIGN KEY (`SectionUserID`) REFERENCES `sectionuser` (`SectionUserID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedworkflowgrade_ibfk_3` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedassignment`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedassignment` (\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `OwnerID` int(10) unsigned NOT NULL,\n" +
+				"  `WorkflowActivityIDs` json DEFAULT NULL,\n" +
+				"  `Instructions` text,\n" +
+				"  `Documentation` text,\n" +
+				"  `GradeDistribution` json DEFAULT NULL,\n" +
+				"  `Name` varchar(255) DEFAULT NULL,\n" +
+				"  `Type` varchar(255) DEFAULT NULL,\n" +
+				"  `DisplayName` varchar(255) DEFAULT NULL,\n" +
+				"  `SectionID` blob,\n" +
+				"  `CourseID` int(10) unsigned NOT NULL,\n" +
+				"  `SemesterID` int(10) unsigned DEFAULT NULL,\n" +
+				"  `VersionHistory` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`AssignmentID`),\n" +
+				"  UNIQUE KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  UNIQUE KEY `assignment_AssignmentID_unique` (`AssignmentID`),\n" +
+				"  KEY `CourseID` (`CourseID`),\n" +
+				"  CONSTRAINT `removedassignment_ibfk_1` FOREIGN KEY (`CourseID`) REFERENCES `course` (`CourseID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedtaskactivity`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedtaskactivity` (\n" +
+				"  `TaskActivityID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL,\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL,\n" +
+				"  `Name` varchar(255) DEFAULT NULL,\n" +
+				"  `Type` varchar(40) DEFAULT NULL,\n" +
+				"  `FileUpload` json DEFAULT NULL,\n" +
+				"  `DueType` json DEFAULT NULL,\n" +
+				"  `StartDelay` int(10) unsigned DEFAULT NULL,\n" +
+				"  `AtDUrationEnd` json DEFAULT NULL,\n" +
+				"  `WhatIfLate` json DEFAULT NULL,\n" +
+				"  `DisplayName` varchar(255) DEFAULT NULL,\n" +
+				"  `Documentation` varchar(255) DEFAULT NULL,\n" +
+				"  `OneOrSeparate` varchar(5) DEFAULT NULL,\n" +
+				"  `AssigneeConstraints` json DEFAULT NULL,\n" +
+				"  `Difficulty` blob,\n" +
+				"  `SimpleGrade` varchar(20) DEFAULT NULL,\n" +
+				"  `IsFinalGradingTask` tinyint(1) DEFAULT NULL,\n" +
+				"  `Instructions` text,\n" +
+				"  `Rubric` text,\n" +
+				"  `Fields` json DEFAULT NULL,\n" +
+				"  `AllowReflection` json DEFAULT NULL,\n" +
+				"  `AllowRevision` tinyint(1) DEFAULT NULL,\n" +
+				"  `AllowAssessment` varchar(255) DEFAULT NULL,\n" +
+				"  `NumberParticipants` int(10) unsigned DEFAULT '1',\n" +
+				"  `RefersToWhichTaskThreshold` json DEFAULT NULL,\n" +
+				"  `FunctionType` varchar(255) DEFAULT NULL,\n" +
+				"  `Function` text,\n" +
+				"  `AllowDispute` tinyint(1) DEFAULT NULL,\n" +
+				"  `LeadsToNewProblem` tinyint(1) DEFAULT NULL,\n" +
+				"  `LeadsToNewSolution` tinyint(1) DEFAULT NULL,\n" +
+				"  `VisualID` varchar(255) DEFAULT NULL,\n" +
+				"  `VersionHistory` json DEFAULT NULL,\n" +
+				"  `RefersToWhichTask` int(10) unsigned DEFAULT NULL,\n" +
+				"  `TriggerCondition` json DEFAULT NULL,\n" +
+				"  `PreviousTasks` json DEFAULT NULL,\n" +
+				"  `NextTasks` json DEFAULT NULL,\n" +
+				"  `MinimumDuration` int(10) unsigned DEFAULT NULL,\n" +
+				"  `VersionEvaluation` varchar(255) DEFAULT NULL,\n" +
+				"  `SeeSibblings` tinyint(1) DEFAULT NULL,\n" +
+				"  `SeeSameActivity` tinyint(1) DEFAULT NULL,\n" +
+				"  `AssignmentInstanceID` int(10) unsigned DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`TaskActivityID`),\n" +
+				"  UNIQUE KEY `TaskActivityID` (`TaskActivityID`),\n" +
+				"  UNIQUE KEY `taskactivity_TaskActivityID_unique` (`TaskActivityID`),\n" +
+				"  KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  KEY `AssignmentInstanceID` (`AssignmentInstanceID`),\n" +
+				"  CONSTRAINT `removedtaskactivity_ibfk_1` FOREIGN KEY (`WorkflowActivityID`) REFERENCES `workflowactivity` (`WorkflowActivityID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskactivity_ibfk_2` FOREIGN KEY (`AssignmentID`) REFERENCES `assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE,\n" +
+				"  CONSTRAINT `removedtaskactivity_ibfk_3` FOREIGN KEY (`AssignmentInstanceID`) REFERENCES `assignmentinstance` (`AssignmentInstanceID`) ON DELETE SET NULL ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=141 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("DROP TABLE IF EXISTS `removedworkflowactivity`;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+			.then(sequelize.query("CREATE TABLE `removedworkflowactivity` (\n" +
+				"  `WorkflowActivityID` int(10) unsigned NOT NULL AUTO_INCREMENT,\n" +
+				"  `AssignmentID` int(10) unsigned NOT NULL,\n" +
+				"  `TaskActivityCollection` json DEFAULT NULL,\n" +
+				"  `Name` varchar(30) DEFAULT NULL,\n" +
+				"  `Type` varchar(40) DEFAULT NULL,\n" +
+				"  `GradeDistribution` json DEFAULT NULL,\n" +
+				"  `NumberOfSets` int(10) unsigned DEFAULT NULL,\n" +
+				"  `Documentation` varchar(100) DEFAULT NULL,\n" +
+				"  `GroupSize` int(10) unsigned DEFAULT '1',\n" +
+				"  `StartTaskActivity` json DEFAULT NULL,\n" +
+				"  `WorkflowStructure` json DEFAULT NULL,\n" +
+				"  `VersionHistory` json DEFAULT NULL,\n" +
+				"  PRIMARY KEY (`WorkflowActivityID`),\n" +
+				"  UNIQUE KEY `WorkflowActivityID` (`WorkflowActivityID`),\n" +
+				"  UNIQUE KEY `workflowactivity_WorkflowActivityID_unique` (`WorkflowActivityID`),\n" +
+				"  KEY `AssignmentID` (`AssignmentID`),\n" +
+				"  CONSTRAINT `removedworkflowactivity_ibfk_1` FOREIGN KEY (`AssignmentID`) REFERENCES `assignment` (`AssignmentID`) ON DELETE NO ACTION ON UPDATE CASCADE\n" +
+				") ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=latin1;")
+				.spread((results, metadata) => {
+					// Results will be an empty array and metadata will contain the number of affected rows.
+					//console.log(results);
+				}))
+            .then(res.status(200).end());
+	});
+
     router.get('/AssignmentArchive/save/:AssignmentID', adminAuthentication, function (req, res) {
         var assignmentArray = new Array();
         Assignment.findAll({
@@ -7681,8 +8432,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 					    .then(AssignmentInstance.findAll({
 						    where: {
 							    AssignmentInstanceID: AssignInsID
-						    },
-						    attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+						    }
 					    }).then(function (assigninstancerows) {
 						    //console.log(rows[0].OwnerID);
 						    var arrayLength = assigninstancerows.length;
@@ -9474,7 +10224,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 AssignmentID: req.params.AssignmentID
             },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
         }).then(function (rows) {
             //console.log(rows[0].OwnerID);
             var arrayLength = rows.length;
@@ -9486,36 +10236,36 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     AssignmentID: rows[x].AssignmentID,
                     Name: rows[x].Name,
                     Type: rows[x].Type,
-                    FileUpload: rows[x].FileUpload,
-                    DueType: rows[x].DueType,
+                    FileUpload: JSON.parse(rows[x].FileUpload),
+                    DueType: JSON.parse(rows[x].DueType),
                     StartDelay: rows[x].StartDelay,
                     AtDUrationEnd: rows[x].AtDUrationEnd,
-                    WhatIfLate: rows[x].WhatIfLate,
+                    WhatIfLate: JSON.parse(rows[x].WhatIfLate),
                     DisplayName: rows[x].DisplayName,
                     Documentation: rows[x].Documentation,
                     OneOrSeparate: rows[x].OneOrSeparate,
-                    AssigneeConstraints: rows[x].AssigneeConstraints,
+                    AssigneeConstraints: JSON.parse(rows[x].AssigneeConstraints),
                     Difficulty: rows[x].Difficulty,
                     SimpleGrade: rows[x].SimpleGrade,
                     IsFinalGradingTask: rows[x].IsFinalGradingTask,
                     Instructions: rows[x].Instructions,
                     Rubric: rows[x].Rubric,
-                    Fields: rows[x].Fields,
-                    AllowReflection: rows[x].AllowReflection,
+                    Fields: JSON.parse(rows[x].Fields),
+                    AllowReflection: JSON.parse(rows[x].AllowReflection),
                     AllowAssessment: rows[x].AllowAssessment,
                     NumberParticipants: rows[x].NumberParticipants,
-                    RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
+	                TriggerConsolidationThreshold: JSON.parse(rows[x].TriggerConsolidationThreshold),
                     FunctionType: rows[x].FunctionType,
                     Function: rows[x].Function,
                     AllowDispute: rows[x].AllowDispute,
                     LeadsToNewProblem: rows[x].LeadsToNewProblem,
                     LeadsToNewSolution: rows[x].LeadsToNewSolution,
                     VisualID: rows[x].VisualID,
-                    VersionHistory: rows[x].VersionHistory,
+                    VersionHistory: JSON.parse(rows[x].VersionHistory),
                     RefersToWhichTask: rows[x].RefersToWhichTask,
-                    TriggerCondition: rows[x].TriggerCondition,
-                    PreviousTasks: rows[x].PreviousTasks,
-                    NextTasks: rows[x].NextTasks,
+                    TriggerCondition: JSON.parse(rows[x].TriggerCondition),
+                    PreviousTasks: JSON.parse(rows[x].PreviousTasks),
+                    NextTasks: JSON.parse(rows[x].NextTasks),
                     MinimumDuration: rows[x].MinimumDuration,
                     AssignmentInstanceID: rows[x].AssignmentInstanceID
 
@@ -9546,50 +10296,50 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 AssignmentID: req.params.AssignmentID
             },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'RefersToWhichTaskThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
         }).then(function (rows) {
             //console.log(rows[0].OwnerID);
             var arrayLength = rows.length;
             for (var x = 0; x < arrayLength; x++) {
 
                 TaskActivity.create({
-                    TaskActivityID: rows[x].TaskActivityID,
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentID: rows[x].AssignmentID,
-                    Name: rows[x].Name,
-                    Type: rows[x].Type,
-                    FileUpload: rows[x].FileUpload,
-                    DueType: rows[x].DueType,
-                    StartDelay: rows[x].StartDelay,
-                    AtDUrationEnd: rows[x].AtDUrationEnd,
-                    WhatIfLate: rows[x].WhatIfLate,
-                    DisplayName: rows[x].DisplayName,
-                    Documentation: rows[x].Documentation,
-                    OneOrSeparate: rows[x].OneOrSeparate,
-                    AssigneeConstraints: rows[x].AssigneeConstraints,
-                    Difficulty: rows[x].Difficulty,
-                    SimpleGrade: rows[x].SimpleGrade,
-                    IsFinalGradingTask: rows[x].IsFinalGradingTask,
-                    Instructions: rows[x].Instructions,
-                    Rubric: rows[x].Rubric,
-                    Fields: rows[x].Fields,
-                    AllowReflection: rows[x].AllowReflection,
-                    AllowAssessment: rows[x].AllowAssessment,
-                    NumberParticipants: rows[x].NumberParticipants,
-                    RefersToWhichTaskThreshold: rows[x].RefersToWhichTaskThreshold,
-                    FunctionType: rows[x].FunctionType,
-                    Function: rows[x].Function,
-                    AllowDispute: rows[x].AllowDispute,
-                    LeadsToNewProblem: rows[x].LeadsToNewProblem,
-                    LeadsToNewSolution: rows[x].LeadsToNewSolution,
-                    VisualID: rows[x].VisualID,
-                    VersionHistory: rows[x].VersionHistory,
-                    RefersToWhichTask: rows[x].RefersToWhichTask,
-                    TriggerCondition: rows[x].TriggerCondition,
-                    PreviousTasks: rows[x].PreviousTasks,
-                    NextTasks: rows[x].NextTasks,
-                    MinimumDuration: rows[x].MinimumDuration,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID
+	                TaskActivityID: rows[x].TaskActivityID,
+	                WorkflowActivityID: rows[x].WorkflowActivityID,
+	                AssignmentID: rows[x].AssignmentID,
+	                Name: rows[x].Name,
+	                Type: rows[x].Type,
+	                FileUpload: JSON.parse(rows[x].FileUpload),
+	                DueType: JSON.parse(rows[x].DueType),
+	                StartDelay: rows[x].StartDelay,
+	                AtDUrationEnd: rows[x].AtDUrationEnd,
+	                WhatIfLate: JSON.parse(rows[x].WhatIfLate),
+	                DisplayName: rows[x].DisplayName,
+	                Documentation: rows[x].Documentation,
+	                OneOrSeparate: rows[x].OneOrSeparate,
+	                AssigneeConstraints: JSON.parse(rows[x].AssigneeConstraints),
+	                Difficulty: rows[x].Difficulty,
+	                SimpleGrade: rows[x].SimpleGrade,
+	                IsFinalGradingTask: rows[x].IsFinalGradingTask,
+	                Instructions: rows[x].Instructions,
+	                Rubric: rows[x].Rubric,
+	                Fields: JSON.parse(rows[x].Fields),
+	                AllowReflection: JSON.parse(rows[x].AllowReflection),
+	                AllowAssessment: rows[x].AllowAssessment,
+	                NumberParticipants: rows[x].NumberParticipants,
+	                TriggerConsolidationThreshold: JSON.parse(rows[x].TriggerConsolidationThreshold),
+	                FunctionType: rows[x].FunctionType,
+	                Function: rows[x].Function,
+	                AllowDispute: rows[x].AllowDispute,
+	                LeadsToNewProblem: rows[x].LeadsToNewProblem,
+	                LeadsToNewSolution: rows[x].LeadsToNewSolution,
+	                VisualID: rows[x].VisualID,
+	                VersionHistory: JSON.parse(rows[x].VersionHistory),
+	                RefersToWhichTask: rows[x].RefersToWhichTask,
+	                TriggerCondition: JSON.parse(rows[x].TriggerCondition),
+	                PreviousTasks: JSON.parse(rows[x].PreviousTasks),
+	                NextTasks: JSON.parse(rows[x].NextTasks),
+	                MinimumDuration: rows[x].MinimumDuration,
+	                AssignmentInstanceID: rows[x].AssignmentInstanceID
 
                 });
             }
@@ -9626,24 +10376,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 TaskInstance_Archive.create({
 
-                    TaskInstanceID: rows[x].TaskInstanceID,
-                    UserID: rows[x].UserID,
-                    TaskActivityID: rows[x].TaskActivityID,
-                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    GroupID: rows[x].GroupID,
-                    Status: rows[x].Status,
-                    StartDate: rows[x].StartDate,
-                    EndDate: rows[x].EndDate,
-                    ActualEndDate: rows[x].ActualEndDate,
-                    Data: rows[x].Data,
-                    UserHistory: rows[x].UserHistory,
-                    FinalGrade: rows[x].FinalGrade,
-                    Files: rows[x].Files,
-                    ReferencedTask: rows[x].ReferencedTask,
-                    NextTask: rows[x].NextTask,
-                    PreviousTask: rows[x].PreviousTask,
-                    EmailLastSent: rows[x].EmailLastSent
+	                TaskInstanceID: rows[x].TaskInstanceID,
+	                UserID: rows[x].UserID,
+	                TaskActivityID: rows[x].TaskActivityID,
+	                WorkflowInstanceID: rows[x].WorkflowInstanceID,
+	                AssignmentInstanceID: rows[x].AssignmentInstanceID,
+	                GroupID: rows[x].GroupID,
+	                Status: rows[x].Status,
+	                StartDate: rows[x].StartDate,
+	                EndDate: rows[x].EndDate,
+	                ActualEndDate: rows[x].ActualEndDate,
+	                Data: JSON.parse(rows[x].Data),
+	                UserHistory: JSON.parse(rows[x].UserHistory),
+	                FinalGrade: rows[x].FinalGrade,
+	                Files: rows[x].Files,
+	                ReferencedTask: rows[x].ReferencedTask,
+	                NextTask: JSON.parse(rows[x].NextTask),
+	                PreviousTask: JSON.parse(rows[x].PreviousTask),
+	                EmailLastSent: rows[x].EmailLastSent
 
                 });
             }
@@ -9682,24 +10432,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 TaskInstance.create({
 
-                    TaskInstanceID: rows[x].TaskInstanceID,
-                    UserID: rows[x].UserID,
-                    TaskActivityID: rows[x].TaskActivityID,
-                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    GroupID: rows[x].GroupID,
-                    Status: rows[x].Status,
-                    StartDate: rows[x].StartDate,
-                    EndDate: rows[x].EndDate,
-                    ActualEndDate: rows[x].ActualEndDate,
-                    Data: rows[x].Data,
-                    UserHistory: rows[x].UserHistory,
-                    FinalGrade: rows[x].FinalGrade,
-                    Files: rows[x].Files,
-                    ReferencedTask: rows[x].ReferencedTask,
-                    NextTask: rows[x].NextTask,
-                    PreviousTask: rows[x].PreviousTask,
-                    EmailLastSent: rows[x].EmailLastSent
+	                TaskInstanceID: rows[x].TaskInstanceID,
+	                UserID: rows[x].UserID,
+	                TaskActivityID: rows[x].TaskActivityID,
+	                WorkflowInstanceID: rows[x].WorkflowInstanceID,
+	                AssignmentInstanceID: rows[x].AssignmentInstanceID,
+	                GroupID: rows[x].GroupID,
+	                Status: rows[x].Status,
+	                StartDate: rows[x].StartDate,
+	                EndDate: rows[x].EndDate,
+	                ActualEndDate: rows[x].ActualEndDate,
+	                Data: JSON.parse(rows[x].Data),
+	                UserHistory: JSON.parse(rows[x].UserHistory),
+	                FinalGrade: rows[x].FinalGrade,
+	                Files: rows[x].Files,
+	                ReferencedTask: rows[x].ReferencedTask,
+	                NextTask: JSON.parse(rows[x].NextTask),
+	                PreviousTask: JSON.parse(rows[x].PreviousTask),
+	                EmailLastSent: rows[x].EmailLastSent
 
                 });
             }
@@ -9744,8 +10494,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     AssignmentInstanceID: rows[x].AssignmentInstanceID,
                     StartTime: rows[x].StartTime,
                     EndTime: rows[x].EndTime,
-                    TaskCollection: rows[x].TaskCollection,
-                    Data: rows[x].Data
+                    TaskCollection: JSON.parse(rows[x].TaskCollection),
+                    Data: JSON.parse(rows[x].Data)
 
                 });
             }
@@ -9783,13 +10533,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             for (var x = 0; x < arrayLength; x++) {
 
                 WorkflowInstance.create({
-                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-                    StartTime: rows[x].StartTime,
-                    EndTime: rows[x].EndTime,
-                    TaskCollection: rows[x].TaskCollection,
-                    Data: rows[x].Data
+	                WorkflowInstanceID: rows[x].WorkflowInstanceID,
+	                WorkflowActivityID: rows[x].WorkflowActivityID,
+	                AssignmentInstanceID: rows[x].AssignmentInstanceID,
+	                StartTime: rows[x].StartTime,
+	                EndTime: rows[x].EndTime,
+	                TaskCollection: JSON.parse(rows[x].TaskCollection),
+	                Data: JSON.parse(rows[x].Data)
 
                 });
             }
@@ -9827,15 +10577,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 WorkflowActivity_Archive.create({
                     WorkflowActivityID: rows[x].WorkflowActivityID,
                     AssignmentID: rows[x].AssignmentID,
-                    TaskActivityCollection: rows[x].TaskActivityCollection,
+                    TaskActivityCollection: JSON.parse(rows[x].TaskActivityCollection),
                     Name: rows[x].Name,
                     Type: rows[x].Type,
-                    GradeDistribution: rows[x].GradeDistribution,
+                    GradeDistribution: JSON.parse(rows[x].GradeDistribution),
                     NumberOfSets: rows[x].NumberOfSets,
                     Documentation: rows[x].Documentation,
                     GroupSize: rows[x].GroupSize,
                     StartTaskActivity: rows[x].StartTaskActivity,
-                    WorkflowStructure: rows[x].WorkflowStructure,
+                    WorkflowStructure: JSON.parse(rows[x].WorkflowStructure),
                     VersionHistory: rows[x].VersionHistory
 
                 });
@@ -9873,19 +10623,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             for (var x = 0; x < arrayLength; x++) {
 
                 WorkflowActivity.create({
-                    WorkflowActivityID: rows[x].WorkflowActivityID,
-                    AssignmentID: rows[x].AssignmentID,
-                    TaskActivityCollection: rows[x].TaskActivityCollection,
-                    Name: rows[x].Name,
-                    Type: rows[x].Type,
-                    GradeDistribution: rows[x].GradeDistribution,
-                    NumberOfSets: rows[x].NumberOfSets,
-                    Documentation: rows[x].Documentation,
-                    GroupSize: rows[x].GroupSize,
-                    StartTaskActivity: rows[x].StartTaskActivity,
-                    WorkflowStructure: rows[x].WorkflowStructure,
-                    VersionHistory: rows[x].VersionHistory
-
+	                WorkflowActivityID: rows[x].WorkflowActivityID,
+	                AssignmentID: rows[x].AssignmentID,
+	                TaskActivityCollection: JSON.parse(rows[x].TaskActivityCollection),
+	                Name: rows[x].Name,
+	                Type: rows[x].Type,
+	                GradeDistribution: JSON.parse(rows[x].GradeDistribution),
+	                NumberOfSets: rows[x].NumberOfSets,
+	                Documentation: rows[x].Documentation,
+	                GroupSize: rows[x].GroupSize,
+	                StartTaskActivity: rows[x].StartTaskActivity,
+	                WorkflowStructure: JSON.parse(rows[x].WorkflowStructure),
+	                VersionHistory: rows[x].VersionHistory
                 });
             }
             //200 for OK
