@@ -222,7 +222,8 @@ async TaskIndexInFullPath(ti_id, fullPath){
         return n;
     }
 
-// array of full path for view access function  created 4-26-18 mss86
+// Makes an array of full path for view access function  created 4-26-18 mss86
+// contains all tasks privious to the current task_id
 async makeFullPath(ti, previousTasks){
     //console.log(ti.TaskInstanceID);
         var p = previousTasks;
@@ -247,7 +248,7 @@ async makeFullPath(ti, previousTasks){
                 return p;
         }      
 }
-
+// returns a task instance from task_id, used in view_access
 async getTifromTi_id(ti_id){
     var ti = await TaskInstance.find({
         where: {
@@ -284,6 +285,7 @@ async PreviousTaskInFullPath(n, fullPath) {
         }
 }
 // checks if task in Assesment Branch and return index  created 4-20-18 mss86
+// task in in assessment branch when it contains a grade or critique
 async TaskInAssessmentBranch(ti_id, fullPath){
     var n;
     var ti;
@@ -317,8 +319,8 @@ async FullPathHasDisputeWithUserAndStartedOrComplete(user_id, fullPath){
                 for(var j = 0; j < fullPath[i].length; j++){
                     ti = fullPath[i][j];
                     if(ti.TaskActivity.Type == 'dispute' && ti.UserID == user_id ){
-                        var status = JSON.parse(ti.Status)[0];
-                        if(status == 'complete' || status == 'bypassed' || status == 'started'){
+                        var status = JSON.parse(ti.Status);
+                        if(status[0] == 'complete' || status[0] == 'bypassed' || status[0] == 'started' || status[1] == 'cancelled'){
                             result = true;
                             break loop1;  
                         }                       
@@ -327,8 +329,8 @@ async FullPathHasDisputeWithUserAndStartedOrComplete(user_id, fullPath){
             }else{                                          //Task Instance
                 ti = fullPath[i];
                 if(ti.TaskActivity.Type == 'dispute' && ti.UserID == user_id ){
-                    var status = JSON.parse(ti.Status)[0];
-                    if(status == 'complete' || status == 'bypassed' || status == 'started'){
+                    var status = JSON.parse(ti.Status);
+                    if(status[0] == 'complete' || status[0] == 'bypassed' || status[0] == 'started' || status[1] == 'cancelled'){
                         result = true;
                         break loop1;  
                     }                       
@@ -337,7 +339,8 @@ async FullPathHasDisputeWithUserAndStartedOrComplete(user_id, fullPath){
         }
     return result;
 }
-// user in this workflow?
+// Checks if user is in this workflow, and has a pending task in it, used in view_access
+// it helps determine if user should be able to view a task 
 async User_in_workflow_and_Pending(wi_id, user_id){ 
     var Tis = await TaskInstance.find({
         where:{
@@ -423,6 +426,8 @@ async Sibling_Ti_Complete(ti_id, user_id, fullPath){
     return true;
 }
 // duplicate of Algorithm 6 in view Access created 5-4-18 mss86
+// Determines which version should be displayed
+// used when user wants to see his own task / instructor can see all tasks
 async set_which_version(ti, fullPath){
     var x = this;
     var WhichVersion = 'last';
@@ -449,16 +454,18 @@ async set_which_version(ti, fullPath){
         return WhichVersion;
 }
 // View Access Function to determine if user can see this task created 4-22-18 mss86
+// if BlockedView == ture, user cannot view the any task in full path branch
+// if ViewTask is == false, user cannot see this particular task in full path branch
 async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pendingTaskInstances) {
     logger.log('debug','View_Access ', ti.TaskInstanceID);
     var x = this;
     var r = {
         ViewTask:1, 
-        WhichVersion: 'all', 
+        WhichVersion: 'last', 
         BlockedView: 0,
         Message: 0
     }
-          /* 1 */ r.WhichVersion = 'last';
+          /* 1 */  
         if (JSON.parse(ti.Status)[0] == 'not_yet_started') {
                 logger.log('info', ' Algorithm 1');
                 r.ViewTask = 0;
@@ -507,7 +514,7 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
             }
         }
 
-          /* 3 */
+          /* 3 */  //task is started and belogns to user, but check if he must complete others first
         if (JSON.parse(ti.Status)[0] == 'started' &&  (ti.UserID == user_id) ){
             logger.log('info', ' Algorithm 3.0');
             if(  !ti.TaskActivity.MustCompleteThisFirst &&                                  // XTI not blockable
@@ -529,13 +536,13 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
             }
         }
 
-          /* 4 */
+          /* 4 */ 
         if (JSON.parse(ti.Status)[0] != 'started') {
               logger.log('info', ' Algorithm 4');
               r.BlockedView = 0;
         }
 
-          /* 5 */
+          /* 5 */ // if see same activity is false, only can view if all Ti of this Ta completed
         var grade = new Grade(); 
         if (JSON.parse(ti.TaskActivity.SeeSameActivity) == 0 && ! await x.All_Ti_Complete(ti.TaskActivity.TaskActivityID, ti.AssignmentInstanceID) 
         && ! await this.User_in_workflow_and_Pending(ti.WorkflowInstanceID, user_id)) {
@@ -544,7 +551,7 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
                 return r;
         }
 
-          /* 6 */
+          /* 6 */ // set which version should be shown
         var NextTaskInPath = await x.NextTaskInFullPath(ti.TaskInstanceID, fullPath);
         if(NextTaskInPath != null){    // if next task exists
             var NextTaskInFullPathType = NextTaskInPath.TaskActivity.Type;
@@ -566,15 +573,14 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
             r.WhichVersion = 'last';
         }
 
-          /* 7 */
+          /* 7 */  // if workflow is completed, anyone can view it
         if(await grade.checkWorkflowDone(ti.WorkflowInstanceID)){
                 logger.log('info', ' Algorithm 7');
               r.ViewTask = 1;
               return r;
         }
 
-          /* 8 */
-        //console.log(await x.Sibling_Ti_Complete(ti.TaskInstanceID, user_id, fullPath));
+          /* 8 */  // if see sibling is false, user can only see it until he completes his own of same TA in same workflow
         if( (multipleUsers.length > 1) && (ti.TaskActivity.SeeSibblings == 0) &&
               (_.contains(multipleUsers, user_id)) && ! await x.Sibling_Ti_Complete(ti.TaskInstanceID, user_id, fullPath )) {
                 logger.log('info', ' Algorithm 8');
@@ -582,7 +588,7 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
                 return r;
         }
 
-          /* 9 */
+          /* 9 */  // if task in in assesment branch, user that is being assessed cannot see it until dispute starts or is done
         var n =  await x.TaskInAssessmentBranch(ti.TaskInstanceID, fullPath);      // is it an Assessment branch?
         //console.log('this is assesment branck?',n)
         var PriviousTask;
@@ -628,6 +634,8 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
 }
 
 // set the data field of the task
+// this data is then displayed in the task page
+// used by SuperCall with view_access function that determines the version
 async SetDataVersion(ti, version_eval) {
         // logger.log('info', 'Setting View Data According to Version', {
         //     task_instance_Data: ti.Data,
