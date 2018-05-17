@@ -3290,8 +3290,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         }
 
-        var isTestUSer = "test" in req.body ? req.body.test : false; 
-        var organization = "organization" in req.body ? req.body.organization : null;
+        var isTestUSer = 'test' in req.body ? req.body.test : false; 
+        var organization = 'organization' in req.body ? req.body.organization : null;
 
         UserLogin.find({
             where: {
