@@ -25,7 +25,7 @@ module.exports = function (sequelize, DataTypes) {
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'UserID',
-            allowNull: false
+            allowNull: true
         },
         TaskActivityID: {
             //Unique Identifier for the task activity.
