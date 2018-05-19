@@ -5044,7 +5044,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         Promise.map(wa, async workflowAct => {
             let wA = workflowAct.WorkflowActivityID;
             everyones_work[wA] = {
-                Name: workflowAct.Name
+                Name: workflowAct.Name,
+                Structure: workflowAct.WorkflowStructure
             };
 
             var wI = await WorkflowInstance.findAll({
@@ -5063,7 +5064,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     attributes: ['TaskInstanceID', 'Data'],
                     include: {
                         model: TaskActivity,
-                        attributes: ['DisplayName']
+                        attributes: ['DisplayName', 'TaskActivityID']
                     }
                 });
 
