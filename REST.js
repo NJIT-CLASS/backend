@@ -2771,7 +2771,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
 
         } catch(e){
-            console.log('File upload err:', e);
+            console.log('File list err:', e);
         }
 
         return res.json({
@@ -3980,7 +3980,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var current_user_id = Number(req.query.userID);     // the user trying to access the task
         var view_constraint;
         var allocator = new TaskFactory();
-        let taskInstanceAttributes = ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask','AssignmentInstanceID','WorkflowInstanceID'];
+        let taskInstanceAttributes = ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask','AssignmentInstanceID','WorkflowInstanceID', 'FinalGrade'];
         let taskActivityAttributes = ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName', 'AllowRevision', 'SeeSibblings', 'SeeSameActivity'];
 
         /*  find the current task being viewed  */
