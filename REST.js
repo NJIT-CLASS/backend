@@ -1623,9 +1623,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var grade = new Grade();
         var trigger = new TaskTrigger();
 
-        // logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
-        //     req_body: req.body
-        // });
+        logger.log('info', 'post: /taskInstanceTemplate/create/submit', {
+            req_body: req.body
+        });
 
         if (req.body.taskInstanceid == null) {
             logger.log('info', 'TaskInstanceID cannot be null');
@@ -5092,7 +5092,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/approved', participantAuthentication, async function (req, res) {
         var trigger = new TaskTrigger();
-
+        logger.log('info', 'post: /approved', {
+            req_body: req.body
+        });
         await trigger.approved(req.body.ti_id, req.body.data);
         res.status(200).end();
     });
@@ -5537,13 +5539,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', participantAuthentication,function (req, res) {
-        console.log('/comments/add : was called');
+        //console.log('/comments/add : was called');
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
             console.log('/comments/add : Missing attributes');
             res.status(400).end();
         }
 
-        console.log('got to create part');
+        //console.log('got to create part');
         console.log({
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
@@ -5849,7 +5851,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //-------------------------------------------------------------------------
     router.get('/comments/countOfFlags/:Target/id/:TargetID', participantAuthentication, function (req, res) {
-        console.log('/comments/countOfFlags/:Target/id/:TargetID was called');
+        //console.log('/comments/countOfFlags/:Target/id/:TargetID was called');
         Comments.findAll({
             where: {
                 CommentTarget: req.params.Target,
@@ -5940,7 +5942,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     //-------------------------------------------------------------------------
     router.get('/comments/aveRating/comment/:Target/id/:TargetID', participantAuthentication, async function (req, res) {
-        console.log('/comments/aveRating/comment/:Target/id/:TargetID was called');
+        //console.log('/comments/aveRating/comment/:Target/id/:TargetID was called');
         var total = 0.0;
         var c = await Comments.findAll({
             where: {
@@ -6022,8 +6024,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //-------------------------------------------------------------------------
     router.get('/comments/ti/:Target/id/:TargetID', participantAuthentication, async function (req, res) {
-        console.log('comments/ti/:Target/id/:TargetID was called');
-        console.log(req.params.Target, req.params.TargetID);
+        //console.log('comments/ti/:Target/id/:TargetID was called');
+        //console.log(req.params.Target, req.params.TargetID);
         var parents = await Comments.findAll({
             where: {
                 TargetID: req.params.TargetID,
@@ -7296,6 +7298,43 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////                 Admin Level APIs
+
+    //endPoint to auto complete an assignment for testing
+    // router.get('/autoComplete/:assignmentID', adminAuthentication, async function(req,res){
+
+
+    //     let trigger = new TaskTrigger();
+    //     let ai_id = req.params.assignmentID;
+    //     let ai = await AssignmentInstance.find({
+    //         where:{
+    //             AssignmentInstanceID: ai_id
+    //         },
+    //         attributes:['WorkflowCollection']
+    //     });
+
+    //     //Loop through list of workflow instances
+    //     let wf_collection = JSON.parse(ai.WorkflowCollection);
+    //     await Promise.mapSeries(wf_collection, async function(wi_id){
+
+    //         let wi = await WorkflowInstance.find({
+    //             where: {
+    //                 WorkflowInstanceID: wi_id
+    //             },
+    //             attributes:['TaskCollection']
+    //         });
+
+    //         //while task collection is not empty, loop through task collection and find the first task that has the status started
+    //         let task_collection = JSON.parse(wi.TaskCollection);
+    //         while(task_collection.length >0){
+    //             await Promise.mapSeries(task_collection, async function(ti_id){
+                    
+    //             });
+    //         }
+
+    //     }
+    //     trigger.submit
+
+    // })
 
     router.get('/AssignmentArchive/save/:AssignmentID', adminAuthentication, function (req, res) {
         var assignmentArray = new Array();

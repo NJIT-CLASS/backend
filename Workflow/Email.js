@@ -120,12 +120,12 @@ class Email {
             html: opts.body
         };
 
-        console.log('Sending Mail...');
+        //console.log('Sending Mail...');
 
         // Send mail
         transporter.sendMail(mailOpts, function (error, response) {
             if (error) {
-                console.log(error);
+                //console.log(error);
             } else {
                 console.log('Message sent: ', response);
             }
@@ -176,7 +176,7 @@ class Email {
                     //     });
                     //     break;
                 case 'invite user':
-                    console.log('inviting ' + send);
+                    //console.log('inviting ' + send);
                     let template = await INVITE_USER(data);
                     await x.send({
                         from: email,
@@ -188,7 +188,7 @@ class Email {
                     });
                     break;
                 case 'new_task':
-                    console.log('notifying ' + send);
+                    //console.log('notifying ' + send);
                     // let task = await TaskInstance.find({
                     //     where:{
                     //         TaskInstanceID: data.ti_id

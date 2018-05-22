@@ -57,6 +57,7 @@ var moment = require('moment');
 var consts = require('../Util/constant.js');
 var Email = require('./Email.js');
 var Grade = require('./Grade.js');
+var TaskFactory = require('./TaskFactory.js');
 var Util = require('./Util.js');
 var _ = require('underscore');
 
@@ -65,6 +66,7 @@ const logger = require('./Logger.js');
 var email = new Email();
 var grade = new Grade();
 var util = new Util();
+let taskFactory = new TaskFactory();
 
 
 
@@ -944,6 +946,76 @@ class TaskTrigger {
         }).catch(function (err) {
             logger.log('error', 'cancel_task, failed to update', err);
         });
+    }
+
+    async submit(req){
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.taskInstanceid,
+            },
+            include: [{
+                model: TaskActivity,
+                attributes: ['Type', 'AllowRevision', 'AllowReflection'],
+            }, ],
+        });
+
+        if (JSON.parse(ti.Status)[0] === 'complete') {
+            logger.log('error', 'The task has been complted already');
+            return res.status(400).end();
+        }
+
+        
+        //Ensure userid input matches TaskInstance.UserID
+        if (req.body.userid != ti.UserID) {
+            logger.log('error', 'UserID Not Matched');
+            return res.status(400).end();
+        }
+        if (ti.TaskActivity.Type === 'edit' || ti.TaskActivity.Type === 'comment') {
+            await x.approved(req.body.taskInstanceid, req.body.taskInstanceData);
+        } else {
+
+            var ti_data = await JSON.parse(ti.Data);
+
+            if (!ti_data) {
+                ti_data = [];
+            }
+
+            await ti_data.push(req.body.taskInstanceData);
+
+            var newStatus = JSON.parse(ti.Status);
+            newStatus[0] = 'complete';
+
+            var final_grade = await x.finalGrade(ti, req.body.taskInstanceData);
+
+            var done = await TaskInstance.update({
+                Data: ti_data,
+                ActualEndDate: new Date(),
+                Status: JSON.stringify(newStatus),
+                FinalGrade: final_grade
+            }, {
+                where: {
+                    TaskInstanceID: req.body.taskInstanceid,
+                    UserID: req.body.userid,
+                }
+            });
+
+            var new_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: req.body.taskInstanceid,
+                },
+                include: [{
+                    model: TaskActivity,
+                    attributes: ['Type'],
+                }, ],
+            });
+
+            logger.log('info', 'task instance updated');
+            logger.log('info', 'triggering next task');
+
+            await x.next(req.body.taskInstanceid);
+        }
+
+        return res.status(200).end();
     }
 
 }
