@@ -61,7 +61,7 @@ const logger = require('./Logger.js');
 var email = new Email();
 
 export default class Reallocator {
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION 
     reallocate_user_to_task(ti, new_u_id, is_extra_credit) { //reallocate ti with new_u_id
         if (is_extra_credit == null) {
             is_extra_credit = true;
@@ -117,7 +117,7 @@ export default class Reallocator {
             };
         });
     }
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     async reallocate_instructor(tis, instructor){
         let x = this;
         await Promise.mapSeries(tis, async(ti_id) => {
@@ -140,7 +140,7 @@ export default class Reallocator {
         });
     }
 
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     async reallocate_tasks(tis, new_users, section_id, ai_id, option, is_extra_credit) {
         let x = this;
         let users = new_users;
@@ -197,7 +197,7 @@ export default class Reallocator {
         //     Message: null
         // };
     }
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     //checks if the users are valid for reallocation
     async check(tis, users){
         let x = this;
@@ -229,7 +229,7 @@ export default class Reallocator {
 
         return maps;
     }
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     async get_workflow_tis(ti){
         let return_list = [];
         return_list.push(ti.TaskInstanceID);
@@ -247,7 +247,7 @@ export default class Reallocator {
             }
         });
     }
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     async get_new_user(users, ignore_users){
         let new_user;
         let filter_users = _.difference(users, ignore_users);
@@ -262,7 +262,7 @@ export default class Reallocator {
         return new_user;
 
     }
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     async get_volunteers(section_id, ai_id){
         let volunteers;
         if(ai_id !== null && ai_id !== undefined){
@@ -283,7 +283,7 @@ export default class Reallocator {
         }
         return volunteers;
     }
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     async get_section_users(section_id, option){
         let users;
         if(option === 'students'){
@@ -307,7 +307,7 @@ export default class Reallocator {
         }
         return users;
     }
-
+    //TODO  Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
     async get_workflow_users(wi_id){
         let users = await WorkflowInstance.findAll({
             where:{

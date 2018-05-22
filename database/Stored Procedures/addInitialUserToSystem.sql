@@ -1,3 +1,4 @@
+DROP PROCEDURE addInitialUserToSystem;
 DELIMITER $$
 USE `class/pla`$$
 CREATE DEFINER=`root`@`localhost` PROCEDURE `addInitialUserToSystem`(
@@ -9,8 +10,7 @@ CREATE DEFINER=`root`@`localhost` PROCEDURE `addInitialUserToSystem`(
     IN $Email varchar(255),
     IN $Phone varchar(255),
     IN $Password varchar(255),
-    IN $Pending int,
-    IN $SectionID int)
+    IN $Pending int)
 BEGIN
 	DECLARE $userID int;
 	START TRANSACTION;
@@ -39,6 +39,7 @@ BEGIN
     
     SET FOREIGN_KEY_CHECKS = 1;
     COMMIT;
+    SELECT $userID;
     
 END$$
 
