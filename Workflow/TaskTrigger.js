@@ -234,6 +234,7 @@ class TaskTrigger {
 
             if (type === 'edit' || type === 'comment') {
                 await x.triggerNext(next_task);
+                
             }
         });
 
@@ -323,6 +324,7 @@ class TaskTrigger {
             });
             //Check if all grading solution are completed
             if (JSON.parse(pre.Status)[0] !== 'complete' && JSON.parse(pre.Status)[0] !== 'automatic' && JSON.parse(pre.Status)[0] !== 'bypassed') {
+                console.log('here all false')
                 is_all_completed = false;
             }
         });

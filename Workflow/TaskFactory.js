@@ -1259,7 +1259,7 @@ async SetDataVersion(ti, version_eval) {
 
         var x = this;
         //subworkflow = [];
-        console.log('finding subworkflow of task instance', ti_id, '...');
+        //console.log('finding subworkflow of task instance', ti_id, '...');
         return new Promise(function(resolve, reject) {
             TaskInstance.find({
                 where: {
@@ -1288,7 +1288,7 @@ async SetDataVersion(ti, version_eval) {
                             //assumed 0 will not be subworkflow
                             if (ti.IsSubWorkflow < nextTask.IsSubWorkflow && nextTask.IsSubWorkflow != 0) {
                                 //new subworkflow
-                                console.log('found a subworkflow!');
+                                //console.log('found a subworkflow!');
 
                                 s.push(nextTask);
                                 return x.getNextTask(nextTask.TaskInstanceID, s).then(function(wf) {
@@ -1300,7 +1300,7 @@ async SetDataVersion(ti, version_eval) {
                                                 if (!s[index].hasOwnProperty('SubWorkflow')) {
                                                     s[index].setDataValue('SubWorkflow', sw);
                                                 } else {
-                                                    console.log('here ', ti.TaskInstanceID);
+                                                    //console.log('here ', ti.TaskInstanceID);
                                                     s[index].SubWorkflow.push(sw);
                                                 }
                                             });
@@ -1314,7 +1314,7 @@ async SetDataVersion(ti, version_eval) {
 
                         //});
                     }).then(function(done) {
-                        console.log('No subworkflow found', ti.TaskInstanceID, '...');
+                        //console.log('No subworkflow found', ti.TaskInstanceID, '...');
                         resolve(null);
                     });
                 }
@@ -1327,7 +1327,7 @@ async SetDataVersion(ti, version_eval) {
         var next = null;
         //subworkflow = [];
 
-        console.log('finding task instance', ti_id, '...');
+        //console.log('finding task instance', ti_id, '...');
 
         return new Promise(function(resolve, reject) {
             TaskInstance.find({

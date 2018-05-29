@@ -1184,7 +1184,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Endpoint to get a user's active assignment instances by the section
     router.get('/getActiveAssignmentsForSection/:sectionId', function (req, res) {
-        console.log(`/getActiveAssignmentsForSection/:sectionId: Finding Assignments for Section ${req.params.sectionId}`);
+        logger.log('info', `/getActiveAssignmentsForSection/:sectionId: Finding Assignments for Section ${req.params.sectionId}`);
+        //console.log(`/getActiveAssignmentsForSection/:sectionId: Finding Assignments for Section ${req.params.sectionId}`);
         AssignmentInstance.findAll({
             where: {
                 SectionID: req.params.sectionId
@@ -1195,13 +1196,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 attributes: ['DisplayName']
             }]
         }).then(function (result) {
-            console.log('/getActiveAssignmentsForSection/:sectionId: Assignments have been found!');
+            //console.log('/getActiveAssignmentsForSection/:sectionId: Assignments have been found!');
             res.json({
                 'Error': false,
                 'Assignments': result
             });
         }).catch(function (err) {
-            console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
+            //console.log('/getActiveAssignmentsForSection/' + req.params.sectionId + ': ' + err);
             res.status(400).json({
                 Error: true
             });
@@ -1785,7 +1786,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             newStatus[0] = 'complete';
 
             var final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
-
             var done = await TaskInstance.update({
                 Data: ti_data,
                 ActualEndDate: new Date(),
@@ -1794,7 +1794,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }, {
                 where: {
                     TaskInstanceID: req.body.taskInstanceid,
-                    UserID: req.body.userid,
                 }
             });
 
