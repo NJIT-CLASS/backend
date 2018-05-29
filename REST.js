@@ -1741,6 +1741,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 attributes: ['Type', 'AllowRevision', 'AllowReflection'],
             }, ],
         });
+        var user = await User.find({
+            where:{
+                UserID: req.body.userid
+            },
+            attributes:["Admin"]
+        });
+
 
         if (JSON.parse(ti.Status)[0] === 'complete') {
             logger.log('error', 'The task has been complted already');
@@ -1753,10 +1760,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         //logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
-        if (req.body.userid != ti.UserID) {
+        if (req.body.userid != ti.UserID && !user.Admin) {
             logger.log('error', 'UserID Not Matched');
             return res.status(400).end();
         }
+
         if (ti.TaskActivity.Type === 'edit' || ti.TaskActivity.Type === 'comment') {
             await trigger.approved(req.body.taskInstanceid, req.body.taskInstanceData);
         } else {
@@ -4127,7 +4135,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             if(! BlockedView && ViewTask ){
                 var ar = new Array();
                 var PathLength = fullPath.length;
-                console.log('debug' , 'pathlength' , PathLength);
+                //console.log('debug' , 'pathlength' , PathLength);
                 if (PathLength > 1) {  // if this is not the first task
                     await allocator.SetDataVersion(current_ti, view_constraint.WhichVersion); // set version on current task if its not first task
                     // go through each privious task before the current task, and appy view access on it
