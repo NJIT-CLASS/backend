@@ -104,6 +104,7 @@ class Make {
 
         var x = this;
         var users = await x.getUsersFromSection(secId); //returns users from secId
+        users = _.shuffle(users);
         var ai_idToSearch;
         if(typeof ai_id == 'string'){
             try{

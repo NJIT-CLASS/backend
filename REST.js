@@ -3994,6 +3994,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }]
         }).then(async function (current_ti) {
             var ti = current_ti;
+            var user = await User.find({
+                where:{
+                    UserID: current_user_id
+                },
+                attributes:["Admin"]
+            });    
             /* Pre check current task and return immidiently with error to save processing */
             if (JSON.parse(ti.Status)[1] == 'cancelled' || JSON.parse(ti.Status)[0] == 'bypassed' ) {
                 logger.log('info', ' Algorithm Cancelled returning error');
@@ -4016,7 +4022,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
             /*   2    */
             console.log(ti.UserID, current_user_id);
-            if ((JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != current_user_id) ) ) {
+            if ((JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != current_user_id) && !user.Admin) ) {
                 logger.log('info', ' Algorithm  2 returning denied access');
                 ViewTask = 0;
                 res.json({

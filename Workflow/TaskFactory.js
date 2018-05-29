@@ -465,6 +465,19 @@ async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pe
         BlockedView: 0,
         Message: 0
     }
+        var user = await User.find({
+            where:{
+                UserID: user_id
+            },
+            attributes:["Admin"]
+        });
+
+        if(user.Admin){
+                logger.log('info', 'User is Admin grants all access');
+                r.WhichVersion = 'all';
+                return r;
+        }
+
           /* 1 */  
         if (JSON.parse(ti.Status)[0] == 'not_yet_started') {
                 logger.log('info', ' Algorithm 1');
