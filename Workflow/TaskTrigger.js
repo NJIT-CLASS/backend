@@ -758,7 +758,8 @@ class TaskTrigger {
         original_data[original_data.length - 1].revise_and_resubmit = { 'data': data, 'fields': JSON.parse(ti.TaskActivity.Fields) };
 
         var status = JSON.parse(original_task.Status);
-        status[0] = 'started';
+        status[0] = "started";
+        status[4] = "not_opened";
 
         await TaskInstance.update({
             Status: JSON.stringify(status),
