@@ -635,11 +635,11 @@ class TaskTrigger {
 
         var newStartDate = await moment().add(JSON.parse(ta.StartDelay), 'minutes');
         var newEndDate = await moment().add(JSON.parse(ta.StartDelay), 'minutes');
-        if (JSON.parse(ta.DueType)[0] === 'duration') {
-            await newEndDate.add(JSON.parse(ta.DueType)[1], 'minutes');
+        if (JSON.parse(ti.DueType)[0] === 'duration') {
+            await newEndDate.add(JSON.parse(ti.DueType)[1], 'minutes');
             //await newEndDate.add(1, 'minutes');
-        } else if (JSON.parse(ta.DueType)[0] === 'specific time') {
-            newEndDate = await moment(JSON.parse(ta.DueType)[1]).toDate();
+        } else if (JSON.parse(ti.DueType)[0] === 'specific time') {
+            newEndDate = await moment(JSON.parse(ti.DueType)[1]).toDate();
         }
 
         return [newStartDate, newEndDate];
@@ -1019,6 +1019,15 @@ class TaskTrigger {
         }
 
         return res.status(200).end();
+    }
+
+
+    async reset(ti_id, duration){
+        if(duration){
+            
+        } else {
+
+        }
     }
 
 }

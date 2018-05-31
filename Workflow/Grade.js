@@ -122,6 +122,8 @@ class Grade {
                 logger.log('error', '/Workflow/Grade/addSimpleGrade: cannot create task simple grade', {
                     error: err
                 });
+
+                return;
             }
         }
 

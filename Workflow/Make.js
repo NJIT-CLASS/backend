@@ -314,6 +314,7 @@ class Make {
                     'ta_to_u_id': ta_to_u_id,
                     'i': i,
                     'index': index,
+                    'duration': wf.tasks,
                     'users': users
                 };
 
@@ -480,6 +481,7 @@ class Make {
         var x = this;
         var isSubWorkflow = await x.getIsSubWorkflow(obj.flat_tree, obj.ta);
         var num_participants = await x.getNumParticipants(obj.ta.id); //returns number of participants of a task and whether the task has subworkflow
+        var duration = await x.getDuration(obj);
         
         //console.log(num_participants.length);
         var u_id_and_index = await x.getAllocUser(obj.ta, obj.ta_to_u_id, obj.users, obj.i, obj.index, num_participants,obj.ai_id); //returns users id and new index of the pointer
@@ -521,6 +523,7 @@ class Make {
                     Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
                     UserHistory: ti_u_hist,
                     NextTask: [],
+                    DueType: duration,
                     IsSubWorkflow: obj.ta.isSubWorkflow
                 }).catch(function (err) {
                     console.log(err);
@@ -542,88 +545,7 @@ class Make {
                         'isSubWorkflow': isSubWorkflow
                     });
                 }
-            });
-
-            // logger.log('debug', {
-            //     'tis': obj.tis,
-            //     'parents': parents
-            // });
-
-            // if ((ta.Type === 'needs_consolidation' || obj.ta.isSubWorkflow === isSubWorkflow) && !(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
-            //     let stat;
-            //     if (ta.Type === 'needs_consolidation') {
-            //         stat = await JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
-            //     } else {
-            //         stat = await JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);
-            //     }
-
-            //     await Promise.mapSeries(user_ids, async function (userid) {
-
-            //         var ti_u_hist = [{
-            //             time: new Date(),
-            //             user_id: userid,
-            //             is_extra_credit: false,
-            //         }];
-
-            //         var ti = await TaskInstance.create({
-            //             UserID: userid,
-            //             TaskActivityID: obj.ta.id,
-            //             WorkflowInstanceID: obj.new_wi_id,
-            //             AssignmentInstanceID: obj.ai_id,
-            //             Status: stat,
-            //             UserHistory: ti_u_hist,
-            //             NextTask: [],
-            //             PreviousTask: parents,
-            //             IsSubWorkflow: obj.ta.isSubWorkflow
-            //         });
-
-            //         await x.updateNextTasks(parents, {
-            //             'id': ti.TaskInstanceID,
-            //             'isSubWorkflow': obj.ta.isSubWorkflow
-            //         });
-
-            //         obj.tis.push(ti.TaskInstanceID);
-            //         obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
-            //     });
-
-            //     return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
-
-            // } else {
-
-            //     await Promise.mapSeries(parents, async function (parent) { //collects all parents and create edit for each of the parent
-            //         await Promise.mapSeries(user_ids, async function (userid) {
-            //             var ti_u_hist = [{
-            //                 time: new Date(),
-            //                 user_id: userid,
-            //                 is_extra_credit: false,
-            //             }];
-
-            //             var ti = await TaskInstance.create({
-            //                 UserID: userid,
-            //                 TaskActivityID: obj.ta.id,
-            //                 WorkflowInstanceID: obj.new_wi_id,
-            //                 AssignmentInstanceID: obj.ai_id,
-            //                 Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
-            //                 UserHistory: ti_u_hist,
-            //                 NextTask: [],
-            //                 PreviousTask: [parent],
-            //                 IsSubWorkflow: obj.ta.isSubWorkflow
-            //             });
-
-            //             await x.updateNextTasks([parent], {
-            //                 'id': ti.TaskInstanceID,
-            //                 'isSubWorkflow': obj.ta.isSubWorkflow
-            //             });
-
-            //             obj.tis.push(ti.TaskInstanceID);
-            //             obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
-            //         });
-            //     });
-
-            //     return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
-            // }
-
-            
+            });   
 
             let refers = (_.invert(obj.ti_to_ta))[ta.RefersToWhichTask];
 
@@ -654,6 +576,7 @@ class Make {
                         UserHistory: ti_u_hist,
                         NextTask: [],
                         PreviousTask: parents,
+                        DueType: duration,
                         IsSubWorkflow: obj.ta.isSubWorkflow
                     });
 
@@ -688,6 +611,7 @@ class Make {
                             UserHistory: ti_u_hist,
                             NextTask: [],
                             PreviousTask: [parent],
+                            DueType: duration,
                             IsSubWorkflow: obj.ta.isSubWorkflow
                         });
 
@@ -705,6 +629,24 @@ class Make {
             }
         }
 
+
+    }
+
+    async getDuration(obj){
+        try{
+            var duration;
+
+            await Promise.map(obj.duration, async function(d){
+                if(obj.ta.id == d.id){
+                    duration = d.DueType
+                }
+            });
+
+            return duration;
+        } catch(err) {
+            logger.log('error', '/Make/getDuration: failed getting duration from workflowtiming');
+            return;
+        }
 
     }
 
