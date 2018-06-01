@@ -799,6 +799,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////                 Participant Level APIs                   ///////////////////////////
+    router.post('/task/reset', teacherAuthentication, async function (req, res) {
+        if(req.body.ti_id === null || typeof req.body.ti_id === undefined){
+            logger.log('error', '/task/reset: no TaskInstanceID.')
+            res.status(400).end();
+        }
+
+        if(req.body.keep_content === null || typeof req.body.keep_content === undefined){
+            logger.log('error', '/task/reset: no keep_content.')
+            res.status(400).end();
+        }
+
+        if(req.body.duration === null || typeof req.body.duration === undefined){
+            logger.log('error', '/task/reset: no duration.')
+            res.status(400).end();
+        }
+
+        var trigger = new TaskTrigger();
+        await trigger.reset(req.body.ti_id, req.body.duration, req.body.keep_content);
+        res.status(200).end();
+    })
 
     router.post('/assignment/create', teacherAuthentication, function (req, res) {
 

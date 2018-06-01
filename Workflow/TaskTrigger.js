@@ -1022,12 +1022,182 @@ class TaskTrigger {
     }
 
 
-    async reset(ti_id, duration){
-        if(duration){
+    async reset(ti_id, duration, keep_content){
+            let x = this;
+            let ti = await TaskInstance.find({
+                where:{
+                    TaskInstanceID: ti_id
+                }
+            });
             
-        } else {
+            if(JSON.parse(ti.Status) == 'not_yet_started'){
+                logger.log('error', '/TaskTrigger/reset cannot reset task because it has not yet started')
+                return;
+            }
+            
+            let newStartDate = moment();
+            let newEndDate = moment();
 
+            if(duration == '[]'){ //if nothing specified, calculate original time duration and halves
+                if(JSON.parse(ti.DueType)[0] == "specific time"){
+                    let startDate = await moment(ti.StartDate);
+                    let endDate = await moment(ti.EndDate);
+
+                    let time = await moment.duration(endDate.diff(startDate));
+                    let minutes = await time.asMinutes();
+
+                    await newEndDate.add(minutes/2, 'minutes');
+                    
+                } else if (JSON.parse(ti.DueType)[0] == "duration"){
+                    await newEndDate.add(JSON.parse(ti.DueType)[1], 'minutes');
+                } else {
+                    logger.log('error', '/TaskTrigger/reset/ failed to reset task in 1');
+                    return;
+                }
+            } else { //expecting ["duration", minutes] or ["specific time", {startDate: date, endDate: date}]
+                duration = JSON.parse(duration);
+
+                if(JSON.parse(ti.DueType)[0] == "specific time"){
+                    newStartDate = duration[1].startDate;
+                    newEndDate = duration[1].endDate;
+                    
+                } else if (JSON.parse(ti.DueType)[0] == "duration"){
+                    await newEndDate.add(duration[1], 'minutes');
+                } else {
+                    logger.log('error', '/TaskTrigger/reset/ failed to reset task in 1');
+                    return;
+                }
+            }
+
+            var status = JSON.parse(ti.Status);
+            status[0] = 'started';
+            status[3] = 'n/a';
+            status[4] = 'not_opened';
+
+            var u_history = JSON.parse(ti.UserHistory);
+            u_history.push({
+                time: new Date(),
+                user_id: ti.UserID,
+                message: 'task has been reset',
+            });
+
+
+            await x.resetFollowingTask(ti.TaskInstanceID, JSON.parse(ti.NextTask), keep_content);
+            if(keep_content == true){
+                await TaskInstance.update({
+                    Status: JSON.stringify(status),
+                    StartDate: newStartDate,
+                    EndDate: newEndDate,
+                    ActualEndDate: null,
+                    FinalGrade: null,
+                    UserHistory: u_history
+                }, {
+                    where:{
+                        TaskInstanceID: ti_id
+                    }
+                });
+            } else {
+                await TaskInstance.update({
+                    Status: JSON.stringify(status),
+                    StartDate: newStartDate,
+                    EndDate: newEndDate,
+                    ActualEndDate: null,
+                    FinalGrade: null,
+                    Data: null,
+                    UserHistory: u_history
+                }, {
+                    where:{
+                        TaskInstanceID: ti_id
+                    }
+                });
+            }
+
+            await TaskGrade.destroy({
+                where:{
+                    TaskInstanceID: ti_id
+                }
+            });
+    
+            await TaskSimpleGrade.destroy({
+                where:{
+                    TaskInstanceID: ti_id
+                }
+            });
+
+
+
+    }
+
+    async resetFollowingTask(previous_ti, nextTasks, keep_content){ //recursive call to reset following tasks
+        let x = this;
+        await Promise.map(nextTasks, async function(task){
+            let ti = await TaskInstance.find({
+                where:{
+                    TaskInstanceID: task.id
+                }
+            });
+
+            if(JSON.parse(ti.Status)[0] != "not_yet_started"){
+                await x.resetTask(previous_ti, ti, keep_content);
+                await x.resetFollowingTask(previous_ti, JSON.parse(ti.NextTask), keep_content);
+            }
+        });
+    }
+
+    async resetTask(previous_ti, ti, keep_content){
+        var status = JSON.parse(ti.Status);
+        status[0] = 'not_yet_started';
+        status[3] = 'n/a';
+        status[4] = 'not_opened';
+
+        var u_history = JSON.parse(ti.UserHistory);
+        u_history.push({
+            time: new Date(),
+            user_id: ti.UserID,
+            message: 'task has been reset by previous task: ' + previous_ti,
+        });
+
+        if(keep_content == true){
+            await TaskInstance.update({
+                Status: JSON.stringify(status),
+                StartDate: null,
+                EndDate: null,
+                ActualEndDate: null,
+                FinalGrade: null,
+                UserHistory: u_history
+            }, {
+                where:{
+                    TaskInstanceID: ti.TaskInstanceID
+                }
+            }
+        );
+        } else {
+            await TaskInstance.update({
+                Status: JSON.stringify(status),
+                StartDate: null,
+                EndDate: null,
+                ActualEndDate: null,
+                FinalGrade: null,
+                Data: null,
+                UserHistory: u_history
+            }, {
+                where:{
+                    TaskInstanceID: ti.TaskInstanceID
+                }
+            });
         }
+
+        await TaskGrade.destroy({
+            where:{
+                TaskInstanceID: ti.TaskInstanceID
+            }
+        });
+
+        await TaskSimpleGrade.destroy({
+            where:{
+                TaskInstanceID: ti.TaskInstanceID
+            }
+        });
     }
 
 }
