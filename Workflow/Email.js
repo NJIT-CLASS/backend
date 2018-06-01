@@ -214,14 +214,14 @@ class Email {
                     });
                     break;
 
-                case 'late':
+                case 'reset':
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: LATE.subject,
-                        text: LATE.text,
-                        html: LATE.html
+                        subject: RESET_TASK.subject,
+                        text: RESET_TASK.text,
+                        html: RESET_TASK.html
                     });
                     break;
                 case 'late':
