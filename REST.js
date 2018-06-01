@@ -800,7 +800,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////                 Participant Level APIs                   ///////////////////////////
     router.post('/task/reset', teacherAuthentication, async function (req, res) {
-        console.log('/task/reset')
         if(req.body.ti_id === null || typeof req.body.ti_id === undefined){
             logger.log('error', '/task/reset: no TaskInstanceID.')
             res.status(400).end();
