@@ -1071,7 +1071,7 @@ class TaskTrigger {
 
             var status = JSON.parse(ti.Status);
             status[0] = 'started';
-            status[3] = 'n/a';
+            status[2] = 'n/a';
             status[4] = 'not_opened';
 
             var u_history = JSON.parse(ti.UserHistory);
@@ -1147,7 +1147,7 @@ class TaskTrigger {
     async resetTask(previous_ti, ti, keep_content){
         var status = JSON.parse(ti.Status);
         status[0] = 'not_yet_started';
-        status[3] = 'n/a';
+        status[2] = 'n/a';
         status[4] = 'not_opened';
 
         var u_history = JSON.parse(ti.UserHistory);
