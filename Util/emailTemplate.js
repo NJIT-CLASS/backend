@@ -87,6 +87,18 @@ exports.NEW_TASK = {
     `)
 };
 
+exports.RESET_TASK = {
+    subject: 'Reset Task - Participatory Learning',
+    text:(`Hi,\nA task has been reset. Please visit https://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task.\n\n
+        ${SUPPORT_STRING}
+    `),
+    html:(`
+        <p>Hi,</p><br>
+        <p>A new task has been reset.<div>Please visit https://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task</div></p>
+        <br><br>${SUPPORT_HTML}
+    `)
+};
+
 exports.NEW_PASSWORD = {
     subject: 'Password Updated - Participatory Learning',
     text:(`Hi,\nYour password has been updated.\n\n${SUPPORT_STRING}

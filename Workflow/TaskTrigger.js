@@ -1112,6 +1112,8 @@ class TaskTrigger {
                 });
             }
 
+            email.sendNow(ti.UserID, 'reset');
+
             await TaskGrade.destroy({
                 where:{
                     TaskInstanceID: ti_id
@@ -1186,6 +1188,8 @@ class TaskTrigger {
                 }
             });
         }
+
+        email.sendNow(ti.UserID, 'reset');
 
         await TaskGrade.destroy({
             where:{
