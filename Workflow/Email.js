@@ -214,6 +214,26 @@ class Email {
                     });
                     break;
 
+                case 'late':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: LATE.subject,
+                        text: LATE.text,
+                        html: LATE.html
+                    });
+                    break;
+                case 'revise':
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: REVISE.subject,
+                        text: REVISE.text,
+                        html: REVISE.html
+                    });
+                    break;
                 case 'reset':
                     await x.send({
                         from: email,
@@ -222,16 +242,6 @@ class Email {
                         subject: RESET_TASK.subject,
                         text: RESET_TASK.text,
                         html: RESET_TASK.html
-                    });
-                    break;
-                case 'late':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: REVISE.subject,
-                        text: REVISE.text,
-                        html: REVISE.html
                     });
                     break;
                 case 'remove_reallocated':
