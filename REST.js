@@ -801,24 +801,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ///////////////                 Participant Level APIs                   ///////////////////////////
     router.post('/task/reset', teacherAuthentication, async function (req, res) {
         if(req.body.ti_id === null || typeof req.body.ti_id === undefined){
-            logger.log('error', '/task/reset: no TaskInstanceID.')
+            logger.log('error', '/task/reset: no TaskInstanceID.');
             res.status(400).end();
         }
 
         if(req.body.keep_content === null || typeof req.body.keep_content === undefined){
-            logger.log('error', '/task/reset: no keep_content.')
+            logger.log('error', '/task/reset: no keep_content.');
             res.status(400).end();
         }
 
         if(req.body.duration === null || typeof req.body.duration === undefined){
-            logger.log('error', '/task/reset: no duration.')
+            logger.log('error', '/task/reset: no duration.');
             res.status(400).end();
         }
 
         var trigger = new TaskTrigger();
         await trigger.reset(req.body.ti_id, req.body.duration, req.body.keep_content);
         res.status(200).end();
-    })
+    });
 
     router.post('/assignment/create', teacherAuthentication, function (req, res) {
 
@@ -852,7 +852,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 PartialAssignmentName: req.body.assignment.AA_name,
                 UserID: req.body.userId,
                 CourseID: req.body.courseId,
-                Data: req.body.assignment
+                Data: req.body.saveData
             }).then((result) => {
 
                 //console.log('assignment: ', req.body.assignment);
@@ -873,7 +873,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         } else {
             PartialAssignments.update({
                 PartialAssignmentName: req.body.assignment.AA_name,
-                Data: req.body.assignment
+                Data: req.body.saveData
             }, {
                 where: {
                     PartialAssignmentID: req.body.partialAssignmentId
@@ -1766,7 +1766,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where:{
                 UserID: req.body.userid
             },
-            attributes:["Admin"]
+            attributes:['Admin']
         });
 
 
@@ -4025,7 +4025,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 where:{
                     UserID: current_user_id
                 },
-                attributes:["Admin"]
+                attributes:['Admin']
             });    
             /* Pre check current task and return immidiently with error to save processing */
             if (JSON.parse(ti.Status)[1] == 'cancelled' || JSON.parse(ti.Status)[0] == 'bypassed' ) {
