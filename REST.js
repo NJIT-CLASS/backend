@@ -1805,7 +1805,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             var newStatus = JSON.parse(ti.Status);
             newStatus[0] = 'complete';
 
-            var final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
+            var final_grade = null;
+            if(ti.TaskActivity.Type === 'grade_problem'){
+                final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
+            }
+
             var done = await TaskInstance.update({
                 Data: ti_data,
                 ActualEndDate: new Date(),

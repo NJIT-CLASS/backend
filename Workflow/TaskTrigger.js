@@ -82,11 +82,17 @@ class TaskTrigger {
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: ti_id
-            }
+            },
+            include:[{
+                model: TaskActivity,
+                attributes: ['SimpleGrade']
+            }]
         });
 
-        await grade.addSimpleGrade(ti_id);
-
+        if(ti.TaskActivity.SimpleGrade !== 'none'){
+            await grade.addSimpleGrade(ti_id);
+        }
+        
         if (ti.NextTask === '[]') { //no more task in this branch
             await x.completed(ti_id);
         } else {

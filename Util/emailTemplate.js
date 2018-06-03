@@ -1,4 +1,5 @@
 import {SERVER_PORT, FRONT_SERVER_PORT} from '../backend_settings.js';
+import { TaskInstance } from './models.js';
 
 let SUPPORT_HTML = (`
     <p>For technical support for the Participatory Learning system, contact:<br>
@@ -11,6 +12,14 @@ let INSTRUCTOR_STRING = ('If you have any questions, please contact your instruc
 
 let SUPPORT_STRING = (`For technical support for the Participatory Learning system, contact: bieber@njit.edu\n
 Thanks,\n\nThe Participatory Learning Team`);
+
+const getInfoForTask = async function(ti_id){
+    let ti = await TaskInstance.find({
+        where:{
+            TaskInstanceID: ti_id
+        }
+    });
+}
 
 
 
@@ -30,17 +39,30 @@ exports.INITIAL_USER = {
         `)
 };
 
-exports.REVISE = {
-    subject: 'A Revision is Ready to Review - Participatory Learning',
-    text: (`Hi,\n\nYou have a new revision avilable to review. Please login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT} 
-    \n${SUPPORT_STRING}`),
-    html:(`
-        <div>
-        <p>Hi,<br>
-        You have a new revision avilable for review. Please login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}</p>
-        <br>
-        ${SUPPORT_HTML}</div>
-        `)
+exports.REVISE = function(data){
+    if(data.ti_id === null || typeof data.ti_id === undefined){
+        logger.log('error', '/emailTemplate/Revise: No TaskInstanceID provided.');
+    }
+
+    let info = await getInfoForTask(data.ti_id);
+
+    return {
+        subject: `${info.number}: A Revision is Ready for ${info.assignment_display_name}`,
+        text: (`Hi,\n\nYou have a new revision avilable to review in the Participatory Learning System.\n\t${info.task_display_name}\n\tDeadline: ${info.due_date}
+        \n\tCourse: ${info.number} ${info.section_number} ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT} 
+        \n${SUPPORT_STRING}`),
+        html:(`
+            <div>
+            <p>Hi,<br>
+            You have a new revision avilable to review in the Participatory Learning System. 
+                ${info.task_display_name}
+                Deadline: ${info.due_date}
+                Course: ${info.number} ${info.section_number} ${info.course_name}
+                Please login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}</p>
+            <br>
+            ${SUPPORT_HTML}</div>
+            `)
+    } 
 };
 
 exports.INVITE_USER = function(data) {

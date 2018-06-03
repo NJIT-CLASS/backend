@@ -1037,7 +1037,6 @@ class TaskFactory {
                     //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
                     return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function(task) {
                         //  console.log('Creating task activity...');
-                        console.log('task',task);
                         return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
                             AssignmentID: workflowResult.AssignmentID,
