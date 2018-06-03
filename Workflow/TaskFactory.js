@@ -307,6 +307,24 @@ class TaskFactory {
                 }
             }
         }
+        loop2:
+        if(n != null){
+            for(var i = n+1; i < fullPath.length; i++){
+                if(fullPath[i].constructor === Array){          // Array of Task Instances
+                    for(var j = 0; j < fullPath[i].length; j++){
+                        ti = fullPath[i][j];
+                        if(ti.TaskActivity.Type !== 'needs_consolidation' || ti.TaskActivity.Type !== 'consolidation' || ti.TaskActivity.Type !== 'dispute' || ti.TaskActivity.Type !== 'resolve_dispute'){
+                            break loop2;                         
+                        }
+                    }
+                }else{                                          //Task Instance
+                    ti = fullPath[i];
+                    if(ti.TaskActivity.Type === 'needs_consolidation' || ti.TaskActivity.Type === 'consolidation' || ti.TaskActivity.Type === 'dispute' || ti.TaskActivity.Type === 'resolve_dispute'){
+                        break loop2; 
+                    }
+                }
+            }
+        }
         return n;
     }
     // checks if full Branch had dispute with user and started/complete created 4-20-18 mss86
@@ -458,6 +476,7 @@ class TaskFactory {
     // if ViewTask is == false, user cannot see this particular task in full path branch
     async View_Access(res, user_id, ti, multipleUsers, fullPath, blockableTA_IDs, pendingTaskInstances) {
         logger.log('debug','View_Access ', ti.TaskInstanceID);
+        //logger.log('debug','Full Path ', fullPath);
         var x = this;
         var r = {
             ViewTask:1, 
@@ -602,42 +621,44 @@ class TaskFactory {
         }
 
         /* 9 */  // if task in in assesment branch, user that is being assessed cannot see it until dispute starts or is done
-        var n =  await x.TaskInAssessmentBranch(ti.TaskInstanceID, fullPath);      // is it an Assessment branch?
-        //console.log('this is assesment branck?',n)
-        var PriviousTask;
-        var AssessmentBranch         = false;
-        var UserInTargerOfAssessment = false;
-        if(n != null){ 
-            AssessmentBranch = true;
-            PriviousTask = await x.PreviousTaskInFullPath(n, fullPath);  // get privious task
-        }                           
-        if(PriviousTask != null){                                          // is there a privius task?
-            if(PriviousTask.constructor === Array){                        // if has siblings
-                for(var i=0; i < PriviousTask.length ; i++){
-                    if(PriviousTask[i].UserID == user_id){
-                        UserInTargerOfAssessment = true;
-                        break;
-                    }
-                }
-            }else{                                                          // no siblings
-                if(PriviousTask.UserID == user_id){
-                    UserInTargerOfAssessment = true;
-                }
-            }
-        }
-        if( AssessmentBranch && !UserInTargerOfAssessment ){
-            logger.log('info', ' Algorithm 9.1');
-            r.ViewTask = 1;
-            return r;
-        }else if( await x.FullPathHasDisputeWithUserAndStartedOrComplete(user_id, fullPath) ){
-            logger.log('info', ' Algorithm 9.2');
-            r.ViewTask = 1;
-            return r;
-        }else if(AssessmentBranch && UserInTargerOfAssessment){
-            logger.log('info', ' Algorithm 9.3');
-            r.ViewTask = 0;
-            return r;
-        }
+        // var n =  await x.TaskInAssessmentBranch(ti.TaskInstanceID, fullPath);      // is it an Assessment branch?
+        // //console.log('this is assesment branck?',n)
+        // var PriviousTask;
+        // var AssessmentBranch         = false;
+        // var UserInTargerOfAssessment = false;
+        // if(n != null){ 
+        //     AssessmentBranch = true;
+        //     PriviousTask = await x.PreviousTaskInFullPath(n, fullPath);  // get privious task
+        // }                           
+        // if(PriviousTask != null){                                          // is there a privius task?
+        //     if(PriviousTask.constructor === Array){                        // if has siblings
+        //         for(var i=0; i < PriviousTask.length ; i++){
+        //             if(PriviousTask[i].UserID == user_id){
+        //                 UserInTargerOfAssessment = true;
+        //                 break;
+        //             }
+        //         }
+        //     }else{                                                          // no siblings
+        //         if(PriviousTask.UserID == user_id){
+        //             UserInTargerOfAssessment = true;
+        //         }
+        //     }
+        // }
+
+
+        // if( AssessmentBranch && !UserInTargerOfAssessment ){
+        //     logger.log('info', ' Algorithm 9.1');
+        //     r.ViewTask = 1;
+        //     return r;
+        // }else if( await x.FullPathHasDisputeWithUserAndStartedOrComplete(user_id, fullPath) ){
+        //     logger.log('info', ' Algorithm 9.2');
+        //     r.ViewTask = 1;
+        //     return r;
+        // }else if(AssessmentBranch && UserInTargerOfAssessment){
+        //     logger.log('info', ' Algorithm 9.3');
+        //     r.ViewTask = 0;
+        //     return r;
+        // }
         
         /* 10 */
         logger.log('info', ' Algorithm 10');
@@ -1016,6 +1037,7 @@ class TaskFactory {
                     //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
                     return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function(task) {
                         //  console.log('Creating task activity...');
+                        console.log('task',task);
                         return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
                             AssignmentID: workflowResult.AssignmentID,
@@ -1049,9 +1071,9 @@ class TaskFactory {
                             VersionEvaluation: task.VersionEvaluation,
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
-                            AssessmentTask: task.AssessmentTask,
+                            AssessmentTask: task.TA_AssessmentTask,
                             RefersToWhichTask: task.RefersToWhichTask,
-                            MustCompleteThisFirst: task.MustCompleteThisFirst
+                            MustCompleteThisFirst: task.TA_MustCompleteThisFirst
                         }).then(function(taskResult) {
                             //console.log('Task creation successful!');
                             //console.log('TaskActivityID: ', taskResult.TaskActivityID);

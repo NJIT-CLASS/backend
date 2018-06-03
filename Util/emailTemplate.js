@@ -13,6 +13,8 @@ let SUPPORT_STRING = (`For technical support for the Participatory Learning syst
 Thanks,\n\nThe Participatory Learning Team`);
 
 
+
+
 exports.INITIAL_USER = {
     subject: 'Welcome to Participatory Learning System',
     text: (`Hi,\n\nYou have created the initial account in the PL website. To login, please visit the following link: https://pla.njit.edu:${FRONT_SERVER_PORT} 

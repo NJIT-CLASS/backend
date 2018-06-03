@@ -142,6 +142,7 @@ class Email {
         //return; //for testting purposes
         if (active) {
             var x = this;
+            let template;
             await UserLogin.find({
                 where: {
                     UserID: userid
@@ -176,7 +177,7 @@ class Email {
                     //     break;
                 case 'invite user':
                     //console.log('inviting ' + send);
-                    let template = await INVITE_USER(data);
+                    template = await INVITE_USER(data);
                     await x.send({
                         from: email,
                         replyTo: email,
@@ -225,13 +226,14 @@ class Email {
                     });
                     break;
                 case 'revise':
+                    template = await REVISE(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: REVISE.subject,
-                        text: REVISE.text,
-                        html: REVISE.html
+                        subject: template.subject,
+                        text: template.text,
+                        html: template.html
                     });
                     break;
                 case 'reset':
@@ -289,14 +291,14 @@ class Email {
 
                 case 'reset password':
                     console.log('resetting password');
-                    let template2 = await RESET_PASS(data);
+                    template = await RESET_PASS(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: template2.subject,
-                        text: template2.text,
-                        html: template2.html
+                        subject: template.subject,
+                        text: template.text,
+                        html: template.html
                     });
                     break;
                 case 'new password':
