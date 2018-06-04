@@ -543,12 +543,93 @@ class Make {
                     });
                 }
             }); 
-            console.log(parents);  
+            
+            var parents_ta = await TaskActivity.find({
+                where: {
+                    TaskActivityID: obj.ta.parent
+                }
+            });
 
             let refers = (_.invert(obj.ti_to_ta))[ta.RefersToWhichTask];
+        
+            ////////////////////////////////////////////////////////////////////////////////////////////////////
+            if (parents_ta.Type === 'grade_problem' && ta.Type !== 'needs_consolidation' && ta.Type !== 'consolidation' && ta.Type !== 'dispute' && ta.Type !== 'resolve_dispute'){ //dealing with special case where grade has follow on tasks
+               
+                await Promise.mapSeries(user_ids, async function (userid) {
 
+                    var ti_u_hist = [{
+                        time: new Date(),
+                        user_id: userid,
+                        is_extra_credit: false,
+                    }];
 
-            if (!(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
+                    var ti = await TaskInstance.create({
+                        UserID: userid,
+                        TaskActivityID: obj.ta.id,
+                        WorkflowInstanceID: obj.new_wi_id,
+                        AssignmentInstanceID: obj.ai_id,
+                        Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+                        ReferencedTask: refers,
+                        UserHistory: ti_u_hist,
+                        NextTask: [],
+                        PreviousTask: [parents[0]],
+                        DueType: duration,
+                        IsSubWorkflow: obj.ta.isSubWorkflow
+                    });
+
+                    await x.updateNextTasks([parents[0]], {
+                        'id': ti.TaskInstanceID,
+                        'isSubWorkflow': obj.ta.isSubWorkflow
+                    });
+
+                    obj.tis.push(ti.TaskInstanceID);
+                    obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+                });
+
+                await Promise.mapSeries(new Array(parents.length -1), async function(parent, index){
+                    u_id_and_index = await x.getAllocUser(obj.ta, obj.ta_to_u_id, obj.users, obj.i, obj.index, num_participants,obj.ai_id); //returns users id and new index of the pointer
+                    user_ids = u_id_and_index[0];
+                    obj.index = u_id_and_index[1];
+
+                    await Promise.mapSeries(u_id_and_index[0], async function (u_id) {
+                        obj.ta_to_u_id[obj.ta.id] = u_id;
+                    });
+
+                    await Promise.mapSeries(user_ids, async function (userid) {
+
+                        var ti_u_hist = [{
+                            time: new Date(),
+                            user_id: userid,
+                            is_extra_credit: false,
+                        }];
+    
+                        var ti = await TaskInstance.create({
+                            UserID: userid,
+                            TaskActivityID: obj.ta.id,
+                            WorkflowInstanceID: obj.new_wi_id,
+                            AssignmentInstanceID: obj.ai_id,
+                            Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+                            ReferencedTask: refers,
+                            UserHistory: ti_u_hist,
+                            NextTask: [],
+                            PreviousTask: [parents[index + 1]],
+                            DueType: duration,
+                            IsSubWorkflow: obj.ta.isSubWorkflow
+                        });
+    
+                        await x.updateNextTasks([parents[index + 1]], {
+                            'id': ti.TaskInstanceID,
+                            'isSubWorkflow': obj.ta.isSubWorkflow
+                        });
+    
+                        obj.tis.push(ti.TaskInstanceID);
+                        obj.ti_to_ta[ti.TaskInstanceID] = obj.ta.id;
+                    });
+                });
+
+                return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
+            ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+            } else if (!(ta.Type === 'edit' || ta.Type === 'comment')) { //assume needs_consolidation's NumberParticipants always = 1
                 let stat;
                 if (ta.Type === 'needs_consolidation') {
                     stat = await JSON.stringify([execution.AUTOMATIC, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]);

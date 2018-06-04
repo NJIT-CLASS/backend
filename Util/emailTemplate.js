@@ -42,9 +42,6 @@ exports.INITIAL_USER = {
 exports.REVISE = function(data){
     if(data.ti_id === null || typeof data.ti_id === undefined){
         logger.log('error', '/emailTemplate/Revise: No TaskInstanceID provided.');
-
-
-        
     }
 
     return {
