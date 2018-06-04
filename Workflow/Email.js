@@ -3,7 +3,7 @@ import {
     MASTER_PASSWORD,
     EMAIL_SERVER_STATUS
 } from '../Util/constant.js';
-import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER} from '../Util/emailTemplate.js';
+import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER, RESET_TASK} from '../Util/emailTemplate.js';
 import {SERVER_PORT} from '../backend_settings.js';
 var models = require('../Model');
 var Promise = require('bluebird');
