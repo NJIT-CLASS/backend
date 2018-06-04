@@ -493,12 +493,9 @@ class Make {
         });
 
         // logger.log('debug', {
-        //     ta: obj.ta,
-        //     isSubWorkflow: isSubWorkflow,
-        //     num_participants: num_participants,
-        //     u_id_and_index: u_id_and_index,
-        //     ta_to_u_id: obj.ta_to_u_id
+        //     obj:obj
         // });
+        
 
         var ta = await TaskActivity.find({
             where: {
@@ -545,7 +542,8 @@ class Make {
                         'isSubWorkflow': isSubWorkflow
                     });
                 }
-            });   
+            }); 
+            console.log(parents);  
 
             let refers = (_.invert(obj.ti_to_ta))[ta.RefersToWhichTask];
 

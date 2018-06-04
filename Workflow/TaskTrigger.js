@@ -412,7 +412,7 @@ class TaskTrigger {
 
             //checks if the grades exceed threshold
             if (JSON.parse(ta.TriggerConsolidationThreshold)[1] == 'percent') {
-                var percent = (max - min) / maxGrade * 100;
+                var percent = (max - min);
                 if (percent > JSON.parse(ta.TriggerConsolidationThreshold)[0]) {
                     triggerConsolidate = true;
                 }
