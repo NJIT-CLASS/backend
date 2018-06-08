@@ -45,7 +45,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         Documentation: {
             //Description of the typeof workflow
-            type: DataTypes.TEXT,
+            type: DataTypes.TEXT('long'),
             field: 'Documentation',
             allowNull: true
         },

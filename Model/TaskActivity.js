@@ -106,13 +106,13 @@ module.exports = function(sequelize, DataTypes) {
         },
         Instructions: {
             //Intructor’s Intructions for the task
-            type: DataTypes.TEXT,
+            type: DataTypes.TEXT('long'),
             field: 'Instructions',
             allowNull: true
         },
         Rubric: {
             //Intructor’s rubric (only for grading tasks)
-            type: DataTypes.TEXT,
+            type: DataTypes.TEXT('long'),
             field: 'Rubric',
             allowNUll: true
         },
