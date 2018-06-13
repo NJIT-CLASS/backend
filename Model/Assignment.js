@@ -23,7 +23,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         Instructions: {
-            type: DataTypes.TEXT,
+            type: DataTypes.TEXT('long'),
             field: 'Instructions',
             allowNull: true
         },

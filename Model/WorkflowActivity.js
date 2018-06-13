@@ -28,7 +28,7 @@ module.exports = function(sequelize, DataTypes) {
             allowNull: true
         },
         Type: {
-          //type of WorkflowActivity (essay question, multiple choice,...).
+            //type of WorkflowActivity (essay question, multiple choice,...).
             type: DataTypes.STRING(40),
             field: 'Type',
             allowNull: true
@@ -45,7 +45,7 @@ module.exports = function(sequelize, DataTypes) {
         },
         Documentation: {
             //Description of the typeof workflow
-            type: DataTypes.STRING(100),
+            type: DataTypes.TEXT('long'),
             field: 'Documentation',
             allowNull: true
         },
