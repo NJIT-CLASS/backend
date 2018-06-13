@@ -492,7 +492,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/refreshToken',async function(req,res){
         let refreshToken = req.body.refreshToken;
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
-        let userId = req.body.userId;
+        let userId = req.body.UserID;
 
         if(refreshToken){
             if(refreshToken in refreshTokens){
@@ -621,14 +621,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Endpoint to update a User's Email
     router.put('/update/email', function (req, res) {
-        if (req.body.password == null || req.body.email == null || req.body.userid == null) {
+        if (req.body.password == null || req.body.email == null || req.body.UserID == null) {
             console.log('/update/email : Bad Input');
             res.status(400).end();
         }
 
         UserLogin.find({
             where: {
-                UserID: req.body.userid
+                UserID: req.body.UserID
             }
         }).then(async function (user) {
             if (user != null && await password.verify(user.Password, req.body.password)) {
@@ -653,7 +653,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.put('/update/name', function (req, res) {
         User.find({
             where: {
-                UserID: req.body.userid
+                UserID: req.body.UserID
             }
         }).then(function (user) {
             if (user == null) {
@@ -743,7 +743,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/update/password', function (req, res) {
         let email = new Email();
-        if (req.body.userId === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
+        if (req.body.UserID === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
             console.log('/update/password : Missing attributes');
             res.status(400).json({error:'Missing Attributes'}).end();
         } else if (req.body.oldPasswd == req.body.newPasswd) {
@@ -752,7 +752,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         } else {
             UserLogin.find({
                 where: {
-                    UserID: req.body.userId
+                    UserID: req.body.UserID
                 }
             }).then(async function (userLogin) {
                 if (await password.verify(userLogin.Password, req.body.oldPasswd)) {
@@ -762,7 +762,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         Pending: false
                     }, {
                         where: {
-                            UserID: req.body.userId
+                            UserID: req.body.UserID
                         }
                     }).then(function (done) {
                         console.log('/update/password: Password updated successfully');
@@ -836,7 +836,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     PartialAssignments.find({
         //         where: {
         //             PartialAssignmentID: req.body.partialAssignmentId,
-        //             UserID: req.body.userId,
+        //             UserID: req.body.UserID,
         //             CourseID: req.body.courseId
         //         }
         //     }).then((result) => {
@@ -845,12 +845,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //         console.error(err);
         //     });
         // }
-        console.log('Calling assignment create');
         var taskFactory = new TaskFactory();
         if (req.body.partialAssignmentId == null) {
             PartialAssignments.create({
                 PartialAssignmentName: req.body.assignment.AA_name,
-                UserID: req.body.userId,
+                UserID: req.body.UserID,
                 CourseID: req.body.courseId,
                 Data: req.body.saveData
             }).then((result) => {
@@ -1016,7 +1015,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         if (req.body.partialAssignmentId == null) {
             PartialAssignments.create({
                 PartialAssignmentName: req.body.assignment.AA_name,
-                UserID: req.body.userId,
+                UserID: req.body.UserID,
                 CourseID: req.body.courseId,
                 Data: req.body.assignment
             }).then((result) => {
@@ -1262,7 +1261,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         Promise.mapSeries(req.body.files, (file) => {
             return FileReference.create({
-                UserID: req.body.userId,
+                UserID: req.body.UserID,
                 Info: file,
                 LastUpdated: new Date(),
             }).then(function (result) {
@@ -1313,7 +1312,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     ProfilePicture: newFileIDs[0]
                 }, {
                     where: {
-                        UserID: req.body.userId
+                        UserID: req.body.UserID
                     }
                 }).then(function (done) {
                     logger.log('info', 'user updated with new profile pictures info', {
@@ -1344,7 +1343,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/file/upload/:type?', participantAuthentication, function (req, res) {
         console.log('File upload:', req.body);
         FileReference.create({
-            UserID: req.body.userId,
+            UserID: req.body.UserID,
             Info: req.body.fileInfo,
             LastUpdated: new Date(),
         }).then(function (result) {
@@ -1386,7 +1385,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     ProfilePicture: [result.FileID]
                 }, {
                     where: {
-                        UserID: req.body.userId
+                        UserID: req.body.UserID
                     }
                 }).then(function (done) {
                     logger.log('info', 'user updated with new profile pictures info', {
@@ -1433,7 +1432,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.delete('/file/delete/:fileId',  participantAuthentication, async function (req, res) {
         let taskId = req.body.taskId || '';
-        var userId = req.body.userId;
+        var userId = req.body.UserID;
         if(userId === null || userId === ''){
             logger.log('error', '/file/delete User Not Authorized');
             return res.status(400).end();
@@ -1744,7 +1743,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('info', 'TaskInstanceID cannot be null');
             return res.status(400).end();
         }
-        if (req.body.userid == null) {
+        if (req.body.UserID == null) {
             logger.log('info', 'UserID cannot be null');
             return res.status(400).end();
         }
@@ -1764,7 +1763,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
         var user = await User.find({
             where:{
-                UserID: req.body.userid
+                UserID: req.body.UserID
             },
             attributes:['Admin']
         });
@@ -1777,11 +1776,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         //Update points for student as they submit tasks
         let taskFactory = new TaskFactory;
-        // taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, req.body.userid);
+        // taskFactory.updatePointInstance(ti.TaskActivity.Type, ti.AssignmentInstanceID, req.body.UserID);
 
         //logger.log('info', 'task instance found', ti.toJSON());
         //Ensure userid input matches TaskInstance.UserID
-        if (req.body.userid != ti.UserID && !user.Admin) {
+        if (req.body.UserID != ti.UserID && !user.Admin) {
             logger.log('error', 'UserID Not Matched');
             return res.status(400).end();
         }
@@ -1894,7 +1893,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // }).then(async function(ti) {
         //     logger.log('info', 'task instance found', ti.toJSON())
         //     //Ensure userid input matches TaskInstance.UserID
-        //     if (req.body.userid != ti.UserID) {
+        //     if (req.body.UserID != ti.UserID) {
         //         logger.log('error', 'UserID Not Matched')
         //         return res.status(400).end()
         //     }
@@ -1912,7 +1911,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     // return TaskInstance.find({
         //     //     where: {
         //     //         TaskInstanceID: req.body.taskInstanceid,
-        //     //         UserID: req.body.userid,
+        //     //         UserID: req.body.UserID,
         //     //     },
         //     //     include:[
         //     //       {
@@ -1929,7 +1928,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //     }, {
         //         where: {
         //             TaskInstanceID: req.body.taskInstanceid,
-        //             UserID: req.body.userid,
+        //             UserID: req.body.UserID,
         //         }
         //     }).then(async function(done) {
         //         logger.log('info', 'task instance updated', {
@@ -1998,7 +1997,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
             return;
         }
-        if (req.body.userid == null) {
+        if (req.body.UserID == null) {
             console.log('/taskInstanceTemplate/create/save : UserID cannot be null');
             res.status(400).end();
             return;
@@ -2012,11 +2011,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: req.body.taskInstanceid,
-                UserID: req.body.userid
+                UserID: req.body.UserID
             }
         });
         //Ensure userid input matches TaskInstance.UserID
-        if (req.body.userid != ti.UserID) {
+        if (req.body.UserID != ti.UserID) {
             console.log('/taskInstanceTemplate/create/save : UserID Incorrect Match');
             res.status(400).end();
             return;
@@ -2965,7 +2964,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     // Grade reporting ==========================================================================
 
     router.post('/getUserAssignmentGrades', participantAuthentication, function(req, res){
-        if(req.body.userID == null || req.body.sectionID == null){
+        if(req.body.UserID == null || req.body.sectionID == null){
             console.log(req);
             console.log('/getUserAssignmentGrades:userID : no user or section ID passed');
             res.status(400).end();
@@ -2979,7 +2978,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         return SectionUser.findAll({
             where: {
-                UserID:req.body.userID,
+                UserID:req.body.UserID,
                 SectionID:req.body.sectionID
             },
             attributes:['SectionUserID','Role','SectionID']
@@ -3301,7 +3300,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Endpoint to create course
     router.post('/course/create', teacherAuthentication, function (req, res) {
         console.log('/course/create: called');
-        if (req.body.userid == null) {
+        if (req.body.UserID == null) {
             console.log('/course/create : UserID cannot be null');
             res.status(400).end();
             return;
@@ -3324,7 +3323,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         Course.find({
             where: {
-                CreatorID: req.body.userid,
+                CreatorID: req.body.UserID,
                 Number: req.body.number,
                 Name: req.body.Name,
                 OrganizationID: req.body.organizationid //new
@@ -3333,7 +3332,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function (response) {
             if (response == null || response.CourseID == null) {
                 Course.create({
-                    CreatorID: req.body.userid,
+                    CreatorID: req.body.UserID,
                     Number: req.body.number,
                     Name: req.body.Name,
                     OrganizationID: req.body.organizationid
@@ -3791,7 +3790,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         SectionUser.destroy({
             where: {
-                UserID: req.body.userID,
+                UserID: req.body.UserID,
                 SectionID: req.body.SectionID
             }
         }).then(function (rows) {
@@ -4008,7 +4007,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var pre_tis_version = [];       // previous versions
         var BlockedView = false;        // is the current task blocked?
         var ViewTask    = true;         // is the task Viewable?
-        var current_user_id = Number(req.query.userID);     // the user trying to access the task
+        var current_user_id = Number(req.query.UserID);     // the user trying to access the task
         var view_constraint;
         var allocator = new TaskFactory();
         let taskInstanceAttributes = ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask','AssignmentInstanceID','WorkflowInstanceID', 'FinalGrade'];
@@ -4263,8 +4262,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         } else {
             var taskStatusArray = typeof t.Status === 'string' ? JSON.parse(t.Status) : t.Status;
-            console.log('UserID:', req.query.userID);
-            if((!taskStatusArray.includes('complete')) && req.query.userID != t.UserID){
+            console.log('UserID:', req.query.UserID);
+            if((!taskStatusArray.includes('complete')) && req.query.UserID != t.UserID){
                 res.status(418).end();
                 return;
             }
@@ -4317,7 +4316,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     // check to see if the user has view access to this task in the history (workflow) and if not: immediately respond with error
                         ar.push(result);
 
-                        view_constraint = await allocator.applyViewContstraints(res, req.query.userID, result);
+                        view_constraint = await allocator.applyViewContstraints(res, req.query.UserID, result);
                     });
                 });
 
@@ -4340,13 +4339,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     // });
                     //logger.log('debug', 'done collecting previous tasks');
                     //check to see if the user has view access to the current task (requested task) and if not: immediately respond with error
-                    view_constraint = await allocator.applyViewContstraints(res, req.query.userID, ti);
+                    view_constraint = await allocator.applyViewContstraints(res, req.query.UserID, ti);
                     if (view_constraint === false || view_constraint === undefined) {
                         if (res._headerSent) { // if already responded (response sent)
                             return;
                         }
                         // update data field of all tasks with the appropriate allowed version
-                        ar = await allocator.applyVersionContstraints(ar, ti, req.query.userID);
+                        ar = await allocator.applyVersionContstraints(ar, ti, req.query.UserID);
                         ar.push(ti);
                         res.json({
                             error: false,
