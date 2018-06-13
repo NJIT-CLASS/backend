@@ -386,7 +386,7 @@ class TaskTrigger {
                             final_grade += (data[val][0]/field[val].rating_max)*(distribution/100)*100;
                         } else if (field[val].assessment_type === 'pass') {
                             if(data[val][0] == 'pass'){
-                                final_grade += (distribution/100)*100;
+                                final_grade += field[val].numeric_max*(distribution/100)*100;
                             }
                         } else if (field[val].assessment_type === 'evaluation') {
                             let label_length = field[val].list_of_labels.length;
@@ -701,7 +701,7 @@ class TaskTrigger {
 
         if (final_grade === 0) {
             logger.log('info', 'no grade has been found!');
-            return null;
+            return 0;
 
         } else {
             // logger.log('info', 'grade has been found!', {
