@@ -474,6 +474,11 @@ class Grade {
                 'max_grade': 100
             };
         } else {
+            if(JSON.parse(ti.PreviousTask)[0] === null || typeof JSON.parse(ti.PreviousTask)[0] === undefined){
+                logger.log('error', '/Workflow/Grade/gradeBelongsTo: ti.PreviousTask null error', ti.PreviousTask);
+                return null;
+            }
+
             var pre_ti = await TaskInstance.find({
                 where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
