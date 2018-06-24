@@ -2285,10 +2285,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                         console.log('/getAssignmentRecord/:assignmentInstanceid: Done!');
 
-                res.json({
-                    'Error': false,
-                    'Info': info,
-                });
+                        res.json({
+                            'Error': false,
+                            'Info': info,
+                        });
                     });
                 });
             });
@@ -5319,14 +5319,29 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             }
         }).then((aiResult) => {
-            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
+            try{
+                let workflowsList = JSON.parse(aiResult.WorkflowCollection);
 
-            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+
+                let finalResults = fetchWorkflow(workflowsList);
+                
+                Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+                    return res.json({
+                        'Result': arrArr
+                    });
+                })
+                    .catch(function(){
+                        return res.json({
+                            'Result': []
+                        });
+                    });
+
+            } catch(exc){
                 return res.json({
-                    'Result': arrArr
+                    'Result': []
                 });
-            });
+            }
+            
         });
 
 
@@ -5417,15 +5432,21 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             }
         }).then(async(aiResult) => {
-            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
-            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+            try{
+                let workflowsList = JSON.parse(aiResult.WorkflowCollection);
+                let finalResults = fetchWorkflow(workflowsList);
+                Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+                    return res.json({
+                        'Result': assignmentObject
+                    });
+                }).catch(err => {
+                    console.log(err);
+                });
+            } catch(exc){
                 return res.json({
                     'Result': assignmentObject
                 });
-            }).catch(err => {
-                console.log(err);
-            });
+            }
         });
 
 
