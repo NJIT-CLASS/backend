@@ -409,12 +409,16 @@ class Grade {
 
             var original = await x.gradeBelongsTo(ti);
             //return [wi.WorkflowActivityID, ti.TaskInstanceID, ti.FinalGrade];
-
-            return {
-                'id': original.id,
-                'grade': ti.FinalGrade,
-                'max_grade': original.max_grade
-            };
+            if(original === null || typeof original === null){
+                return null;
+            } else {
+                return {
+                    'id': original.id,
+                    'grade': ti.FinalGrade,
+                    'max_grade': original.max_grade
+                };
+            }
+            
 
         } else if (ti.FinalGrade === null && ti.PreviousTask !== null) {
 
@@ -439,7 +443,7 @@ class Grade {
 
     async gradeBelongsTo(ti) {
         var x = this;
-        logger.log('info', '/Workflow/Grade/gradeBelongsTo: searching for user...');
+        logger.log('info', '/Workflow/Grade/gradeBelongsTo: searching for user... TaskActivityID: ',ti.TaskActivityID);
         var ta = await TaskActivity.find({
             where: {
                 TaskActivityID: ti.TaskActivityID
@@ -474,8 +478,8 @@ class Grade {
                 'max_grade': 100
             };
         } else {
-            if(JSON.parse(ti.PreviousTask)[0] === null || typeof JSON.parse(ti.PreviousTask)[0] === undefined){
-                logger.log('error', '/Workflow/Grade/gradeBelongsTo: ti.PreviousTask null error', ti.PreviousTask);
+            if(ti.PreviousTask === null || typeof ti.PreviousTask === undefined){
+                logger.log('info', '/Workflow/Grade/gradeBelongsTo: no previous task, function end', ti.PreviousTask);
                 return null;
             }
 

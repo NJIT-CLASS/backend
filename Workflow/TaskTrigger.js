@@ -776,7 +776,7 @@ class TaskTrigger {
             }
         });
 
-        email.sendNow(original_task.UserID, 'revise');
+        email.sendNow(original_task.UserID, 'revise', {'ti_id': original_task.TaskInstanceID});
     }
 
 
@@ -1036,7 +1036,7 @@ class TaskTrigger {
                 }
             });
             
-            if(JSON.parse(ti.Status) == 'not_yet_started'){
+            if(JSON.parse(ti.Status)[0] == 'not_yet_started'){
                 logger.log('error', '/TaskTrigger/reset cannot reset task because it has not yet started')
                 return;
             }
@@ -1075,25 +1075,21 @@ class TaskTrigger {
                 }
             }
 
-            var status = JSON.parse(ti.Status);
-            status[0] = 'started';
-            status[2] = 'n/a';
-            status[4] = 'not_opened';
+            if(JSON.parse(ti.Status)[0] == 'automatic'){//when reset task is needs_consolidation
+                logger.log('info', '/TaskTrigger/reset: automatic task re-triggering needs cosolidation');
 
-            var u_history = JSON.parse(ti.UserHistory);
-            u_history.push({
-                time: new Date(),
-                user_id: ti.UserID,
-                message: 'task has been reset',
-            });
+                var u_history = JSON.parse(ti.UserHistory);
+                u_history.push({
+                    time: new Date(),
+                    user_id: ti.UserID,
+                    message: 'task has been reset',
+                    is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
+                });
 
-
-            await x.resetFollowingTask(ti.TaskInstanceID, JSON.parse(ti.NextTask), keep_content);
-            if(keep_content == true){
+                
                 await TaskInstance.update({
-                    Status: JSON.stringify(status),
-                    StartDate: newStartDate,
-                    EndDate: newEndDate,
+                    StartDate: null,
+                    EndDate: null,
                     ActualEndDate: null,
                     FinalGrade: null,
                     UserHistory: u_history
@@ -1102,20 +1098,53 @@ class TaskTrigger {
                         TaskInstanceID: ti_id
                     }
                 });
+                await x.resetFollowingTask(ti.TaskInstanceID, JSON.parse(ti.NextTask), keep_content);
+                await x.needsConsolidate(ti);
             } else {
-                await TaskInstance.update({
-                    Status: JSON.stringify(status),
-                    StartDate: newStartDate,
-                    EndDate: newEndDate,
-                    ActualEndDate: null,
-                    FinalGrade: null,
-                    Data: null,
-                    UserHistory: u_history
-                }, {
-                    where:{
-                        TaskInstanceID: ti_id
-                    }
+
+                var status = JSON.parse(ti.Status);
+                status[0] = 'started';
+                status[2] = 'n/a';
+                status[4] = 'not_opened';
+
+                var u_history = JSON.parse(ti.UserHistory);
+                u_history.push({
+                    time: new Date(),
+                    user_id: ti.UserID,
+                    message: 'task has been reset',
+                    is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
                 });
+
+
+                await x.resetFollowingTask(ti.TaskInstanceID, JSON.parse(ti.NextTask), keep_content);
+                if(keep_content == true){
+                    await TaskInstance.update({
+                        Status: JSON.stringify(status),
+                        StartDate: newStartDate,
+                        EndDate: newEndDate,
+                        ActualEndDate: null,
+                        FinalGrade: null,
+                        UserHistory: u_history
+                    }, {
+                        where:{
+                            TaskInstanceID: ti_id
+                        }
+                    });
+                } else {
+                    await TaskInstance.update({
+                        Status: JSON.stringify(status),
+                        StartDate: newStartDate,
+                        EndDate: newEndDate,
+                        ActualEndDate: null,
+                        FinalGrade: null,
+                        Data: null,
+                        UserHistory: u_history
+                    }, {
+                        where:{
+                            TaskInstanceID: ti_id
+                        }
+                    });
+                }
             }
 
             email.sendNow(ti.UserID, 'reset');
@@ -1163,37 +1192,56 @@ class TaskTrigger {
             time: new Date(),
             user_id: ti.UserID,
             message: 'task has been reset by previous task: ' + previous_ti,
+            is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
         });
 
-        if(keep_content == true){
+        if(JSON.parse(ti.Status)[0] == 'automatic'){//when reset task is needs_consolidation
+            logger.log('info', '/TaskTrigger/reset: automatic task re-triggering needs cosolidation');
+            status[0] = 'automatic';
             await TaskInstance.update({
-                Status: JSON.stringify(status),
                 StartDate: null,
                 EndDate: null,
                 ActualEndDate: null,
                 FinalGrade: null,
-                UserHistory: u_history
-            }, {
-                where:{
-                    TaskInstanceID: ti.TaskInstanceID
-                }
-            }
-        );
-        } else {
-            await TaskInstance.update({
-                Status: JSON.stringify(status),
-                StartDate: null,
-                EndDate: null,
-                ActualEndDate: null,
-                FinalGrade: null,
-                Data: null,
                 UserHistory: u_history
             }, {
                 where:{
                     TaskInstanceID: ti.TaskInstanceID
                 }
             });
+
+        } else {
+            if(keep_content == true){
+                await TaskInstance.update({
+                    Status: JSON.stringify(status),
+                    StartDate: null,
+                    EndDate: null,
+                    ActualEndDate: null,
+                    FinalGrade: null,
+                    UserHistory: u_history
+                }, {
+                    where:{
+                        TaskInstanceID: ti.TaskInstanceID
+                    }
+                }
+            );
+            } else {
+                await TaskInstance.update({
+                    Status: JSON.stringify(status),
+                    StartDate: null,
+                    EndDate: null,
+                    ActualEndDate: null,
+                    FinalGrade: null,
+                    Data: null,
+                    UserHistory: u_history
+                }, {
+                    where:{
+                        TaskInstanceID: ti.TaskInstanceID
+                    }
+                });
+            }
         }
+
 
         email.sendNow(ti.UserID, 'reset');
 

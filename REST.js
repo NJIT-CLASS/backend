@@ -595,8 +595,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
     });
 
-    router.get('/test', adminAuthentication, async function (req, res) {
-        res.send('look at me!');
+    router.post('/test', adminAuthentication, async function (req, res) {
+        let email = new Email();
+        email.sendNow(327, 'revise', {'ti_id': 12946});
+        email.sendNow(327, 'reset password', {'pass': 12946});
+        email.sendNow(327, 'new_task', {'ti_id': 12946});
+        email.sendNow(327, 'late', {'ti_id': 12946});
+        email.sendNow(327, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456});
+        email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
+        email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
+        email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});
+        res.status(200).end();
     });
     //-------------------------------------------------------------------
     ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -814,6 +823,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('error', '/task/reset: no duration.');
             res.status(400).end();
         }
+        console.log('/task/reset:' ,req.body)
 
         var trigger = new TaskTrigger();
         await trigger.reset(req.body.ti_id, req.body.duration, req.body.keep_content);
@@ -2446,7 +2456,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 .then(function(queryResult){
                     if(queryResult[0].SendEmail == 1){
                         let email = new Email();
-                        email.sendNow(queryResult[0].UserID, 'invite user', {'pass': temp_pass});
+                        email.sendNow(queryResult[0].UserID, 'invite user', {'sectionid': req.params.sectionid, 'pass': temp_pass, 'role': role});
                     }
 
                 })
@@ -2562,7 +2572,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                     });
                                             }).then(function (userLogin) {
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user new to system', {'pass':temp_pass, 'sectionid': req.params.sectionid});
+                                                email.sendNow(user.UserID, 'invite_user_new_to_system', {'pass':temp_pass, 'sectionid': req.params.sectionid});
                                                 return SectionUser.create({
                                                     SectionID: req.params.sectionid,
                                                     UserID: userLogin.UserID,
@@ -3594,7 +3604,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     console.log(err);
                                 }).then(function (userLogin) {
                                     //Email User With Password
-                                    email.sendNow(userLogin.UserID, 'invite user', {'pass':req.body.password});
+                                    email.sendNow(userLogin.UserID, 'invite user', {'sectionid': req.body.sectionid, 'pass': req.body.password, 'role': req.body.role});
                                     SectionUser.create({
                                         SectionID: req.body.sectionid,
                                         UserID: userLogin.UserID,
@@ -4127,6 +4137,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         UserID: current_user_id,
                         Status: {
                             $like: '%"started"%',
+                            $notLike: '%"cancelled"%'
                         }
                     },
                     include: [{
