@@ -776,7 +776,7 @@ class TaskTrigger {
             }
         });
 
-        email.sendNow(original_task.UserID, 'revise');
+        email.sendNow(original_task.UserID, 'revise', {'ti_id': original_task.TaskInstanceID});
     }
 
 

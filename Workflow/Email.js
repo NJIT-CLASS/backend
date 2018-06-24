@@ -3,7 +3,7 @@ import {
     MASTER_PASSWORD,
     EMAIL_SERVER_STATUS
 } from '../Util/constant.js';
-import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER, RESET_TASK} from '../Util/emailTemplate.js';
+import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER, RESET_TASK, REVISE, INVITE_USER_NEW_TO_SYSTEM, REALLOCATE} from '../Util/emailTemplate.js';
 import {SERVER_PORT} from '../backend_settings.js';
 var models = require('../Model');
 var Promise = require('bluebird');
@@ -82,14 +82,15 @@ var transporter = nodemailer.createTransport(
             user: MASTER_EMAIL,
             pass: MASTER_PASSWORD
         }
-    }));
+    })
+);
 
 let email = MASTER_EMAIL;
 
 // verify connection configuration
 transporter.verify(function (error, success) {
     if (error) {
-        console.log(error);
+        console.log('transporter verify ',error);
     } else {
         console.log('Server is ready to take our messages');
     }
@@ -152,6 +153,7 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
+                send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
@@ -187,42 +189,38 @@ class Email {
                         html: template.html
                     });
                     break;
-                case 'new_task':
-                    //console.log('notifying ' + send);
-                    // let task = await TaskInstance.find({
-                    //     where:{
-                    //         TaskInstanceID: data.ti_id
-                    //     },
-                    //     attributes: ['AssignmentInstanceID'],
-                    //     include: [{
-                    //         model: AssignmentInstance,
-                    //         include: [{
-                    //             model: Section,
-                    //             include:[{
-                    //                 model:Course
-                    //             }]
-                    //         }]
-                    //     }]
-                    // });
-                    // let template = await NEW_TASK(data);
+                case 'invite_user_new_to_system':
+                    //console.log('inviting ' + send);
+                    template = await INVITE_USER_NEW_TO_SYSTEM(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: NEW_TASK.subject,
-                        text: NEW_TASK.text,
-                        html: NEW_TASK.html
+                        subject: template.subject,
+                        text: template.text,
+                        html: template.html
                     });
                     break;
-
-                case 'late':
+                case 'new_task':
+                    template = await NEW_TASK(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: LATE.subject,
-                        text: LATE.text,
-                        html: LATE.html
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
+                    });
+                    break;
+                case 'late':
+                    template = await LATE(data);
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
                 case 'revise':
@@ -232,8 +230,8 @@ class Email {
                         replyTo: email,
                         to: send,
                         subject: template.subject,
-                        text: template.text,
-                        html: template.html
+                        html: template.html,
+                        text: template.text
                     });
                     break;
                 case 'reset':
@@ -257,16 +255,16 @@ class Email {
                     });
                     break;
                 case 'new_reallocated':
+                    template = await REALLOCATE(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Reallocated to a new task - PLA',
-                        text: 'Hi, you have been reallocated to a new task, please complete as soon as possible',
-                        html: ''
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
-
                 case 'task_cancelled':
                     await x.send({
                         from: email,

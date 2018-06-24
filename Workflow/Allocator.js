@@ -829,7 +829,7 @@ class Allocator {
         if(change_date_option != 'extend_only_if_late'){ // dont send emails when canceling workflow, emails send before calling this function
             if(ti_status[0] == 'started'){
                 email.sendNow(ti.UserID, 'remove_reallocated');     // old user
-                email.sendNow(new_u_id, 'new_reallocated' );        // new user
+                email.sendNow(new_u_id, 'new_reallocated', {'ti_id': ti.TaskInstanceID, 'extra_credit': is_extra_credit});        // new user
             }
         }
 
@@ -2081,7 +2081,7 @@ class Allocator {
                             // notify a user only if he gets a new task, otherwise users alredy knew that thay had tasks.
                             if(_.contains(old_users, task.previous_userID)){ 
                                 if(JSON.parse(ti.Status)[0] == 'started'){
-                                    email.sendNow(task.userID, 'new_reallocated', null );
+                                    email.sendNow(task.userID, 'new_reallocated', {'ti_id': task.ti_id, 'extra_credit': false});
                                 }
                             }
                         }

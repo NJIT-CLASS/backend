@@ -188,7 +188,7 @@ class Manager {
             }
         }).then(function (taskInstances) {
             taskInstances.forEach(function (task) {
-                email.send(task.UserID, 'late');
+                email.send(task.UserID, 'late', {'ti_id': task.TaskInstanceID});
             });
         });
     }
