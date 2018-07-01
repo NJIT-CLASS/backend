@@ -148,7 +148,7 @@ class Grade {
                 attributes: ['WorkflowActivityID']
             }]
         });
-
+        console.log('add task grade ai_id :', ti.AssignmentInstanceID);
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
         var user_history = JSON.parse(ti.UserHistory);
@@ -408,13 +408,13 @@ class Grade {
             });
 
             //var original = await x.gradeBelongsTo(ti);
-            var original = ti.ReferencedTask;
+            var original_id = ti.ReferencedTask;
             //return [wi.WorkflowActivityID, ti.TaskInstanceID, ti.FinalGrade];
-            if(original === null || typeof original === null){
+            if(original_id === null || typeof original_id === null){
                 return null;
             } else {
                 return {
-                    'id': original.id,
+                    'id': original_id,
                     'grade': ti.FinalGrade,
                     'max_grade': 100
                 };

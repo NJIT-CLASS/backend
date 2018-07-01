@@ -8,5 +8,3 @@ exports.FRONT_SERVER_PORT ='4001';
 exports.TOKEN_KEY = process.env.tokenSecret || 'secretKey';
 exports.TOKEN_LIFE = process.env.tokenLife || '6h';
 exports.REFRESH_TOKEN_LIFE = process.env.refreshTokenLife || 14;
-exports.EMAIL_PASSWORD = 'plamaster123';
-exports.SERVER_EMAIL = 'njitplamaster@gmail.com';
