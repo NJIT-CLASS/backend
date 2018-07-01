@@ -647,10 +647,21 @@ class Grade {
             where:{
                 AssignmentID: ai.AssignmentID
             },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName', 'RefersToWhichTask']
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName', 'RefersToWhichTask', 'SimpleGrade']
         }).catch(function(err){
             console.log(err);
         });
+
+        let simple_grade_max = {}
+        await Promise.mapSeries(ta, (task) =>{
+            if(!_.has(simple_grade_max, task.WorkflowActivityID)){
+                simple_grade_max[task.WorkflowActivityID] = 0;
+            }
+
+            if(task.SimpleGrade != 'none'){
+                simple_grade_max[task.WorkflowActivityID] += 1;
+            }
+        })
 
         var sec_users = await SectionUser.findAll({
             where:{
@@ -674,7 +685,8 @@ class Grade {
                 'Assignment': ai_grade,
                 'Workflow': wi_grade,
                 'Task': ti_grade,
-                'SimpleGrade': simple_grade
+                'SimpleGrade': simple_grade,
+                'SimpleGradeMax': simple_grade_max
             }
         }
 
