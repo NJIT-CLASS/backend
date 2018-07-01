@@ -3,7 +3,7 @@ import {
     MASTER_PASSWORD,
     EMAIL_SERVER_STATUS
 } from '../Util/constant.js';
-import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER, RESET_TASK, REVISE, INVITE_USER_NEW_TO_SYSTEM, REALLOCATE} from '../Util/emailTemplate.js';
+import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER, RESET_TASK, REVISE, INVITE_USER_NEW_TO_SYSTEM, REALLOCATE, REMOVE_REALLOCATE, CANCEL, BYPASS} from '../Util/emailTemplate.js';
 import {SERVER_PORT} from '../backend_settings.js';
 var models = require('../Model');
 var Promise = require('bluebird');
@@ -235,23 +235,25 @@ class Email {
                     });
                     break;
                 case 'reset':
+                    template = await RESET_TASK(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: RESET_TASK.subject,
-                        text: RESET_TASK.text,
-                        html: RESET_TASK.html
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
                 case 'remove_reallocated':
+                    template = await REMOVE_REALLOCATE(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'You have removed from a task - PLA',
-                        text: 'You have been removed from a task, a new user has been reallcated to replace your duty',
-                        html: ''
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
                 case 'new_reallocated':
@@ -266,27 +268,27 @@ class Email {
                     });
                     break;
                 case 'task_cancelled':
+                    template = await CANCEL(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Your task has been cancelled - PLA',
-                        text: 'One of your tasks has been cancelled, you will no longer be able to complete it',
-                        html: ''
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
-                    
                 case 'task_bypassed':
+                    template = await BYPASS(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Your task has been bypassed - PLA',
-                        text: 'One of your tasks has been bypassed, you will no longer be able to complete it',
-                        html: ''
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
-
                 case 'reset password':
                     console.log('resetting password');
                     template = await RESET_PASS(data);

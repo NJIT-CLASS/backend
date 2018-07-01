@@ -828,7 +828,7 @@ class Allocator {
         /* send emails */
         if(change_date_option != 'extend_only_if_late'){ // dont send emails when canceling workflow, emails send before calling this function
             if(ti_status[0] == 'started'){
-                email.sendNow(ti.UserID, 'remove_reallocated');     // old user
+                email.sendNow(ti.UserID, 'remove_reallocated', {'ti_id': ti.TaskInstanceID});     // old user
                 email.sendNow(new_u_id, 'new_reallocated', {'ti_id': ti.TaskInstanceID, 'extra_credit': is_extra_credit});        // new user
             }
         }
@@ -2075,7 +2075,7 @@ class Allocator {
                             await x.reallocate_user_to_task(ti,task.userID, task.is_extra_credit, true, 'extend_only_if_late'); 
                             // if task was extra credit, viewed, and relocated, notify the user he was removed
                             if(task.viewed && task.was_extra_credit){   
-                                await email.sendNow(task.previous_userID,'remove_reallocated', null );
+                                await email.sendNow(task.previous_userID,'remove_reallocated', {'ti_id': task.ti_id} );
                                 logger.log('debug', 'sending email to removed user of extra credit task in workflow cancellation');
                             }
                             // notify a user only if he gets a new task, otherwise users alredy knew that thay had tasks.

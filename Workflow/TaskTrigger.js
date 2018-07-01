@@ -1147,7 +1147,7 @@ class TaskTrigger {
                 }
             }
 
-            email.sendNow(ti.UserID, 'reset');
+            email.sendNow(ti.UserID, 'reset', {'ti_id': ti_id});
 
             await TaskGrade.destroy({
                 where:{
@@ -1243,7 +1243,7 @@ class TaskTrigger {
         }
 
 
-        email.sendNow(ti.UserID, 'reset');
+        email.sendNow(ti.UserID, 'reset', {'ti_id': ti.TaskInstanceID});
 
         await TaskGrade.destroy({
             where:{

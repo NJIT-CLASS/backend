@@ -260,16 +260,44 @@ exports.REALLOCATE = async (data) => {
     
 };
 
-exports.RESET_TASK = {
-    subject: 'Reset Task - Participatory Learning',
-    text:(`Hi,\nA task has been reset. Please visit https://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task.\n\n
-        ${SUPPORT_STRING}
-    `),
-    html:(`
-        <p>Hi,</p><br>
-        <p>A new task has been reset.<div>Please visit https://pla.njit.edu:${FRONT_SERVER_PORT} to complete the task</div></p>
-        <br><br>${SUPPORT_HTML}
-    `)
+
+exports.REMOVE_REALLOCATE = async (data) => {
+    if(data.ti_id === null || typeof data.ti_id === undefined){
+        logger.log('error', '/emailTemplate/Remove Reallocate: No TaskInstanceID provided.');
+    }
+
+    let info = await getInfoForTask(data.ti_id);
+
+    return {
+        subject: `${info.number}: You have removed from ${info.assignment_display_name}`,
+        text: (`Hello,\n\nYou have been removed from a task, a new user has been reallcated to replace your duty.
+        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nTo contact instructor: 
+        ${info.instructors.map(function (instructor) {
+            return `${instructor.name}:  ${instructor.email}\n`          
+        })}
+        \n${SUPPORT_STRING}`)
+    } 
+};
+
+exports.RESET_TASK = async (data) => {
+    if(data.ti_id === null || typeof data.ti_id === undefined){
+        logger.log('error', '/emailTemplate/Reset Task: No TaskInstanceID provided.');
+    }
+
+    let info = await getInfoForTask(data.ti_id);
+
+    return {
+        subject: `${info.number}: Task Reset for ${info.assignment_display_name}`,
+        text: (`Hello,\n\nYou have a task being reset in the Particatory Learning system:
+        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
+        \nThank you for completing your tasks on time!
+        \nTo contact instructor: 
+        ${info.instructors.map(function (instructor) {
+            return `${instructor.name}:  ${instructor.email}\n`          
+        })}
+        \n${SUPPORT_STRING}`)
+    } 
 };
 
 exports.NEW_PASSWORD = {
@@ -322,6 +350,44 @@ exports.RESET_PASS = function(data){
             ${SUPPORT_HTML}</div>
         `)
     };
+};
+
+exports.CANCEL = async (data) => {
+    if(data.ti_id === null || typeof data.ti_id === undefined){
+        logger.log('error', '/emailTemplate/Revise: No TaskInstanceID provided.');
+    }
+
+    let info = await getInfoForTask(data.ti_id);
+
+    return {
+        subject: `${info.number}: Task Cancelled for ${info.assignment_display_name}`,
+        text: (`Hello,\n\nOne of your tasks has been cancelled, you will no longer be able to complete it.
+        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
+        \nTo contact instructor: 
+        ${info.instructors.map(function (instructor) {
+            return `${instructor.name}:  ${instructor.email}\n`          
+        })}
+        \n${SUPPORT_STRING}`)
+    } 
+};
+
+exports.BYPASS = async (data) => {
+    if(data.ti_id === null || typeof data.ti_id === undefined){
+        logger.log('error', '/emailTemplate/Revise: No TaskInstanceID provided.');
+    }
+
+    let info = await getInfoForTask(data.ti_id);
+
+    return {
+        subject: `${info.number}: Task Bypassed for ${info.assignment_display_name}`,
+        text: (`Hello,\n\nOne of your tasks has been bypassed.
+        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
+        \nTo contact instructor: 
+        ${info.instructors.map(function (instructor) {
+            return `${instructor.name}:  ${instructor.email}\n`          
+        })}
+        \n${SUPPORT_STRING}`)
+    } 
 };
 
 exports.NEW_REPLY = function(data){

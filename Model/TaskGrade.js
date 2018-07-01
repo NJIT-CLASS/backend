@@ -43,6 +43,12 @@ module.exports = function (sequelize, DataTypes) {
             field: 'WorkflowActivityID',
             allowNull: false
         },
+        TaskActivityID: {
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'TaskActivityID',
+            allowNull: false
+        },
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'Grade',

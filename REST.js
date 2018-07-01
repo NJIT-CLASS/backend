@@ -597,14 +597,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/test', adminAuthentication, async function (req, res) {
         let email = new Email();
-        email.sendNow(327, 'revise', {'ti_id': 12946});
-        email.sendNow(327, 'reset password', {'pass': 12946});
-        email.sendNow(327, 'new_task', {'ti_id': 12946});
-        email.sendNow(327, 'late', {'ti_id': 12946});
-        email.sendNow(327, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456});
-        email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
-        email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
-        email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});
+        // email.sendNow(327, 'revise', {'ti_id': 12946});
+        // email.sendNow(327, 'reset password', {'pass': 12946});
+        // email.sendNow(327, 'new_task', {'ti_id': 12946});
+        // email.sendNow(327, 'late', {'ti_id': 12946});
+        // email.sendNow(327, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456});
+        // email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
+        // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
+        // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});
+        email.sendNow(327, 'remove_reallocated', {'ti_id': 12946});
+        email.sendNow(327, 'reset', {'ti_id': 12946});
+        email.sendNow(327, 'task_cancelled', {'ti_id': 12946});
+        email.sendNow(327, 'task_bypassed', {'ti_id': 12946});
         res.status(200).end();
     });
     //-------------------------------------------------------------------
@@ -10672,7 +10676,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             await trigger.cancelAll(ti);
             if(ti_status[0] == 'started'){
                 var email = new Email();
-                email.sendNow(ti.UserID, 'task_cancelled');   // send email only to the task that was cancelled, not follow on
+                email.sendNow(ti.UserID, 'task_cancelled', {'ti_id': req.body.ti_id});   // send email only to the task that was cancelled, not follow on
             }
             res.json({
                 Error: false,

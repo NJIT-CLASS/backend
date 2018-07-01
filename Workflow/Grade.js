@@ -407,7 +407,8 @@ class Grade {
                 },
             });
 
-            var original = await x.gradeBelongsTo(ti);
+            //var original = await x.gradeBelongsTo(ti);
+            var original = ti.ReferencedTask;
             //return [wi.WorkflowActivityID, ti.TaskInstanceID, ti.FinalGrade];
             if(original === null || typeof original === null){
                 return null;
@@ -415,7 +416,7 @@ class Grade {
                 return {
                     'id': original.id,
                     'grade': ti.FinalGrade,
-                    'max_grade': original.max_grade
+                    'max_grade': 100
                 };
             }
             
