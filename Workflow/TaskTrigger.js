@@ -57,6 +57,7 @@ var moment = require('moment');
 var consts = require('../Util/constant.js');
 var Email = require('./Email.js');
 var Grade = require('./Grade.js');
+var TaskFactory = require('./TaskFactory.js');
 var Util = require('./Util.js');
 var _ = require('underscore');
 
@@ -65,6 +66,7 @@ const logger = require('./Logger.js');
 var email = new Email();
 var grade = new Grade();
 var util = new Util();
+let taskFactory = new TaskFactory();
 
 
 
@@ -80,11 +82,17 @@ class TaskTrigger {
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: ti_id
-            }
+            },
+            include:[{
+                model: TaskActivity,
+                attributes: ['SimpleGrade']
+            }]
         });
 
-        await grade.addSimpleGrade(ti_id);
-
+        if(ti.TaskActivity.SimpleGrade !== 'none'){
+            await grade.addSimpleGrade(ti_id);
+        }
+        
         if (ti.NextTask === '[]') { //no more task in this branch
             await x.completed(ti_id);
         } else {
@@ -232,6 +240,7 @@ class TaskTrigger {
 
             if (type === 'edit' || type === 'comment') {
                 await x.triggerNext(next_task);
+                
             }
         });
 
@@ -321,6 +330,7 @@ class TaskTrigger {
             });
             //Check if all grading solution are completed
             if (JSON.parse(pre.Status)[0] !== 'complete' && JSON.parse(pre.Status)[0] !== 'automatic' && JSON.parse(pre.Status)[0] !== 'bypassed') {
+                console.log('here all false')
                 is_all_completed = false;
             }
         });
@@ -376,7 +386,7 @@ class TaskTrigger {
                             final_grade += (data[val][0]/field[val].rating_max)*(distribution/100)*100;
                         } else if (field[val].assessment_type === 'pass') {
                             if(data[val][0] == 'pass'){
-                                final_grade += (distribution/100)*100;
+                                final_grade += field[val].numeric_max*(distribution/100)*100;
                             }
                         } else if (field[val].assessment_type === 'evaluation') {
                             let label_length = field[val].list_of_labels.length;
@@ -402,7 +412,7 @@ class TaskTrigger {
 
             //checks if the grades exceed threshold
             if (JSON.parse(ta.TriggerConsolidationThreshold)[1] == 'percent') {
-                var percent = (max - min) / maxGrade * 100;
+                var percent = (max - min);
                 if (percent > JSON.parse(ta.TriggerConsolidationThreshold)[0]) {
                     triggerConsolidate = true;
                 }
@@ -631,11 +641,11 @@ class TaskTrigger {
 
         var newStartDate = await moment().add(JSON.parse(ta.StartDelay), 'minutes');
         var newEndDate = await moment().add(JSON.parse(ta.StartDelay), 'minutes');
-        if (JSON.parse(ta.DueType)[0] === 'duration') {
-            await newEndDate.add(JSON.parse(ta.DueType)[1], 'minutes');
+        if (JSON.parse(ti.DueType)[0] === 'duration') {
+            await newEndDate.add(JSON.parse(ti.DueType)[1], 'minutes');
             //await newEndDate.add(1, 'minutes');
-        } else if (JSON.parse(ta.DueType)[0] === 'specific time') {
-            newEndDate = await moment(JSON.parse(ta.DueType)[1]).toDate();
+        } else if (JSON.parse(ti.DueType)[0] === 'specific time') {
+            newEndDate = await moment(JSON.parse(ti.DueType)[1]).toDate();
         }
 
         return [newStartDate, newEndDate];
@@ -691,7 +701,7 @@ class TaskTrigger {
 
         if (final_grade === 0) {
             logger.log('info', 'no grade has been found!');
-            return null;
+            return 0;
 
         } else {
             // logger.log('info', 'grade has been found!', {
@@ -754,7 +764,8 @@ class TaskTrigger {
         original_data[original_data.length - 1].revise_and_resubmit = { 'data': data, 'fields': JSON.parse(ti.TaskActivity.Fields) };
 
         var status = JSON.parse(original_task.Status);
-        status[0] = 'started';
+        status[0] = "started";
+        status[4] = "not_opened";
 
         await TaskInstance.update({
             Status: JSON.stringify(status),
@@ -765,7 +776,7 @@ class TaskTrigger {
             }
         });
 
-        email.sendNow(original_task.UserID, 'revise');
+        email.sendNow(original_task.UserID, 'revise', {'ti_id': original_task.TaskInstanceID});
     }
 
 
@@ -943,6 +954,307 @@ class TaskTrigger {
                 }
         }).catch(function (err) {
             logger.log('error', 'cancel_task, failed to update', err);
+        });
+    }
+
+    async submit(req){
+        var ti = await TaskInstance.find({
+            where: {
+                TaskInstanceID: req.body.taskInstanceid,
+            },
+            include: [{
+                model: TaskActivity,
+                attributes: ['Type', 'AllowRevision', 'AllowReflection'],
+            }, ],
+        });
+
+        if (JSON.parse(ti.Status)[0] === 'complete') {
+            logger.log('error', 'The task has been complted already');
+            return res.status(400).end();
+        }
+
+        
+        //Ensure userid input matches TaskInstance.UserID
+        if (req.body.userid != ti.UserID) {
+            logger.log('error', 'UserID Not Matched');
+            return res.status(400).end();
+        }
+        if (ti.TaskActivity.Type === 'edit' || ti.TaskActivity.Type === 'comment') {
+            await x.approved(req.body.taskInstanceid, req.body.taskInstanceData);
+        } else {
+
+            var ti_data = await JSON.parse(ti.Data);
+
+            if (!ti_data) {
+                ti_data = [];
+            }
+
+            await ti_data.push(req.body.taskInstanceData);
+
+            var newStatus = JSON.parse(ti.Status);
+            newStatus[0] = 'complete';
+
+            var final_grade = await x.finalGrade(ti, req.body.taskInstanceData);
+
+            var done = await TaskInstance.update({
+                Data: ti_data,
+                ActualEndDate: new Date(),
+                Status: JSON.stringify(newStatus),
+                FinalGrade: final_grade
+            }, {
+                where: {
+                    TaskInstanceID: req.body.taskInstanceid,
+                    UserID: req.body.userid,
+                }
+            });
+
+            var new_ti = await TaskInstance.find({
+                where: {
+                    TaskInstanceID: req.body.taskInstanceid,
+                },
+                include: [{
+                    model: TaskActivity,
+                    attributes: ['Type'],
+                }, ],
+            });
+
+            logger.log('info', 'task instance updated');
+            logger.log('info', 'triggering next task');
+
+            await x.next(req.body.taskInstanceid);
+        }
+
+        return res.status(200).end();
+    }
+
+
+    async reset(ti_id, duration, keep_content){
+            let x = this;
+            let ti = await TaskInstance.find({
+                where:{
+                    TaskInstanceID: ti_id
+                }
+            });
+            
+            if(JSON.parse(ti.Status)[0] == 'not_yet_started'){
+                logger.log('error', '/TaskTrigger/reset cannot reset task because it has not yet started')
+                return;
+            }
+            
+            let newStartDate = moment();
+            let newEndDate = moment();
+
+            if(duration == '[]'){ //if nothing specified, calculate original time duration and halves
+                if(JSON.parse(ti.DueType)[0] == "specific time"){
+                    let startDate = await moment(ti.StartDate);
+                    let endDate = await moment(ti.EndDate);
+
+                    let time = await moment.duration(endDate.diff(startDate));
+                    let minutes = await time.asMinutes();
+
+                    await newEndDate.add(minutes/2, 'minutes');
+                    
+                } else if (JSON.parse(ti.DueType)[0] == "duration"){
+                    await newEndDate.add(JSON.parse(ti.DueType)[1], 'minutes');
+                } else {
+                    logger.log('error', '/TaskTrigger/reset/ failed to reset task in 1');
+                    return;
+                }
+            } else { //expecting ["duration", minutes] or ["specific time", {startDate: date, endDate: date}]
+                duration = JSON.parse(duration);
+
+                if(JSON.parse(ti.DueType)[0] == "specific time"){
+                    newStartDate = duration[1].startDate;
+                    newEndDate = duration[1].endDate;
+                    
+                } else if (JSON.parse(ti.DueType)[0] == "duration"){
+                    await newEndDate.add(duration[1], 'minutes');
+                } else {
+                    logger.log('error', '/TaskTrigger/reset/ failed to reset task in 1');
+                    return;
+                }
+            }
+
+            if(JSON.parse(ti.Status)[0] == 'automatic'){//when reset task is needs_consolidation
+                logger.log('info', '/TaskTrigger/reset: automatic task re-triggering needs cosolidation');
+
+                var u_history = JSON.parse(ti.UserHistory);
+                u_history.push({
+                    time: new Date(),
+                    user_id: ti.UserID,
+                    message: 'task has been reset',
+                    is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
+                });
+
+                
+                await TaskInstance.update({
+                    StartDate: null,
+                    EndDate: null,
+                    ActualEndDate: null,
+                    FinalGrade: null,
+                    UserHistory: u_history
+                }, {
+                    where:{
+                        TaskInstanceID: ti_id
+                    }
+                });
+                await x.resetFollowingTask(ti.TaskInstanceID, JSON.parse(ti.NextTask), keep_content);
+                await x.needsConsolidate(ti);
+            } else {
+
+                var status = JSON.parse(ti.Status);
+                status[0] = 'started';
+                status[2] = 'n/a';
+                status[4] = 'not_opened';
+
+                var u_history = JSON.parse(ti.UserHistory);
+                u_history.push({
+                    time: new Date(),
+                    user_id: ti.UserID,
+                    message: 'task has been reset',
+                    is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
+                });
+
+
+                await x.resetFollowingTask(ti.TaskInstanceID, JSON.parse(ti.NextTask), keep_content);
+                if(keep_content == true){
+                    await TaskInstance.update({
+                        Status: JSON.stringify(status),
+                        StartDate: newStartDate,
+                        EndDate: newEndDate,
+                        ActualEndDate: null,
+                        FinalGrade: null,
+                        UserHistory: u_history
+                    }, {
+                        where:{
+                            TaskInstanceID: ti_id
+                        }
+                    });
+                } else {
+                    await TaskInstance.update({
+                        Status: JSON.stringify(status),
+                        StartDate: newStartDate,
+                        EndDate: newEndDate,
+                        ActualEndDate: null,
+                        FinalGrade: null,
+                        Data: null,
+                        UserHistory: u_history
+                    }, {
+                        where:{
+                            TaskInstanceID: ti_id
+                        }
+                    });
+                }
+            }
+
+            email.sendNow(ti.UserID, 'reset', {'ti_id': ti_id});
+
+            await TaskGrade.destroy({
+                where:{
+                    TaskInstanceID: ti_id
+                }
+            });
+    
+            await TaskSimpleGrade.destroy({
+                where:{
+                    TaskInstanceID: ti_id
+                }
+            });
+
+
+
+    }
+
+    async resetFollowingTask(previous_ti, nextTasks, keep_content){ //recursive call to reset following tasks
+        let x = this;
+        await Promise.map(nextTasks, async function(task){
+            let ti = await TaskInstance.find({
+                where:{
+                    TaskInstanceID: task.id
+                }
+            });
+
+            if(JSON.parse(ti.Status)[0] != "not_yet_started"){
+                await x.resetTask(previous_ti, ti, keep_content);
+                await x.resetFollowingTask(previous_ti, JSON.parse(ti.NextTask), keep_content);
+            }
+        });
+    }
+
+    async resetTask(previous_ti, ti, keep_content){
+        var status = JSON.parse(ti.Status);
+        status[0] = 'not_yet_started';
+        status[2] = 'n/a';
+        status[4] = 'not_opened';
+
+        var u_history = JSON.parse(ti.UserHistory);
+        u_history.push({
+            time: new Date(),
+            user_id: ti.UserID,
+            message: 'task has been reset by previous task: ' + previous_ti,
+            is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
+        });
+
+        if(JSON.parse(ti.Status)[0] == 'automatic'){//when reset task is needs_consolidation
+            logger.log('info', '/TaskTrigger/reset: automatic task re-triggering needs cosolidation');
+            status[0] = 'automatic';
+            await TaskInstance.update({
+                StartDate: null,
+                EndDate: null,
+                ActualEndDate: null,
+                FinalGrade: null,
+                UserHistory: u_history
+            }, {
+                where:{
+                    TaskInstanceID: ti.TaskInstanceID
+                }
+            });
+
+        } else {
+            if(keep_content == true){
+                await TaskInstance.update({
+                    Status: JSON.stringify(status),
+                    StartDate: null,
+                    EndDate: null,
+                    ActualEndDate: null,
+                    FinalGrade: null,
+                    UserHistory: u_history
+                }, {
+                    where:{
+                        TaskInstanceID: ti.TaskInstanceID
+                    }
+                }
+            );
+            } else {
+                await TaskInstance.update({
+                    Status: JSON.stringify(status),
+                    StartDate: null,
+                    EndDate: null,
+                    ActualEndDate: null,
+                    FinalGrade: null,
+                    Data: null,
+                    UserHistory: u_history
+                }, {
+                    where:{
+                        TaskInstanceID: ti.TaskInstanceID
+                    }
+                });
+            }
+        }
+
+
+        email.sendNow(ti.UserID, 'reset', {'ti_id': ti.TaskInstanceID});
+
+        await TaskGrade.destroy({
+            where:{
+                TaskInstanceID: ti.TaskInstanceID
+            }
+        });
+
+        await TaskSimpleGrade.destroy({
+            where:{
+                TaskInstanceID: ti.TaskInstanceID
+            }
         });
     }
 

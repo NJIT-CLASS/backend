@@ -25,7 +25,7 @@ module.exports = function (sequelize, DataTypes) {
             //Foreign Key
             type: DataTypes.INTEGER.UNSIGNED,
             field: 'UserID',
-            allowNull: false
+            allowNull: true
         },
         TaskActivityID: {
             //Unique Identifier for the task activity.
@@ -131,6 +131,12 @@ module.exports = function (sequelize, DataTypes) {
             field: 'EmailLastSent',
             allowNull: false,
             defaultValue: '1999-01-01T00:00:00'
+        },
+        DueType: { //* DueType
+            //Maximum duration of the task in minutes
+            type: DataTypes.JSON,
+            field: 'DueType',
+            allowNull: true
         }
 
     }, {

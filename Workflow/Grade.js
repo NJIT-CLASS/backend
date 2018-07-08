@@ -122,6 +122,8 @@ class Grade {
                 logger.log('error', '/Workflow/Grade/addSimpleGrade: cannot create task simple grade', {
                     error: err
                 });
+
+                return;
             }
         }
 
@@ -146,7 +148,7 @@ class Grade {
                 attributes: ['WorkflowActivityID']
             }]
         });
-
+        console.log('add task grade ai_id :', ti.AssignmentInstanceID);
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
         var user_history = JSON.parse(ti.UserHistory);
@@ -405,14 +407,19 @@ class Grade {
                 },
             });
 
-            var original = await x.gradeBelongsTo(ti);
+            //var original = await x.gradeBelongsTo(ti);
+            var original_id = ti.ReferencedTask;
             //return [wi.WorkflowActivityID, ti.TaskInstanceID, ti.FinalGrade];
-
-            return {
-                'id': original.id,
-                'grade': ti.FinalGrade,
-                'max_grade': original.max_grade
-            };
+            if(original_id === null || typeof original_id === null){
+                return null;
+            } else {
+                return {
+                    'id': original_id,
+                    'grade': ti.FinalGrade,
+                    'max_grade': 100
+                };
+            }
+            
 
         } else if (ti.FinalGrade === null && ti.PreviousTask !== null) {
 
@@ -437,7 +444,7 @@ class Grade {
 
     async gradeBelongsTo(ti) {
         var x = this;
-        logger.log('info', '/Workflow/Grade/gradeBelongsTo: searching for user...');
+        logger.log('info', '/Workflow/Grade/gradeBelongsTo: searching for user... TaskActivityID: ',ti.TaskActivityID);
         var ta = await TaskActivity.find({
             where: {
                 TaskActivityID: ti.TaskActivityID
@@ -472,6 +479,11 @@ class Grade {
                 'max_grade': 100
             };
         } else {
+            if(ti.PreviousTask === null || typeof ti.PreviousTask === undefined){
+                logger.log('info', '/Workflow/Grade/gradeBelongsTo: no previous task, function end', ti.PreviousTask);
+                return null;
+            }
+
             var pre_ti = await TaskInstance.find({
                 where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
@@ -635,10 +647,21 @@ class Grade {
             where:{
                 AssignmentID: ai.AssignmentID
             },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName', 'RefersToWhichTask']
+            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName', 'RefersToWhichTask', 'SimpleGrade']
         }).catch(function(err){
             console.log(err);
         });
+
+        let simple_grade_max = {}
+        await Promise.mapSeries(ta, (task) =>{
+            if(!_.has(simple_grade_max, task.WorkflowActivityID)){
+                simple_grade_max[task.WorkflowActivityID] = 0;
+            }
+
+            if(task.SimpleGrade != 'none'){
+                simple_grade_max[task.WorkflowActivityID] += 1;
+            }
+        })
 
         var sec_users = await SectionUser.findAll({
             where:{
@@ -662,7 +685,8 @@ class Grade {
                 'Assignment': ai_grade,
                 'Workflow': wi_grade,
                 'Task': ti_grade,
-                'SimpleGrade': simple_grade
+                'SimpleGrade': simple_grade,
+                'SimpleGradeMax': simple_grade_max
             }
         }
 

@@ -3,7 +3,7 @@ import {
     MASTER_PASSWORD,
     EMAIL_SERVER_STATUS
 } from '../Util/constant.js';
-import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER} from '../Util/emailTemplate.js';
+import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER, RESET_TASK, REVISE, INVITE_USER_NEW_TO_SYSTEM, REALLOCATE, REMOVE_REALLOCATE, CANCEL, BYPASS} from '../Util/emailTemplate.js';
 import {SERVER_PORT} from '../backend_settings.js';
 var models = require('../Model');
 var Promise = require('bluebird');
@@ -82,14 +82,15 @@ var transporter = nodemailer.createTransport(
             user: MASTER_EMAIL,
             pass: MASTER_PASSWORD
         }
-    }));
+    })
+);
 
 let email = MASTER_EMAIL;
 
 // verify connection configuration
 transporter.verify(function (error, success) {
     if (error) {
-        console.log(error);
+        console.log('transporter verify ',error);
     } else {
         console.log('Server is ready to take our messages');
     }
@@ -120,12 +121,12 @@ class Email {
             html: opts.body
         };
 
-        console.log('Sending Mail...');
+        //console.log('Sending Mail...');
 
         // Send mail
         transporter.sendMail(mailOpts, function (error, response) {
             if (error) {
-                console.log(error);
+                //console.log(error);
             } else {
                 console.log('Message sent: ', response);
             }
@@ -142,6 +143,7 @@ class Email {
         //return; //for testting purposes
         if (active) {
             var x = this;
+            let template;
             await UserLogin.find({
                 where: {
                     UserID: userid
@@ -151,7 +153,6 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
-                //send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
@@ -176,8 +177,20 @@ class Email {
                     //     });
                     //     break;
                 case 'invite user':
-                    console.log('inviting ' + send);
-                    let template = await INVITE_USER(data);
+                    //console.log('inviting ' + send);
+                    template = await INVITE_USER(data);
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: template.subject,
+                        text: template.text,
+                        html: template.html
+                    });
+                    break;
+                case 'invite_user_new_to_system':
+                    //console.log('inviting ' + send);
+                    template = await INVITE_USER_NEW_TO_SYSTEM(data);
                     await x.send({
                         from: email,
                         replyTo: email,
@@ -188,106 +201,103 @@ class Email {
                     });
                     break;
                 case 'new_task':
-                    console.log('notifying ' + send);
-                    // let task = await TaskInstance.find({
-                    //     where:{
-                    //         TaskInstanceID: data.ti_id
-                    //     },
-                    //     attributes: ['AssignmentInstanceID'],
-                    //     include: [{
-                    //         model: AssignmentInstance,
-                    //         include: [{
-                    //             model: Section,
-                    //             include:[{
-                    //                 model:Course
-                    //             }]
-                    //         }]
-                    //     }]
-                    // });
-                    // let template = await NEW_TASK(data);
+                    template = await NEW_TASK(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: NEW_TASK.subject,
-                        text: NEW_TASK.text,
-                        html: NEW_TASK.html
-                    });
-                    break;
-
-                case 'late':
-                    await x.send({
-                        from: email,
-                        replyTo: email,
-                        to: send,
-                        subject: LATE.subject,
-                        text: LATE.text,
-                        html: LATE.html
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
                 case 'late':
+                    template = await LATE(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: REVISE.subject,
-                        text: REVISE.text,
-                        html: REVISE.html
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
+                    });
+                    break;
+                case 'revise':
+                    template = await REVISE(data);
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
+                    });
+                    break;
+                case 'reset':
+                    template = await RESET_TASK(data);
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
                 case 'remove_reallocated':
+                    template = await REMOVE_REALLOCATE(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'You have removed from a task - PLA',
-                        text: 'You have been removed from a task, a new user has been reallcated to replace your duty',
-                        html: ''
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
                 case 'new_reallocated':
+                    template = await REALLOCATE(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Reallocated to a new task - PLA',
-                        text: 'Hi, you have been reallocated to a new task, please complete as soon as possible',
-                        html: ''
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
-
                 case 'task_cancelled':
+                    template = await CANCEL(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Your task has been cancelled - PLA',
-                        text: 'One of your tasks has been cancelled, you will no longer be able to complete it',
-                        html: ''
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
-                    
                 case 'task_bypassed':
+                    template = await BYPASS(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: 'Your task has been bypassed - PLA',
-                        text: 'One of your tasks has been bypassed, you will no longer be able to complete it',
-                        html: ''
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
                     });
                     break;
-
                 case 'reset password':
                     console.log('resetting password');
-                    let template2 = await RESET_PASS(data);
+                    template = await RESET_PASS(data);
                     await x.send({
                         from: email,
                         replyTo: email,
                         to: send,
-                        subject: template2.subject,
-                        text: template2.text,
-                        html: template2.html
+                        subject: template.subject,
+                        text: template.text,
+                        html: template.html
                     });
                     break;
                 case 'new password':
