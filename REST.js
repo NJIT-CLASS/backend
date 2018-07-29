@@ -827,7 +827,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('error', '/task/reset: no duration.');
             res.status(400).end();
         }
-        console.log('/task/reset:' ,req.body)
+        console.log('/task/reset:' ,req.body);
 
         console.log('/task/reset:',req.body);
         var trigger = new TaskTrigger();
@@ -2806,7 +2806,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fileArray = [];
         try{
             let fileInfoJSON = JSON.parse(result.Files);
-
+        } catch(e){
             await Promise.map(fileInfoJSON, async file => {
                 var fr = await FileReference.findOne({
                     where: {
@@ -2817,9 +2817,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 fileArray.push(fr);
             });
-
-        } catch(e){
-            console.log('File list err:', e);
         }
 
         return res.json({
@@ -7495,6 +7492,44 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(result => {
             return res.json(result);
         });
+    });
+
+    router.post('/taskInstance/getSingle',function(req,res){
+        var taskInstanceId = req.body.taskInstanceId;
+        var taskActivityId = req.body.taskActivityId;
+        var userId = req.body.UserID;
+        var queryString = `
+        SELECT Data FROM taskinstance WHERE 
+        TaskActivityID = :taskActivityId 
+        AND WorkflowInstanceID = (
+            SELECT WorkflowInstanceID From taskinstance WHERE TaskInstanceID=:taskInstanceId
+            AND UserID = :userId 
+        )
+        LIMIT 1`;
+
+        sequelize.query(queryString,
+            {
+                replacements: {
+                    taskActivityId: taskActivityId,
+                    taskInstanceId: taskInstanceId,
+                    userId: userId
+
+                }
+            })
+            .then(function(queryResult){
+                if(queryResult == null || queryResult[0] == null){
+                    return res.status(400).end();
+                }
+                return res.json({
+                    'Data': JSON.parse(queryResult[0][0].Data)
+                });
+            })
+            .catch(function(err){
+                console.log(err);
+                return res.status(400).end();
+            })
+        ;
+            
     });
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
