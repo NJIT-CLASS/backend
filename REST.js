@@ -2,12 +2,10 @@ import {
     Assignment,
     AssignmentGrade,
     AssignmentInstance,
-    AssignmentInstance_Archive,
-    Assignment_Archive,
-    Badge,
-    BadgeInstance,
-    Category,
-    CategoryInstance,
+    //AssignmentInstance_Archive,
+    ArchivedAssignment,
+    ArchivedAssignmentInstance,
+    RemovedAssignmentInstance,
     Comments,
     CommentsArchive,
     CommentsViewed,
@@ -321,7 +319,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 user.Attempts = 0;
                 user.save().then((result) => {
                     let email = new Email();
-                    email.sendNow(result.UserID, 'reset password', temp_pass);
+                    email.sendNow(result.UserID, 'reset password', {'pass':temp_pass});
                     res.status(200).end();
 
                 });
@@ -412,7 +410,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         });
                                 }).then(function(userLogin) {
                                     let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    email.sendNow(user.UserID, 'invite user', {'pass':'[user defined]'});
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -2935,7 +2933,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         });
                                 }).then(function(userLogin) {
                                     let email = new Email();
-                                    email.sendNow(user.UserID, 'invite user', '[user defined]');
+                                    email.sendNow(user.UserID, 'invite user', {'pass':'[user defined]'});
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                         .then(function() {
                                             res.json({
@@ -3008,7 +3006,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     console.log(err);
                                 }).then(function (userLogin) {
                                     //Email User With Password
-                                    email.sendNow(userLogin.UserID, 'create user', req.body.password);
+                                    email.sendNow(userLogin.UserID, 'create user', {'pass':req.body.password});
                                     SectionUser.create({
                                         SectionID: req.body.sectionid,
                                         UserID: userLogin.UserID,
@@ -5313,7 +5311,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                 });
 
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+                                                email.sendNow(user.UserID, 'invite user', {'pass':temp_pass});
 
                                                 return sectionUser;
 
@@ -5467,7 +5465,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                     });
                                             }).then(function (userLogin) {
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite user', temp_pass);
+                                                email.sendNow(user.UserID, 'invite user', {'pass':temp_pass});
                                                 return SectionUser.create({
                                                     SectionID: req.params.sectionid,
                                                     UserID: userLogin.UserID,

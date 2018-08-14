@@ -235,6 +235,7 @@ class Email {
                     break;
                 case 'reset password':
                     console.log('resetting password');
+                    console.log(data);
                     template = await RESET_PASS(data);
                     await x.send({
                         from: email,
