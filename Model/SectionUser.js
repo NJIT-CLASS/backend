@@ -42,10 +42,10 @@ module.exports = function(sequelize, DataTypes) {
             defaultValue: true
         },
         Volunteer: {
-            type: DataTypes.STRING(20),
+            type: DataTypes.BOOLEAN,
             field: 'Volunteer',
-            allowNull: true,
-            defaultValue: 0
+            allowNull: false,
+            defaultValue: false
         }
     }, {
         timestamps: false,
