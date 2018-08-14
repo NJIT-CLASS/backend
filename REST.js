@@ -817,8 +817,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             logger.log('error', '/task/reset: no duration.');
             res.status(400).end();
         }
-        console.log('/task/reset:' ,req.body)
+        console.log('/task/reset:' ,req.body);
 
+        console.log('/task/reset:',req.body);
         var trigger = new TaskTrigger();
         await trigger.reset(req.body.ti_id, req.body.duration, req.body.keep_content);
         res.status(200).end();
@@ -2176,125 +2177,128 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //Endpoint to retrieve all the assignment and its current state
     router.get('/getAssignmentRecord/:assignmentInstanceid',  participantAuthentication, function (req, res) {
-        var taskFactory = new TaskFactory();
+        // var taskFactory = new TaskFactory();
 
         console.log('/getAssignmentRecord/:assignmentInstanceid: Initiating...');
 
-        var tasks = [];
+        // var tasks = [];
         var info = {};
+
+        // return AssignmentInstance.find({
+        //     where: {
+        //         AssignmentInstanceID: req.params.assignmentInstanceid
+        //     }
+        // }).then(function (AI_Result) {
+
+        //     return WorkflowInstance.findAll({
+        //         where: {
+        //             AssignmentInstanceID: req.params.assignmentInstanceid
+        //         }
+        //     }).then(function (WI_Result) {
+
+        //         if (WI_Result === null || typeof WI_Result === undefined) {
+        //             //console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
+        //         } else {
+        //             //Iterate through all workflow instances found
+        //             return Promise.mapSeries(WI_Result, function (workflowInstance) {
+
+        //                 //console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
+        //                 var tempTasks = [];
+
+        //                 return Promise.mapSeries(JSON.parse(workflowInstance.TaskCollection), function (task) {
+
+        //                     //console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
+        //                     //each task is TaskInstanceID
+        //                     return TaskInstance.find({
+        //                         where: {
+        //                             TaskInstanceID: task
+        //                         },
+        //                         attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+        //                         include: [{
+        //                             model: User,
+        //                             attributes: ['UserID', 'FirstName', 'Instructor']
+        //                         }, {
+        //                             model: TaskActivity,
+
+        //                             attributes: ['Name', 'Type']
+        //                         }]
+        //                     }).then(function (taskInstanceResult) {
+
+        //                         //Array of all the task instances found within taskcollection
+        //                         if (taskInstanceResult.IsSubWorkflow === 0) {
+
+        //                             taskFactory.getSubWorkflow(taskInstanceResult.TaskInstanceID, new Array()).then(function (subworkflow) {
+        //                                 if (!taskInstanceResult.hasOwnProperty('SubWorkflow')) {
+        //                                     taskInstanceResult.setDataValue('SubWorkflow', subworkflow);
+        //                                 } else {
+        //                                     taskInstanceResult.SubWorkflow.push(sw);
+        //                                 }
+        //                             });
+
+        //                             tempTasks.push(taskInstanceResult);
+        //                         }
+        //                     });
+        //                 }).then(function (result) {
+
+        //                     //Array of arrays of all task instance collection
+        //                     tasks.push(tempTasks);
+
+                            
+        //                 });
+        //             });
+        //         }
+
+        //     }).then(function (done) {
+
+                
+
+        //     })
+        // });
+
 
         return AssignmentInstance.find({
             where: {
                 AssignmentInstanceID: req.params.assignmentInstanceid
             }
         }).then(function (AI_Result) {
-
-            return WorkflowInstance.findAll({
+            info.SectionID = AI_Result;
+            return Assignment.find({
                 where: {
-                    AssignmentInstanceID: req.params.assignmentInstanceid
-                }
-            }).then(function (WI_Result) {
+                    AssignmentID: AI_Result.AssignmentID
+                },
+                attributes: ['OwnerID', 'SemesterID', 'CourseID', 'DisplayName', 'SectionID']
+            }).then(function (A_Result) {
+                info.Assignment = A_Result;
+                //console.log("A_Result", A_Result);
+                return User.find({
+                    where: {
+                        UserID: A_Result.OwnerID
+                    },
+                    attributes: ['FirstName', 'LastName']
+                }).then(function (user) {
+                    info.User = user;
 
-                if (WI_Result === null || typeof WI_Result === undefined) {
-                    //console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
-                } else {
-                    //Iterate through all workflow instances found
-                    return Promise.mapSeries(WI_Result, function (workflowInstance) {
+                    return Course.find({
+                        where: {
+                            CourseID: A_Result.CourseID
+                        },
+                        attributes: ['Name']
+                    }).then(function (course) {
+                        info.Course = course;
 
-                        //console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
-                        var tempTasks = [];
+                        console.log('/getAssignmentRecord/:assignmentInstanceid: Done!');
 
-                        return Promise.mapSeries(JSON.parse(workflowInstance.TaskCollection), function (task) {
-
-                            //console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
-                            //each task is TaskInstanceID
-                            return TaskInstance.find({
-                                where: {
-                                    TaskInstanceID: task
-                                },
-                                attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-                                include: [{
-                                    model: User,
-                                    attributes: ['UserID', 'FirstName', 'Instructor']
-                                }, {
-                                    model: TaskActivity,
-
-                                    attributes: ['Name', 'Type']
-                                }]
-                            }).then(function (taskInstanceResult) {
-
-                                //Array of all the task instances found within taskcollection
-                                if (taskInstanceResult.IsSubWorkflow === 0) {
-
-                                    taskFactory.getSubWorkflow(taskInstanceResult.TaskInstanceID, new Array()).then(function (subworkflow) {
-                                        if (!taskInstanceResult.hasOwnProperty('SubWorkflow')) {
-                                            taskInstanceResult.setDataValue('SubWorkflow', subworkflow);
-                                        } else {
-                                            taskInstanceResult.SubWorkflow.push(sw);
-                                        }
-                                    });
-
-                                    tempTasks.push(taskInstanceResult);
-                                }
-                            });
-                        }).then(function (result) {
-
-                            //Array of arrays of all task instance collection
-                            tasks.push(tempTasks);
-
-                            return AssignmentInstance.find({
-                                where: {
-                                    AssignmentInstanceID: req.params.assignmentInstanceid
-                                }
-                            }).then(function (AI_Result) {
-                                info.SectionID = AI_Result;
-                                return Assignment.find({
-                                    where: {
-                                        AssignmentID: AI_Result.AssignmentID
-                                    },
-                                    attributes: ['OwnerID', 'SemesterID', 'CourseID', 'DisplayName', 'SectionID']
-                                }).then(function (A_Result) {
-                                    info.Assignment = A_Result;
-                                    //console.log("A_Result", A_Result);
-                                    return User.find({
-                                        where: {
-                                            UserID: A_Result.OwnerID
-                                        },
-                                        attributes: ['FirstName', 'LastName']
-                                    }).then(function (user) {
-                                        info.User = user;
-
-                                        return Course.find({
-                                            where: {
-                                                CourseID: A_Result.CourseID
-                                            },
-                                            attributes: ['Name']
-                                        }).then(function (course) {
-                                            info.Course = course;
-                                        });
-                                    });
-                                });
-                            });
+                        res.json({
+                            'Error': false,
+                            'Info': info,
                         });
                     });
-                }
-
-            }).then(function (done) {
-
-                console.log('/getAssignmentRecord/:assignmentInstanceid: Done!');
-
-                res.json({
-                    'Error': false,
-                    'Info': info,
-                    'Workflows': JSON.parse(AI_Result.WorkflowCollection),
-                    'AssignmentRecords': tasks
                 });
-
-            }).catch(function (err) {
-
-                console.log('/getAssignmentRecord: ' + err);
-                res.status(400).end();
             });
+        }).catch(function (err) {
+
+            console.log('/getAssignmentRecord: ' + err);
+            res.status(400).end();
         });
     });
 
@@ -2792,7 +2796,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let fileArray = [];
         try{
             let fileInfoJSON = JSON.parse(result.Files);
-
+        } catch(e){
             await Promise.map(fileInfoJSON, async file => {
                 var fr = await FileReference.findOne({
                     where: {
@@ -2803,9 +2807,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
                 fileArray.push(fr);
             });
-
-        } catch(e){
-            console.log('File list err:', e);
         }
 
         return res.json({
@@ -5319,14 +5320,29 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             }
         }).then((aiResult) => {
-            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
+            try{
+                let workflowsList = JSON.parse(aiResult.WorkflowCollection);
 
-            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+
+                let finalResults = fetchWorkflow(workflowsList);
+                
+                Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+                    return res.json({
+                        'Result': arrArr
+                    });
+                })
+                    .catch(function(){
+                        return res.json({
+                            'Result': []
+                        });
+                    });
+
+            } catch(exc){
                 return res.json({
-                    'Result': arrArr
+                    'Result': []
                 });
-            });
+            }
+            
         });
 
 
@@ -5417,15 +5433,21 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             }
         }).then(async(aiResult) => {
-            let workflowsList = JSON.parse(aiResult.WorkflowCollection);
-            let finalResults = fetchWorkflow(workflowsList);
-            Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+            try{
+                let workflowsList = JSON.parse(aiResult.WorkflowCollection);
+                let finalResults = fetchWorkflow(workflowsList);
+                Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
+                    return res.json({
+                        'Result': assignmentObject
+                    });
+                }).catch(err => {
+                    console.log(err);
+                });
+            } catch(exc){
                 return res.json({
                     'Result': assignmentObject
                 });
-            }).catch(err => {
-                console.log(err);
-            });
+            }
         });
 
 
@@ -7460,6 +7482,44 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(result => {
             return res.json(result);
         });
+    });
+
+    router.post('/taskInstance/getSingle',function(req,res){
+        var taskInstanceId = req.body.taskInstanceId;
+        var taskActivityId = req.body.taskActivityId;
+        var userId = req.body.UserID;
+        var queryString = `
+        SELECT Data FROM taskinstance WHERE 
+        TaskActivityID = :taskActivityId 
+        AND WorkflowInstanceID = (
+            SELECT WorkflowInstanceID From taskinstance WHERE TaskInstanceID=:taskInstanceId
+            AND UserID = :userId 
+        )
+        LIMIT 1`;
+
+        sequelize.query(queryString,
+            {
+                replacements: {
+                    taskActivityId: taskActivityId,
+                    taskInstanceId: taskInstanceId,
+                    userId: userId
+
+                }
+            })
+            .then(function(queryResult){
+                if(queryResult == null || queryResult[0] == null){
+                    return res.status(400).end();
+                }
+                return res.json({
+                    'Data': JSON.parse(queryResult[0][0].Data)
+                });
+            })
+            .catch(function(err){
+                console.log(err);
+                return res.status(400).end();
+            })
+        ;
+            
     });
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
