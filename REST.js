@@ -2249,14 +2249,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //                     //Array of arrays of all task instance collection
         //                     tasks.push(tempTasks);
 
-                            
+
         //                 });
         //             });
         //         }
 
         //     }).then(function (done) {
 
-                
+
 
         //     })
         // });
@@ -2671,7 +2671,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
         });
     });
-    
+
     router.post('/sectionUsers/changeActive/:sectionUserID', teacherAuthentication,(req, res) => {
         // TODO:  This API does a simple database update, but it may need
         // to do some special reallocation to deal with inactive students
@@ -2699,7 +2699,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         });
     });
-    /* not currently working  mss86   
+    /* not currently working  mss86
     router.post('/sectionUsers/changeActive/:sectionUserID',async (req, res) => {
         //
          //When students is made Inactive, Its Assigment's get reallocated to voluenteers/instructor
@@ -2712,7 +2712,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             var sectionUser = await SectionUser.update(
                 {
                     Active: newActiveStatus
-                }, 
+                },
                 {
                     where: {
                         SectionUserID: req.params.sectionUserID
@@ -3481,7 +3481,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         }
 
-        var isTestUSer = 'test' in req.body ? req.body.test : false; 
+        var isTestUSer = 'test' in req.body ? req.body.test : false;
         var organization = 'organization' in req.body ? req.body.organization : null;
 
         UserLogin.find({
@@ -4043,7 +4043,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     UserID: current_user_id
                 },
                 attributes:['Admin']
-            });    
+            });
             /* Pre check current task and return immidiently with error to save processing */
             if (JSON.parse(ti.Status)[1] == 'cancelled' || JSON.parse(ti.Status)[0] == 'bypassed' ) {
                 logger.log('info', ' Algorithm Cancelled returning error');
@@ -5334,7 +5334,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
                 let finalResults = fetchWorkflow(workflowsList);
-                
+
                 Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
                     return res.json({
                         'Result': arrArr
@@ -5351,7 +5351,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     'Result': []
                 });
             }
-            
+
         });
 
 
@@ -5654,7 +5654,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         VolunteerPool.findAll({
             where: {
                 SectionID: req.params.SectionID,
-                status: 'Approved'                  // Added for realocations, May 11, 2018 by mss86 
+                status: 'Approved'                  // Added for realocations, May 11, 2018 by mss86
             },
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function (rows) {
@@ -5694,80 +5694,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-
-    //Endpoint to remove from VolunteerPool
-    router.post('/VolunteerPool/deleteVolunteer', teacherAuthentication, function (req, res) {
-
-        VolunteerPool.destroy({
-            where: {
-                UserID: req.body.UserID,
-                SectionID: req.body.SectionID
-                //AssignmentInstanceID: req.body.AssignmentInstanceID
-            }
-        }).then(function (rows) {
-            console.log('Delete User Success');
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log('/course/deleteuser : ' + err.message);
-
-            res.status(400).end();
-        });
-
-
-    });
-
-    //Create another call saying "This student is volunteered for all assignments in section";
-    //check approval required status
-
-    //Endpoint to add a user to a course
-    router.post('/VolunteerPool/add', teacherAuthentication, function (req, res) {
-        console.log('/VolunteerPool/add : was called');
-
-        if (req.body.UserID === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/ ) {
-            console.log('/VolunteerPool/add : Missing attributes');
-            res.status(400).end();
-        }
-
-        console.log('got to create part');
-        //console.log("UserID: " + req.params.UserID);
-        VolunteerPool.create({
-            UserID: req.body.UserID,
-            SectionID: req.body.SectionID,
-            Status: 'Inactive'
-            // AssignmentInstanceID: req.body.AssignmentInstanceID
-        }).then(function (rows) {
-            console.log('add User Success, new ID=', rows.VolunteerPoolID);
-            res.status(200).json({
-                VolunteerPoolID: rows.VolunteerPoolID
-            });
-        }).catch(function (err) {
-            console.log(err);
-            res.status(400).end();
-        });
-        //             });
-        // });
-    });
-
-
-    //Endpoint to change status of volunteer individually
-    router.post('/VolunteerPool/individualStatusUpdate/', teacherAuthentication, function (req, res) {
-        console.log('Volunteerpool id rec: ' + req.body.VolunteerPoolID);
-        VolunteerPool.update({
-            status: req.body.status
-        }, {
-            where: {
-                VolunteerPoolID: req.body.VolunteerPoolID
-            }
-        }).then(function () {
-            console.log('update success');
-            res.status(201).end();
-        }).catch(function (err) {
-            console.log('/VolunteerPool/individualStatusUpdate ' + err.message);
-            res.status(400).end();
-        });
-
-
-    });
 
     //Endpoint to change status of volunteer update all in section
     router.post('/VolunteerPool/sectionlStatusUpdate/', teacherAuthentication, function (req, res) {
@@ -5858,39 +5784,22 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //---------------------comments APIs----------------------------------------------
-    router.post('/comments/add', participantAuthentication,function (req, res) {
-        //console.log('/comments/add : was called');
-        if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
-            console.log('/comments/add : Missing attributes');
-            res.status(400).end();
-        }
+    router.post('/comments/add', function(req, res) {
+        console.log("/comments/add : was called");
 
-        //console.log('got to create part');
-        console.log({
-            CommentsID: req.body.CommentsID,
-            UserID: req.body.UserID,
-            TargetID: req.body.TargetID,
-            AssignmentInstanceID: req.body.AssignmentInstanceID,
-            Type: req.body.Type,
-            CommentsText: req.body.CommentsText,
-            Rating: req.body.Rating,
-            Flag: req.body.Flag,
-            Status: req.body.Status,
-            ReplyLevel: req.body.ReplyLevel,
-            Parents: req.body.Parents,
-            Hide: 0,
-            Viewed: 0,
-            Time: req.body.Time,
-            Complete: req.body.Complete,
-            CommentTarget: req.body.CommentTarget,
-            OriginTaskInstanceID: req.body.OriginTaskInstanceID,
+        if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
+             console.log("/comments/add : Missing attributes");
+             res.status(400).end();
+         }
 
-        });
+        console.log("got to create part");
+
+
         Comments.create({
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
             TargetID: req.body.TargetID,
-            AssignmentInstanceID: req.body.AssignmentInstanceID,
+            AssignmentInstanceID:req.body.AssignmentInstanceID,
             Type: req.body.Type,
             CommentsText: req.body.CommentsText,
             Rating: req.body.Rating,
@@ -5900,20 +5809,67 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Parents: req.body.Parents,
             Hide: 0,
             Viewed: 0,
-            Time: req.body.Time,
+            Time:req.body.Time,
             Complete: req.body.Complete,
             CommentTarget: req.body.CommentTarget,
-            OriginTaskInstanceID: req.body.OriginTaskInstanceID,
+            OriginTaskInstanceID: req.body.OriginTaskInstanceID
 
-        }).then(function (result) {
-            res.status(200).end();
-        }).catch(function (err) {
-            console.log(err);
-            logger.log('error', '/comments/add failed', req.body, err);
 
-            res.status(400).end();
-        });
-    });
+
+        }).then(function(result){
+          console.log ('Finding one task instance')
+          TaskInstance.findOne({
+            where: {
+              TaskInstanceID: req.body.TargetID,
+            }
+          }).then(function(rows) {
+            console.log('Creating notification to task owner');
+            Notifications.create({
+                  NotificationTarget: req.body.Flag == 1 ? 'Flag' : 'Comment',
+                  TargetID: result.CommentsID,
+                  UserID: rows.UserID,
+                  Time: req.body.Time,
+                  OriginTaskInstanceID: req.body.OriginTaskInstanceID,
+                  Dismiss: (rows.UserID == req.body.UserID) ? 1 : 0
+              })
+              console.log('Finding one comment');
+              Comments.findOne({
+                where: {
+                    CommentsID: req.body.Parents
+                }
+              }).then(function(rows2) {
+                    console.log('Creating notification to parent');
+                    if (rows2.UserID > 0) {
+                      console.log('Notify parent pathway', rows2.UserID);
+                     Notifications.create({
+                           NotificationTarget: req.body.Flag == 1 ? 'Flag' : 'Comment',
+                           TargetID: result.CommentsID,
+                           UserID: rows2.UserID,
+                           Time: req.body.Time,
+                           OriginTaskInstanceID: req.body.OriginTaskInstanceID,
+                           Dismiss: ((rows2.UserID == req.body.UserID) || (rows.UserID == rows2.UserID)) ? 1 : 0
+                       })
+                     };
+              }).then(function(rows) {
+                  res.json({
+                      'Error': false,
+                      'Message': 'Success'
+                  });
+              }).catch(function(err) {
+                  console.log('/comments/add/ ' + err.message);
+                  res.status(401).end();
+              });
+          })
+
+
+          res.status(200).end();
+        }).catch(function(err) {
+                    console.log(err);
+                    res.status(400).end();
+                });
+
+              });
+
     //------------------------------------------------------------------------------------------
     router.post('/comments/edit', participantAuthentication, function (req, res) {
 
@@ -6045,37 +6001,43 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //------------------------------------------------------------------------------
 
-    router.post('/comments/setFlag', participantAuthentication, function (req, res) {
+    router.post('/comments/setFlag', function(req, res) {
 
-        if (req.body.CommentsID == null) {
-            console.log('/comments/setFlag : CommentsID cannot be null');
+        if (req.body.CommentsID  == null) {
+            console.log("/comments/setFlag : CommentsID cannot be null");
             res.status(400).end();
             return;
         }
 
         Comments.update({
-            Flag: 1
+                Flag: 1
         }, {
             where: {
                 CommentsID: req.body.CommentsID,
                 Delete: null
             }
-        }).then(function (result) {
-            Comments.find({
+        }).then(function(result) {
+            Comments.findOne({
                 where: {
                     CommentsID: req.body.CommentsID
                 }
-            }).then(function (CommentsUpdated) {
+            }).then(function(CommentsUpdated) {
+                Notifications.create({
+                    NotificationTarget: 'Flag',
+                    TargetID: req.body.CommentsID,
+                    UserID: CommentsUpdated.UserID,
+                    Dismiss: 0
+                });
                 res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Result': result,
-                    'Flag': CommentsUpdated
+                    "Error": false,
+                    "Message": "Success",
+                    "Result": result,
+                    "Flag": CommentsUpdated
                 });
             });
-        }).catch(function (err) {
+        }).catch(function(err) {
             console.log('/comment/setFlag: ' + err);
-            res.status(400).end();
+            res.status(401).end();
         });
     });
     //-------------------------------------------------------------------------
@@ -7349,119 +7311,448 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
      ************************************************************************************************************/
 
 
-    //---------------------------------------------------------------------------
-    router.get('/notifications/load',async function(req, res) {
-        console.log('/notifications/load : was called');
+     //---------------------------------------------------------------------------
+     router.get('/notifications/user/:UserID', function(req, res) {
+         console.log("/notifications/user/:UserID was called");
+       var count = 0;
+       Notifications.findAll({
+           where: {
+               UserID: req.params.UserID,
+               Dismiss: 0
+           }
+         }).then(function(rows) {
+           console.log(rows.length);
+           if (rows.length == 0) {
+             res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Notifications': rows,
+             });
+           }
+           else {
+           rows.forEach((i, index, array) => {
+             console.log('STARTING TO PROCESS NOTIFICATION', i.NotificationsID, i.NotificationTarget);
+             if (i.NotificationTarget == 'Comment' || i.NotificationTarget == 'Flag') {
+               Comments.findOne({
+                 where: {
+                   CommentsID: i.TargetID
+                 }
+               }).then(function(commentsRows) {
+                 AssignmentInstance.findOne({
+                   where: {
+                     AssignmentInstanceID: commentsRows.AssignmentInstanceID
+                   }
+                 }).then(function(assignmentInstanceRows){
+                   Assignment.findOne({
+                     where: {
+                       AssignmentID: assignmentInstanceRows.AssignmentID
+                     }
+                   }).then(function(assignmentRows) {
+                     TaskInstance.findOne({
+                       where: {
+                         TaskInstanceID: commentsRows.TargetID
+                       }
+                     }).then(function(taskInstanceRows) {
+                       TaskActivity.findOne({
+                         where: {
+                           TaskActivityID: taskInstanceRows.TaskActivityID
+                         }
+                       }).then (function(taskActivityRows) {
+                         i.dataValues.TaskName = taskActivityRows.Name;
+                         i.dataValues.AssignmentName = assignmentRows.DisplayName;
+                         i.dataValues.CommentTarget = commentsRows.CommentTarget;
+                         i.dataValues.CommentTargetID = commentsRows.TargetID;
+                       }).then (function (result2) {
+                         var taskFactory = new TaskFactory();
+                         i.dataValues.LinkID = i.OriginTaskInstanceID;
+                         taskFactory.getNextTask(i.OriginTaskInstanceID, new Array()).then(function(NextTask) {
+                           if (NextTask != null) {
+                             NextTask.forEach((task, index) => {
+                               if (JSON.parse(task.Status)[0] == 'complete') {
+                                   i.dataValues.LinkID = task.TaskInstanceID;
+                               }
+                             }, this);
+                           }
+                         }).then (function(result3) {
+                         count++;
+                         if (count == array.length) {
+                           res.json({
+                                  'Error': false,
+                                  'Message': 'Success',
+                                  'Notifications': rows,
+                           });
+                         }
+                       });
+                     })
+                   });
+                 })
+               })
+             })
+           }
+             if (i.NotificationTarget == 'VolunteerPool') {
+               VolunteerPool.findOne({
+                 where: {
+                   VolunteerPoolID: i.TargetID
+                 }
+               }).then(function(volunteerPoolRows) {
+                 AssignmentInstance.findOne({
+                   where: {
+                     AssignmentInstanceID: volunteerPoolRows.AssignmentInstanceID
+                   }
+                 }).then(function(assignmentInstanceRows){
+                   Assignment.findOne({
+                     where: {
+                       AssignmentID: assignmentInstanceRows.AssignmentID
+                     }
+               }).then(function(assignmentRows) {
+                 Section.findOne({
+                   where: {
+                     SectionID: volunteerPoolRows.SectionID
+                   }
+                 }).then(function(sectionRows) {
+                   Course.findOne({
+                     where: {
+                       CourseID: sectionRows.CourseID
+                     }
+                   }).then(function(courseRows) {
+                     User.findOne({
+                       where: {
+                         UserID: volunteerPoolRows.UserID
+                       }
+                     }).then(function(userRows) {
+                       SectionUser.findOne({
+                         where: {
+                           SectionID: sectionRows.SectionID,
+                           UserID: i.UserID
+                         }
+                       }).then(function(sectionUserRows) {
+                         i.dataValues.SectionName = sectionRows.Name;
+                         i.dataValues.AssignmentName = assignmentRows.DisplayName;
+                         i.dataValues.CourseName = courseRows.Name;
+                         i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
+                         i.dataValues.ActorID = userRows.UserID;
+                         i.dataValues.OrganizationID = courseRows.OrganizationID;
+                         i.dataValues.CourseID = courseRows.CourseID;
+                         i.dataValues.SemesterID = sectionRows.SemesterID;
+                         i.dataValues.SectionID = sectionRows.SectionID;
+                         i.dataValues.Role = sectionUserRows.Role;
+                         count++;
+                         if (count == array.length) {
+                           res.json({
+                                  'Error': false,
+                                  'Message': 'Success',
+                                  'Notifications': rows,
+                           });
+                         }
+                       })
+                     })
+                   })
+                 })
+             });
+       });
+     });
+   }
+             if (i.NotificationTarget == 'SectionUser') {
+               SectionUser.findOne({
+                 where: {
+                   SectionUserID: i.TargetID
+                 }
+               }).then(function(sectionUserRows) {
+                 Section.findOne({
+                   where: {
+                     SectionID: sectionUserRows.SectionID
+                   }
+                 }).then(function(sectionRows) {
+                   Course.findOne({
+                     where: {
+                       CourseID: sectionRows.CourseID
+                     }
+                   }).then(function(courseRows) {
+                     User.findOne({
+                       where: {
+                         UserID: sectionUserRows.UserID
+                       }
+                     }).then(function(userRows) {
+                       SectionUser.findOne({
+                         where: {
+                           SectionID: sectionRows.SectionID,
+                           UserID: i.UserID
+                         }
+                       }).then(function(sectionUserRows2) {
+                           i.dataValues.SectionName = sectionRows.Name;
+                           i.dataValues.CourseName = courseRows.Name;
+                           i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
+                           i.dataValues.ActorID = userRows.UserID;
+                           i.dataValues.OrganizationID = courseRows.OrganizationID;
+                           i.dataValues.CourseID = courseRows.CourseID;
+                           i.dataValues.SemesterID = sectionRows.SemesterID;
+                           i.dataValues.SectionID = sectionRows.SectionID;
+                           i.dataValues.Role = sectionUserRows2.Role;
+                           count++;
+                           if (count == array.length) {
+                             res.json({
+                                    'Error': false,
+                                    'Message': 'Success',
+                                    'Notifications': rows,
+                             });
+                           }
+                       })
+                     })
+                   })
+                 })
+               })
+             }
+           });
+         }
+         }).catch(function(err) {
+             console.log('/notifications/user/:UserID ' + err.message);
+             res.status(401).end();
+         });
 
-        var v = await VolunteerPool.findAll({
-            where: {
-                status: 'pending'
-            },
-            attributes: ['volunteerpoolID']
-        }).then(function(rows) {
-            var arrayLength = rows.length;
-            for (var i = 0; i < arrayLength; x++) {
-                Notifications.create({
-                    VolunteerpoolID: rows[i].volunteerpoolID
-                });
-            }
-        }).catch(function(err) {
-            console.log('/notifications/load/:UserID + volunteerpool ' + err);
-            res.status(400).end();
-        });
+     });
+     //---------------------------------------------------------------------------
+     router.get('/oldnotifications/user/:UserID', function(req, res) {
+         console.log("/oldnotifications/user/:UserID was called");
+       var count = 0;
+       Notifications.findAll({
+           where: {
+               UserID: req.params.UserID,
+               Dismiss: 1
+           }
+         }).then(function(rows) {
+           console.log(rows.length);
+           if (rows.length == 0) {
+             res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Notifications': rows,
+             });
+           }
+           else {
+           rows.forEach((i, index, array) => {
+             console.log('STARTING TO PROCESS NOTIFICATION', i.NotificationsID, i.NotificationTarget);
+             if (i.NotificationTarget == 'Comment' || i.NotificationTarget == 'Flag') {
+               Comments.findOne({
+                 where: {
+                   CommentsID: i.TargetID
+                 }
+               }).then(function(commentsRows) {
+                 AssignmentInstance.findOne({
+                   where: {
+                     AssignmentInstanceID: commentsRows.AssignmentInstanceID
+                   }
+                 }).then(function(assignmentInstanceRows){
+                   Assignment.findOne({
+                     where: {
+                       AssignmentID: assignmentInstanceRows.AssignmentID
+                     }
+                   }).then(function(assignmentRows) {
+                     TaskInstance.findOne({
+                       where: {
+                         TaskInstanceID: commentsRows.TargetID
+                       }
+                     }).then(function(taskInstanceRows) {
+                       TaskActivity.findOne({
+                         where: {
+                           TaskActivityID: taskInstanceRows.TaskActivityID
+                         }
+                       }).then (function(taskActivityRows) {
+                         i.dataValues.TaskName = taskActivityRows.Name;
+                         i.dataValues.AssignmentName = assignmentRows.DisplayName;
+                         i.dataValues.CommentTarget = commentsRows.CommentTarget;
+                         i.dataValues.CommentTargetID = commentsRows.TargetID;
+                       }).then (function (result2) {
+                         var taskFactory = new TaskFactory();
+                         i.dataValues.LinkID = i.OriginTaskInstanceID;
+                         taskFactory.getNextTask(i.OriginTaskInstanceID, new Array()).then(function(NextTask) {
+                           if (NextTask != null) {
+                             NextTask.forEach((task, index) => {
+                               if (JSON.parse(task.Status)[0] == 'complete') {
+                                   i.dataValues.LinkID = task.TaskInstanceID;
+                               }
+                             }, this);
+                           }
+                         }).then (function(result3) {
+                         count++;
+                         if (count == array.length) {
+                           res.json({
+                                  'Error': false,
+                                  'Message': 'Success',
+                                  'Notifications': rows,
+                           });
+                         }
+                       });
+                     })
+                   });
+                 })
+               })
+             })
+           }
+             if (i.NotificationTarget == 'VolunteerPool') {
+               VolunteerPool.findOne({
+                 where: {
+                   VolunteerPoolID: i.TargetID
+                 }
+               }).then(function(volunteerPoolRows) {
+                 AssignmentInstance.findOne({
+                   where: {
+                     AssignmentInstanceID: volunteerPoolRows.AssignmentInstanceID
+                   }
+                 }).then(function(assignmentInstanceRows){
+                   Assignment.findOne({
+                     where: {
+                       AssignmentID: assignmentInstanceRows.AssignmentID
+                     }
+               }).then(function(assignmentRows) {
+                 Section.findOne({
+                   where: {
+                     SectionID: volunteerPoolRows.SectionID
+                   }
+                 }).then(function(sectionRows) {
+                   Course.findOne({
+                     where: {
+                       CourseID: sectionRows.CourseID
+                     }
+                   }).then(function(courseRows) {
+                     User.findOne({
+                       where: {
+                         UserID: volunteerPoolRows.UserID
+                       }
+                     }).then(function(userRows) {
+                       SectionUser.findOne({
+                         where: {
+                           SectionID: sectionRows.SectionID,
+                           UserID: i.UserID
+                         }
+                       }).then(function(sectionUserRows) {
+                         i.dataValues.SectionName = sectionRows.Name;
+                         i.dataValues.AssignmentName = assignmentRows.DisplayName;
+                         i.dataValues.CourseName = courseRows.Name;
+                         i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
+                         i.dataValues.ActorID = userRows.UserID;
+                         i.dataValues.OrganizationID = courseRows.OrganizationID;
+                         i.dataValues.CourseID = courseRows.CourseID;
+                         i.dataValues.SemesterID = sectionRows.SemesterID;
+                         i.dataValues.SectionID = sectionRows.SectionID;
+                         i.dataValues.Role = sectionUserRows.Role;
+                         count++;
+                         if (count == array.length) {
+                           res.json({
+                                  'Error': false,
+                                  'Message': 'Success',
+                                  'Notifications': rows,
+                           });
+                         }
+                       })
+                     })
+                   })
+                 })
+             });
+       });
+     });
+   }
+             if (i.NotificationTarget == 'SectionUser') {
+               SectionUser.findOne({
+                 where: {
+                   SectionUserID: i.TargetID
+                 }
+               }).then(function(sectionUserRows) {
+                 Section.findOne({
+                   where: {
+                     SectionID: sectionUserRows.SectionID
+                   }
+                 }).then(function(sectionRows) {
+                   Course.findOne({
+                     where: {
+                       CourseID: sectionRows.CourseID
+                     }
+                   }).then(function(courseRows) {
+                     User.findOne({
+                       where: {
+                         UserID: sectionUserRows.UserID
+                       }
+                     }).then(function(userRows) {
+                       SectionUser.findOne({
+                         where: {
+                           SectionID: sectionRows.SectionID,
+                           UserID: i.UserID
+                         }
+                       }).then(function(sectionUserRows2) {
+                           i.dataValues.SectionName = sectionRows.Name;
+                           i.dataValues.CourseName = courseRows.Name;
+                           i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
+                           i.dataValues.ActorID = userRows.UserID;
+                           i.dataValues.OrganizationID = courseRows.OrganizationID;
+                           i.dataValues.CourseID = courseRows.CourseID;
+                           i.dataValues.SemesterID = sectionRows.SemesterID;
+                           i.dataValues.SectionID = sectionRows.SectionID;
+                           i.dataValues.Role = sectionUserRows2.Role;
+                           count++;
+                           if (count == array.length) {
+                             res.json({
+                                    'Error': false,
+                                    'Message': 'Success',
+                                    'Notifications': rows,
+                             });
+                           }
+                       })
+                     })
+                   })
+                 })
+               })
+             }
+           });
+         }
+         }).catch(function(err) {
+             console.log('/notifications/user/:UserID ' + err.message);
+             res.status(401).end();
+         });
 
-        var f = await Comments.findAll({
-            where: {
-                Flag: 1
-            },
-            attributes: ['commentsID','UserID']
-        }).then(function(rows2) {
-            var arrayLength = rows2.length;
-            for (var j = 0; j < arrayLength; j++) {
-                Notifications.create({
-                    CommentsID: rows[j].CommentsID,
-                    UserID: rows[j].UserID,
-                    Flag: 1
-                });
-            }
-        }).catch(function(err) {
-            console.log('/notifications/load/:UserID + volunteerpool ' + err);
-            res.status(400).end();
-        });
+     });
+     //---------------------------------------------------------------------------
+     router.post('/notifications/dismiss/:notificationsID', function(req, res) {
+         console.log("/notifications/dismiss/:notificationsID was called");
 
+         Notifications.update({
+           Dismiss:1,
+           DismissType: 'User',
+         },{
+           where: {
+               NotificationsID: req.params.notificationsID
+           }
+         }).then(function(rows) {
+             res.json({
+                 'Error': false,
+                 'Message': 'Success'
+             });
+         }).catch(function(err) {
+             console.log('/notifications/dismiss/:notificationsID' + err.message);
+             res.status(401).end();
+         });
 
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'volunteer': v,
-            'comments-flag': f,
+     });
+     //---------------------------------------------------------------------------
+     router.post('/notifications/dismiss/:userID/:commentsID', function(req, res) {
+         console.log("/notifications/dismiss/:userID/:commentsID was called");
 
-        });
+         Notifications.update({
+           Dismiss:1
+         },{
+           where: {
+               UserID: req.params.userID,
+               CommentsID: req.params.commentsID
+           }
+         }).then(function(rows) {
+             res.json({
+                 'Error': false,
+                 'Message': 'Success'
+             });
+         }).catch(function(err) {
+             console.log('/notifications/dismiss/:userID/:commentsID' + err.message);
+             res.status(401).end();
+         });
 
-    });
-    //---------------------------------------------------------------------------
-    router.get('/notifications/all', function(req, res) {
-        console.log('/notifications/all: was called');
-
-        Notifications.findAll({
-            where: {
-                Dismiss: null
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Notifications': rows
-            });
-        }).catch(function(err) {
-            console.log('/notifications/all ' + err.message);
-            res.status(400).end();
-        });
-
-    });
-    //---------------------------------------------------------------------------
-    router.get('/notifications/user/:UserID', function(req, res) {
-        console.log('/notifications/user/:UserID was called');
-
-        Notifications.findAll({
-            where: {
-                UserID: req.params.UserID,
-                Dismiss: null
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Notifications': rows
-            });
-        }).catch(function(err) {
-            console.log('/notifications/user/:UserID' + err.message);
-            res.status(400).end();
-        });
-
-    });
-    //---------------------------------------------------------------------------
-    router.get('/notifications/dismiss/:notificationsID', function(req, res) {
-        console.log('/notifications/dismiss/:notificationsID was called');
-
-        Notifications.update({
-            Dismiss:1
-        },{
-            where: {
-                NotificationsID: req.params.notificationsID
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success'
-            });
-        }).catch(function(err) {
-            console.log('/notifications/dismiss/:notificationsID' + err.message);
-            res.status(400).end();
-        });
-
-    });
-
+     });
     //----------------------------------------------------------------
     router.post('/volunteerpool/section/:section_id',async function(req, res) {
         console.log('/volunteerpool/section/ : was called');
@@ -7647,7 +7938,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //         let task_collection = JSON.parse(wi.TaskCollection);
     //         while(task_collection.length >0){
     //             await Promise.mapSeries(task_collection, async function(ti_id){
-                    
+
     //             });
     //         }
 
@@ -10442,7 +10733,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+
     // API to reallocate users in assigments instances created 3-4-18 mss86 last update: 5-11-18
     //@ sec_id: section ID
     //@ ai_ids: [] assigment instance ids
@@ -10483,8 +10774,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         var ais = [];
         if(remove_from_all_assignments){                 // remove user from all Assigments
-            ais = await AssignmentInstance.findAll({ 
-                where: { 
+            ais = await AssignmentInstance.findAll({
+                where: {
                     SectionID: req.body.sec_id          // TODO: get only active assigments in section
                 }
             });
@@ -11139,15 +11430,378 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+    //-----------volunteering------------------------------------
 
 
+    router.post('/sectionUsers/changeVolunteer/:UserID/:SectionID/:Status/:UserType', (req, res) => {
+        /** TODO:  This API does a simple database update, but it may need
+         * to do some special reallocation to deal with inactive students
+         */
+        console.log('/sectionUsers/changeVolunteer/ was called', req.params.UserID, req.params.SectionID, req.params.Status);
+        SectionUser.findOne({
+          where: {
+            UserID: req.params.UserID,
+            SectionID: req.params.SectionID
+          }
+        }).then(function (rows2) {
+          rows2.update({Volunteer: req.params.Status});
+          console.log(req.params.UserType);
+          if (req.params.UserType == 'student') {
+            console.log ('notify instructor pathway');
+            SectionUser.findAll({
+              where: {
+                SectionID: req.params.SectionID,
+                Role: 'Instructor'
+              },
+            }).then(function (rows) {
+              for (let i of rows) {
+                Notifications.update({
+                  Dismiss: 1,
+                  //OriginTaskInstanceID: req.body.OriginTaskInstanceID
+                }, {
+                  where: {
+                    NotificationTarget: 'SectionUser',
+                    TargetID: rows2.SectionUserID
+                  }
+                }).then(function(row2) {
+                  Notifications.create({
+                    UserID: i.UserID,
+                    Time: moment(),
+                    Dismiss: 0,
+                    Info: (req.params.Status == 0) ? 'Request Cancelled' : req.params.Status,
+                    NotificationTarget: 'SectionUser',
+                    TargetID: rows2.SectionUserID
+                  });
+                })
+              }
+            }).then(function(rows3) {
+              res.status(201).json({
+                  message: 'Success',
+                  SectionUserID: rows2.SectionUserID
+              });
+            });
+          }
+          else {
+            console.log('notify student pathway');
+                Notifications.update({
+                  Dismiss: 1,
+                  //OriginTaskInstanceID: req.body.OriginTaskInstanceID
+                }, {
+                  where: {
+                    NotificationTarget: 'SectionUser',
+                    TargetID: rows2.SectionUserID
+                  }
+                });
+                Notifications.create({
+                  UserID: req.params.UserID,
+                  Time: moment(),
+                  Dismiss: 0,
+                  Info: req.params.Status,
+                  NotificationTarget: 'SectionUser',
+                  TargetID: rows2.SectionUserID
+                }).then(function(rows3) {
+              res.status(201).json({
+                  message: 'Success',
+                  SectionUserID: rows2.SectionUserID
+              });
+            });
+          }
 
 
+        }).catch(err => {
+            console.log('error', 'post: /sectionUser/changeVolunteer/, user volunteer status not set', {
+                error: err,
+                req_params: req.params,
+            });
+            res.status(401).end();
+        });
+    });
+
+    router.get('/SectionUsers/Volunteer/:UserID/:SectionID/:Student', function (req, res) {
+        console.log('/SectionUsers/Volunteer/ was called', req.params.UserID, req.params.SectionID);
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.UserID,
+                SectionID: req.params.SectionID
+            },
+            attributes: ['Volunteer', 'SectionUserID']
+        }).then(function (rows) {
+            if (req.params.Student == 'true') {
+              console.log('starting dismiss sequence with SectionUserID ', rows[0].SectionUserID, 'UserID ', req.params.UserID);
+              Notifications.findAll({
+                where: {
+                  NotificationTarget: 'SectionUser',
+                  TargetID: rows[0].SectionUserID,
+                  UserID: req.params.UserID,
+                  Dismiss: 0
+                }
+              }).then(function(rows2) {
+                  rows2[0].update({Dismiss: 1});
+              })
+            }
+          console.log(rows[0].Volunteer);
+          res.json({
+              'Error': false,
+              'Message': 'Success',
+              'Volunteer': rows[0].Volunteer
+          }).catch(function (err) {
+            console.log('/SectionUsers/Volunteer ' + err.message);
+            res.status(401).end();
+        });
+    });
+    });
+
+    //---------------------------------------------------------------------------
+    router.get('/VolunteerPool/:UserID/:SectionID/:Student',async function (req, res) {
+        console.log('/VolunteerPool/:UserID/:SectionID was called', req.params.UserID, req.params.SectionID, req.params.Student);
+        var VP = await VolunteerPool.findAll({
+            where: {
+                UserID: req.params.UserID,
+                SectionID: req.params.SectionID
+            },
+            attributes: ['VolunteerPoolID', 'UserID', 'SectionID', 'AssignmentInstanceID', 'status']
+        });
+
+        var A = await AssignmentInstance.findAll({
+            where: {
+                SectionID: req.params.SectionID
+            },
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+            include: [{
+                model: Assignment,
+                attributes: ['DisplayName']
+            }]
+          });
+          var result = [];
+                for (var i = 0; i < A.length; i++) {
+                  var found = false;
+                  for (var j = 0; j < VP.length; j++) {
+                    if (A[i].AssignmentInstanceID == VP[j].AssignmentInstanceID) {
+                      console.log('Found assignment info')
+                      result.push({AssignmentInstanceID: A[i].AssignmentInstanceID, DisplayName: A[i].Assignment.DisplayName, Status: VP[j].status, VolunteerPoolID: VP[j].VolunteerPoolID});
+                      found = true;
+                      if (req.params.Student == 'true') {
+                          console.log('starting dismiss sequence');
+                          Notifications.findOne({
+                            where: {
+                              NotificationTarget: 'VolunteerPool',
+                              TargetID: VP[j].VolunteerPoolID,
+                              UserID: req.params.UserID
+                            }
+                          }).then(function(rows2) {
+                            if (rows2 != null) {
+                              rows2.update({Dismiss: 1});
+                              console.log('update completed', rows2);
+                            }
+                          });
+                      }
+                    }
+                  }
+                  if (found == false) {
+                    result.push({AssignmentInstanceID: A[i].AssignmentInstanceID, DisplayName: A[i].Assignment.DisplayName, Status: null, VolunteerPoolID: null});
+                  }
+                }
+
+                /*for (let i of VP) {
+                  Notifications.update({
+                    Dismiss: 1,
+                  },{
+                    where: {
+                      NotificationTarget: 'VolunteerPool',
+                      TargetID: i.VolunteerPoolID,
+                      UserID: req.params.UserID
+                    }
+                  });
+                }*/
+            {/*if (req.params.Student === true) {
+              for (let k of result) {
+                console.log(result, k.VolunteerPoolID);
+                Notifications.findOne({
+                  where: {
+                    NotificationTarget: 'VolunteerPool',
+                    TargetID: k.VolunteerPoolID,
+                    UserID: req.params.UserID
+                  }
+                }).then(function(rows2) {
+                  if (rows2 != null) {
+                    rows2.update({Dismiss: 1});
+                    console.log('update completed', rows2);
+                  }
+                });
+              }
+            }*/}
+
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Volunteers': result
+            });
+          });
+
+    //---------------------------------------------------------------------------
+    router.post('/VolunteerPool/add', function (req, res) {
+        console.log('/VolunteerPool/add : was called');
+
+        if (req.body.UserID === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/ ) {
+            console.log('/VolunteerPool/add : Missing attributes');
+            res.status(400).end();
+        }
+
+        console.log('got to create part');
+        //console.log("UserID: " + req.params.UserID);
+        VolunteerPool.create({
+            UserID: req.body.UserID,
+            SectionID: req.body.SectionID,
+            status: 'Pending',
+            AssignmentInstanceID: req.body.AssignmentInstanceID
+        }).then(function (rows) {
+
+            SectionUser.findAll({
+              where: {
+                SectionID: req.body.SectionID,
+                Role: 'Instructor'
+              },
+            }).then(function (rows2) {
+              console.log('add VolunteerPool success, new ID=', rows.VolunteerPoolID);
+              for (let i of rows2) {
+                Notifications.create({
+                  UserID: i.UserID,
+                  NotificationTarget: 'VolunteerPool',
+                  TargetID: rows.VolunteerPoolID,
+                  Time: moment(),
+                  Info: 'Pending',
+                  Dismiss: 0
+                })
+              }
+            })
+            console.log('add User Success, new ID=', rows.VolunteerPoolID);
+            res.status(200).json({
+                VolunteerPoolID: rows.VolunteerPoolID
+            });
+        }).catch(function (err) {
+            console.log(err);
+            res.status(400).end();
+        });
+        //             });
+        // });
+    });
+
+    router.post('/VolunteerPool/appoint', function (req, res) {
+        console.log('/VolunteerPool/appoint : was called', req.body.userId, req.body.SectionID, req.body.AssignmentInstanceID, req.body.UID);
+
+        if (req.body.userId === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/ ) {
+            console.log('/VolunteerPool/appoint : Missing attributes');
+            res.status(400).end();
+        }
+
+        console.log('got to create part');
+        //console.log("UserID: " + req.params.UserID);
+        VolunteerPool.create({
+            UserID: req.body.userId,
+            SectionID: req.body.SectionID,
+            status: 'Appointed',
+            AssignmentInstanceID: req.body.AssignmentInstanceID
+        }).then(function (rows) {
+            console.log('add User Success, new ID=', rows.VolunteerPoolID);
+            Notifications.create({
+              UserID: req.body.userId,
+              NotificationTarget: 'VolunteerPool',
+              TargetID: rows.VolunteerPoolID,
+              Time: moment(),
+              Info: 'Appointed',
+              Dismiss: 0
+            });
+
+            res.status(200).json({
+                VolunteerPoolID: rows.VolunteerPoolID
+            });
+        }).catch(function (err) {
+            console.log(err);
+            res.status(400).end();
+        });
+        //             });
+        // });
+    });
+
+    //Endpoint to change status of volunteer individually
+    router.post('/VolunteerPool/individualStatusUpdate/', async function(req, res) {
+        console.log('Volunteerpool id rec: ' + req.body.VolunteerPoolID);
+        /*var vp = await Notifications.findOne({
+          where: {
+            VolunteerPoolID: req.body.VolunteerPoolID,
+          }
+        });*/
+        VolunteerPool.findOne({
+            where: {
+                VolunteerPoolID: req.body.VolunteerPoolID
+            }
+        }).then(function(rows) {
+          rows.update({status: req.body.status});
+          console.log('update success');
+          Notifications.update({
+            Time: moment(),
+            Dismiss: 1,
+            //OriginTaskInstanceID: req.body.OriginTaskInstanceID
+          }, {
+            where: {
+              NotificationTarget: 'VolunteerPool',
+              TargetID: req.body.VolunteerPoolID,
+            }
+          }).then(function(NotificationsUpdated) {
+              Notifications.create({
+                NotificationTarget: 'VolunteerPool',
+                TargetID: req.body.VolunteerPoolID,
+                Time: moment(),
+                Info: req.body.status,
+                UserID: rows.UserID,
+                Dismiss: 0
+                //OriginTaskInstanceID: req.body.OriginTaskInstanceID
+              });
+              console.log('----------------notification create----------------------')
+          });
+          res.status(201).end();
+
+        }).catch(function(err) {
+            console.log('/VolunteerPool/individualStatusUpdate ' + err.message);
+            res.status(401).end();
+        });
 
 
+    });
 
-    //-----------------------------------------------------------------------------------------------------
+    //Endpoint to remove from VolunteerPool
+    router.post('/VolunteerPool/deleteVolunteer', function (req, res) {
 
+        VolunteerPool.destroy({
+            where: {
+                VolunteerPoolID: req.body.VolunteerPoolID
+                //AssignmentInstanceID: req.body.AssignmentInstanceID
+            }
+        //VolunteerPool.update({
+        //    status: 0
+        //}, {
+        //    where: {
+        //        VolunteerPoolID: req.body.VolunteerPoolID
+        //    }
+        }).then(function (rows) {
+            console.log('Delete User Success');
+            Notifications.update({
+                Dismiss: 1
+              },{
+                where: {
+                    NotificationTarget: 'VolunteerPool',
+                    TargetID: req.body.VolunteerPoolID
+                }
+            });
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log('/course/deleteuser : ' + err.message);
+
+            res.status(400).end();
+        });
+
+
+    });
 
 };
 module.exports = REST_ROUTER;
