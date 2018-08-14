@@ -902,22 +902,47 @@ class Allocator {
 
 
 
-    get_ai_volunteers(ai_id) {
+    async get_ai_volunteers(ai_id) {
         logger.log('debug', {
             call: 'get_ai_volunteers',
             ai_id: ai_id
         });
+        
+        // return AssignmentInstance.find({
+        //     where: {
+        //         AssignmentInstanceID: ai_id
+        //     }
+        // }).then(function (ai) {
+        //     logger.log('debug', 'return', {
+        //         assignment_instance: ai.toJSON()
+        //     });
+        //     return JSON.parse(ai.Volunteers);
+        // });
 
-        return AssignmentInstance.find({
-            where: {
-                AssignmentInstanceID: ai_id
+        var volunteer_pool = await VolunteerPool.findAll({
+            where:{
+                AssignmentInstanceID: ai_id,
+                $or: [{
+                    status: {
+                        $like: 'Appointed'
+
+                    }
+                }, {
+                    status: {
+                        $like: 'Approved'
+                    }
+                }],
             }
-        }).then(function (ai) {
-            logger.log('debug', 'return', {
-                assignment_instance: ai.toJSON()
-            });
-            return JSON.parse(ai.Volunteers);
         });
+
+        var volunteers = [];
+        await Promise.map(volunteer_pool, async (volunteer) =>{
+                volunteers.push(volunteer.UserID);
+        });
+        logger.log('debug', 'return', {
+            assignment_instance: volunteers
+        });
+        return volunteers;
     }
 
     async inactivate_section_user(section_id, user_id) {

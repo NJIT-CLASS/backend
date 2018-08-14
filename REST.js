@@ -11543,10 +11543,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
               'Error': false,
               'Message': 'Success',
               'Volunteer': rows[0].Volunteer
-          }).catch(function (err) {
-            console.log('/SectionUsers/Volunteer ' + err.message);
-            res.status(401).end();
-        });
+          })
     });
     });
 
