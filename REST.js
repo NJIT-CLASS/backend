@@ -5785,7 +5785,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function(req, res) {
         console.log("/comments/add : was called");
-
+        console.log(req.body);
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
              console.log("/comments/add : Missing attributes");
              res.status(400).end();
@@ -5838,7 +5838,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
               }).then(function(rows2) {
                     console.log('Creating notification to parent');
-                    if (rows2.UserID > 0) {
+                    if (rows2 != null && rows2.UserID > 0) {
                       console.log('Notify parent pathway', rows2.UserID);
                      Notifications.create({
                            NotificationTarget: req.body.Flag == 1 ? 'Flag' : 'Comment',
@@ -5861,7 +5861,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
           })
 
 
-          res.status(200).end();
         }).catch(function(err) {
                     console.log(err);
                     res.status(400).end();

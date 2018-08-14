@@ -107,7 +107,7 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
-                var send = 'qxl2@njit.edu';
+                //var send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
