@@ -1556,7 +1556,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //Get the courses that are currently active(eg. in current semester) for a student
-    router.get('/getActiveEnrolledCourses/:studentID', participantAuthentication, function (req, res) {
+    router.get('/getActiveEnrolledCourses/:studentID', function (req, res) {
         SectionUser.findAll({
             where: {
                 UserID: req.params.studentID,
@@ -1565,10 +1565,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['Role'],
             include: [{
                 model: Section,
-                attributes: ['Name'],
+                attributes: ['Name', 'SectionID'],
                 include: [{
                     model: Course,
-                    attributes: ['Number', 'Name', 'Abbreviations']
+                    attributes: ['Number', 'Name']
                 }]
             }]
         }).then(function (Courses) {
@@ -1579,6 +1579,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
         });
     });
+
+    //------------------------------------------------------------
 
     //Get the active sections for a student in a particular course
     router.get('/getActiveEnrolledSections/:courseID', participantAuthentication, function (req, res) {
