@@ -908,56 +908,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     });
-    //---------------------------------------------------------------------------
-    router.get('/notifications/load', participantAuthentication, async function(req, res) {
-        console.log('/notifications/load : was called');
 
-        var v = await VolunteerPool.findAll({
-            where: {
-                status: 'pending'
-            },
-            attributes: ['volunteerpoolID']
-        }).then(function(rows) {
-            var arrayLength = rows.length;
-            for (var i = 0; i < arrayLength; x++) {
-                Notifications.create({
-                    VolunteerpoolID: rows[i].volunteerpoolID
-                });
-            }
-        }).catch(function(err) {
-            console.log('/notifications/load/:UserID + volunteerpool ' + err);
-            res.status(400).end();
-        });
-
-        var f = await Comments.findAll({
-            where: {
-                Flag: 1
-            },
-            attributes: ['commentsID','UserID']
-        }).then(function(rows2) {
-            var arrayLength = rows2.length;
-            for (var j = 0; j < arrayLength; j++) {
-                Notifications.create({
-                    CommentsID: rows[j].CommentsID,
-                    UserID: rows[j].UserID,
-                    Flag: 1
-                });
-            }
-        }).catch(function(err) {
-            console.log('/notifications/load/:UserID + volunteerpool ' + err);
-            res.status(400).end();
-        });
-
-
-        res.json({
-            'Error': false,
-            'Message': 'Success',
-            'volunteer': v,
-            'comments-flag': f,
-
-        });
-
-    });
     //---------------------------------------------------------------------------
     router.get('/notifications/all', participantAuthentication, function(req, res) {
         console.log('/notifications/all: was called');
@@ -979,47 +930,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
     //---------------------------------------------------------------------------
-    router.get('/notifications/user/:UserID', participantAuthentication, function(req, res) {
-        console.log('/notifications/user/:UserID was called');
 
-        Notifications.findAll({
-            where: {
-                UserID: req.params.UserID,
-                Dismiss: null
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Notifications': rows
-            });
-        }).catch(function(err) {
-            console.log('/notifications/user/:UserID' + err.message);
-            res.status(400).end();
-        });
-
-    });
-    //---------------------------------------------------------------------------
-    router.get('/notifications/dismiss/:notificationsID', participantAuthentication, function(req, res) {
-        console.log('/notifications/dismiss/:notificationsID was called');
-
-        Notifications.update({
-            Dismiss:1
-        },{
-            where: {
-                NotificationsID: req.params.notificationsID
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success'
-            });
-        }).catch(function(err) {
-            console.log('/notifications/dismiss/:notificationsID' + err.message);
-            res.status(400).end();
-        });
-
-    });
     //Endpoint to save partially made assignments from ASA to database
     router.post('/assignment/save/', teacherAuthentication, function (req, res) {
         if (req.body.partialAssignmentId == null) {
@@ -2365,7 +2276,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     // get users in section by role
-    router.get('/sectionUsers/:sectionid/:role',  participantAuthentication, function (req, res) {
+    // get users in section by role
+    router.get('/sectionUsers/:sectionid/:role', participantAuthentication, function (req, res) {
         SectionUser.findAll({
             where: {
                 SectionID: req.params.sectionid,
@@ -2391,7 +2303,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['SectionUserID', 'UserID', 'Active', 'Volunteer', 'Role']
         }).then(function (SectionUsers) {
             console.log('/sectionUsers called');
-            if (req.params.role === 'Student') {
+            //if (req.params.role === 'Student') {
                 SectionUsers = SectionUsers.map(user => {
                     let newUser = {
                         UserID: user.UserID,
@@ -2402,17 +2314,21 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         UserLogin: user.UserLogin
                     };
                     if (user.User.VolunteerPools.length != 0) {
-                        newUser.Volunteer = true;
-                        newUser.Status = user.User.VolunteerPools[0].status;
+                        newUser.Volunteer = 'Some';
+                        //newUser.Status = user.User.VolunteerPools[0].status;
 
-                    } else {
-                        newUser.Volunteer = false;
+                    }
+                    else if (user.Volunteer != 0 && user.Volunteer != 'Declined' && user.Volunteer != 'Removed') {
+                        newUser.Volunteer = 'All';
+                    }
+                    else {
+                        newUser.Volunteer = 'None';
                         newUser.Status = 'Inactive';
 
                     }
                     return newUser;
                 });
-            }
+            //}
             return res.json({
                 'Error': false,
                 'SectionUsers': SectionUsers
@@ -5787,7 +5703,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //---------------------comments APIs----------------------------------------------
     router.post('/comments/add', function(req, res) {
         console.log("/comments/add : was called");
-        console.log(req.body);
+
         if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
              console.log("/comments/add : Missing attributes");
              res.status(400).end();
@@ -5840,7 +5756,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 }
               }).then(function(rows2) {
                     console.log('Creating notification to parent');
-                    if (rows2 != null && rows2.UserID > 0) {
+                    if (rows2.UserID > 0) {
                       console.log('Notify parent pathway', rows2.UserID);
                      Notifications.create({
                            NotificationTarget: req.body.Flag == 1 ? 'Flag' : 'Comment',
@@ -5863,12 +5779,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
           })
 
 
+          res.status(200).end();
         }).catch(function(err) {
                     console.log(err);
                     res.status(400).end();
                 });
 
               });
+
 
     //------------------------------------------------------------------------------------------
     router.post('/comments/edit', participantAuthentication, function (req, res) {
@@ -5980,7 +5898,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
     //-------------------------------------------------------------------------
-    router.post('/comments/viewed', participantAuthentication, function (req, res) {
+    router.post('/comments/viewed', function (req, res) {
         if (req.body.CommentsID == null) {
             console.log('/comments/viewed : CommentsID cannot be null');
             res.status(400).end();
@@ -5992,7 +5910,27 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             Time: req.body.Time,
 
         }).then(function (result) {
+          Notifications.update({
+            Dismiss: 1,
+          },{
+            where: {
+                UserID: req.body.UserID,
+                NotificationTarget: 'Flag',
+                TargetID: result.CommentsID
+            }
+          });
+          Notifications.update({
+            Dismiss: 1,
+            DismissType: 'User'
+          },{
+            where: {
+                UserID: req.body.UserID,
+                NotificationTarget: 'Comment',
+                TargetID: result.CommentsID
+            }
+          });
             res.status(200).end();
+            console.log('/comments/viewed/ was called ', req.body.CommentsID);
         }).catch(function (err) {
             console.log(err);
             res.status(400).end();
@@ -7313,7 +7251,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
      //---------------------------------------------------------------------------
      router.get('/notifications/user/:UserID', function(req, res) {
-         console.log("/notifications/user/:UserID was called");
+         console.log("/notifications/user/:UserID was called ", req.params.UserID);
        var count = 0;
        Notifications.findAll({
            where: {
@@ -7358,7 +7296,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                            TaskActivityID: taskInstanceRows.TaskActivityID
                          }
                        }).then (function(taskActivityRows) {
-                         i.dataValues.TaskName = taskActivityRows.Name;
+                         i.dataValues.TaskName = taskActivityRows.DisplayName;
                          i.dataValues.AssignmentName = assignmentRows.DisplayName;
                          i.dataValues.CommentTarget = commentsRows.CommentTarget;
                          i.dataValues.CommentTargetID = commentsRows.TargetID;
@@ -7512,12 +7450,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
      });
      //---------------------------------------------------------------------------
      router.get('/oldnotifications/user/:UserID', function(req, res) {
-         console.log("/oldnotifications/user/:UserID was called");
+         console.log("/oldnotifications/user/:UserID was called ", req.params.UserID);
        var count = 0;
        Notifications.findAll({
            where: {
                UserID: req.params.UserID,
-               Dismiss: 1
+               Dismiss: 1,
+               DismissType: 'User'
            }
          }).then(function(rows) {
            console.log(rows.length);
@@ -7557,7 +7496,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                            TaskActivityID: taskInstanceRows.TaskActivityID
                          }
                        }).then (function(taskActivityRows) {
-                         i.dataValues.TaskName = taskActivityRows.Name;
+                         i.dataValues.TaskName = taskActivityRows.DisplayName;
                          i.dataValues.AssignmentName = assignmentRows.DisplayName;
                          i.dataValues.CommentTarget = commentsRows.CommentTarget;
                          i.dataValues.CommentTargetID = commentsRows.TargetID;
