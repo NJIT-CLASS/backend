@@ -10804,6 +10804,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return;
         };
         logger.log('info','/reallocate/task_based called');
+        logger.log('debug','req.body.user_pool_wc', req.body.user_pool_wc);
         var allocate = new Allocator([],0);
         var result = await allocate.reallocate_tasks_based(req.body.taskarray, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
         res.json( result );
