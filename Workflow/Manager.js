@@ -57,6 +57,7 @@ var Allocator = require('./Allocator.js');
 var Email = require('./Email.js');
 var Make = require('./Make.js');
 var TaskTrigger = require('./TaskTrigger.js');
+var _ = require('underscore');
 
 var taskFactory = new TaskFactory();
 var trigger = new TaskTrigger();
@@ -127,7 +128,7 @@ class Manager {
         });
 
         await Object.keys(res).forEach(async function (secId) {
-            var users = await x.getActiveVolunteers(secId);
+            var users = await x.getActiveVolunteers(lst.AssginmentInstanceID, secId);
             if (users.length === 0) { //no volunteer found from the section, get everyone from the section
                 var users = await make.getUsersFromSection(secId);
                 logger.log('info', 'no volunteer found from the section, use everyone instead');
@@ -291,25 +292,82 @@ class Manager {
         await task.save();
     }
 
-    async getActiveVolunteers(secId) {
-        var users = [];
-        var volunteers = await VolunteerPool.findAll({
-            where: {
-                SectionID: secId
-            },
-            attributes: ['UserID']
+    async getActiveVolunteers(ai_id, secId) {
+        // var users = [];
+        // var volunteers = await VolunteerPool.findAll({
+        //     where: {
+        //         SectionID: secId
+        //     },
+        //     attributes: ['UserID']
+        // });
+
+
+        // await Promise.mapSeries(volunteers, function (volunteer) {
+        //     users.push(volunteer.UserID);
+        // });
+
+
+        // logger.log('debug', 'Volunteers found', {
+        //     users: users
+        // })
+        // return users;
+
+        // var ai = await AssignmentInstance.find({
+        //     where: {
+        //         AssignmentInstanceID: ai_id
+        //     },
+        //     attributes: ['SectionID']
+        // });
+
+        var section_users = await SectionUser.findAll({
+            where:{
+                SectionID: secId,
+                $or: [{
+                    Volunteer: {
+                        $like: 'Appointed'
+
+                    }
+                }, {
+                    Volunteer: {
+                        $like: 'Approved'
+                    }
+                }]
+            }
         });
 
+        var volunteer_pool = await VolunteerPool.findAll({
+            where:{
+                AssignmentInstanceID: ai_id,
+                $or: [{
+                    status: {
+                        $like: 'Appointed'
 
-        await Promise.mapSeries(volunteers, function (volunteer) {
-            users.push(volunteer.UserID);
+                    }
+                }, {
+                    status: {
+                        $like: 'Approved'
+                    }
+                }],
+            }
         });
 
+        var volunteers = [];
+        await Promise.map(volunteer_pool, async (volunteer) =>{
+                volunteers.push(volunteer.UserID);
+        });
 
-        logger.log('debug', 'Volunteers found', {
-            users: users
-        })
-        return users;
+        await Promise.map(section_users, async (volunteer) =>{
+            volunteers.push(volunteer.UserID);
+        });
+
+        //clear array for any duplicate
+        await _.uniq(volunteers);
+
+        logger.log('debug', 'return', {
+            assignment_instance: volunteers
+        });
+        
+        return volunteers;
 
     }
 

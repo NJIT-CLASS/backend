@@ -902,12 +902,12 @@ class Allocator {
 
 
 
-    get_ai_volunteers(ai_id) {
+    async get_ai_volunteers(ai_id) {
         logger.log('debug', {
             call: 'get_ai_volunteers',
             ai_id: ai_id
         });
-
+        
         return AssignmentInstance.find({
             where: {
                 AssignmentInstanceID: ai_id
@@ -918,6 +918,68 @@ class Allocator {
             });
             return JSON.parse(ai.Volunteers);
         });
+
+        // logger.log('debug', {
+        //     call: 'get_ai_volunteers',
+        //     ai_id: ai_id
+        // });
+        
+        // var ai = await AssignmentInstance.find({
+        //     where: {
+        //         AssignmentInstanceID: ai_id
+        //     },
+        //     attributes: ['SectionID']
+        // });
+
+        // var section_users = await SectionUser.findAll({
+        //     where:{
+        //         SectionID: ai.SectionID,
+        //         $or: [{
+        //             Volunteer: {
+        //                 $like: 'Appointed'
+
+        //             }
+        //         }, {
+        //             Volunteer: {
+        //                 $like: 'Approved'
+        //             }
+        //         }]
+        //     }
+        // });
+
+        // var volunteer_pool = await VolunteerPool.findAll({
+        //     where:{
+        //         AssignmentInstanceID: ai_id,
+        //         $or: [{
+        //             status: {
+        //                 $like: 'Appointed'
+
+        //             }
+        //         }, {
+        //             status: {
+        //                 $like: 'Approved'
+        //             }
+        //         }],
+        //     }
+        // });
+
+        // var volunteers = [];
+        // await Promise.map(volunteer_pool, async (volunteer) =>{
+        //         volunteers.push(volunteer.UserID);
+        // });
+
+        // await Promise.map(section_users, async (volunteer) =>{
+        //     volunteers.push(volunteer.UserID);
+        // });
+
+        // //clear array for any duplicate
+        // _.uniq(volunteers);
+
+        // logger.log('debug', 'return', {
+        //     assignment_instance: volunteers
+        // });
+        
+        // return volunteers;
     }
 
     async inactivate_section_user(section_id, user_id) {
@@ -1161,7 +1223,7 @@ class Allocator {
     // }
 
     // TODO: Possible removal as: NOT USED IN WORKFLOW CANCELLATION, TASK REALOCATION, or USER REALOCATION
-    reallocate(ti, u_ids, is_extra_credit) {
+    async reallocate(ti, u_ids, is_extra_credit) {
         logger.log('debug', {
             call: 'reallocate'
         });
@@ -1176,6 +1238,13 @@ class Allocator {
 
         var ti_id = ti.TaskInstanceID;
         var x = this;
+        var instructor = [];
+        await instructor.push(await x.findInstructor(ti.AssignmentInstanceID));
+        var user_pool_wc = [];
+
+        await Promise.map(u_ids, async (u_id,index) => {
+            user_pool_wc.push([u_id]);
+        })
         // var task = ti_id //task instance needs to be given
         // var constraint
         // var lateUser
@@ -1201,7 +1270,7 @@ class Allocator {
                     // avoidUsers.map(function(user) {
                     //     avoid_users.push(user)
                     // })
-                    return x.find_new_user(u_ids, vol_u_ids, avoid_u_ids).then(function (new_u_id) {
+                    return x.find_new_user_from_pool(user_pool_wc, instructor, vol_u_ids, avoid_u_ids).then(function (new_u_id) {
                         // return Promise.map(TaskInstances, function (task) {
                         /*WorkflowInstance.update({
                          Volunteers: volunteers
@@ -1756,12 +1825,17 @@ class Allocator {
             }
         });
 
+        var u_ids = [];
+        await Promise.map(instructors, (instructor) => {
+            u_ids.push(instructor.UserID);
+        })
+
         if (instructors.length === 0) {
             logger.log('info', '/Workflow/Allocator/findInstructor: No instructor found in the section, using the owner as replacement');
             return ai.Assignment.OwnerID;
         } else {
-            logger.log('info', '/Workflow/Allocator/findInstructor: found instructors');
-            return instructors[Math.floor(Math.random() * instructors.length)].UserID;
+            logger.log('info', '/Workflow/Allocator/findInstructor: found instructors', u_ids);
+            return _.sample(u_ids);
         }
     }
     // Create Graph for realocation durning workflow cancellation created 3-7-18 mss86

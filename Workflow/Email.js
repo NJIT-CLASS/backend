@@ -12,54 +12,8 @@ var smtpTransport = require('nodemailer-smtp-transport');
 
 
 import {
-    Assignment,
-    AssignmentGrade,
-    AssignmentInstance,
-    AssignmentInstance_Archive,
-    Assignment_Archive,
-    Badge,
-    BadgeInstance,
-    Category,
-    CategoryInstance,
-    Comments,
-    CommentsArchive,
-    CommentsViewed,
-    Contact,
-    Course,
-    CourseBackUp,
-    EmailNotification,
-    ExtraCredit,
-    FileReference,
-    Goal,
-    GoalInstance,
-    Level,
-    LevelInstance,
-    Organization,
-    PartialAssignments,
-    ResetPasswordRequest,
-    Section,
-    SectionUser,
-    SectionUserRecord,
-    Semester,
-    StudentRankSnapchot,
-    SectionRankSnapchot,
-    TaskActivity,
-    TaskActivity_Archive,
-    TaskGrade,
-    TaskInstance,
-    TaskInstance_Archive,
-    TaskSimpleGrade,
-    User,
     UserContact,
     UserLogin,
-    UserBadgeInstances,
-    UserPointInstances,
-    VolunteerPool,
-    WorkflowActivity,
-    WorkflowActivity_Archive,
-    WorkflowGrade,
-    WorkflowInstance,
-    WorkflowInstance_Archive
 } from '../Util/models.js';
 
 const logger = require('./Logger.js');
@@ -140,7 +94,7 @@ class Email {
       Send an email now given userid and type of email needs to be sent.
     */
     async sendNow(userid, type, data) {
-        //return; //for testting purposes
+        return; //for testting purposes
         if (active) {
             var x = this;
             let template;
@@ -153,6 +107,7 @@ class Email {
                 }]
             }).then(async function (result) {
                 var send = result.Email;
+                //var send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
 
                 switch (type) {
@@ -166,16 +121,6 @@ class Email {
                         html: INITIAL_USER.html
                     });
                     break;
-                    // case 'create user':
-                    //     await x.send({
-                    //         from: email,
-                    //         replyTo: email,
-                    //         to: send,
-                    //         subject: CREATE_USER.subject,
-                    //         text: CREATE_USER.text,
-                    //         html: CREATE_USER.html
-                    //     });
-                    //     break;
                 case 'invite user':
                     //console.log('inviting ' + send);
                     template = await INVITE_USER(data);
@@ -290,6 +235,7 @@ class Email {
                     break;
                 case 'reset password':
                     console.log('resetting password');
+                    console.log(data);
                     template = await RESET_PASS(data);
                     await x.send({
                         from: email,

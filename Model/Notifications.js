@@ -9,24 +9,29 @@ module.exports = function(sequelize, DataTypes) {
             autoIncrement: true,
             unique: true
         },
-        Flag: {
-            type: DataTypes.INTEGER.UNSIGNED,
-            field: 'Flag',
+        NotificationTarget: {
+            type: DataTypes.STRING(40),
+            field: 'NotificationTarget',
             allowNull: true
         },
         UserID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CommentsID',
+            field: 'UserID',
             allowNull: true
         },
-        CommentsID: {
+        TargetID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'CommentsID',
+            field: 'TargetID',
             allowNull: true
         },
-        VolunteerpoolID: {
+        OriginTaskInstanceID: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'VolunteerpoolID',
+            field: 'OriginTaskInstanceID',
+            allowNull: true
+        },
+        Info: {
+            type: DataTypes.STRING(40),
+            field: 'Info',
             allowNull: true
         },
         Dismiss: {
@@ -34,6 +39,17 @@ module.exports = function(sequelize, DataTypes) {
             field: 'Dismiss',
             allowNull: true
         },
+        Time: {
+            // date and time after which user will be allowed to log in
+            type: DataTypes.DATE,
+            field: 'Time',
+            allowNull: true
+        },
+        DismissType: {
+          type: DataTypes.STRING(45),
+          field: 'DismissType',
+          allowNull: true
+        }
 
 
     }, {
@@ -54,6 +70,6 @@ module.exports = function(sequelize, DataTypes) {
         freezeTableName: true,
 
         // define the table's name
-        tableName: 'notifications'
+        tableName: 'Notifications'
     });
 };
