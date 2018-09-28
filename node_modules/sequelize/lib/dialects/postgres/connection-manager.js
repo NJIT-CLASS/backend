@@ -29,6 +29,10 @@ ConnectionManager = function(dialect, sequelize) {
     throw err;
   }
 
+  this.oidMap = {};
+  this.arrayOidMap = {};
+
+  this._oidsFetched = false;
   this.refreshTypeParser(dataTypes.postgres);
 };
 
@@ -40,21 +44,36 @@ ConnectionManager.prototype.$refreshTypeParser = function (dataType) {
 
   if (dataType.types.postgres.oids) {
     dataType.types.postgres.oids.forEach(function (oid) {
-      self.lib.types.setTypeParser(oid, function (value) {
+      self.oidMap[oid] = function (value) {
         return dataType.parse(value, oid, self.lib.types.getTypeParser);
-      });
+      };
     });
   }
 
   if (dataType.types.postgres.array_oids) {
     dataType.types.postgres.array_oids.forEach(function (oid) {
-      self.lib.types.setTypeParser(oid, function (value) {
+      self.arrayOidMap[oid] = function (value) {
         return self.lib.types.arrayParser.create(value, function (value) {
           return dataType.parse(value, oid, self.lib.types.getTypeParser);
         }).parse();
-      });
+      };
     });
   }
+};
+
+ConnectionManager.prototype.$clearTypeParser = function () {
+  this.oidMap = {};
+  this.arrayOidMap = {};
+};
+
+ConnectionManager.prototype.getTypeParser = function (oid, format) {
+  if (this.oidMap[oid]) {
+    return this.oidMap[oid];
+  } else if (this.arrayOidMap[oid]) {
+    return this.arrayOidMap[oid];
+  }
+
+  return this.lib.types.getTypeParser.apply(undefined, arguments);
 };
 
 ConnectionManager.prototype.connect = function(config) {
@@ -65,6 +84,10 @@ ConnectionManager.prototype.connect = function(config) {
   connectionConfig = Utils._.pick(config, [
     'user', 'password', 'host', 'database', 'port'
   ]);
+
+  connectionConfig.types = {
+    getTypeParser: ConnectionManager.prototype.getTypeParser.bind(this)
+  };
 
   if (config.dialectOptions) {
     Utils._.merge(connectionConfig,
@@ -147,9 +170,9 @@ ConnectionManager.prototype.connect = function(config) {
       }
     }
 
-    // oids for hstore and geometry are dynamic - so select them at connection time
-    if (dataTypes.HSTORE.types.postgres.oids.length === 0) {
-      query += 'SELECT typname, oid, typarray FROM pg_type WHERE typtype = \'b\' AND typname IN (\'hstore\', \'geometry\', \'geography\')';
+    // fetch OIDs for Geometry / Hstore / Enum as they are dynamic
+    if (!self._oidsFetched) {
+      query += 'SELECT typname, typtype, oid, typarray FROM pg_type WHERE (typtype = \'b\' AND typname IN (\'hstore\', \'geometry\', \'geography\')) OR (typtype = \'e\')';
     }
 
     return new Promise(function (resolve, reject) {
@@ -161,8 +184,10 @@ ConnectionManager.prototype.connect = function(config) {
           type = dataTypes.postgres.GEOMETRY;
         } else if (row.typname === 'hstore') {
           type = dataTypes.postgres.HSTORE;
-        } else if (row.typname === 'geography'){
+        } else if (row.typname === 'geography') {
           type = dataTypes.postgres.GEOGRAPHY;
+        } else if (row.typtype === 'e') {
+          type = dataTypes.postgres.ENUM;
         }
 
         type.types.postgres.oids.push(row.oid);
@@ -170,6 +195,8 @@ ConnectionManager.prototype.connect = function(config) {
 
         self.$refreshTypeParser(type);
       }).on('end', function () {
+        self._oidsFetched = true;
+
         resolve();
       });
     });

@@ -1553,6 +1553,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+    // Created Brandon Caton
+    router.get('/getCourses', participantAuthentication, function (req, res) {
+        Course.findAll({
+            attributes: ['CourseID','Number', 'Name']
+        }).then(function (Courses) {
+            console.log('/getOrganizationCourses/ Courses found');
+            res.json({
+                'Error': false,
+                'Courses': Courses
+            });
+        });
+    });
+
     router.post('/getUserID/',  participantAuthentication, function (req, res) {
         UserLogin.findOne({
             where: {
@@ -2013,7 +2026,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ['Name', 'DisplayName', 'Type', 'AllowRevision'],
+                    attributes: ['Name', 'DisplayName', 'Type', 'AllowRevision','MustCompleteThisFirst'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -2759,7 +2772,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 SectionID: req.params.sectionId
             },
-            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+            attributes: ['DisplayName','AssignmentInstanceID', 'StartDate', 'EndDate'],
             include: [{
                 model: Assignment,
                 attributes: ['DisplayName']

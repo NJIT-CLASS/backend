@@ -182,17 +182,19 @@ Instance.prototype.get = function(key, options) { // testhint options:none
     key = undefined;
   }
 
+  options = options || {};
+
   if (key) {
     if (this._customGetters[key]) {
-      return this._customGetters[key].call(this, key);
+      return this._customGetters[key].call(this, key, options);
     }
     if (options && options.plain && this.$options.include && this.$options.includeNames.indexOf(key) !== -1) {
       if (Array.isArray(this.dataValues[key])) {
         return this.dataValues[key].map(function (instance) {
-          return instance.get({plain: options.plain});
+          return instance.get(options);
         });
       } else if (this.dataValues[key] instanceof Instance) {
-        return this.dataValues[key].get({plain: options.plain});
+        return this.dataValues[key].get(options);
       } else {
         return this.dataValues[key];
       }
@@ -796,6 +798,7 @@ Instance.prototype.reload = function(options) {
  *
  * @param {Object} [options] Options that are passed to the validator
  * @param {Array} [options.skip] An array of strings. All properties that are in this array will not be validated
+ * @param {Array} [options.fields] An array of strings. Only the properties that are in this array will be validated.
  * @see {InstanceValidator}
  *
  * @return {Promise<undefined|Errors.ValidationError>}
