@@ -250,6 +250,10 @@ models.forEach(function(model) {
         foreignKey: 'SectionUserID'
     });
 
+    m.Course.belongsTo(m.Organization, {
+        foreignKey: 'OrganizationID'
+    });
+
     m.FileReference.belongsTo(m.User, {
         foreignKey: 'UserID'
     });

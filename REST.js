@@ -2411,6 +2411,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //        -body
         //        -role
 
+        if (req.body.volunteer === null) {
+            console.log('course/adduser : volunteer null');
+        } else {
+            if (req.body.volunteer === 0){
+                console.log('course/adduser : volunteer 0');
+            } else {
+                req.body.volunteer = 'Appointed'
+            }
+        }
+
         UserLogin.find({
             where: {
                 Email: req.body.email
@@ -3488,6 +3498,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             res.status(400).end();
         }
 
+        if (req.body.volunteer === null) {
+            console.log('course/adduser : volunteer null');
+        } else {
+            if (req.body.volunteer === 0){
+                console.log('course/adduser : volunteer 0');
+            } else {
+                req.body.volunteer = 'Appointed'
+            }
+        }
+
         UserLogin.find({
             where: {
                 Email: req.body.email
@@ -3529,6 +3549,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     SectionUser.create({
                                         SectionID: req.body.sectionid,
                                         UserID: userLogin.UserID,
+                                        Volunteer: req.body.volunteer,
                                         Role: req.body.role,
                                         Active: true
                                     }).catch(function (err) {
@@ -3546,6 +3567,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 SectionUser.create({
                     SectionID: req.body.sectionid,
                     UserID: userLogin.UserID,
+                    Volunteer: req.body.volunteer,
                     Role: req.body.role,
                     Active: true
                 }).catch(function (err) {
@@ -3566,7 +3588,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 CourseID: req.params.courseId
             },
-            attributes: ['CourseID', 'Number', 'Name', 'Description']
+            attributes: ['CourseID', 'Number', 'Name', 'Description'],
+            include:{
+                model: Organization,
+                attributes:['Name']
+            }
         }).then(function (result) {
             Section.findAll({
                 where: {
@@ -4049,7 +4075,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 BlockableTAs.push(ti.TaskActivityID);
             });
 
-            /*  PendingTaskInstance for view_access function     */
+            /*  PendingTaskInstance for view_access function  */
             var PendingTaskInstances = [];
             if(BlockableTAs.lenth !== 0){
                 var ti_temp = await TaskInstance.findAll({
