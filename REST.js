@@ -1182,7 +1182,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         Promise.mapSeries(req.body.files, (file) => {
             return FileReference.create({
-                UserID: req.body.UserID,
+                UserID: req.body.userId,
                 Info: file,
                 LastUpdated: new Date(),
             }).then(function (result) {
@@ -1233,7 +1233,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     ProfilePicture: newFileIDs[0]
                 }, {
                     where: {
-                        UserID: req.body.UserID
+                        UserID: req.body.userId
                     }
                 }).then(function (done) {
                     logger.log('info', 'user updated with new profile pictures info', {
@@ -1264,7 +1264,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/file/upload/:type?', participantAuthentication, function (req, res) {
         console.log('File upload:', req.body);
         FileReference.create({
-            UserID: req.body.UserID,
+            UserID: req.body.userId,
             Info: req.body.fileInfo,
             LastUpdated: new Date(),
         }).then(function (result) {
@@ -1306,7 +1306,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     ProfilePicture: [result.FileID]
                 }, {
                     where: {
-                        UserID: req.body.UserID
+                        UserID: req.body.userId
                     }
                 }).then(function (done) {
                     logger.log('info', 'user updated with new profile pictures info', {
@@ -3595,41 +3595,41 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    //Endpoint to find course
-    router.get('/course/:courseId', participantAuthentication, function (req, res) {
-        Course.find({
+//Endpoint to find course
+router.get('/course/:courseId', participantAuthentication, function (req, res) {
+    Course.find({
+        where: {
+            CourseID: req.params.courseId
+        },
+        attributes: ['CourseID', 'Number', 'Name', 'Description'],
+        include:{
+            model: Organization,
+            attributes:['Name']
+        }
+    }).then(function (result) {
+        Section.findAll({
             where: {
                 CourseID: req.params.courseId
             },
-            attributes: ['CourseID', 'Number', 'Name', 'Description'],
-            include:{
-                model: Organization,
-                attributes:['Name']
-            }
-        }).then(function (result) {
-            Section.findAll({
-                where: {
-                    CourseID: req.params.courseId
-                },
-                include: [{
-                    model: Semester,
-                    attributes: ['Name']
-                }]
-            }).then(function (sections) {
-                res.json({
-                    'Error': false,
-                    'Message': 'Success',
-                    'Course': result,
-                    'Sections': sections
-                });
+            include: [{
+                model: Semester,
+                attributes: ['Name']
+            }]
+        }).then(function (sections) {
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Course': result,
+                'Sections': sections
             });
-
-        }).catch(function (err) {
-            console.log('/course ERROR_WJE : ' + err.message);
-            res.status(400).end();
         });
 
+    }).catch(function (err) {
+        console.log('/course ERROR_WJE : ' + err.message);
+        res.status(400).end();
     });
+
+});
 
     //-----------------------------------------------------------------------------------------------------
 

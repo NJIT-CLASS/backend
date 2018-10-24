@@ -459,6 +459,9 @@ models.forEach(function(model) {
         as: 'Comments',
         foreignKey: 'AssignmentInstanceID'
     });
+    m.Course.belongsTo(m.Organization, {
+        foreignKey: 'OrganizationID'
+    });
 
     //m.User.hasOne(m.UserLogin,{foreignKey: 'UserID'});
     //m.User.hasOne(m.UserContact,{foreignKey: 'UserID'});
