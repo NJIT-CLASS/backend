@@ -1353,7 +1353,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.delete('/file/delete/:fileId',  participantAuthentication, async function (req, res) {
         let taskId = req.body.taskId || '';
-        var userId = req.body.UserID;
+        var userId = req.body.userId;
         if(userId === null || userId === ''){
             logger.log('error', '/file/delete User Not Authorized');
             return res.status(400).end();
@@ -1365,6 +1365,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 UserID: userId
             }
         }).then(async function (fileResult) {
+            console.log("file result"   +fileResult);
             var fileInfo = fileResult;
             fileResult.destroy();
 
