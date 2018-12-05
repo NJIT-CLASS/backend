@@ -980,27 +980,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
     //---------------------------------------------------------------------------
-    router.get('/notifications/user/:UserID', participantAuthentication, function(req, res) {
-        console.log('/notifications/user/:UserID was called');
-
-        Notifications.findAll({
-            where: {
-                UserID: req.params.UserID,
-                Dismiss: null
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Notifications': rows
-            });
-        }).catch(function(err) {
-            console.log('/notifications/user/:UserID' + err.message);
-            res.status(400).end();
-        });
-
-    });
-    //---------------------------------------------------------------------------
     router.get('/notifications/dismiss/:notificationsID', participantAuthentication, function(req, res) {
         console.log('/notifications/dismiss/:notificationsID was called');
 
@@ -5481,6 +5460,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/VolunteerPool/', teacherAuthentication, function (req, res) {
 
         VolunteerPool.findAll({
+            where: {
+                status: {
+                    $not: 'Deleted'
+                }
+            },
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function (rows) {
             res.json({
@@ -5634,7 +5618,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Endpoint to return count total of Volunteers
     router.get('/VolunteerPool/countOfUsers', teacherAuthentication, function (req, res) {
         console.log('VolunteerPool/count was called');
-        VolunteerPool.findAll({}).then(function (rows) {
+        VolunteerPool.findAll({
+            where: {
+                status: {
+                    $not: 'Deleted'
+                }
+            }
+        }).then(function (rows) {
             res.json({
                 'Error_': false,
                 'Message': 'Success',
@@ -5677,7 +5667,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         console.log('/VolunteerPool/:UserID was called');
         VolunteerPool.findAll({
             where: {
-                UserID: req.params.UserID
+                UserID: req.params.UserID,
+                status: {
+                    $not: 'Deleted'
+                }
             },
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function (rows) {
@@ -6677,7 +6670,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         VolunteerPool.findAll({
             where: {
-                UserID: req.params.UserID
+                UserID: req.params.UserID,
+                status: {
+                    $not: 'Deleted'
+                }
             },
             attributes: ['VolunteerPoolID', 'UserID', 'SectionID', 'AssignmentInstanceID', 'status']
         }).then(function (rows) {
@@ -7312,8 +7308,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
      //---------------------------------------------------------------------------
-     router.get('/notifications/user/:UserID', function(req, res) {
-         console.log("/notifications/user/:UserID was called");
+     router.get('/notifications/user/:UserID', participantAuthentication, function(req, res) {
+         console.log("/notifications/user/:UserID was called with UserID ", req.params.UserID);
        var count = 0;
        Notifications.findAll({
            where: {
@@ -7392,7 +7388,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
              if (i.NotificationTarget == 'VolunteerPool') {
                VolunteerPool.findOne({
                  where: {
-                   VolunteerPoolID: i.TargetID
+                   VolunteerPoolID: i.TargetID,
+                    status: {
+                        $not: 'Deleted'
+                    }
                  }
                }).then(function(volunteerPoolRows) {
                  AssignmentInstance.findOne({
@@ -7589,11 +7588,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
              })
            }
              if (i.NotificationTarget == 'VolunteerPool') {
+                console.log("Using tID: ", i.TargetID);
                VolunteerPool.findOne({
                  where: {
-                   VolunteerPoolID: i.TargetID
+                   VolunteerPoolID: i.TargetID,
                  }
                }).then(function(volunteerPoolRows) {
+                console.log("Using Target ID ", i.TargetID, "with volunteerPoolRows: ", volunteerPoolRows);
                  AssignmentInstance.findOne({
                    where: {
                      AssignmentInstanceID: volunteerPoolRows.AssignmentInstanceID
@@ -7758,7 +7759,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         console.log('/volunteerpool/section/ : was called');
         VolunteerPool.findAll({
             where:{
-                SectionID:req.params.section_id
+                SectionID:req.params.section_id,
+                status: {
+                    $not: 'Deleted'
+                }
             }
         }).then(function (result) {
             console.log('Volunteers have been found by section.');
@@ -11557,7 +11561,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         var VP = await VolunteerPool.findAll({
             where: {
                 UserID: req.params.UserID,
-                SectionID: req.params.SectionID
+                SectionID: req.params.SectionID,
+                status: {
+                    $not: 'Deleted'
+                }
             },
             attributes: ['VolunteerPoolID', 'UserID', 'SectionID', 'AssignmentInstanceID', 'status']
         });
@@ -11586,13 +11593,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             where: {
                               NotificationTarget: 'VolunteerPool',
                               TargetID: VP[j].VolunteerPoolID,
-                              UserID: req.params.UserID
+                              UserID: req.params.UserID,
+                              Dismiss: 0
                             }
                           }).then(function(rows2) {
                             if (rows2 != null) {
                               rows2.update({Dismiss: 1});
                               console.log('update completed', rows2);
                             }
+                            console.log('update & dismiss did not complete');
                           });
                       }
                     }
@@ -11733,7 +11742,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });*/
         VolunteerPool.findOne({
             where: {
-                VolunteerPoolID: req.body.VolunteerPoolID
+                VolunteerPoolID: req.body.VolunteerPoolID,
+                status: {
+                    $not: 'Deleted'
+                }
             }
         }).then(function(rows) {
           rows.update({status: req.body.status});
@@ -11772,17 +11784,19 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     //Endpoint to remove from VolunteerPool
     router.post('/VolunteerPool/deleteVolunteer', function (req, res) {
 
+        /*
         VolunteerPool.destroy({
             where: {
                 VolunteerPoolID: req.body.VolunteerPoolID
                 //AssignmentInstanceID: req.body.AssignmentInstanceID
             }
-        //VolunteerPool.update({
-        //    status: 0
-        //}, {
-        //    where: {
-        //        VolunteerPoolID: req.body.VolunteerPoolID
-        //    }
+        */
+        VolunteerPool.update({
+            status: 'Deleted'
+        }, {
+            where: {
+                VolunteerPoolID: req.body.VolunteerPoolID
+            }
         }).then(function (rows) {
             console.log('Delete User Success');
             Notifications.update({
