@@ -1566,10 +1566,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             attributes: ['Role'],
             include: [{
                 model: Section,
-                attributes: ['Name'],
+                attributes: ['Name', 'SectionID'],
                 include: [{
                     model: Course,
-                    attributes: ['Number', 'Name', 'Abbreviations']
+                    attributes: ['Number', 'Name']
                 }]
             }]
         }).then(function (Courses) {
@@ -11539,7 +11539,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                   rows2[0].update({Dismiss: 1});
               })
             }
-          console.log(rows[0].Volunteer);
+          //console.log(rows[0].Volunteer);
           res.json({
               'Error': false,
               'Message': 'Success',
