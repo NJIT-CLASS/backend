@@ -12,9 +12,9 @@ var Email = require('./Workflow/Email.js');
 var Sequelize = require('sequelize');
 var dateFormat = require('dateformat');
 var Guid = require('guid');
-var models = require('./Model');
+var models = require('./models');
 var Manager = require('./Workflow/Manager.js');
-const sequelize = require('./Model/index.js').sequelize;
+const sequelize = require('./models/index.js').sequelize;
 var TaskFactory = require('./Workflow/TaskFactory.js');
 
 var manager = new Manager();
@@ -62,7 +62,8 @@ REST.prototype.stop = function(err) {
 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
     .then(function() {
         return sequelize.sync({
-            //force: true
+            //force: true,
+            // logging: console.log
         });
     })
     .then(function() {

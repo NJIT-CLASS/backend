@@ -52,7 +52,7 @@ import {
 
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
-//var sequelize = require('../Model/index.js').sequelize;
+//var sequelize = require('../models/index.js').sequelize;
 const logger = require('./Logger.js');
 
 /*
@@ -126,7 +126,7 @@ class Util {
 
     async findSectionUserID(ai_id, user_id) {
         try {
-            console.log('ai_id',ai_id,user_id )
+            //console.log('ai_id',ai_id,user_id )
             var ai_id = await AssignmentInstance.find({
                 where: {
                     AssignmentInstanceID: ai_id

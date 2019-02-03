@@ -51,7 +51,7 @@ import {
 
 var TaskFactory = require('./TaskFactory.js');
 
-//var models = require('../Model');
+//var models = require('../models');
 var Promise = require('bluebird');
 var moment = require('moment');
 var consts = require('../Util/constant.js');

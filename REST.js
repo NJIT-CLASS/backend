@@ -77,7 +77,7 @@ var Guid = require('guid');
 var Promise = require('bluebird');
 var password = require('./password');
 var moment = require('moment');
-const sequelize = require('./Model/index.js').sequelize;
+const sequelize = require('./models/index.js').sequelize;
 var contentDisposition = require('content-disposition');
 var Manager = require('./Workflow/Manager.js');
 var Allocator = require('./Workflow/Allocator.js');
@@ -587,25 +587,32 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
         // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
         // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});
-        email.sendNow(327, 'remove_reallocated', {'ti_id': 12946});
-        email.sendNow(327, 'reset', {'ti_id': 12946});
-        email.sendNow(327, 'task_cancelled', {'ti_id': 12946});
-        email.sendNow(327, 'task_bypassed', {'ti_id': 12946});
-        res.status(200).end();
+        // email.sendNow(327, 'remove_reallocated', {'ti_id': 12946});
+        // email.sendNow(327, 'reset', {'ti_id': 12946});
+        // email.sendNow(327, 'task_cancelled', {'ti_id': 12946});
+        // email.sendNow(327, 'task_bypassed', {'ti_id': 12946});
+        // res.status(200).end();
+
+        let grade = new Grade();
+        let report = await grade.getAssignmentGradeReport(1);
+        res.json({
+            assignmentGradeReport:report
+        })
+        // grade.getUserTaskInfoArray(1,1)
     });
 
-    router.post('/test', adminAuthentication, async function (req, res) {
-        let email = new Email();
-        email.sendNow(327, 'revise', {'ti_id': 12946});
-        email.sendNow(327, 'reset password', {'pass': 12946});
-        email.sendNow(327, 'new_task', {'ti_id': 12946});
-        email.sendNow(327, 'late', {'ti_id': 12946});
-        email.sendNow(327, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456});
-        email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
-        email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
-        email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});
-        res.status(200).end();
-    });
+    // router.post('/test', adminAuthentication, async function (req, res) {
+    //     let email = new Email();
+    //     email.sendNow(327, 'revise', {'ti_id': 12946});
+    //     email.sendNow(327, 'reset password', {'pass': 12946});
+    //     email.sendNow(327, 'new_task', {'ti_id': 12946});
+    //     email.sendNow(327, 'late', {'ti_id': 12946});
+    //     email.sendNow(327, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456});
+    //     email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
+    //     email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
+    //     email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});
+    //     res.status(200).end();
+    // });
     //-------------------------------------------------------------------
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ////////////////                 Guest Level APIs
@@ -906,6 +913,17 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
         //save all assignments submitted
 
+
+    });
+
+    router.post('/gradeReport', participantAuthentication, async function(req, res) {
+        let grade = new Grade();
+
+        let report = await grade.getAssignmentGradeReport(req.body.ai_id);
+
+        res.json({
+            assignmentGradeReport:report
+        });
 
     });
 

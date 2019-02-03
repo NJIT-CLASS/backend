@@ -49,11 +49,11 @@ import {
     WorkflowInstance_Archive
 } from '../Util/models.js';
 
-var models = require('../Model');
+var models = require('../models');
 var Promise = require('bluebird');
 var moment = require('moment');
 var TaskFactory = require('./TaskFactory.js');
-const sequelize = require('../Model/index.js').sequelize;
+const sequelize = require('../models/index.js').sequelize;
 var _ = require('underscore');
 var Email = require('./Email.js');
 
@@ -80,12 +80,18 @@ export default class Reallocator {
 
         var task_id = ti.TaskInstanceID;
         var ti_u_hist = JSON.parse(ti.UserHistory) || [];
+        var extraCredit = 0;
 
         ti_u_hist.push({
             time: new Date(),
             user_id: new_u_id,
             is_extra_credit: is_extra_credit,
         });
+
+        if(is_extra_credit){
+            extraCredit = 1;
+        }
+        
 
         logger.log('info', 'update a task instance with a new user and user history', {
             task_instance: ti.toJSON(),
@@ -96,6 +102,7 @@ export default class Reallocator {
         return TaskInstance.update({
             UserID: new_u_id,
             UserHistory: ti_u_hist,
+            ExtraCredit: extraCredit
         }, {
             where: {
                 TaskInstanceID: task_id
