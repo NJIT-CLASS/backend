@@ -5087,7 +5087,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     where: {
                         WorkflowInstanceID: wI.WorkflowInstanceID
                     },
-                    attributes: ['TaskInstanceID', 'Data'],
+                    attributes: ['TaskInstanceID', 'Data','Status'],
                     include: {
                         model: TaskActivity,
                         attributes: ['DisplayName', 'TaskActivityID']
