@@ -37,7 +37,7 @@ module.exports = function (sequelize, DataTypes) {
             allowNull: false,
         },
         Grade: {
-            type: DataTypes.FLOAT.UNSIGNED,
+            type: DataTypes.DOUBLE,
             field: 'Grade',
             allowNull: false,
         },

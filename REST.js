@@ -594,9 +594,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // res.status(200).end();
 
         let grade = new Grade();
-        let report = await grade.getAssignmentGradeReport(1);
+        // let report = await grade.getAssignmentGradeReport(1);
+        let UTIA = await grade.getUserTaskInfoArray(1);
         res.json({
-            assignmentGradeReport:report
+            UTIA: UTIA
+            // assignmentGradeReport:report
         })
         // grade.getUserTaskInfoArray(1,1)
     });

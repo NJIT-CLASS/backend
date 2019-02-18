@@ -147,10 +147,10 @@ class TaskTrigger {
             }
         });
 
-        var final_grade = await grade.findFinalGrade(ti);
-        //console.log('herte', final_grade);
-        if(final_grade != null){
-            await grade.addTaskGrade(final_grade.id, final_grade.grade, final_grade.max_grade);
+        var final_grade_task = await grade.findFinalGrade(ti);
+        //console.log('herte', final_grade_task);
+        if(final_grade_task != null){
+            await grade.addTaskGrade(final_grade_task);
         }
 
 
@@ -701,7 +701,7 @@ class TaskTrigger {
 
         if (final_grade === 0) {
             logger.log('info', 'no grade has been found!');
-            return 0;
+            return null;
 
         } else {
             // logger.log('info', 'grade has been found!', {

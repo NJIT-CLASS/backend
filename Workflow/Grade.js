@@ -119,24 +119,24 @@ class Grade {
      * @param {any} max_grade 
      * @memberof Grade
      */
-    async addTaskGrade(ti_id, grade, max_grade) {
+    async addTaskGrade(finalGrade) {
 
         var ti = await TaskInstance.find({
             where: {
-                TaskInstanceID: ti_id
+                TaskInstanceID: finalGrade.gradeOwnerID
             },
             include: [{
                 model: WorkflowInstance,
                 attributes: ['WorkflowActivityID'],
                 include: [{
                     model: WorkflowActivity,
-                    attributes: ['Name', 'NumberOfSets'],
+                    attributes: ['Name', 'NumberOfSets', 'GradeDistribution'],
                     
                 }]
             },
             {
                 model: TaskActivity,
-                attributes: ['SimpleGrade', 'DisplayName']
+                attributes: ['SimpleGrade', 'DisplayName', 'Fields']
             }]
         });
         console.log('add task grade ai_id :', ti.AssignmentInstanceID);
@@ -145,18 +145,21 @@ class Grade {
         var user_history = JSON.parse(ti.UserHistory);
 
         var task_grade = await TaskGrade.create({
-            TaskInstanceID: ti_id,
+            TaskInstanceID: ti.TaskInstanceID,
             TaskActivityID: ti.TaskActivityID,
             WorkflowInstanceID: ti.WorkflowInstanceID,
             WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
             AssignmentInstanceID: ti.AssignmentInstanceID,
             SectionUserID: sec_user,
-            WADisplayName: ti.WorkflowInstance.WorkflowActivity.Name,
-            WANumberOfSets: ti.WorkflowInstance.WorkflowActivity.NumberOfSets,
             TADisplayName: ti.TaskActivity.DisplayName,
-            Grade: grade,
+            WADisplayName: ti.WorkflowInstance.WorkflowActivity.Name,
+            Grade: finalGrade.task.FinalGrade,
             TIExtraCredit: user_history[user_history.length - 1].is_extra_credit,
-            MaxGrade: max_grade
+            WANumberOfSets: ti.WorkflowInstance.WorkflowActivity.NumberOfSets,
+            TIFields: {
+                fields: ti.TaskActivity.Fields,
+                data: finalGrade.task.Data
+            }
         }).catch(function(err){
             console.log(err);
         });
@@ -175,6 +178,7 @@ class Grade {
      * @memberof Grade
      */
     async addWorkflowGrade(wi_id, sec_user, grade) {
+        logger.log('info', '/Workflow/Grade/addWorkflowGrade: Adding grade');
 
         //console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
         var wi = await WorkflowInstance.find({
@@ -201,14 +205,14 @@ class Grade {
                 Grade: grade
             });
         } else {
-            var total = w_grade.grade + grade;
+            var total = w_grade.Grade + grade;
             await w_grade.update({
                 Grade: total
             });
         }
 
 
-        logger.log('info', '/Workflow/Grade/addWorkflowGrade: Done! WorkflowGradeID: ', workflow_grade.WorkflowGradeID);
+        logger.log('info', '/Workflow/Grade/addWorkflowGrade: Done! WorkflowGradeID: ', wi_id);
     }
 
     /**
@@ -409,9 +413,8 @@ class Grade {
                 return null;
             } else {
                 return {
-                    'id': original_id,
-                    'grade': ti.FinalGrade,
-                    'max_grade': 100
+                    'gradeOwnerID': original_id,
+                    'task': ti
                 };
             }
             
@@ -704,9 +707,9 @@ class Grade {
             userIDs: [],
             quality: {},
             qualityID: [],
-            timeliness: [],
+            timeliness: {},
             timelinessID: [],
-            extraCredit: [],
+            extraCredit: {},
             extraCreditID: [],
             gradableTasks: gradableTaskObj.gradableTasks
         }
@@ -737,7 +740,7 @@ class Grade {
         });
 
         await Promise.mapSeries(tis, async (ti) => {
-            var sectUserID = await util.findSectionUserID(ai_id, ti.UserID)
+            var sectUserID = await util.findSectionUserID(ai_id, ti.UserID);
             if(!_.contains(UTIA.userIDs, ti.UserID)){
                 let user = await UserContact.find({
                     where:{
@@ -756,18 +759,18 @@ class Grade {
                     UTIA.quality[sectUserID] = [];
                 }
                 UTIA.quality[sectUserID].push(ti);
-                UTIA.qualityID.push(ti.TaskInstanceID)
+                UTIA.qualityID.push(ti.TaskInstanceID);
             }
-            if(ti.TASimpleGrade != 'none'){
+            if(ti.TASimpleGrade !== 'none'){
 
-                if(!UTIA.timeliness.hasOwnProperty(sectUserID)){
+                if(!await UTIA.timeliness.hasOwnProperty(sectUserID)){
                     UTIA.timeliness[sectUserID] = [];
                 }
 
                 UTIA.timeliness[sectUserID].push(ti);
-                UTIA.timelinessID.push(ti.TaskInstanceID)
+                UTIA.timelinessID.push(ti.TaskInstanceID);
             }
-            if(ti.ExtraCredit == 1) {
+            if(ti.ExtraCredit == 1) {s
                 UTIA.extraCredit.push(ti);
                 UTIA.extraCredit.push(ti.TaskInstance)
             }
@@ -1031,6 +1034,13 @@ class Grade {
         let simpleGradeCount = 0;
         let timelinessGradeDetails = {};
 
+        if(!UTIA.timeliness.hasOwnProperty(user.sectionUserID)){
+            return {
+                timelinessGradeDetails: timelinessGradeDetails,
+                simpleGradeCount: simpleGradeCount
+            }
+        }
+        
         await Promise.mapSeries(UTIA.timeliness[user.sectionUserID], async (ti) =>{
             if(wf.WorkflowActivityID === ti.WorkflowInstance.WorkflowActivityID){
                 simpleGradeCount++;

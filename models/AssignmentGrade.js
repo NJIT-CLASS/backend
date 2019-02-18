@@ -26,7 +26,7 @@ module.exports = function (sequelize, DataTypes) {
             unique: 'ai_sectionUserId_unq_idx',
         },
         Grade: {
-            type: DataTypes.FLOAT.UNSIGNED,
+            type: DataTypes.DOUBLE,
             field: 'Grade',
             allowNull: false,
         },
