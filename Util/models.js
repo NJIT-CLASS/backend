@@ -1,4 +1,4 @@
-var models = require('../Model');
+var models = require('../models');
 
 export let APIStatistics = models.APIStatistics;
 export let Assignment = models.Assignment;

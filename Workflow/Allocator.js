@@ -50,7 +50,7 @@ import {
 } from '../Util/models.js';
 import { resolve } from 'url';
 
-var models = require('../Model');
+var models = require('../models');
 var Promise = require('bluebird');
 var moment = require('moment');
 var TaskFactory = require('./TaskFactory.js');

@@ -30,6 +30,8 @@
     "random-number-csprng": "^1.0.2",
     "sendgrid": "^5.2.3",
     "sequelize": "^3.30.4",
+    "sequelize-auto-migrations": "^1.0.3",
+    "sequelize-cli": "^5.4.0",
     "supervisor": "^0.12.0",
     "tree-model": "^1.0.6",
     "underscore": "^1.8.3",

@@ -1020,6 +1020,8 @@ class TaskFactory {
             //Iterate through array of workflow activities (Created WorkflowActivity in order)
             return Promise.mapSeries(assignment.WorkflowActivity, function(workflow, index) {
                 // console.log('Creating workflow activity...');
+                console.log('Workflow Structure', workflow.WorkflowStructure);
+                console.log('GradeDistribution', workflow.WA_grade_distribution)
                 return WorkflowActivity.create({
                     AssignmentID: assignmentResult.AssignmentID,
                     Type: workflow.WA_type,

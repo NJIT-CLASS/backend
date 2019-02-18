@@ -480,7 +480,10 @@ class Make {
 
         var x = this;
         var isSubWorkflow = await x.getIsSubWorkflow(obj.flat_tree, obj.ta);
-        var num_participants = await x.getNumParticipants(obj.ta.id); //returns number of participants of a task and whether the task has subworkflow
+        var taskFields = await x.getTaskActivitieFields(obj.ta.id); //returns number of participants of a task and whether the task has subworkflow
+        var num_participants = taskFields.numParticipants;
+        var simpleGrade = taskFields.simpleGrade
+        var type = taskFields.type;
         var duration = await x.getDuration(obj);
         
         //console.log(num_participants.length);
@@ -518,6 +521,8 @@ class Make {
                     WorkflowInstanceID: obj.new_wi_id,
                     AssignmentInstanceID: obj.ai_id,
                     Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+                    TASimpleGrade: simpleGrade,
+                    TAType: type,
                     UserHistory: ti_u_hist,
                     NextTask: [],
                     DueType: duration,
@@ -569,6 +574,8 @@ class Make {
                         WorkflowInstanceID: obj.new_wi_id,
                         AssignmentInstanceID: obj.ai_id,
                         Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+                        TASimpleGrade: simpleGrade,
+                        TAType: type,
                         ReferencedTask: refers,
                         UserHistory: ti_u_hist,
                         NextTask: [],
@@ -609,6 +616,8 @@ class Make {
                             WorkflowInstanceID: obj.new_wi_id,
                             AssignmentInstanceID: obj.ai_id,
                             Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+                            TASimpleGrade: simpleGrade,
+                            TAType: type,
                             ReferencedTask: refers,
                             UserHistory: ti_u_hist,
                             NextTask: [],
@@ -651,6 +660,8 @@ class Make {
                         WorkflowInstanceID: obj.new_wi_id,
                         AssignmentInstanceID: obj.ai_id,
                         Status: stat,
+                        TASimpleGrade: simpleGrade,
+                        TAType: type,
                         ReferencedTask: refers,
                         UserHistory: ti_u_hist,
                         NextTask: [],
@@ -686,6 +697,8 @@ class Make {
                             WorkflowInstanceID: obj.new_wi_id,
                             AssignmentInstanceID: obj.ai_id,
                             Status: JSON.stringify([execution.NOT_YET_STARTED, cancellation.NORMAL, revision.NOT_AVAILABLE, due.BEFORE_END_TIME, pageInteraction.NOT_OPENED, reallocation.ORIGINAL_USER]),
+                            TASimpleGrade: simpleGrade,
+                            TAType: type,
                             ReferencedTask: refers,
                             UserHistory: ti_u_hist,
                             NextTask: [],
@@ -734,7 +747,7 @@ class Make {
      * @param  {[type]}  taskActivityID [description]
      * @return {Promise}                [description]
      */
-    async getNumParticipants(taskActivityID) {
+    async getTaskActivitieFields(taskActivityID) {
         // logger.log('debug', 'finding number of participants', {
         //     taskActivityID: taskActivityID
         // });
@@ -748,8 +761,14 @@ class Make {
             });
             let num = new Array(ta.NumberParticipants);
             num.fill(0);
+
+            let json = {
+                numParticipants: num,
+                simpleGrade: ta.SimpleGrade,
+                type: ta.Type
+            }
             //let bool = x.hasSubWorkflow(taskActivityID,ta.WorkflowActivityID);
-            return num;
+            return json;
         } catch (err) {
             logger.log('error', 'cannot find number of participants', {
                 TaskActivity: taskActivityID,

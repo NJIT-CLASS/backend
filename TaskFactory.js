@@ -2,7 +2,7 @@
  * Created by cesarsalazar on 4/20/16.
  */
 
-var models = require('../Model');
+var models = require('../models');
 var Allocator = require('./Allocator.js');
 var Promise = require('bluebird');
 var moment = require('moment');
