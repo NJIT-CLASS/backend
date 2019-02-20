@@ -961,7 +961,7 @@ class Grade {
                     weightInAssignment: t_grade.TAGradeWeightInAssignment || '-',
                     taskGrade: t_grade.Grade || 'not yet complete',
                     scaledGrade: t_grade.TIScaledGrade ||'-',
-                    taskGradeFields: taskGradeFields
+                    taskGradeFields: taskGradeFields || {}
                 }
             }
         });
@@ -985,7 +985,7 @@ class Grade {
     
     async getTaskGradeFieldsReport(UTIA, user, ti){
         let x = this;
-        let taskGradeFeilds = {};
+        let taskGradeFields = {};
 
         let resolveDispute = await TaskInstance.find({
             where: {
@@ -998,35 +998,119 @@ class Grade {
             }
         });
 
-        if(resolveDispute !== null || resolveDispute !== undefined){
-            if(resolveDispute.FinalGrade !== null){
-                taskGradeFeilds[resolveDispute.TaskInstanceID] = {
+        if(resolveDispute !== null && resolveDispute !== undefined && resolveDispute.FinalGrade !== null){
+            console.log('here resolve')
+            taskGradeFields[resolveDispute.TaskInstanceID] = await this.getTaskGradeFields(resolveDispute);
+            return taskGradeFields;
+        }
 
+        let consolidation = await TaskInstance.find({
+            where: {
+                ReferencedTask: ti.TaskInstanceID,
+                TAType: 'consolidation'
+            },
+            include:{
+                model: TaskActivity,
+                attributes: ['Fields']
+            }
+        });
+
+        if(consolidation !== null && consolidation !== undefined && consolidation.FinalGrade !== null){
+            console.log('here consolidate')
+            taskGradeFields[consolidation.TaskInstanceID] = await this.getTaskGradeFields(consolidation);
+            return taskGradeFields;
+        }
+
+        let grades = await TaskInstance.findAll({
+            where: {
+                ReferencedTask: ti.TaskInstanceID,
+                TAType: 'grade_problem'
+            },
+            include:{
+                model: TaskActivity,
+                attributes: ['Fields']
+            }
+        });
+
+        var gradeFields = {};
+        if(grades !== null && grades !== undefined){
+            
+            await Promise.mapSeries(grades, async (grade) => {
+                if(grade.FinalGrade !== null){
+                    console.log('here grades', grade.TaskInstanceID)
+                    taskGradeFields[grade.TaskInstanceID] = await this.getTaskGradeFields(grade);
+                }
+            });
+            console.log('gf', taskGradeFields)
+        }
+        
+        return taskGradeFields;
+    }
+
+    async getTaskGradeFields(task){
+        
+
+        if(task.Data === null) {
+            //console.log('ERROR!: No data from resolve dispute!');
+            return {}
+        }
+
+        var taskGradeFields = {}
+        var data = JSON.parse(task.Data)[JSON.parse(task.Data).length-1];
+        var fields =  JSON.parse(task.TaskActivity.Fields);
+        var keys = Object.keys(fields)
+        await Promise.mapSeries(keys, async (key) => {
+            if(key !== 'field_titles' && key !== 'number_of_fields' && key !== 'field_distribution'){
+                var type = '-';
+                var name = '-';
+                var value = '-';
+                var max = '-';
+                var weight = '-';
+                var scaledGrade = '-';
+
+                if(fields[key].field_type === 'assessment'){
+                    name = fields[key].title;
+                    value = data[key][0];
+                    weight = fields.field_distribution[key];
+                    switch(fields[key].assessment_type){
+                        case 'grade':
+                            type = 'Numeric';
+                            max = fields[key].numeric_max
+                            break;
+                        case 'pass':
+                            type = "Pass/Fail";
+                            max = 1;
+                            break;
+                        case 'rating':
+                            type = "Rating";
+                            max = fields[key].rating_max;
+                            break;
+                        case 'evaluation':
+                            type = "Label";
+                            max = 100;
+                            break;
+                        default:
+                            type = "-";
+                            max = "-";
+                            
+                    }
+                }
+
+                
+                taskGradeFields[key] = {
+                    type: type,
+                    name: name,
+                    value: value,
+                    max: max,
+                    weight: weight,
+                    scaledGrade: scaledGrade
                 }
             }
-            
-        }
+        });
 
-        return {
-            "1": {
-                name: "unnamed",
-                type: "numeric",
-                value: '-',
-                max: '-',
-                weight: '-',
-                scaledGrade: '-'
-            },
-            "2": {
-                name: "unnamed",
-                type: "rating",
-                value: '-',
-                max: '-',
-                weight: '-',
-                scaledGrade: '-'
-            }
-        }
+        // console.log('tgf2', taskGradeFields)
 
-
+        return taskGradeFields
     }
 
     async getTimelinessGradeDetailsReport(UTIA, user, wf){
