@@ -841,18 +841,25 @@ class Allocator {
             new_end_date = await this.get_new_date(ti , change_date_option); // get time extension
         }
 
+        var extraCredit = 0;
+
         ti_u_hist.push({
             time: new Date(),
             user_id: new_u_id,
             is_extra_credit: is_extra_credit,
         });
 
+        if(is_extra_credit){
+            extraCredit = 1;
+        }
+
         logger.log('info', 'update a task instance with a new user and user history', {
             task_instance: ti.toJSON(),
             new_user_id: new_u_id,
             user_history: ti_u_hist,
             new_status: ti_status,
-            new_end_date: new_end_date
+            new_end_date: new_end_date,
+            ExtraCredit: extraCredit
         });
 
         return await TaskInstance.update({
@@ -860,6 +867,7 @@ class Allocator {
             UserHistory: ti_u_hist,
             Status: JSON.stringify(ti_status),
             EndDate: new_end_date,
+            ExtraCredit: extraCredit
         }, {
             where: {
                 TaskInstanceID: task_id

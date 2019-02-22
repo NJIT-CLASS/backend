@@ -1079,6 +1079,7 @@ class TaskTrigger {
                 logger.log('info', '/TaskTrigger/reset: automatic task re-triggering needs cosolidation');
 
                 var u_history = JSON.parse(ti.UserHistory);
+                var extraCredit = 0;
                 u_history.push({
                     time: new Date(),
                     user_id: ti.UserID,
@@ -1086,13 +1087,18 @@ class TaskTrigger {
                     is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
                 });
 
+                if(JSON.parse(ti.UserHistory)[0].is_extra_credit){
+                    extraCredit = 1;
+                }
+
                 
                 await TaskInstance.update({
                     StartDate: null,
                     EndDate: null,
                     ActualEndDate: null,
                     FinalGrade: null,
-                    UserHistory: u_history
+                    UserHistory: u_history,
+                    ExtraCredit: extraCredit
                 }, {
                     where:{
                         TaskInstanceID: ti_id
@@ -1108,6 +1114,7 @@ class TaskTrigger {
                 status[4] = 'not_opened';
 
                 var u_history = JSON.parse(ti.UserHistory);
+                var extraCredit = 0;
                 u_history.push({
                     time: new Date(),
                     user_id: ti.UserID,
@@ -1115,6 +1122,9 @@ class TaskTrigger {
                     is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
                 });
 
+                if(JSON.parse(ti.UserHistory)[0].is_extra_credit){
+                    extraCredit = 1;
+                }
 
                 await x.resetFollowingTask(ti.TaskInstanceID, JSON.parse(ti.NextTask), keep_content);
                 if(keep_content == true){
@@ -1124,7 +1134,8 @@ class TaskTrigger {
                         EndDate: newEndDate,
                         ActualEndDate: null,
                         FinalGrade: null,
-                        UserHistory: u_history
+                        UserHistory: u_history,
+                        ExtraCredit: extraCredit
                     }, {
                         where:{
                             TaskInstanceID: ti_id
@@ -1138,7 +1149,8 @@ class TaskTrigger {
                         ActualEndDate: null,
                         FinalGrade: null,
                         Data: null,
-                        UserHistory: u_history
+                        UserHistory: u_history,
+                        ExtraCredit: 0
                     }, {
                         where:{
                             TaskInstanceID: ti_id
@@ -1188,12 +1200,17 @@ class TaskTrigger {
         status[4] = 'not_opened';
 
         var u_history = JSON.parse(ti.UserHistory);
+        var extraCredit = 0;
         u_history.push({
             time: new Date(),
             user_id: ti.UserID,
             message: 'task has been reset by previous task: ' + previous_ti,
             is_extra_credit: JSON.parse(ti.UserHistory)[0].is_extra_credit
         });
+
+        if(JSON.parse(ti.UserHistory)[0].is_extra_credit){
+            extraCredit = 1;
+        }
 
         if(JSON.parse(ti.Status)[0] == 'automatic'){//when reset task is needs_consolidation
             logger.log('info', '/TaskTrigger/reset: automatic task re-triggering needs cosolidation');
@@ -1203,7 +1220,8 @@ class TaskTrigger {
                 EndDate: null,
                 ActualEndDate: null,
                 FinalGrade: null,
-                UserHistory: u_history
+                UserHistory: u_history,
+                ExtraCredit:extraCredit
             }, {
                 where:{
                     TaskInstanceID: ti.TaskInstanceID
@@ -1218,7 +1236,8 @@ class TaskTrigger {
                     EndDate: null,
                     ActualEndDate: null,
                     FinalGrade: null,
-                    UserHistory: u_history
+                    UserHistory: u_history,
+                    ExtraCredit:extraCredit
                 }, {
                     where:{
                         TaskInstanceID: ti.TaskInstanceID
@@ -1233,7 +1252,8 @@ class TaskTrigger {
                     ActualEndDate: null,
                     FinalGrade: null,
                     Data: null,
-                    UserHistory: u_history
+                    UserHistory: u_history,
+                    ExtraCredit: 0
                 }, {
                     where:{
                         TaskInstanceID: ti.TaskInstanceID
