@@ -580,11 +580,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/test', adminAuthentication, async function (req, res) {
         let email = new Email();
         // email.sendNow(327, 'revise', {'ti_id': 12946});
-        //email.sendNow(319, 'reset password', {'pass': 12946, 'email' : 'example@email.com'});
-        //email.sendNow(319, 'new_task', {'ti_id': 1});
+        //email.sendNow(333, 'reset password', {'pass': 12946, 'email' : 'example@email.com'});
+        email.sendNow(333, 'new_task', {'ti_id': 1});
         // email.sendNow(333, 'late', {'ti_id': 12946});
-        //email.sendNow(319, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456, 'email' : 'example@email.com'});
-        //email.sendNow(319, 'onboarding', {'email' : 'example@email.com'})
+        //email.sendNow(333, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456, 'email' : 'example@email.com'});
+        //email.sendNow(333, 'onboarding', {'email' : 'example@email.com'})
         // email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
         // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
         // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});

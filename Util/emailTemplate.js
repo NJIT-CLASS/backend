@@ -230,15 +230,12 @@ exports.NEW_TASK = async (data) => {
 
     return {
         subject: `${info.number}-New Task: ${info.task_display_name}`,
-        text: (`Deadline: ${info.due_date}\nAssignment: ${info.assignment_display_name}\n${info.task_display_name}\nCourse: (${info.number}-${info.section_number}) ${info.course_name}\n
-        Hello,\n\nYou have a new task in the Participatory Learning system. Thank you for completing your tasks on time! Please login using the following link.
-
-        System login: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        Login ID: ${info.email}
+        text: (`Deadline: ${info.due_date}\nAssignment: ${info.assignment_display_name} (new task)\n${info.task_display_name}\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nYou have a new task in the Participatory Learning system. Thank you for completing your tasks on time! Please login using the following link.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
         
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
     } 
