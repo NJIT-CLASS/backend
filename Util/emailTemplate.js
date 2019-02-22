@@ -12,7 +12,7 @@ let SUPPORT_HTML = (`
 let INSTRUCTOR_STRING = ('If you have any questions, please contact your instructor.');
 
 let SUPPORT_STRING = (`For technical support for the Participatory Learning system, contact: bieber@njit.edu\n
-Thanks,\nThe Participatory Learning Team`);
+Thanks,\n\nThe Participatory Learning Team`);
 
 const getInfoForTask = async function(ti_id){
     let data = {};
@@ -32,6 +32,13 @@ const getInfoForTask = async function(ti_id){
             model: AssignmentInstance,
             attributes: ['SectionID']
         }]
+    });
+
+    let user_login = await UserLogin.find({
+        where:{
+            UserID: ti.UserID
+        },
+        attributes: ['Email']
     });
 
     let course = await Course.find({
@@ -85,6 +92,7 @@ const getInfoForTask = async function(ti_id){
     data.section_number = section.Name;
     data.course_name = course.Name;
     data.course_number = course.Number;
+    data.email = user_login.Email;
 
     return data;
 
@@ -183,6 +191,15 @@ exports.INVITE_USER = async (data) => {
     } 
 };
 
+exports.ONBOARDING = async (data) => {
+    return {
+        subject: `Participatory Learning system setup`,
+        text: (`Hello,\n\nWelcome to the Participatory Learning system! You have successfully set up a new instance of the PL system as an administrator and the first user.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${data.email}
+        \n${SUPPORT_STRING}`)
+    } 
+};
+
 exports.INVITE_USER_NEW_TO_SYSTEM = async (data) => {
     if(data.sectionid === null || typeof data.sectionid === undefined){
         logger.log('error', '/emailTemplate/Revise: No SectionID provided.');
@@ -195,11 +212,11 @@ exports.INVITE_USER_NEW_TO_SYSTEM = async (data) => {
     let info = await getInfoForSection(data.sectionid);
 
     return {
-        subject: `${info.number}: Getting Started with Participatory Learning – next steps`,
-        text: (`Hello,\n\nWelcome to the Participatory Learning system for (${info.number}-${info.section_number}) ${info.course_name} (${info.semester_name})!
+        subject: `${info.number} & Participatory Learning`,
+        text: (`Next Steps for Participatory Learning... \n\nHello,\n\nWelcome to the Participatory Learning system for (${info.number}-${info.section_number}) ${info.course_name} (${info.semester_name})!
         \nPlease log into the system now to set up your connection. You will be asked to enter the following temporary password, and then to make a new password.
-        https://pla.njit.edu:${FRONT_SERVER_PORT}\n\tTemporary Password: ${data.pass}
-        \nAfterwards, follow the “ACCOUNT” link in the sidebar to set up your preferred email address, name and ensure other details are correct.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT} \nLogin ID: ${data.email} \nTemporary Password: ${data.pass}
+        \nWhen your instructor has started an assignment, you will be notified that your first task is ready.
         \n${SUPPORT_STRING}`)
     } 
 };
@@ -212,10 +229,13 @@ exports.NEW_TASK = async (data) => {
     let info = await getInfoForTask(data.ti_id);
 
     return {
-        subject: `${info.number}: New Task for ${info.assignment_display_name}`,
-        text: (`Hello,\n\nYou have a new task in the Particatory Learning system:
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        \nThank you for completing your tasks on time!
+        subject: `${info.number}-New Task: ${info.task_display_name}`,
+        text: (`Deadline: ${info.due_date}\nAssignment: ${info.assignment_display_name}\n${info.task_display_name}\nCourse: (${info.number}-${info.section_number}) ${info.course_name}\n
+        Hello,\n\nYou have a new task in the Participatory Learning system. Thank you for completing your tasks on time! Please login using the following link.
+
+        System login: https://pla.njit.edu:${FRONT_SERVER_PORT}
+        Login ID: ${info.email}
+        
         \nTo contact instructor: 
         ${info.instructors.map(function (instructor) {
             return `${instructor.name}:  ${instructor.email}\n`          
@@ -332,11 +352,10 @@ exports.LATE = async (data) => {
 
 exports.RESET_PASS = function(data){
     return {
-        subject: 'Password Reset for Participatory Learning - next steps',
-        text:(`Hello,
-        \nYour password has been reset for the Participatory Learning system.
-        \nPlease log into the system now to complete the password change. You will be asked to enter the following temporary password, and then to make a new password.
-        \n\thttps://pla.njit.edu:${FRONT_SERVER_PORT}\n\tTemporary Password: ${data.pass}
+        subject: 'Password Reset: Participatory Learning',
+        text:(`Next Steps for PL Password Reset...\n\nHello,
+        \nYour password has been reset for the Participatory Learning system. Please log into the system now to complete the password change. You will be asked to enter the following temporary password, and then to make a new password.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT} \nLogin ID: ${data.email}\nTemporary Password: ${data.pass}
         \n${SUPPORT_STRING}
         `),
         html:(`

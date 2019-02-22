@@ -3,7 +3,7 @@ import {
     MASTER_PASSWORD,
     EMAIL_SERVER_STATUS
 } from '../Util/constant.js';
-import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, INITIAL_USER, RESET_TASK, REVISE, INVITE_USER_NEW_TO_SYSTEM, REALLOCATE, REMOVE_REALLOCATE, CANCEL, BYPASS} from '../Util/emailTemplate.js';
+import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, ONBOARDING, INITIAL_USER, RESET_TASK, REVISE, INVITE_USER_NEW_TO_SYSTEM, REALLOCATE, REMOVE_REALLOCATE, CANCEL, BYPASS} from '../Util/emailTemplate.js';
 import {SERVER_PORT} from '../backend_settings.js';
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
@@ -93,7 +93,7 @@ class Email {
       Send an email now given userid and type of email needs to be sent.
     */
     async sendNow(userid, type, data) {
-        return; //for testting purposes
+        //return; //for testting purposes
         if (active) {
             var x = this;
             let template;
@@ -236,6 +236,17 @@ class Email {
                     console.log('resetting password');
                     console.log(data);
                     template = await RESET_PASS(data);
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: template.subject,
+                        text: template.text,
+                        html: template.html
+                    });
+                    break;
+                case 'onboarding':
+                    template = await ONBOARDING(data);
                     await x.send({
                         from: email,
                         replyTo: email,

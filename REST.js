@@ -406,7 +406,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             user.save().then((result) => {
                 console.log('temp pass: ', result);
                 let email = new Email();
-                email.sendNow(result.UserID, 'reset password', {'pass':temp_pass});
+                email.sendNow(result.UserID, 'reset password', {'pass':temp_pass, 'email': req.body.email});
                 res.status(200).end();
             });
         })
@@ -465,7 +465,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             .then(function(queryResult){
 
                 let email = new Email();
-                email.sendNow(queryResult[0].UserID, 'invite user', { pass:'[user defined]'});
+                email.sendNow(queryResult[0].UserID, 'onboarding', { 'email': req.body.email});
 
                 res.json({
                     'Message': 'User has succesfully added'
@@ -580,10 +580,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.post('/test', adminAuthentication, async function (req, res) {
         let email = new Email();
         // email.sendNow(327, 'revise', {'ti_id': 12946});
-        // email.sendNow(327, 'reset password', {'pass': 12946});
-        // email.sendNow(327, 'new_task', {'ti_id': 12946});
-        // email.sendNow(327, 'late', {'ti_id': 12946});
-        // email.sendNow(327, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456});
+        //email.sendNow(319, 'reset password', {'pass': 12946, 'email' : 'example@email.com'});
+        //email.sendNow(319, 'new_task', {'ti_id': 1});
+        // email.sendNow(333, 'late', {'ti_id': 12946});
+        //email.sendNow(319, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456, 'email' : 'example@email.com'});
+        //email.sendNow(319, 'onboarding', {'email' : 'example@email.com'})
         // email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
         // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
         // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});
@@ -593,13 +594,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // email.sendNow(327, 'task_bypassed', {'ti_id': 12946});
         // res.status(200).end();
 
-        let grade = new Grade();
-        // let report = await grade.getAssignmentGradeReport(1);
-        let UTIA = await grade.getUserTaskInfoArray(1);
-        res.json({
-            UTIA: UTIA
-            // assignmentGradeReport:report
-        })
+        // let grade = new Grade();
+        // // let report = await grade.getAssignmentGradeReport(1);
+        // let UTIA = await grade.getUserTaskInfoArray(1);
+        // res.json({
+        //     UTIA: UTIA
+        //     // assignmentGradeReport:report
+        // })
         // grade.getUserTaskInfoArray(1,1)
     });
 
@@ -2537,7 +2538,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                     });
                                             }).then(function (userLogin) {
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite_user_new_to_system', {'pass':temp_pass, 'sectionid': req.params.sectionid});
+                                                email.sendNow(user.UserID, 'invite_user_new_to_system', {'pass':temp_pass, 'email': req.body.email, 'sectionid': req.params.sectionid});
                                                 return SectionUser.create({
                                                     SectionID: req.params.sectionid,
                                                     UserID: userLogin.UserID,
