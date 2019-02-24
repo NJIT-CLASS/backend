@@ -11,7 +11,6 @@ import {
     Comments,
     CommentsArchive,
     CommentsViewed,
-    Contact,
     Course,
     CourseBackUp,
     EmailNotification,

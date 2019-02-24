@@ -581,9 +581,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let email = new Email();
         // email.sendNow(327, 'revise', {'ti_id': 12946});
         //email.sendNow(333, 'reset password', {'pass': 12946, 'email' : 'example@email.com'});
-        email.sendNow(333, 'new_task', {'ti_id': 1});
+        //email.sendNow(333, 'new_task', {'ti_id': 1});
         // email.sendNow(333, 'late', {'ti_id': 12946});
         //email.sendNow(333, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456, 'email' : 'example@email.com'});
+        //email.sendNow(333, 'invite_user_to_section', {'sectionid': 46, 'userid': 333, 'email' : 'example@email.com'});
         //email.sendNow(333, 'onboarding', {'email' : 'example@email.com'})
         // email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
         // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
@@ -594,13 +595,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // email.sendNow(327, 'task_bypassed', {'ti_id': 12946});
         // res.status(200).end();
 
-        // let grade = new Grade();
-        // // let report = await grade.getAssignmentGradeReport(1);
-        // let UTIA = await grade.getUserTaskInfoArray(1);
-        // res.json({
-        //     UTIA: UTIA
-        //     // assignmentGradeReport:report
-        // })
+        let grade = new Grade();
+        // let report = await grade.getAssignmentGradeReport(1);
+        let UTIA = await grade.getUserTaskInfoArray(1);
+        res.json({
+            UTIA: UTIA
+            // assignmentGradeReport:report
+        })
         // grade.getUserTaskInfoArray(1,1)
     });
 
@@ -2137,77 +2138,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // var tasks = [];
         var info = {};
 
-        // return AssignmentInstance.find({
-        //     where: {
-        //         AssignmentInstanceID: req.params.assignmentInstanceid
-        //     }
-        // }).then(function (AI_Result) {
-
-        //     return WorkflowInstance.findAll({
-        //         where: {
-        //             AssignmentInstanceID: req.params.assignmentInstanceid
-        //         }
-        //     }).then(function (WI_Result) {
-
-        //         if (WI_Result === null || typeof WI_Result === undefined) {
-        //             //console.log('/getAssignmentRecord/:assignmentInstanceid: No WI_Result');
-        //         } else {
-        //             //Iterate through all workflow instances found
-        //             return Promise.mapSeries(WI_Result, function (workflowInstance) {
-
-        //                 //console.log('/getAssignmentRecord/:assignmentInstanceid: WorkflowInstance', workflowInstance.WorkflowInstanceID);
-        //                 var tempTasks = [];
-
-        //                 return Promise.mapSeries(JSON.parse(workflowInstance.TaskCollection), function (task) {
-
-        //                     //console.log('/getAssignmentRecord/:assignmentInstanceid: TaskCollection', task);
-        //                     //each task is TaskInstanceID
-        //                     return TaskInstance.find({
-        //                         where: {
-        //                             TaskInstanceID: task
-        //                         },
-        //                         attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
-        //                         include: [{
-        //                             model: User,
-        //                             attributes: ['UserID', 'FirstName', 'Instructor']
-        //                         }, {
-        //                             model: TaskActivity,
-
-        //                             attributes: ['Name', 'Type']
-        //                         }]
-        //                     }).then(function (taskInstanceResult) {
-
-        //                         //Array of all the task instances found within taskcollection
-        //                         if (taskInstanceResult.IsSubWorkflow === 0) {
-
-        //                             taskFactory.getSubWorkflow(taskInstanceResult.TaskInstanceID, new Array()).then(function (subworkflow) {
-        //                                 if (!taskInstanceResult.hasOwnProperty('SubWorkflow')) {
-        //                                     taskInstanceResult.setDataValue('SubWorkflow', subworkflow);
-        //                                 } else {
-        //                                     taskInstanceResult.SubWorkflow.push(sw);
-        //                                 }
-        //                             });
-
-        //                             tempTasks.push(taskInstanceResult);
-        //                         }
-        //                     });
-        //                 }).then(function (result) {
-
-        //                     //Array of arrays of all task instance collection
-        //                     tasks.push(tempTasks);
-
-
-        //                 });
-        //             });
-        //         }
-
-        //     }).then(function (done) {
-
-
-
-        //     })
-        // });
-
 
         return AssignmentInstance.find({
             where: {
@@ -2445,7 +2375,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //        -active
         //        -body
         //        -role
-
+        let email = new Email();
         if (req.body.volunteer === null) {
             console.log('course/adduser : volunteer null');
         } else {
@@ -2537,7 +2467,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                         res.status(500).end();
                                                     });
                                             }).then(function (userLogin) {
-                                                let email = new Email();
                                                 email.sendNow(user.UserID, 'invite_user_new_to_system', {'pass':temp_pass, 'email': req.body.email, 'sectionid': req.params.sectionid});
                                                 return SectionUser.create({
                                                     SectionID: req.params.sectionid,
@@ -2599,6 +2528,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             res.status(500).end();
                         }).then(function (result) {
                             console.log('User exists, adding to section');
+                            email.sendNow(response.UserID, 'invite_user_to_section', {'sectionid': req.params.sectionid, 'email': req.body.email, 'userid': response.UserID})
                             if(req.body.role == 'Instructor'){
                                 //making Teacher role
                                 User.update({

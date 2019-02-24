@@ -121,7 +121,7 @@ const getInfoForSection = async function(sectionid){
             SemesterID: section.SemesterID
         },
         attributes:['Name']
-    })
+    });
 
     data.number = course.Number;
     data.section_number = section.Name;
@@ -131,6 +131,18 @@ const getInfoForSection = async function(sectionid){
 
     return data;
 
+}
+
+const getSectionUserRole = async function(sectionid, userid){
+    let sectUser = await SectionUser.find({
+        where:{
+            SectionID: sectionid,
+            UserID: userid
+        },
+        attributes: ['Role']
+    });
+
+    return sectUser.Role;
 }
 
 
@@ -217,6 +229,23 @@ exports.INVITE_USER_NEW_TO_SYSTEM = async (data) => {
         \nPlease log into the system now to set up your connection. You will be asked to enter the following temporary password, and then to make a new password.
         \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT} \nLogin ID: ${data.email} \nTemporary Password: ${data.pass}
         \nWhen your instructor has started an assignment, you will be notified that your first task is ready.
+        \n${SUPPORT_STRING}`)
+    } 
+};
+
+exports.INVITE_USER_TO_SECTION= async (data) => {
+    if(data.sectionid === null || typeof data.sectionid === undefined){
+        logger.log('error', '/emailTemplate/Revise: No SectionID provided.');
+    }
+
+    let info = await getInfoForSection(data.sectionid);
+    let role = await getSectionUserRole(data.sectionid, data.userid);
+
+    return {
+        subject: `${info.number} & Participatory Learning`,
+        text: (`Hello,\n\nWelcome to the Participatory Learning system for (${info.number}-${info.section_number}) ${info.course_name} (${info.semester_name})!
+        \nYou have been added to this course with the following role: ${role}.  When your instructor has started an assignment, you will be notified that your first task is ready.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT} \nLogin ID: ${data.email}
         \n${SUPPORT_STRING}`)
     } 
 };
