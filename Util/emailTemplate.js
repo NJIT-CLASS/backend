@@ -171,13 +171,12 @@ exports.REVISE = async (data) => {
     let info = await getInfoForTask(data.ti_id);
 
     return {
-        subject: `${info.number}: A Revision is Ready for ${info.assignment_display_name}`,
-        text: (`Hello,\n\nYou have a new revision avilable to review in the Participatory Learning System.
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        \nThank you for completing your tasks on time!
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        subject: `${info.number}-Revision Ready: ${info.assignment_display_name}`,
+        text: (`\nDeadline: ${info.due_date}\nAssignment: ${info.assignment_display_name} \n${info.task_display_name} (revision ready for review)\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nYou have a new revision to review (and either approve or return for further revision) in the Participatory Learning System. Please login using the following link.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
     } 
@@ -259,10 +258,9 @@ exports.NEW_TASK = async (data) => {
 
     return {
         subject: `${info.number}-New Task: ${info.task_display_name}`,
-        text: (`Deadline: ${info.due_date}\nAssignment: ${info.assignment_display_name} (new task)\n${info.task_display_name}\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        text: (`\nDeadline: ${info.due_date}\nAssignment: ${info.assignment_display_name} (new task)\n${info.task_display_name}\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
         \nHello,\n\nYou have a new task in the Participatory Learning system. Thank you for completing your tasks on time! Please login using the following link.
         \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
-        
         \nTo contact the instructor: ${info.instructors.map(function (instructor) {
             return `\n${instructor.name}:  ${instructor.email}`          
         })}
@@ -280,25 +278,23 @@ exports.REALLOCATE = async (data) => {
 
     if(data.extra_credit){
         return {
-        subject: `${info.number}: Extra Credit - New Task for ${info.assignment_display_name}`,
-        text: (`Hello,\n\nYou have a new extra credit task in the Participatory Learning system:
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        \nThank you for completing your tasks on time!
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        subject: `${info.number}-New Task: ${info.task_display_name}`,
+        text: (`\nDeadline: ${info.due_date}\nAssignment: ${info.assignment_display_name}\n${info.task_display_name} (new task for Extra Credit)\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nYou have a new extra credit task in the Participatory Learning system. (It may have a shorter deadline than usual due to a holdup from a previous task, so we appreciate that you complete it on time.) Please login using the following link.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
         } 
     } else {
         return {
-        subject: `${info.number}: Reallocated to a New Task for ${info.assignment_display_name}`,
-        text: (`Hello,\n\nYou have been reallocated new task in the Particatory Learning system:
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        \nThank you for completing your tasks on time!
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        subject: `${info.number}-New Task: ${info.task_display_name}`,
+        text: (`\nDeadline: ${info.due_date}\nAssignment: ${info.assignment_display_name}\n${info.task_display_name} (new task)\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nYou have a new task in the Participatory Learning system. (It may have a shorter deadline than usual due to a holdup from a previous task, so we appreciate that you complete it on time.) Please login using the following link. 
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
         } 
@@ -315,12 +311,11 @@ exports.REMOVE_REALLOCATE = async (data) => {
     let info = await getInfoForTask(data.ti_id);
 
     return {
-        subject: `${info.number}: You have removed from ${info.assignment_display_name}`,
-        text: (`Hello,\n\nYou have been removed from a task, a new user has been reallcated to replace your duty.
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        subject: `${info.number}: Removed from ${info.task_display_name}`,
+        text: (`\nAssignment: ${info.assignment_display_name}\n${info.task_display_name} (removed from task) \nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nYou have been removed from a task in the Participatory Learning system, and a newuser has been assigned in your place.
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
     } 
@@ -334,13 +329,12 @@ exports.RESET_TASK = async (data) => {
     let info = await getInfoForTask(data.ti_id);
 
     return {
-        subject: `${info.number}: Task Reset for ${info.assignment_display_name}`,
-        text: (`Hello,\n\nYou have a task being reset in the Particatory Learning system:
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        \nThank you for completing your tasks on time!
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        subject: `${info.number}-Restarted: ${info.task_display_name}`,
+        text: (`\nDeadline: ${info.due_date}\nAssignment: ${info.assignment_display_name}\n${info.task_display_name} (restarted task)\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nThis task has been restarted in the Participatory Learning system. Thank you for completing your tasks on time! Please login using the following link. 
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
     } 
@@ -365,12 +359,12 @@ exports.LATE = async (data) => {
     let info = await getInfoForTask(data.ti_id);
 
     return {
-        subject: `${info.number}: Late for a task with ${info.assignment_display_name}`,
-        text: (`Hello,\n\nCompleting tasks late holds up your peers who need your input for their work. Please finish the following task in the Participatory Learning system:
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        subject: `${info.number}-Late: ${info.task_display_name}`,
+        text: (`\nDeadline: ${info.due_date} (passed)\nAssignment: ${info.assignment_display_name}\n${info.task_display_name} (late task)\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nCompleting tasks late holds up your peers who need your input for their work. Please finish this late task in the Participatory Learning system. Login using the following link. 
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
     } 
@@ -405,12 +399,12 @@ exports.CANCEL = async (data) => {
     let info = await getInfoForTask(data.ti_id);
 
     return {
-        subject: `${info.number}: Task Cancelled for ${info.assignment_display_name}`,
-        text: (`Hello,\n\nOne of your tasks has been cancelled, you will no longer be able to complete it.
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        subject: `${info.number}-Task Cancelled: ${info.task_display_name}`,
+        text: (`\nAssignment: ${info.assignment_display_name}\n${info.task_display_name} (cancelled task) \nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nThis task has been cancelled in the Participatory Learning system, so you will no longer be able to complete it.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
     } 
@@ -424,12 +418,12 @@ exports.BYPASS = async (data) => {
     let info = await getInfoForTask(data.ti_id);
 
     return {
-        subject: `${info.number}: Task Bypassed for ${info.assignment_display_name}`,
-        text: (`Hello,\n\nOne of your tasks has been bypassed.
-        ${info.task_display_name}\n\tDeadline: ${info.due_date}\n\tCourse: (${info.number}-${info.section_number}) ${info.course_name}\n\tPlease login using the following link: https://pla.njit.edu:${FRONT_SERVER_PORT}
-        \nTo contact instructor: 
-        ${info.instructors.map(function (instructor) {
-            return `${instructor.name}:  ${instructor.email}\n`          
+        subject: `${info.number}-Bypassed: ${info.task_display_name}`,
+        text: (`\nAssignment: ${info.assignment_display_name}\n${info.task_display_name} (bypassed task) \nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nThis task is being skipped over in the Participatory Learning system, so you can no longer complete it.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
         })}
         \n${SUPPORT_STRING}`)
     } 

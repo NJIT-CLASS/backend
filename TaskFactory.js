@@ -318,7 +318,7 @@ class TaskFactory {
     createAssignment(assignment) {
         var x = this;
         var TA_array = [];
-        console.log('Creating assignment activity...');
+        logger.log('info', '/TaskFactory/createAssignment/: Creating assignment...');
         //Create assignment activity
         return Assignment.create({
             OwnerID: assignment.AA_userID,
@@ -334,11 +334,10 @@ class TaskFactory {
         }).then(function (assignmentResult) {
             //Keep track all the workflow activities created under assignment
             var WA_array = [];
-            console.log('Assignment creation successful!');
-            console.log('AssignmentID: ', assignmentResult.AssignmentID);
+            logger.log('info', '/TaskFactory/createAssignment/: Assignment created. ID:', assignmentResult.AssignmentID);
             //Iterate through array of workflow activities (Created WorkflowActivity in order)
             return Promise.mapSeries(assignment.WorkflowActivity, function (workflow, index) {
-                console.log('Creating workflow activity...');
+                logger.log('info', '/TaskFactory/createAssignment/: Creating workflow...');
                 return WorkflowActivity.create({
                     AssignmentID: assignmentResult.AssignmentID,
                     Type: workflow.WA_type,
@@ -349,14 +348,13 @@ class TaskFactory {
                     GroupSize: workflow.WA_default_group_size,
                     WorkflowStructure: workflow.WorkflowStructure,
                 }).then(function (workflowResult) {
-                    console.log('Workflow creation successful!');
-                    console.log('WorkflowActivityID: ', workflowResult.WorkflowActivityID);
+                    logger.log('info', '/TaskFactory/createAssignment/: Workflow created. ID:', workflowResult.WorkflowActivityID);
                     WA_array.push(workflowResult.WorkflowActivityID);
                     //Keep track all the task activities within each workflow
                     TA_array = [];
                     //Iterate through TaskActivity array in each WorkflowActivity (Create TaskActivity in order)
                     return Promise.mapSeries(assignment.WorkflowActivity[index].Workflow, function (task) {
-                        console.log('Creating task activity...');
+                        logger.log('info', '/TaskFactory/createAssignment/: Creating task...');
                         return TaskActivity.create({
                             WorkflowActivityID: workflowResult.WorkflowActivityID,
                             AssignmentID: workflowResult.AssignmentID,
@@ -391,11 +389,10 @@ class TaskFactory {
                             SeeSibblings: task.SeeSibblings,
                             SeeSameActivity: task.SeeSameActivity,
                         }).then(function (taskResult) {
-                            console.log('Task creation successful!');
-                            console.log('TaskActivityID: ', taskResult.TaskActivityID);
+                            logger.log('info', '/TaskFactory/createAssignment/: Task created. ID:', taskResult.TaskActivityID);
                             TA_array.push(taskResult.TaskActivityID);
                         }).catch(function (err) {
-                            console.log('Workflow creation failed');
+                            logger.log('error', '/TaskFactory/createAssignment/: Failed creating task. Aborting...');
                             //Loggin error
                             console.log(err);
                             return false;
@@ -424,7 +421,7 @@ class TaskFactory {
                         //reset TA_array
                         TA_array = [];
                     }).catch(function (err) {
-                        console.log('Workflow creation failed');
+                        logger.log('error', '/TaskFactory/createAssignment/: Failed creating workflow. Aborting...');
                         //Loggin error
                         console.log(err);
                         return false;
@@ -449,7 +446,7 @@ class TaskFactory {
                 });
             }).catch(function (err) {
                 // err is the reason why rejected the promise chain returned to the transaction callback
-                console.log('Assignment creation failed');
+                logger.log('error', '/TaskFactory/createAssignment/: Failed creating assignment. Aborting...');
                 //Loggin error
                 console.log(err);
                 return false;

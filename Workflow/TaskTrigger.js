@@ -133,8 +133,6 @@ class TaskTrigger {
 
 
     async completed(ti_id) {
-
-        var x = this;
         // check if the workflow of the assignment that belongs to the user is completed
         // check if all the workflow of the assignment that belongs to the user is completed
 
@@ -148,7 +146,6 @@ class TaskTrigger {
         });
 
         var final_grade_task = await grade.findFinalGrade(ti);
-        //console.log('herte', final_grade_task);
         if(final_grade_task != null){
             await grade.addTaskGrade(final_grade_task);
         }
@@ -160,11 +157,6 @@ class TaskTrigger {
                     WorkflowInstanceID: ti.WorkflowInstanceID
                 }
             });
-
-            //Amadou
-            let taskFactory = new TaskFactory;
-            // taskFactory.updatePointInstance('high_grade', ti.AssignmentInstanceID, ti.UserID);
-
 
             await Promise.mapSeries(grades, async function(t_grade) {
                 await grade.addWorkflowGrade(t_grade.WorkflowInstanceID, t_grade.SectionUserID, t_grade.Grade);
@@ -211,13 +203,7 @@ class TaskTrigger {
             }
         });
 
-        //console.log('result', bool);
-
         return bool;
-
-        // } catch(err){
-        //     logger.log('error', 'failed to determine whether task follows by edit', {ti_id: ti.TaskInstanceID});
-        // }
     }
 
     /**
@@ -284,10 +270,9 @@ class TaskTrigger {
         //try{
         var x = this;
         if (await x.checkPrevious(ti)) {
-            logger.log('info', 'consolidating tasks...');
+            logger.log('info', '/TaskTrigger/needsConsolidate: consolidating tasks...');
 
             var final_grade = await x.findGrades(ti);
-            //console.log('final_grade', final_grade);
 
             if (final_grade !== null) { //update final grade if something has returned
                 await TaskInstance.update({
@@ -306,10 +291,6 @@ class TaskTrigger {
             }
 
         }
-
-        // } catch(err){
-        //     logger.log('error', 'failed to consolidate tasks', {ti_id: ti.TaskInstanceID});
-        // }
     }
 
     /**
@@ -330,21 +311,17 @@ class TaskTrigger {
             });
             //Check if all grading solution are completed
             if (JSON.parse(pre.Status)[0] !== 'complete' && JSON.parse(pre.Status)[0] !== 'automatic' && JSON.parse(pre.Status)[0] !== 'bypassed') {
-                console.log('here all false')
                 is_all_completed = false;
             }
         });
 
         if (is_all_completed) {
-            logger.log('info', 'all previous tasks are completed.');
+            logger.log('info', '/TaskTrigger/checkPrevious: All previous tasks are complete.');
         } else {
-            logger.log('info', 'some previous tasks are still in progress.');
+            logger.log('info', '/TaskTrigger/checkPrevious: Previous tasks still in progress.');
         }
 
         return is_all_completed;
-        // } catch(error){
-        //     logger.log('error', 'failed checking previous tasks', {ti_id: ti.TaskInstanceID});
-        // }
 
     }
 
@@ -354,12 +331,9 @@ class TaskTrigger {
      * @return {Promise}      [description]
      */
     async findGrades(task) {
-        logger.log('info', '/findGrades:checking for grades...');
-        //try{
-        var x = this;
-        var final_grade;
+        logger.log('info', '/TaskTrigger/findGrades:checking for grades...');
+
         var grades = [];
-        var maxGrade = 0;
         var triggerConsolidate = false;
 
         await Promise.map(JSON.parse(task.PreviousTask), async function(ti) { //find FinalGrade of PreviousTask
@@ -425,13 +399,10 @@ class TaskTrigger {
 
             //determine function type and return appropriate grade
             if (ta.FunctionType === 'max') {
-                //console.log('The needs consolidation grade is: ', max);
                 return [max, triggerConsolidate];
             } else if (ta.FunctionType === 'min') {
-                //console.log('The needs consolidation grade is: ', min);
                 return [min, triggerConsolidate];
             } else if (ta.FunctionType === 'average' ||ta.FunctionType === 'avg') {
-                //console.log('The needs consolidation grade is: ', (max + min) / 2);
                 return [(max + min) / 2, triggerConsolidate];
             } else {
                 logger.log('error', 'unknown function type', {
@@ -439,9 +410,6 @@ class TaskTrigger {
                 });
             }
         }
-        // } catch(err){
-        //     logger.log('error', 'failed finding grades', {ti_id: ti.TaskInstanceID});
-        // }
     }
 
 

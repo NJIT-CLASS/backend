@@ -86,25 +86,19 @@ class Make {
     async allocateUsers(secId, ai_id) {
 
         if (secId === null || ai_id === null) {
-            logger.log('error', 'create workflow instances and task instance failed', {
+            logger.log('error', '/Make/allocateUsers: Failed create workflow and task instances', {
                 ai_id: ai_id
             });
             return;
         }
 
-        logger.log('info', 'creating workflow instances and task instances for', {
+        logger.log('info', '/Make/allocateUsers: Creating workflow and task instances for', {
             assignment_instance: ai_id
         });
 
-        // var secId = await AssignmentInstance.find({
-        //     where:{
-        //         AssignmentInstanceID: ai_id
-        //     }
-        // });
-
         var x = this;
         var users = await x.getUsersFromSection(secId); //returns users from secId
-        users = _.shuffle(users);
+        users = await _.shuffle(users);
         var ai_idToSearch;
         if(typeof ai_id == 'string'){
             try{
@@ -126,7 +120,6 @@ class Make {
             }
         }
 
-        console.log('AIID', ai_idToSearch, ai_id);
         var wf_timing = await x.getWorkflowTiming(ai_idToSearch); //returns workflow timing from the assignment instance
         var workflows = [];
         
@@ -143,8 +136,6 @@ class Make {
         });
 
         await x.updateWorkflowCollection(ai_id, workflows);
-        //await x.updateNextTasks(workflows);
-        logger.log('info', 'update previous and next task done!');
 
     }
 
@@ -1089,8 +1080,10 @@ class Make {
                     AssignmentInstanceID: ai_id
                 }
             });
+
+            logger.log('info', '/Make/updateWorkflowCollection: Complete update previous and next tasks!');
         } catch (err) {
-            logger.log('error', 'cannot update workflow collection', {
+            logger.log('error', '/Make/updateWorkflowCollection: Failed update workflow collection', {
                 error: err
             });
         }

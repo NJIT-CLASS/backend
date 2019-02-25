@@ -579,20 +579,20 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/test', adminAuthentication, async function (req, res) {
         let email = new Email();
-        // email.sendNow(327, 'revise', {'ti_id': 12946});
+        email.sendNow(333, 'revise', {'ti_id': 1});
         //email.sendNow(333, 'reset password', {'pass': 12946, 'email' : 'example@email.com'});
         //email.sendNow(333, 'new_task', {'ti_id': 1});
-        // email.sendNow(333, 'late', {'ti_id': 12946});
+        email.sendNow(333, 'late', {'ti_id': 1});
         //email.sendNow(333, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456, 'email' : 'example@email.com'});
         //email.sendNow(333, 'invite_user_to_section', {'sectionid': 46, 'userid': 333, 'email' : 'example@email.com'});
         //email.sendNow(333, 'onboarding', {'email' : 'example@email.com'})
         // email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
-        // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': true});
-        // email.sendNow(327, 'new_reallocated', {'ti_id': 12946, 'extra_credit': false});
-        // email.sendNow(327, 'remove_reallocated', {'ti_id': 12946});
-        // email.sendNow(327, 'reset', {'ti_id': 12946});
-        // email.sendNow(327, 'task_cancelled', {'ti_id': 12946});
-        // email.sendNow(327, 'task_bypassed', {'ti_id': 12946});
+        email.sendNow(333, 'new_reallocated', {'ti_id': 1, 'extra_credit': true});
+        email.sendNow(333, 'new_reallocated', {'ti_id': 1, 'extra_credit': false});
+        email.sendNow(333, 'remove_reallocated', {'ti_id': 1});
+        email.sendNow(333, 'reset', {'ti_id': 1});
+        email.sendNow(333, 'task_cancelled', {'ti_id': 1});
+        email.sendNow(333, 'task_bypassed', {'ti_id': 1});
         // res.status(200).end();
 
         let grade = new Grade();
@@ -843,29 +843,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/assignment/create', teacherAuthentication, function (req, res) {
 
-        //
-        console.log('assignment: ', req.body.assignment);
-        // allocator.createAssignment(req.body.assignment).then(function(done) {
-        //     if (done === false) {
-        //         res.status(400).end();
-        //     } else {
-        //         res.status(200).end();
-        //     }
-        // });
-
-        // if (req.body.partialAssignmentId !== null) {
-        //     PartialAssignments.find({
-        //         where: {
-        //             PartialAssignmentID: req.body.partialAssignmentId,
-        //             UserID: req.body.UserID,
-        //             CourseID: req.body.courseId
-        //         }
-        //     }).then((result) => {
-        //         result.destroy();
-        //     }).catch((err) => {
-        //         console.error(err);
-        //     });
-        // }
+        logger.log('info', '/assignment/create: Initializing assignment formulation process...', {
+            course: req.body.assignment.AA_course,
+            name: req.body.assignment.AA_display_name
+        })
         var taskFactory = new TaskFactory();
         if (req.body.partialAssignmentId == null) {
             PartialAssignments.create({
@@ -874,8 +855,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 CourseID: req.body.courseId,
                 Data: req.body.saveData
             }).then((result) => {
-
-                //console.log('assignment: ', req.body.assignment);
                 taskFactory.createAssignment(req.body.assignment).then(function (done) {
                     if (done) {
                         res.json({
@@ -899,7 +878,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     PartialAssignmentID: req.body.partialAssignmentId
                 }
             }).then((result) => {
-                //console.log('assignment: ', req.body.assignment);
                 taskFactory.createAssignment(req.body.assignment).then(function (done) {
                     if (done) {
                         res.json({
@@ -1720,6 +1698,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 attributes: ['Type', 'AllowRevision', 'AllowReflection'],
             }, ],
         });
+
         var user = await User.find({
             where:{
                 UserID: req.body.UserID
@@ -4318,7 +4297,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     */
 
     //Endpoint to get all the sections assoicate with course and all the task activities within the workflow activities
-    router.get('/getAssignToSection/', teacherAuthentication, function (req, res) {
+    router.get('/getAssignToSection/', teacherAuthentication, async function (req, res) {
 
         console.log('/getAssignToSection: Initiating... ');
 
@@ -4331,17 +4310,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         console.log('req.query.assignmentid', req.query.assignmentid);
         console.log('req.query.courseid', req.query.courseid);
 
-        Assignment.find({
+
+        let assignment = await Assignment.find({
             where: {
                 AssignmentID: req.query.assignmentid
             },
             attributes: ['DisplayName']
-        }).then(function (AI_Result) {
-            DisplayName = AI_Result;
         });
 
+        DisplayName = assignment;
+
         //Find all WorkflowActivities associate with assignmentid
-        var workflowActivity = WorkflowActivity.findAll({
+        var workflowActivity = await WorkflowActivity.findAll({
             where: {
 
                 AssignmentID: req.query.assignmentid
@@ -4349,18 +4329,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
 
         //Find all Sections associate with courseid
-        var sections = Section.findAll({
+        var sections = await Section.findAll({
             where: {
                 CourseID: req.query.courseid
             }
         });
 
         //Promise sections has all the data returned
-        Promise.all(sections).then(function (result) {
+        await Promise.all(sections).then(async function (result) {
             console.log('Finding all sections associate with course... ');
 
             //Create an array of all the sections associate with courseid
-            result.forEach(function (section) {
+            await result.forEach(function (section) {
                 sectionIDs.push({
                     value: section.SectionID,
                     label: section.Name
@@ -4376,12 +4356,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
 
         //Promise workflowActivity has all the data returned
-        Promise.all(workflowActivity).then(function (result) {
+        await Promise.all(workflowActivity).then(async function (result) {
 
         //Check if result is empty
             if (result !== null || typeof result !== undefined) {
             //WorkflowActivityID -- key
-                result.forEach(function (workflow) {
+                await result.forEach(function (workflow) {
                     taskCollection[workflow.WorkflowActivityID] = [];
                     workflowNames[workflow.WorkflowActivityID] = workflow.Name;
                 });
@@ -4389,7 +4369,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
             return [taskCollection, result];
 
-        }).then(function (resultArray) {
+        }).then(async function (resultArray) {
             console.log('Finding all workflows and its task collection...');
             //promise all instances in resultArray have returned
             return Promise.map(resultArray[1], function (workflow) {
