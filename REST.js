@@ -11762,7 +11762,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
 
 
-    });
+    }); 
+});
 
 };
 module.exports = REST_ROUTER;
