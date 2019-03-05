@@ -93,7 +93,7 @@ class Email {
       Send an email now given userid and type of email needs to be sent.
     */
     async sendNow(userid, type, data) {
-        //return; //for testting purposes
+        return; //for testting purposes
         if (active) {
             var x = this;
             let template;
