@@ -31,20 +31,33 @@ module.exports = function (sequelize, DataTypes) {
             field: 'WorkflowActivityID',
             allowNull: false,
         },
-        /*AssignmentInstanceID: {
-         //Foreign Key
-         type: DataTypes.INTEGER.UNSIGNED,
-         field: 'AssignmentInstanceID',
-         allowNull: false,
-         },*/
+        TaskActivityID: {
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'TaskActivityID',
+            allowNull: false,
+        },
+        AssignmentInstanceID: {
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'AssignmentInstanceID',
+            allowNull: false,
+        },
+        WorkflowInstanceID: {
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'WorkflowInstanceID',
+            allowNull: false,
+        },
+        
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'Grade',
             allowNull: false,
         },
-        IsExtraCredit: {
+        TIExtraCredit: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'IsExtraCredit',
+            field: 'TIExtraCredit',
             allowNull: false,
         },
         Comments: {
@@ -52,6 +65,28 @@ module.exports = function (sequelize, DataTypes) {
             field: 'Comments',
             allowNull: true,
         },
+        TADisplayName: {
+            // The default should be a name that makes sense to the user and also conveys our intent, such as “Optionally decide to dispute” for the dispute task.  (*See Notes document)
+            type: DataTypes.STRING,
+            field: 'TADisplayName',
+            allowNull: true
+        },
+        WADisplayName: {
+            // The default should be a name that makes sense to the user and also conveys our intent, such as “Optionally decide to dispute” for the dispute task.  (*See Notes document)
+            type: DataTypes.STRING,
+            field: 'WADisplayName',
+            allowNull: true
+        },
+        DaysLate: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'DaysLate',
+            allowNull: true
+        },
+        DailyPenalty: {
+            type: DataTypes.FLOAT.UNSIGNED,
+            field: 'DailyPenalty',
+            allowNull: true
+        }
     }, {
         timestamps: false,
 

@@ -80,6 +80,7 @@ rule.minute = 1;
 //'1 * * * * *' 1 minute.
 var job = schedule.scheduleJob('1 * * * * *', function(time) {
     manager.check();
+    manager.checkAssignments();
     //Just for testing 
     //taskFactory.rankingSnapshot(true);
 });

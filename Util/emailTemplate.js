@@ -30,7 +30,7 @@ const getInfoForTask = async function(ti_id){
             }]
         },{
             model: AssignmentInstance,
-            attributes: ['SectionID']
+            attributes: ['SectionID', 'DisplayName']
         }]
     });
 
@@ -86,7 +86,7 @@ const getInfoForTask = async function(ti_id){
 
 
     data.number = course.Number;
-    data.assignment_display_name = ti.TaskActivity.Assignment.DisplayName;
+    data.assignment_display_name = ti.AssignmentInstance.DisplayName;
     data.task_display_name = ti.TaskActivity.DisplayName;
     data.due_date = ti.EndDate;
     data.section_number = section.Name;
@@ -174,6 +174,25 @@ exports.REVISE = async (data) => {
         subject: `${info.number}-Revision Ready: ${info.assignment_display_name}`,
         text: (`\nDeadline: ${info.due_date}\nAssignment: ${info.assignment_display_name} \n${info.task_display_name} (revision ready for review)\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
         \nHello,\n\nYou have a new revision to review (and either approve or return for further revision) in the Participatory Learning System. Please login using the following link.
+        \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
+        \nTo contact the instructor: ${info.instructors.map(function (instructor) {
+            return `\n${instructor.name}:  ${instructor.email}`          
+        })}
+        \n${SUPPORT_STRING}`)
+    } 
+};
+
+exports.MUST_REVISE = async (data) => {
+    if(data.ti_id === null || typeof data.ti_id === undefined){
+        logger.log('error', '/emailTemplate/Revise: No TaskInstanceID provided.');
+    }
+
+    let info = await getInfoForTask(data.ti_id);
+
+    return {
+        subject: `${info.number}-Must Revise: ${info.assignment_display_name}`,
+        text: (`\nDeadline: ${info.due_date}\nAssignment: ${info.assignment_display_name} \n${info.task_display_name} (must revise task)\nCourse: (${info.number}-${info.section_number}) ${info.course_name}
+        \nHello,\n\nThis task has been returned to you for revision in the Participatory Learning System. Please see the comments, and revise and resubmit (so this does not hold up your peers with subsequent tasks). Thank you for completing your tasks on time! Please login using the following link.
         \nSystem login: https://pla.njit.edu:${FRONT_SERVER_PORT}\nLogin ID: ${info.email}
         \nTo contact the instructor: ${info.instructors.map(function (instructor) {
             return `\n${instructor.name}:  ${instructor.email}`          
@@ -313,7 +332,7 @@ exports.REMOVE_REALLOCATE = async (data) => {
     return {
         subject: `${info.number}: Removed from ${info.task_display_name}`,
         text: (`\nAssignment: ${info.assignment_display_name}\n${info.task_display_name} (removed from task) \nCourse: (${info.number}-${info.section_number}) ${info.course_name}
-        \nHello,\n\nYou have been removed from a task in the Participatory Learning system, and a newuser has been assigned in your place.
+        \nHello,\n\nYou have been removed from a task in the Participatory Learning system, and a new user has been assigned in your place.
         \nTo contact the instructor: ${info.instructors.map(function (instructor) {
             return `\n${instructor.name}:  ${instructor.email}`          
         })}

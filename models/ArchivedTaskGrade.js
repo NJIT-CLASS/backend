@@ -43,26 +43,69 @@ module.exports = function (sequelize, DataTypes) {
             field: 'WorkflowActivityID',
             allowNull: false
         },
+        TaskActivityID: {
+            //Foreign Key
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'TaskActivityID',
+            allowNull: false
+        },
+        TADisplayName: {
+            // The default should be a name that makes sense to the user and also conveys our intent, such as “Optionally decide to dispute” for the dispute task.  (*See Notes document)
+            type: DataTypes.STRING,
+            field: 'TADisplayName',
+            allowNull: true
+        },
+        WADisplayName: {
+            // The default should be a name that makes sense to the user and also conveys our intent, such as “Optionally decide to dispute” for the dispute task.  (*See Notes document)
+            type: DataTypes.STRING,
+            field: 'WADisplayName',
+            allowNull: true
+        },
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'Grade',
             allowNull: false
         },
-        IsExtraCredit: {
+        TIExtraCredit: {
             type: DataTypes.INTEGER.UNSIGNED,
-            field: 'IsExtraCredit',
+            field: 'TIExtraCredit',
             allowNull: false,
         },
-        MaxGrade:{
+        WAWeight: {
+           type: DataTypes.FLOAT.UNSIGNED,
+           field: 'WAWeight',
+           allowNull:true 
+        },
+        WANumberOfSets:{
+            type: DataTypes.INTEGER.UNSIGNED,
+           field: 'WANumberOfSets',
+           allowNull:true 
+        },
+        TAGradeWeight: {
             type: DataTypes.FLOAT.UNSIGNED,
-            field: 'MaxGrade',
-            allowNull: false 
+            field: 'TAGradeWeight',
+            allowNull:true 
+        },
+        TAGradeWeightInAssignment: {
+            type: DataTypes.FLOAT.UNSIGNED,
+            field: 'TAGradeWeightInAssignment',
+            allowNull:true 
+        },
+        TIScaledGrade: {
+            type: DataTypes.FLOAT,
+            field: 'TIScaledGrade',
+            allowNull:true 
         },
         Comments: {
             type: DataTypes.STRING,
             field: 'Comments',
             allowNull: true,
         },
+        TIFields: {
+            type: DataTypes.JSON,
+            field: 'TIFields',
+            allowNull: true,
+        }
     }, {
         timestamps: false,
 

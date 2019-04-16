@@ -31,6 +31,11 @@ module.exports = function (sequelize, DataTypes) {
             field: 'AssignmentInstanceID',
             allowNull: false,
         },
+        WorkflowInstanceID: {
+            type: DataTypes.INTEGER.UNSIGNED,
+            field: 'WorkflowInstanceID',
+            allowNull: false,
+        },
         Grade: {
             type: DataTypes.FLOAT.UNSIGNED,
             field: 'Grade',

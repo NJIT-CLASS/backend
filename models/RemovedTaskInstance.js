@@ -131,7 +131,37 @@ module.exports = function (sequelize, DataTypes) {
             field: 'EmailLastSent',
             allowNull: false,
             defaultValue: '1999-01-01T00:00:00'
+        },
+        DueType: { //* DueType
+            //Maximum duration of the task in minutes
+            type: DataTypes.JSON,
+            field: 'DueType',
+            allowNull: true
+        },
+        TAType:{
+            type: DataTypes.STRING(40),
+            field: 'TAType',
+            allowNull: true
+        },
+        TASimpleGrade: {
+            //"exists" or "late" or "off_per_day(%) " or "none"
+            type: DataTypes.STRING(20),
+            field: 'TASimpleGrade',
+            allowNull: true
+        },
+        GradableTask:{
+            type: DataTypes.INTEGER,
+            field: 'GradableTask',
+            allowNull: true,
+            defaultValue: 0 //default value 0 means not gradable, 1 gradable
+        },
+        ExtraCredit: {
+            type: DataTypes.INTEGER,
+            field: 'ExtraCredit',
+            allowNull: true,
+            defaultValue: 0
         }
+
 
     }, {
         timestamps: false,

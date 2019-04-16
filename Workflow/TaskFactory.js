@@ -482,16 +482,17 @@ class TaskFactory {
             ViewTask:1, 
             WhichVersion: 'last', 
             BlockedView: 0,
-            Message: 0
+            Message: 0,
+            MessageContent: ''
         };
         var user = await User.find({
             where:{
                 UserID: user_id
             },
-            attributes:['Admin']
+            attributes:['Role']
         });
 
-        if(user.Admin){
+        if(user.Role === "Admin"){
             logger.log('info', 'User is Admin grants all access');
             r.WhichVersion = 'all';
             return r;
@@ -501,6 +502,7 @@ class TaskFactory {
         if (JSON.parse(ti.Status)[0] == 'not_yet_started') {
             logger.log('info', ' Algorithm 1');
             r.ViewTask = 0;
+            r.MessageContent = 'Task has not yet started';
             return r;
         }
 
@@ -508,6 +510,7 @@ class TaskFactory {
         if (JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != user_id) ) {
             logger.log('info', ' Algorithm 2');
             r.ViewTask = 0;
+            r.MessageContent = "You do not have the permission to view the task"
             return r;
         }
 
@@ -580,6 +583,7 @@ class TaskFactory {
         && ! await this.User_in_workflow_and_Pending(ti.WorkflowInstanceID, user_id)) {
             logger.log('info', ' Algorithm 5');
             r.ViewTask = 0;
+            r.MessageContent = 'Cannot see this task until everyone in the course has completed their tasks of this type.'
             return r;
         }
 
@@ -617,6 +621,7 @@ class TaskFactory {
               (_.contains(multipleUsers, user_id)) && ! await x.Sibling_Ti_Complete(ti.TaskInstanceID, user_id, fullPath )) {
             logger.log('info', ' Algorithm 8');
             r.ViewTask = 0;
+            r.MessageContent = 'Cannot see this task until you have completed your own task of this type.'
             return r;
         }
 

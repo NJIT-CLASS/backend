@@ -596,11 +596,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // res.status(200).end();
 
         let grade = new Grade();
-        // let report = await grade.getAssignmentGradeReport(1);
-        let UTIA = await grade.getUserTaskInfoArray(1);
+        let report = await grade.getAssignmentGradeReport(1);
+        // let UTIA = await grade.getUserTaskInfoArray(1);
         res.json({
-            UTIA: UTIA
-            // assignmentGradeReport:report
+            //UTIA: UTIA
+            assignmentGradeReport:report
         })
         // grade.getUserTaskInfoArray(1,1)
     });
@@ -930,24 +930,6 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
     //---------------------------------------------------------------------------
-    router.get('/notifications/dismiss/:notificationsID', participantAuthentication, function(req, res) {
-        console.log('/notifications/dismiss/:notificationsID was called');
-
-        Notifications.update({
-            Dismiss:1
-        },{
-            where: {
-                NotificationsID: req.params.notificationsID
-            }
-        }).then(function(rows) {
-            res.json({
-                'Error': false,
-                'Message': 'Success'
-            });
-        }).catch(function(err) {
-            console.log('/notifications/dismiss/:notificationsID' + err.message);
-            res.status(400).end();
-        });
 
     //Endpoint to save partially made assignments from ASA to database
     router.post('/assignment/save/', teacherAuthentication, function (req, res) {
@@ -4127,12 +4109,15 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                 // find the names of the tasks that are blocking the user from doing this task
                 await Promise.map(PendingTaskInstances, async(ti)=>{
                     if( BlockableTAs.includes( ti.TaskActivity.TaskActivityID) ){
-                        Ta_Names+= ti.TaskActivity.Name;
+                        Ta_Names+= ti.TaskActivity.DisplayName;
                         if(BlockableTAs.length > 1){
                             Ta_Names+=', ';
                         }
                     }
                 });
+
+                Ta_Names = Ta_Names.replace(/,\s*$/, "");
+
                 res.json({
                     'error': true,
                     'message': 'You cannot work on this task until you have completed your task(s): '+ Ta_Names
@@ -5387,11 +5372,6 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     router.get('/VolunteerPool/', teacherAuthentication, function (req, res) {
 
         VolunteerPool.findAll({
-            where: {
-                status: {
-                    $not: 'Deleted'
-                }
-            },
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function (rows) {
             res.json({
@@ -5545,13 +5525,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     //Endpoint to return count total of Volunteers
     router.get('/VolunteerPool/countOfUsers', teacherAuthentication, function (req, res) {
         console.log('VolunteerPool/count was called');
-        VolunteerPool.findAll({
-            where: {
-                status: {
-                    $not: 'Deleted'
-                }
-            }
-        }).then(function (rows) {
+        VolunteerPool.findAll({}).then(function (rows) {
             res.json({
                 'Error_': false,
                 'Message': 'Success',
@@ -5594,10 +5568,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         console.log('/VolunteerPool/:UserID was called');
         VolunteerPool.findAll({
             where: {
-                UserID: req.params.UserID,
-                status: {
-                    $not: 'Deleted'
-                }
+                UserID: req.params.UserID
             },
             attributes: ['UserID', 'SectionID', 'AssignmentInstanceID']
         }).then(function (rows) {
@@ -6618,10 +6589,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
         VolunteerPool.findAll({
             where: {
-                UserID: req.params.UserID,
-                status: {
-                    $not: 'Deleted'
-                }
+                UserID: req.params.UserID
             },
             attributes: ['VolunteerPoolID', 'UserID', 'SectionID', 'AssignmentInstanceID', 'status']
         }).then(function (rows) {
@@ -7256,8 +7224,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
 
      //---------------------------------------------------------------------------
-     router.get('/notifications/user/:UserID', participantAuthentication, function(req, res) {
-         console.log("/notifications/user/:UserID was called with UserID ", req.params.UserID);
+     router.get('/notifications/user/:UserID', function(req, res) {
+         console.log("/notifications/user/:UserID was called ", req.params.UserID);
        var count = 0;
        Notifications.findAll({
            where: {
@@ -7336,10 +7304,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
              if (i.NotificationTarget == 'VolunteerPool') {
                VolunteerPool.findOne({
                  where: {
-                   VolunteerPoolID: i.TargetID,
-                    status: {
-                        $not: 'Deleted'
-                    }
+                   VolunteerPoolID: i.TargetID
                  }
                }).then(function(volunteerPoolRows) {
                  AssignmentInstance.findOne({
@@ -7537,13 +7502,11 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
              })
            }
              if (i.NotificationTarget == 'VolunteerPool') {
-                console.log("Using tID: ", i.TargetID);
                VolunteerPool.findOne({
                  where: {
-                   VolunteerPoolID: i.TargetID,
+                   VolunteerPoolID: i.TargetID
                  }
                }).then(function(volunteerPoolRows) {
-                console.log("Using Target ID ", i.TargetID, "with volunteerPoolRows: ", volunteerPoolRows);
                  AssignmentInstance.findOne({
                    where: {
                      AssignmentInstanceID: volunteerPoolRows.AssignmentInstanceID
@@ -7708,10 +7671,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         console.log('/volunteerpool/section/ : was called');
         VolunteerPool.findAll({
             where:{
-                SectionID:req.params.section_id,
-                status: {
-                    $not: 'Deleted'
-                }
+                SectionID:req.params.section_id
             }
         }).then(function (result) {
             console.log('Volunteers have been found by section.');
@@ -8026,7 +7986,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 					    where: {
 						    AssignmentInstanceID: AssignInsID
 					    },
-					    attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
+					    attributes: ['WorkflowGradeID','WorkflowActivityID', 'WorkflowInstanceID','SectionUserID','AssignmentInstanceID','Grade','Comments']
 				    }).then(function(rows){
 					    var arrayLength = rows.length;
 					    for (var x = 0; x < arrayLength; x++) {
@@ -8034,7 +7994,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 							    WorkflowGradeID: rows[x].WorkflowGradeID,
 							    WorkflowActivityID: rows[x].WorkflowActivityID,
 							    SectionUserID: rows[x].SectionUserID,
-							    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                WorkflowInstanceID: rows[x].WorkflowInstanceID,
 							    Grade: rows[x].Grade,
 							    Comments: rows[x].Comments
 						    },{
@@ -8059,7 +8020,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 					    where: {
 						    AssignmentInstanceID: AssignInsID
 					    },
-					    attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
+					    //attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','MaxGrade','Comments']
 				    }).then(function(rows){
 					    var arrayLength = rows.length;
 					    for (var x = 0; x < arrayLength; x++) {
@@ -8070,10 +8031,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 							    WorkflowInstanceID: rows[x].WorkflowInstanceID,
 							    AssignmentInstanceID: rows[x].AssignmentInstanceID,
 							    WorkflowActivityID: rows[x].WorkflowActivityID,
-							    Grade: rows[x].Grade,
-							    IsExtraCredit: rows[x].IsExtraCredit,
-							    MaxGrade: rows[x].MaxGrade,
-							    Comments: rows[x].Comments,
+                                TaskActivityID: rows[x].TaskActivityID,
+                                TADisplayName: rows[x].TADisplayName,
+                                WADisplayName: rows[x].WADisplayName,
+                                Grade: rows[x].Grade,
+                                TIExtraCredit: rows[x].TIExtraCredit,
+                                WAWeight: rows[x].WAWeight,
+                                WANumberOfSets: rows[x].WANumberOfSets,
+                                TAGradeWeight: rows[x].TAGradeWeight,
+                                TAGradeWeightInAssignment: rows[x].TAGradeWeightInAssignment,
+                                TIScaledGrade: rows[x].TIScaledGrade,
+                                Comments: rows[x].Comments,
+                                TIFields: rows[x].TIFields,
 						    },{
 							    transaction: t
 						    });
@@ -8104,7 +8073,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 							    where: {
 								    TaskInstanceID: assigninstancerows[x].TaskInstanceID
 							    },
-							    attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
+							   // attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
 						    }).then(function(rows){
 							    var arrayLength = rows.length;
 							    for (var x = 0; x < arrayLength; x++) {
@@ -8113,9 +8082,16 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 									    TaskInstanceID: rows[x].TaskInstanceID,
 									    SectionUserID: rows[x].SectionUserID,
 									    WorkflowActivityID: rows[x].WorkflowActivityID,
-									    Grade: rows[x].Grade,
-									    IsExtraCredit: rows[x].IsExtraCredit,
-									    Comments: rows[x].Comments,
+                                        TaskActivityID: rows[x].TaskActivityID,
+                                        AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                        WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                                        Grade: rows[x].Grade,
+                                        TIExtraCredit: rows[x].TIExtraCredit,
+                                        Comments: rows[x].Comments,
+                                        TADisplayName: rows[x].TADisplayName,
+                                        WADisplayName: rows[x].WADisplayName,
+                                        DaysLate: rows[x].DaysLate,
+                                        DailyPenalty: rows[x].DailyPenalty,
 								    },{
 									    transaction: t
 								    });
@@ -8161,9 +8137,15 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 								    FinalGrade: rows[x].FinalGrade,
 								    Files: rows[x].Files,
 								    ReferencedTask: rows[x].ReferencedTask,
-								    NextTask: JSON.parse(rows[x].NextTask),
+                                    IsSubWorkflow: rows[x].IsSubWorkflow,
+                                    NextTask: JSON.parse(rows[x].NextTask),
 								    PreviousTask: JSON.parse(rows[x].PreviousTask),
-								    EmailLastSent: rows[x].EmailLastSent
+                                    EmailLastSent: rows[x].EmailLastSent,
+                                    DueType: rows[x].DueType,
+                                    TAType: rows[x].TAType,
+                                    TASimpleGrade: rows[x].TASimpleGrade,
+                                    GradableTask: rows[x].GradableTask,
+                                    ExtraCredit: rows[x].ExtraCredit
 							    }, {
 								    transaction: t
 							    });
@@ -8207,7 +8189,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 								    StartDate: assigninstancerows[x].StartDate,
 								    EndDate: assigninstancerows[x].EndDate,
 								    WorkflowCollection: JSON.parse(assigninstancerows[x].WorkflowCollection),
-								    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming)
+                                    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming),
+                                    Volunteers: assigninstancerows[x].Volunteers,
 							    }, {
 								    transaction: t
 							    });
@@ -8279,7 +8262,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 		                where: {
 			                AssignmentID: req.params.AssignmentID
 		                },
-		                attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+		                //attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
 	                }).then(function (rows) {
 		                //console.log(rows[0].OwnerID);
 		                var arrayLength = rows.length;
@@ -8322,7 +8305,11 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 				                PreviousTasks: JSON.parse(rows[x].PreviousTasks),
 				                NextTasks: JSON.parse(rows[x].NextTasks),
 				                MinimumDuration: rows[x].MinimumDuration,
-				                AssignmentInstanceID: rows[x].AssignmentInstanceID
+                                VersionEvaluation: rows[x].VersionEvaluation,
+                                SeeSibblings: rows[x].SeeSibblings,
+                                SeeSameActivity: rows[x].SeeSameActivity,
+                                AssessmentTask: rows[x].AssessmentTask,
+                                MustCompleteThisFirst: rows[x].MustCompleteThisFirst,
 			                }, {
 				                transaction: t
 			                });
@@ -8468,7 +8455,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
-                        attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+                        //attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
                     }).then(function (rows) {
                         //console.log(rows[0].OwnerID);
                         var arrayLength = rows.length;
@@ -8511,7 +8498,11 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 PreviousTasks: JSON.parse(rows[x].PreviousTasks),
                                 NextTasks: JSON.parse(rows[x].NextTasks),
                                 MinimumDuration: rows[x].MinimumDuration,
-                                AssignmentInstanceID: rows[x].AssignmentInstanceID
+                                VersionEvaluation: rows[x].VersionEvaluation,
+                                SeeSibblings: rows[x].SeeSibblings,
+                                SeeSameActivity: rows[x].SeeSameActivity,
+                                AssessmentTask: rows[x].AssessmentTask,
+                                MustCompleteThisFirst: rows[x].MustCompleteThisFirst,
                             }, {
                                 transaction: t
                             });
@@ -8686,7 +8677,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
-                        attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+                        //attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
                     }).then(function (rows) {
                         //console.log(rows[0].OwnerID);
                         var arrayLength = rows.length;
@@ -8729,7 +8720,11 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 PreviousTasks: JSON.parse(rows[x].PreviousTasks),
                                 NextTasks: JSON.parse(rows[x].NextTasks),
                                 MinimumDuration: rows[x].MinimumDuration,
-                                AssignmentInstanceID: rows[x].AssignmentInstanceID
+                                VersionEvaluation: rows[x].VersionEvaluation,
+                                SeeSibblings: rows[x].SeeSibblings,
+                                SeeSameActivity: rows[x].SeeSameActivity,
+                                AssessmentTask: rows[x].AssessmentTask,
+                                MustCompleteThisFirst: rows[x].MustCompleteThisFirst,
                             }, {
                                 transaction: t
                             });
@@ -8918,7 +8913,11 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 PreviousTasks: JSON.parse(rows[x].PreviousTasks),
                                 NextTasks: JSON.parse(rows[x].NextTasks),
                                 MinimumDuration: rows[x].MinimumDuration,
-                                AssignmentInstanceID: rows[x].AssignmentInstanceID
+                                VersionEvaluation: rows[x].VersionEvaluation,
+                                SeeSibblings: rows[x].SeeSibblings,
+                                SeeSameActivity: rows[x].SeeSameActivity,
+                                AssessmentTask: rows[x].AssessmentTask,
+                                MustCompleteThisFirst: rows[x].MustCompleteThisFirst,
                             }, {
                                 transaction: t
                             });
@@ -9109,13 +9108,14 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
+                        attributes: ['WorkflowGradeID','WorkflowInstanceID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
                     }).then(function(rows){
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             WorkflowGrade.create({
                                 WorkflowGradeID: rows[x].WorkflowGradeID,
                                 WorkflowActivityID: rows[x].WorkflowActivityID,
+                                WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                 SectionUserID: rows[x].SectionUserID,
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 Grade: rows[x].Grade,
@@ -9152,10 +9152,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 WorkflowActivityID: rows[x].WorkflowActivityID,
+                                TaskActivityID: rows[x].TaskActivityID,
+                                TADisplayName: rows[x].TADisplayName,
+                                WADisplayName: rows[x].WADisplayName,
                                 Grade: rows[x].Grade,
-                                IsExtraCredit: rows[x].IsExtraCredit,
-                                MaxGrade: rows[x].MaxGrade,
+                                TIExtraCredit: rows[x].TIExtraCredit,
+                                WAWeight: rows[x].WAWeight,
+                                WANumberOfSets: rows[x].WANumberOfSets,
+                                TAGradeWeight: rows[x].TAGradeWeight,
+                                TAGradeWeightInAssignment: rows[x].TAGradeWeightInAssignment,
+                                TIScaledGrade: rows[x].TIScaledGrade,
                                 Comments: rows[x].Comments,
+                                TIFields: rows[x].TIFields,
                             },{
                                 transaction: t
                             });
@@ -9186,7 +9194,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 where: {
                                     TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                 },
-                                attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
+                                //attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
                             }).then(function(rows){
                                 var arrayLength = rows.length;
                                 for (var x = 0; x < arrayLength; x++) {
@@ -9195,9 +9203,16 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                         TaskInstanceID: rows[x].TaskInstanceID,
                                         SectionUserID: rows[x].SectionUserID,
                                         WorkflowActivityID: rows[x].WorkflowActivityID,
+                                        TaskActivityID: rows[x].TaskActivityID,
+                                        AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                        WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                         Grade: rows[x].Grade,
-                                        IsExtraCredit: rows[x].IsExtraCredit,
+                                        TIExtraCredit: rows[x].TIExtraCredit,
                                         Comments: rows[x].Comments,
+                                        TADisplayName: rows[x].TADisplayName,
+                                        WADisplayName: rows[x].WADisplayName,
+                                        DaysLate: rows[x].DaysLate,
+                                        DailyPenalty: rows[x].DailyPenalty,
                                     },{
                                         transaction: t
                                     });
@@ -9244,9 +9259,15 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 FinalGrade: rows[x].FinalGrade,
                                 Files: rows[x].Files,
                                 ReferencedTask: rows[x].ReferencedTask,
+                                IsSubWorkflow: rows[x].IsSubWorkflow,
                                 NextTask: JSON.parse(rows[x].NextTask),
                                 PreviousTask: JSON.parse(rows[x].PreviousTask),
-                                EmailLastSent: rows[x].EmailLastSent
+                                EmailLastSent: rows[x].EmailLastSent,
+                                DueType: rows[x].DueType,
+                                TAType: rows[x].TAType,
+                                TASimpleGrade: rows[x].TASimpleGrade,
+                                GradableTask: rows[x].GradableTask,
+                                ExtraCredit: rows[x].ExtraCredit
                             }, {
                                 transaction: t
                             });
@@ -9290,7 +9311,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                     StartDate: assigninstancerows[x].StartDate,
                                     EndDate: assigninstancerows[x].EndDate,
                                     WorkflowCollection: JSON.parse(assigninstancerows[x].WorkflowCollection),
-                                    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming)
+                                    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming),
+                                    Volunteers: assigninstancerows[x].Volunteers
                                 }, {
                                     transaction: t
                                 });
@@ -9381,13 +9403,14 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
+                        attributes: ['WorkflowGradeID','WorkflowActivityID', 'WorkflowInstanceID','SectionUserID','AssignmentInstanceID','Grade','Comments']
                     }).then(function(rows){
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             WorkflowGrade.create({
                                 WorkflowGradeID: rows[x].WorkflowGradeID,
                                 WorkflowActivityID: rows[x].WorkflowActivityID,
+                                WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                 SectionUserID: rows[x].SectionUserID,
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 Grade: rows[x].Grade,
@@ -9414,7 +9437,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
+                        //attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
                     }).then(function(rows){
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
@@ -9425,10 +9448,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 WorkflowActivityID: rows[x].WorkflowActivityID,
+                                TaskActivityID: rows[x].TaskActivityID,
+                                TADisplayName: rows[x].TADisplayName,
+                                WADisplayName: rows[x].WADisplayName,
                                 Grade: rows[x].Grade,
-                                IsExtraCredit: rows[x].IsExtraCredit,
-                                MaxGrade: rows[x].MaxGrade,
+                                TIExtraCredit: rows[x].TIExtraCredit,
+                                WAWeight: rows[x].WAWeight,
+                                WANumberOfSets: rows[x].WANumberOfSets,
+                                TAGradeWeight: rows[x].TAGradeWeight,
+                                TAGradeWeightInAssignment: rows[x].TAGradeWeightInAssignment,
+                                TIScaledGrade: rows[x].TIScaledGrade,
                                 Comments: rows[x].Comments,
+                                TIFields: rows[x].TIFields,
                             },{
                                 transaction: t
                             });
@@ -9459,7 +9490,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 where: {
                                     TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                 },
-                                attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
+                                //attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
                             }).then(function(rows){
                                 var arrayLength = rows.length;
                                 for (var x = 0; x < arrayLength; x++) {
@@ -9468,9 +9499,16 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                         TaskInstanceID: rows[x].TaskInstanceID,
                                         SectionUserID: rows[x].SectionUserID,
                                         WorkflowActivityID: rows[x].WorkflowActivityID,
+                                        TaskActivityID: rows[x].TaskActivityID,
+                                        AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                        WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                         Grade: rows[x].Grade,
-                                        IsExtraCredit: rows[x].IsExtraCredit,
+                                        TIExtraCredit: rows[x].TIExtraCredit,
                                         Comments: rows[x].Comments,
+                                        TADisplayName: rows[x].TADisplayName,
+                                        WADisplayName: rows[x].WADisplayName,
+                                        DaysLate: rows[x].DaysLate,
+                                        DailyPenalty: rows[x].DailyPenalty,
                                     },{
                                         transaction: t
                                     });
@@ -9517,9 +9555,15 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 FinalGrade: rows[x].FinalGrade,
                                 Files: rows[x].Files,
                                 ReferencedTask: rows[x].ReferencedTask,
+                                IsSubWorkflow: rows[x].IsSubWorkflow,
                                 NextTask: JSON.parse(rows[x].NextTask),
                                 PreviousTask: JSON.parse(rows[x].PreviousTask),
-                                EmailLastSent: rows[x].EmailLastSent
+                                EmailLastSent: rows[x].EmailLastSent,
+                                DueType: rows[x].DueType,
+                                TAType: rows[x].TAType,
+                                TASimpleGrade: rows[x].TASimpleGrade,
+                                GradableTask: rows[x].GradableTask,
+                                ExtraCredit: rows[x].ExtraCredit
                             }, {
                                 transaction: t
                             });
@@ -9563,7 +9607,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                     StartDate: assigninstancerows[x].StartDate,
                                     EndDate: assigninstancerows[x].EndDate,
                                     WorkflowCollection: JSON.parse(assigninstancerows[x].WorkflowCollection),
-                                    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming)
+                                    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming),
+                                    Volunteers: assigninstancerows[x].Volunteers
                                 }, {
                                     transaction: t
                                 });
@@ -9654,13 +9699,14 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
+                        attributes: ['WorkflowGradeID','WorkflowActivityID', 'WorkflowInstanceID','SectionUserID','AssignmentInstanceID','Grade','Comments']
                     }).then(function(rows){
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             RemovedWorkflowGrade.create({
                                 WorkflowGradeID: rows[x].WorkflowGradeID,
                                 WorkflowActivityID: rows[x].WorkflowActivityID,
+                                WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                 SectionUserID: rows[x].SectionUserID,
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 Grade: rows[x].Grade,
@@ -9687,7 +9733,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
+                        //attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
                     }).then(function(rows){
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
@@ -9698,10 +9744,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 WorkflowActivityID: rows[x].WorkflowActivityID,
+                                TaskActivityID: rows[x].TaskActivityID,
+                                TADisplayName: rows[x].TADisplayName,
+                                WADisplayName: rows[x].WADisplayName,
                                 Grade: rows[x].Grade,
-                                IsExtraCredit: rows[x].IsExtraCredit,
-                                MaxGrade: rows[x].MaxGrade,
+                                TIExtraCredit: rows[x].TIExtraCredit,
+                                WAWeight: rows[x].WAWeight,
+                                WANumberOfSets: rows[x].WANumberOfSets,
+                                TAGradeWeight: rows[x].TAGradeWeight,
+                                TAGradeWeightInAssignment: rows[x].TAGradeWeightInAssignment,
+                                TIScaledGrade: rows[x].TIScaledGrade,
                                 Comments: rows[x].Comments,
+                                TIFields: rows[x].TIFields,
                             },{
                                 transaction: t
                             });
@@ -9732,7 +9786,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 where: {
                                     TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                 },
-                                attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
+                                //attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
                             }).then(function(rows){
                                 var arrayLength = rows.length;
                                 for (var x = 0; x < arrayLength; x++) {
@@ -9741,9 +9795,16 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                         TaskInstanceID: rows[x].TaskInstanceID,
                                         SectionUserID: rows[x].SectionUserID,
                                         WorkflowActivityID: rows[x].WorkflowActivityID,
+                                        TaskActivityID: rows[x].TaskActivityID,
+                                        AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                        WorkflowInstanceID: rows[x].WorkflowInstanceID,
                                         Grade: rows[x].Grade,
-                                        IsExtraCredit: rows[x].IsExtraCredit,
+                                        TIExtraCredit: rows[x].TIExtraCredit,
                                         Comments: rows[x].Comments,
+                                        TADisplayName: rows[x].TADisplayName,
+                                        WADisplayName: rows[x].WADisplayName,
+                                        DaysLate: rows[x].DaysLate,
+                                        DailyPenalty: rows[x].DailyPenalty,
                                     },{
                                         transaction: t
                                     });
@@ -9788,9 +9849,15 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 FinalGrade: rows[x].FinalGrade,
                                 Files: rows[x].Files,
                                 ReferencedTask: rows[x].ReferencedTask,
+                                IsSubWorkflow: rows[x].IsSubWorkflow,
                                 NextTask: JSON.parse(rows[x].NextTask),
                                 PreviousTask: JSON.parse(rows[x].PreviousTask),
-                                EmailLastSent: rows[x].EmailLastSent
+                                EmailLastSent: rows[x].EmailLastSent,
+                                DueType: rows[x].DueType,
+                                TAType: rows[x].TAType,
+                                TASimpleGrade: rows[x].TASimpleGrade,
+                                GradableTask: rows[x].GradableTask,
+                                ExtraCredit: rows[x].ExtraCredit
                             }, {
                                 transaction: t
                             });
@@ -9834,7 +9901,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                     StartDate: assigninstancerows[x].StartDate,
                                     EndDate: assigninstancerows[x].EndDate,
                                     WorkflowCollection: JSON.parse(assigninstancerows[x].WorkflowCollection),
-                                    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming)
+                                    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming),
+                                    Volunteers: assigninstancerows[x].Volunteers
                                 }, {
                                     transaction: t
                                 });
@@ -10207,9 +10275,15 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 	                FinalGrade: rows[x].FinalGrade,
 	                Files: rows[x].Files,
 	                ReferencedTask: rows[x].ReferencedTask,
-	                NextTask: JSON.parse(rows[x].NextTask),
-	                PreviousTask: JSON.parse(rows[x].PreviousTask),
-	                EmailLastSent: rows[x].EmailLastSent
+	                IsSubWorkflow: rows[x].IsSubWorkflow,
+                    NextTask: JSON.parse(rows[x].NextTask),
+                    PreviousTask: JSON.parse(rows[x].PreviousTask),
+                    EmailLastSent: rows[x].EmailLastSent,
+                    DueType: rows[x].DueType,
+                    TAType: rows[x].TAType,
+                    TASimpleGrade: rows[x].TASimpleGrade,
+                    GradableTask: rows[x].GradableTask,
+                    ExtraCredit: rows[x].ExtraCredit
 
                 });
             }
@@ -11493,7 +11567,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                   rows2[0].update({Dismiss: 1});
               })
             }
-          //console.log(rows[0].Volunteer);
+          console.log(rows[0].Volunteer);
           res.json({
               'Error': false,
               'Message': 'Success',
@@ -11508,10 +11582,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         var VP = await VolunteerPool.findAll({
             where: {
                 UserID: req.params.UserID,
-                SectionID: req.params.SectionID,
-                status: {
-                    $not: 'Deleted'
-                }
+                SectionID: req.params.SectionID
             },
             attributes: ['VolunteerPoolID', 'UserID', 'SectionID', 'AssignmentInstanceID', 'status']
         });
@@ -11540,15 +11611,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                             where: {
                               NotificationTarget: 'VolunteerPool',
                               TargetID: VP[j].VolunteerPoolID,
-                              UserID: req.params.UserID,
-                              Dismiss: 0
+                              UserID: req.params.UserID
                             }
                           }).then(function(rows2) {
                             if (rows2 != null) {
                               rows2.update({Dismiss: 1});
                               console.log('update completed', rows2);
                             }
-                            console.log('update & dismiss did not complete');
                           });
                       }
                     }
@@ -11689,10 +11758,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });*/
         VolunteerPool.findOne({
             where: {
-                VolunteerPoolID: req.body.VolunteerPoolID,
-                status: {
-                    $not: 'Deleted'
-                }
+                VolunteerPoolID: req.body.VolunteerPoolID
             }
         }).then(function(rows) {
           rows.update({status: req.body.status});
@@ -11731,19 +11797,17 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     //Endpoint to remove from VolunteerPool
     router.post('/VolunteerPool/deleteVolunteer', function (req, res) {
 
-        /*
         VolunteerPool.destroy({
             where: {
                 VolunteerPoolID: req.body.VolunteerPoolID
                 //AssignmentInstanceID: req.body.AssignmentInstanceID
             }
-        */
-        VolunteerPool.update({
-            status: 'Deleted'
-        }, {
-            where: {
-                VolunteerPoolID: req.body.VolunteerPoolID
-            }
+        //VolunteerPool.update({
+        //    status: 0
+        //}, {
+        //    where: {
+        //        VolunteerPoolID: req.body.VolunteerPoolID
+        //    }
         }).then(function (rows) {
             console.log('Delete User Success');
             Notifications.update({
@@ -11762,8 +11826,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
 
 
-    }); 
-});
+    });
 
 };
 module.exports = REST_ROUTER;

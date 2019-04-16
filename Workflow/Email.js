@@ -189,6 +189,17 @@ class Email {
                         text: template.text
                     });
                     break;
+                case 'must_revise':
+                    template = await MUST_REVISE(data);
+                    await x.send({
+                        from: email,
+                        replyTo: email,
+                        to: send,
+                        subject: template.subject,
+                        html: template.html,
+                        text: template.text
+                    });
+                    break;
                 case 'reset':
                     template = await RESET_TASK(data);
                     await x.send({

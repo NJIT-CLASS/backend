@@ -125,7 +125,7 @@ class TaskTrigger {
                 await x.needsConsolidate(next_task);
             } else {
                 if (JSON.parse(next_task.Status)[0] !== 'complete' && JSON.parse(next_task.Status)[0] !== 'bypassed') { // added bypassed for bypassed tasks 4-8-18
-                    await x.triggerNext(next_task);
+                    await x.triggerNext(next_task, false);
                 }
             }
         });
@@ -225,7 +225,7 @@ class TaskTrigger {
             var type = await next_task.getType();
 
             if (type === 'edit' || type === 'comment') {
-                await x.triggerNext(next_task);
+                await x.triggerNext(next_task,true);
                 
             }
         });
@@ -334,6 +334,7 @@ class TaskTrigger {
         logger.log('info', '/TaskTrigger/findGrades:checking for grades...');
 
         var grades = [];
+        var final_grade = 0;
         var triggerConsolidate = false;
 
         await Promise.map(JSON.parse(task.PreviousTask), async function(ti) { //find FinalGrade of PreviousTask
@@ -558,7 +559,7 @@ class TaskTrigger {
      * @param  {[type]}  ti [description]
      * @return {Promise}    [description]
      */
-    async triggerNext(ti) { //ti == next_task
+    async triggerNext(ti, isEditOrComment) { //ti == next_task
         logger.log('info', 'triggering next task to start', {
             ti_id: ti.TaskInstanceID
         });
@@ -580,7 +581,11 @@ class TaskTrigger {
                     TaskInstanceID: ti.TaskInstanceID
                 }
             }).then(function() {
-                email.sendNow(ti.UserID, 'new_task', {'ti_id': ti.TaskInstanceID});
+                if(isEditOrComment){
+                    email.sendNow(ti.UserID, 'revise', {'ti_id': ti.TaskInstanceID});
+                } else {
+                    email.sendNow(ti.UserID, 'new_task', {'ti_id': ti.TaskInstanceID});
+                }
             });
 
             logger.log('info', 'trigger completed', {
@@ -744,7 +749,7 @@ class TaskTrigger {
             }
         });
 
-        email.sendNow(original_task.UserID, 'revise', {'ti_id': original_task.TaskInstanceID});
+        email.sendNow(original_task.UserID, 'must_revise', {'ti_id': original_task.TaskInstanceID});
     }
 
 

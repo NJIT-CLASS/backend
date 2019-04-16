@@ -212,7 +212,7 @@ class Manager {
         var x = this;
         var startDate = assignmentInstance.StartDate;
 
-        var now = new Date();
+        var now = new Date().getTime();
 
         if (startDate < now) {
             console.log('checkAssginment: Start Date has past ', assignmentInstance.AssignmentInstanceID);
@@ -378,7 +378,10 @@ class Manager {
             case '"keep_same_participant"':
                 status[3] = 'late';
                 await x.updateStatus(task, status);
-                email.sendNow(task.UserID, 'late', {'ti_id': task.TaskInstanceID});
+                if(status[0] !== 'bypassed' && status[1] !== 'cancelled'){
+                    email.sendNow(task.UserID, 'late', {'ti_id': task.TaskInstanceID});
+                }
+                
                 break;
             case '"allocate_new_participant_from_contigency_pool"':
                 status[5] = 'reallocated_no_extra_credit';
