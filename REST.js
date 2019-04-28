@@ -948,6 +948,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log('/notifications/dismiss/:notificationsID' + err.message);
             res.status(400).end();
         });
+    });
 
     //Endpoint to save partially made assignments from ASA to database
     router.post('/assignment/save/', teacherAuthentication, function (req, res) {
@@ -11763,7 +11764,6 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
 
     }); 
-});
 
 };
 module.exports = REST_ROUTER;
