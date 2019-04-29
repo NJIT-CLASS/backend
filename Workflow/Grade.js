@@ -695,9 +695,9 @@ class Grade {
 
     async getUserTaskInfoArray(ai_id){
         let x = this;
-        let ai = await x.getAssginmentInstance(ai_id);
+        let ai = await x.getAssignmentInstance(ai_id);
         let gradableTaskObj = await x.getGradableTasks(ai.AssignmentID);
-        let wfs = await x.getWorkflowActivities(ai_id)
+        let wfs = await x.getWorkflowActivities(ai.AssignmentID);
         let UTIA = {
             ai_id: ai_id,
             ai_name: ai.DisplayName,
@@ -816,7 +816,7 @@ class Grade {
         return UTIA;
     }
 
-    async getAssginmentInstance(ai_id){
+    async getAssignmentInstance(ai_id){
         let ai = await AssignmentInstance.find({
             where:{
                 AssignmentInstanceID: ai_id
@@ -904,7 +904,7 @@ class Grade {
                 firstName: userContact.user.FirstName,
                 lastName: userContact.user.LastName,
                 email: userContact.user.Email,
-                assginmentGrade: a_grade,
+                assignmentGrade: a_grade,
                 workflowGradeReport: workflowGradeReport,
                 assignmentExtraCreditReport: assignmentExtraCreditReport,
                 numOfExtraCredit: numOfExtraCredit
@@ -945,7 +945,8 @@ class Grade {
     async getProblemAndTimelinessGradeReport(UTIA, user, wf){
         let x = this;
         let problemAndTimelinessGrade = {}
-
+        console.log(UTIA);
+        console.log(user);
         await Promise.mapSeries(UTIA.quality[user.sectionUserID], async (ti) =>{
             let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
             let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
