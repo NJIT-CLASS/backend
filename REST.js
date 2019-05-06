@@ -579,28 +579,28 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     router.post('/test', adminAuthentication, async function (req, res) {
         let email = new Email();
-        email.sendNow(333, 'revise', {'ti_id': 1});
-        //email.sendNow(333, 'reset password', {'pass': 12946, 'email' : 'example@email.com'});
-        //email.sendNow(333, 'new_task', {'ti_id': 1});
-        email.sendNow(333, 'late', {'ti_id': 1});
-        //email.sendNow(333, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456, 'email' : 'example@email.com'});
-        //email.sendNow(333, 'invite_user_to_section', {'sectionid': 46, 'userid': 333, 'email' : 'example@email.com'});
-        //email.sendNow(333, 'onboarding', {'email' : 'example@email.com'})
-        // email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
-        email.sendNow(333, 'new_reallocated', {'ti_id': 1, 'extra_credit': true});
-        email.sendNow(333, 'new_reallocated', {'ti_id': 1, 'extra_credit': false});
-        email.sendNow(333, 'remove_reallocated', {'ti_id': 1});
-        email.sendNow(333, 'reset', {'ti_id': 1});
-        email.sendNow(333, 'task_cancelled', {'ti_id': 1});
-        email.sendNow(333, 'task_bypassed', {'ti_id': 1});
+        // email.sendNow(333, 'revise', {'ti_id': 1});
+        // //email.sendNow(333, 'reset password', {'pass': 12946, 'email' : 'example@email.com'});
+        // //email.sendNow(333, 'new_task', {'ti_id': 1});
+        // email.sendNow(333, 'late', {'ti_id': 1});
+        // //email.sendNow(333, 'invite_user_new_to_system', {'sectionid': 49, 'pass': 123456, 'email' : 'example@email.com'});
+        // //email.sendNow(333, 'invite_user_to_section', {'sectionid': 46, 'userid': 333, 'email' : 'example@email.com'});
+        // //email.sendNow(333, 'onboarding', {'email' : 'example@email.com'})
+        // // email.sendNow(327, 'invite user', {'sectionid': 49, 'pass': 123456, 'role': 'Student'});
+        // email.sendNow(333, 'new_reallocated', {'ti_id': 1, 'extra_credit': true});
+        // email.sendNow(333, 'new_reallocated', {'ti_id': 1, 'extra_credit': false});
+        // email.sendNow(333, 'remove_reallocated', {'ti_id': 1});
+        // email.sendNow(333, 'reset', {'ti_id': 1});
+        // email.sendNow(333, 'task_cancelled', {'ti_id': 1});
+        // email.sendNow(333, 'task_bypassed', {'ti_id': 1});
         // res.status(200).end();
 
         let grade = new Grade();
-        let report = await grade.getAssignmentGradeReport(1);
-        // let UTIA = await grade.getUserTaskInfoArray(1);
+        //let report = await grade.getAssignmentGradeReport(1);
+        let UTIA = await grade.getUserTaskInfoArray(11);
         res.json({
-            //UTIA: UTIA
-            assignmentGradeReport:report
+            UTIA: UTIA
+           // assignmentGradeReport:report
         })
         // grade.getUserTaskInfoArray(1,1)
     });

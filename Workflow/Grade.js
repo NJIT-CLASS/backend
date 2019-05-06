@@ -14,25 +14,22 @@ import {
     WorkflowActivity,
     WorkflowGrade,
     WorkflowInstance,
-    UserContact,
-} from '../Util/models.js';
-import { stringArrayToSet } from 'winston/lib/winston/common';
-var Promise = require('bluebird');
-var Util = require('./Util.js');
-var _ = require('underscore');
-var moment = require('moment');
+    UserContact
+} from "../Util/models.js";
+import { stringArrayToSet } from "winston/lib/winston/common";
+var Promise = require("bluebird");
+var Util = require("./Util.js");
+var _ = require("underscore");
+var moment = require("moment");
 
 var util = new Util();
-const logger = require('./Logger.js');
-
-
+const logger = require("./Logger.js");
 
 class Grade {
-
     /**
      * Add simple grade
-     * 
-     * @param {any} ti_id 
+     *
+     * @param {any} ti_id
      * @memberof Grade
      */
     async addSimpleGrade(ti_id) {
@@ -42,33 +39,47 @@ class Grade {
             where: {
                 TaskInstanceID: ti_id
             },
-            include: [{
+            include: [
+                {
                     model: WorkflowInstance,
-                    attributes: ['WorkflowInstanceID','WorkflowActivityID', 'TaskCollection'],
-                    include: [{
-                        model: WorkflowActivity,
-                        attributes: ['Name'],
-                        
-                    }]
+                    attributes: [
+                        "WorkflowInstanceID",
+                        "WorkflowActivityID",
+                        "TaskCollection"
+                    ],
+                    include: [
+                        {
+                            model: WorkflowActivity,
+                            attributes: ["Name"]
+                        }
+                    ]
                 },
                 {
                     model: TaskActivity,
-                    attributes: ['SimpleGrade', 'DisplayName']
+                    attributes: ["SimpleGrade", "DisplayName"]
                 }
             ]
         });
 
-        var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
+        var sec_user = await util.findSectionUserID(
+            ti.AssignmentInstanceID,
+            ti.UserID
+        );
 
         var user_history = JSON.parse(ti.UserHistory);
 
-        if (ti.TaskActivity.SimpleGrade !== 'none' && ti.TaskActivity.SimpleGrade.substr(0, 11) === 'off_per_day') {
-            var avg_grade = await x.getAverageSimpleGrade(JSON.parse(ti.WorkflowInstance.TaskCollection));
+        if (
+            ti.TaskActivity.SimpleGrade !== "none" &&
+            ti.TaskActivity.SimpleGrade.substr(0, 11) === "off_per_day"
+        ) {
+            var avg_grade = await x.getAverageSimpleGrade(
+                JSON.parse(ti.WorkflowInstance.TaskCollection)
+            );
             var days_late = await x.getNumberOfDaysLate(ti);
             var regExp = /\(([^)]+)\)/;
             var penalty = regExp.exec(ti.TaskActivity.SimpleGrade);
             penalty = parseInt(penalty[1]);
-            if (JSON.parse(ti.Status)[3] === 'late') {
+            if (JSON.parse(ti.Status)[3] === "late") {
                 avg_grade = avg_grade - avg_grade * (penalty / 100) * days_late;
 
                 if (avg_grade < 0) {
@@ -76,7 +87,7 @@ class Grade {
                 }
             }
 
-            if(days_late < 0){
+            if (days_late < 0) {
                 days_late = 0;
             }
 
@@ -96,51 +107,66 @@ class Grade {
                     Grade: avg_grade
                 });
 
-                logger.log('info', '/Workflow/Grade/addSimpleGrade: Done! TaskSimpleGradeID: ', grade.TaskSimpleGradeID);
+                logger.log(
+                    "info",
+                    "/Workflow/Grade/addSimpleGrade: Done! TaskSimpleGradeID: ",
+                    grade.TaskSimpleGradeID
+                );
 
                 return grade;
-
             } catch (err) {
-                logger.log('error', '/Workflow/Grade/addSimpleGrade: cannot create task simple grade', {
-                    error: err
-                });
+                logger.log(
+                    "error",
+                    "/Workflow/Grade/addSimpleGrade: cannot create task simple grade",
+                    {
+                        error: err
+                    }
+                );
 
                 return;
             }
         }
-
     }
 
     /**
      * adds task grade
-     * 
-     * @param {any} ti_id 
-     * @param {any} grade 
-     * @param {any} max_grade 
+     *
+     * @param {any} ti_id
+     * @param {any} grade
+     * @param {any} max_grade
      * @memberof Grade
      */
     async addTaskGrade(finalGrade) {
-
         var ti = await TaskInstance.find({
             where: {
                 TaskInstanceID: finalGrade.gradeOwnerID
             },
-            include: [{
-                model: WorkflowInstance,
-                attributes: ['WorkflowActivityID'],
-                include: [{
-                    model: WorkflowActivity,
-                    attributes: ['Name', 'NumberOfSets', 'GradeDistribution'],
-                    
-                }]
-            },
-            {
-                model: TaskActivity,
-                attributes: ['SimpleGrade', 'DisplayName', 'Fields']
-            }]
+            include: [
+                {
+                    model: WorkflowInstance,
+                    attributes: ["WorkflowActivityID"],
+                    include: [
+                        {
+                            model: WorkflowActivity,
+                            attributes: [
+                                "Name",
+                                "NumberOfSets",
+                                "GradeDistribution"
+                            ]
+                        }
+                    ]
+                },
+                {
+                    model: TaskActivity,
+                    attributes: ["SimpleGrade", "DisplayName", "Fields"]
+                }
+            ]
         });
-        console.log('add task grade ai_id :', ti.AssignmentInstanceID);
-        var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
+        console.log("add task grade ai_id :", ti.AssignmentInstanceID);
+        var sec_user = await util.findSectionUserID(
+            ti.AssignmentInstanceID,
+            ti.UserID
+        );
 
         var user_history = JSON.parse(ti.UserHistory);
 
@@ -160,25 +186,27 @@ class Grade {
                 fields: ti.TaskActivity.Fields,
                 data: finalGrade.task.Data
             }
-        }).catch(function(err){
+        }).catch(function(err) {
             console.log(err);
         });
 
-
-
-        logger.log('info', '/Workflow/Grade/addTaskGrade: Done! TaskGradeID: ', task_grade.TaskGradeID);
+        logger.log(
+            "info",
+            "/Workflow/Grade/addTaskGrade: Done! TaskGradeID: ",
+            task_grade.TaskGradeID
+        );
     }
 
     /**
      * add workflow grade
-     * 
-     * @param {any} wi_id 
-     * @param {any} user_id 
-     * @param {any} grade 
+     *
+     * @param {any} wi_id
+     * @param {any} user_id
+     * @param {any} grade
      * @memberof Grade
      */
     async addWorkflowGrade(wi_id, sec_user, grade) {
-        logger.log('info', '/Workflow/Grade/addWorkflowGrade: Adding grade');
+        logger.log("info", "/Workflow/Grade/addWorkflowGrade: Adding grade");
 
         //console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
         var wi = await WorkflowInstance.find({
@@ -211,20 +239,22 @@ class Grade {
             });
         }
 
-
-        logger.log('info', '/Workflow/Grade/addWorkflowGrade: Done! WorkflowGradeID: ', wi_id);
+        logger.log(
+            "info",
+            "/Workflow/Grade/addWorkflowGrade: Done! WorkflowGradeID: ",
+            wi_id
+        );
     }
 
     /**
      * add assignment grade
-     * 
-     * @param {any} ai_id 
-     * @param {any} user_id 
-     * @param {any} grade 
+     *
+     * @param {any} ai_id
+     * @param {any} user_id
+     * @param {any} grade
      * @memberof Grade
      */
     async addAssignmentGrade(ai_id, sec_user, grade) {
-
         //var sec_user = await util.findSectionUserID(ai_id, user_id);
 
         var a_grade = await AssignmentGrade.find({
@@ -247,22 +277,22 @@ class Grade {
             });
         }
 
-
-        logger.log('info', '/Workflow/Grade/addAssignmentGrade: Done! AssignmentGradeID: ', assignment_grade.AssignmentGradeID);
-
+        logger.log(
+            "info",
+            "/Workflow/Grade/addAssignmentGrade: Done! AssignmentGradeID: ",
+            assignment_grade.AssignmentGradeID
+        );
     }
-
 
     /**
      * Finds and returns task collection
-     * 
-     * @param {any} wi_id 
-     * @returns 
+     *
+     * @param {any} wi_id
+     * @returns
      * @memberof Grade
      */
     async getTaskCollection(wi_id) {
         try {
-
             var x = this;
             var task_collection = [];
             var wi = await WorkflowInstance.find({
@@ -272,17 +302,16 @@ class Grade {
             });
 
             return JSON.parse(wi.TaskCollection);
-
         } catch (err) {
-            logger.log('error', 'cannot find task collection');
+            logger.log("error", "cannot find task collection");
         }
     }
 
     /**
      * finds and returns workflow collection
-     * 
-     * @param {any} ai_id 
-     * @returns 
+     *
+     * @param {any} ai_id
+     * @returns
      * @memberof Grade
      */
     async getWorkflowCollection(ai_id) {
@@ -296,16 +325,15 @@ class Grade {
 
             return ai.WorkflowCollection;
         } catch (err) {
-            logger.log('error', 'cannot find workflow collection');
+            logger.log("error", "cannot find workflow collection");
         }
     }
 
-
     /**
      * checks if all workflows in the assignment is done
-     * 
-     * @param {any} ai_id 
-     * @returns 
+     *
+     * @param {any} ai_id
+     * @returns
      * @memberof Grade
      */
     async checkAssignmentDone(ai_id) {
@@ -320,22 +348,25 @@ class Grade {
         });
 
         if (_.isEmpty(workflows_not_done)) {
-            logger.log('info', 'assignment completed!');
+            logger.log("info", "assignment completed!");
             return true;
         } else {
-            logger.log('info', 'assignment still in progress, waiting workflows to complete', {
-                workflows: workflows_not_done
-            });
+            logger.log(
+                "info",
+                "assignment still in progress, waiting workflows to complete",
+                {
+                    workflows: workflows_not_done
+                }
+            );
             return false;
         }
-
     }
 
     /**
      * checks if all task instances within a workflow are done
-     * 
-     * @param {any} wi_id 
-     * @returns 
+     *
+     * @param {any} wi_id
+     * @returns
      * @memberof Grade
      */
     async checkWorkflowDone(wi_id) {
@@ -350,25 +381,28 @@ class Grade {
         });
 
         if (_.isEmpty(tasks_not_done)) {
-            logger.log('info', 'workflow completed!');
+            logger.log("info", "workflow completed!");
             return true;
         } else {
-            logger.log('info', 'workflow still in progress, waiting users to complete', {
-                tasks: tasks_not_done
-            });
+            logger.log(
+                "info",
+                "workflow still in progress, waiting users to complete",
+                {
+                    tasks: tasks_not_done
+                }
+            );
             return false;
         }
     }
 
     /**
      * checks if a task is done
-     * 
-     * @param {any} ti_id 
-     * @returns 
+     *
+     * @param {any} ti_id
+     * @returns
      * @memberof Grade
      */
     async checkTaskDone(ti_id) {
-
         try {
             var x = this;
 
@@ -378,49 +412,51 @@ class Grade {
                 }
             });
 
-            if (JSON.parse(ti.Status)[0] === 'complete' || JSON.parse(ti.Status)[0] === 'automatic' || JSON.parse(ti.Status)[0] === 'bypassed') {
+            if (
+                JSON.parse(ti.Status)[0] === "complete" ||
+                JSON.parse(ti.Status)[0] === "automatic" ||
+                JSON.parse(ti.Status)[0] === "bypassed"
+            ) {
                 return true;
             } else {
                 return false;
             }
-
         } catch (err) {
-            logger.log('error', 'cannot check whether the tasks are done', {
+            logger.log("error", "cannot check whether the tasks are done", {
                 TaskInstanceID: ti_id,
                 error: err
             });
         }
     }
 
-
     async findFinalGrade(ti) {
         var x = this;
-        console.log('traversing the workflow to find final grade...');
+        console.log("traversing the workflow to find final grade...");
         if (ti.FinalGrade !== null) {
-
-            logger.log('info', '/Workflow/Grade/findFinalGrade: final grade found! The final grade is:', ti.FinalGrade);
+            logger.log(
+                "info",
+                "/Workflow/Grade/findFinalGrade: final grade found! The final grade is:",
+                ti.FinalGrade
+            );
 
             var wi = await WorkflowInstance.find({
                 where: {
                     WorkflowInstanceID: ti.WorkflowInstanceID
-                },
+                }
             });
 
             //var original = await x.gradeBelongsTo(ti);
             var original_id = ti.ReferencedTask;
             //return [wi.WorkflowActivityID, ti.TaskInstanceID, ti.FinalGrade];
-            if(original_id === null || typeof original_id === null){
+            if (original_id === null || typeof original_id === null) {
                 return null;
             } else {
                 return {
-                    'gradeOwnerID': original_id,
-                    'task': ti
+                    gradeOwnerID: original_id,
+                    task: ti
                 };
             }
-            
-
         } else if (ti.FinalGrade === null && ti.PreviousTask !== null) {
-
             var pre_ti = await TaskInstance.find({
                 where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
@@ -431,27 +467,31 @@ class Grade {
                 var data = await x.findFinalGrade(pre_ti);
                 return data;
             } else {
-                console.log('no grades found.');
+                console.log("no grades found.");
                 return null;
             }
         } else {
-            console.log('no grades found.');
+            console.log("no grades found.");
             return null;
         }
     }
 
     async gradeBelongsTo(ti) {
         var x = this;
-        logger.log('info', '/Workflow/Grade/gradeBelongsTo: searching for user... TaskActivityID: ',ti.TaskActivityID);
+        logger.log(
+            "info",
+            "/Workflow/Grade/gradeBelongsTo: searching for user... TaskActivityID: ",
+            ti.TaskActivityID
+        );
         var ta = await TaskActivity.find({
             where: {
                 TaskActivityID: ti.TaskActivityID
             }
         });
 
-        let field = JSON.parse(ta.Fields) 
+        let field = JSON.parse(ta.Fields);
 
-        if (ta.Type === 'grade_problem') {
+        if (ta.Type === "grade_problem") {
             var pre_ti = await TaskInstance.find({
                 where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
@@ -461,24 +501,38 @@ class Grade {
             var maxGrade = 0;
             let field = JSON.parse(ta.Fields);
 
-            
             await Promise.mapSeries(Object.keys(field), async function(val) {
-                if (val === 'field_distribution' && val != null) { //check if field type is assessment
+                if (val === "field_distribution" && val != null) {
+                    //check if field type is assessment
                     let distribution = field.field_distribution;
-                    await Promise.mapSeries(Object.keys(field.field_distribution), function(val) {
-                        maxGrade += distribution[val];
-                    });
+                    await Promise.mapSeries(
+                        Object.keys(field.field_distribution),
+                        function(val) {
+                            maxGrade += distribution[val];
+                        }
+                    );
                 }
             });
 
-            logger.log('info', '/Workflow/Grade/gradeBelongsTo: userID found:', pre_ti.UserID);
+            logger.log(
+                "info",
+                "/Workflow/Grade/gradeBelongsTo: userID found:",
+                pre_ti.UserID
+            );
             return {
-                'id': pre_ti.TaskInstanceID,
-                'max_grade': 100
+                id: pre_ti.TaskInstanceID,
+                max_grade: 100
             };
         } else {
-            if(ti.PreviousTask === null || typeof ti.PreviousTask === undefined){
-                logger.log('info', '/Workflow/Grade/gradeBelongsTo: no previous task, function end', ti.PreviousTask);
+            if (
+                ti.PreviousTask === null ||
+                typeof ti.PreviousTask === undefined
+            ) {
+                logger.log(
+                    "info",
+                    "/Workflow/Grade/gradeBelongsTo: no previous task, function end",
+                    ti.PreviousTask
+                );
                 return null;
             }
 
@@ -493,7 +547,6 @@ class Grade {
         }
     }
 
-
     async getAverageSimpleGrade(task_collection) {
         var grade = 100;
         var length = task_collection.length;
@@ -503,12 +556,11 @@ class Grade {
     async getNumberOfDaysLate(ti) {
         var now = moment();
         var endDate = ti.EndDate;
-        now.diff(endDate, 'days');
-        return now.diff(endDate, 'days') + 1;
+        now.diff(endDate, "days");
+        return now.diff(endDate, "days") + 1;
     }
 
     async getStudentSimpleGrade(user_id, ai_id) {
-
         var tis = await TaskInstance.findAll({
             Where: {
                 UserID: user_id,
@@ -517,13 +569,15 @@ class Grade {
                     $notLike: '%"automatic"%'
                 }
             },
-            include: [{
-                model: TaskActivity
-            }, {
-                model: TaskSimpleGrade
-            }]
+            include: [
+                {
+                    model: TaskActivity
+                },
+                {
+                    model: TaskSimpleGrade
+                }
+            ]
         });
-
 
         return tis;
     }
@@ -534,7 +588,7 @@ class Grade {
             SectionUserID: section_user_id
         });
 
-        if(record.AvailablePoints > 0){
+        if (record.AvailablePoints > 0) {
             var goal_progression = JSON.parse(record.GoalProgression);
             goal_progression[goal_instance_id].Claim = true;
             var available_points = record.AvailablePoints;
@@ -543,7 +597,7 @@ class Grade {
             used_points = used_points + 1;
 
             await x.extraCreditCreateOrUpdate(section_user_id);
-    
+
             await record.update({
                 GoalProgression: goal_progression,
                 AvailablePoints: available_points,
@@ -571,133 +625,147 @@ class Grade {
         }
     }
 
-    async getGradeReport(ai_id){ //Should make a snapshot table to store all the info to save time when pull grades
+    async getGradeReport(ai_id) {
+        //Should make a snapshot table to store all the info to save time when pull grades
 
         var ai_grade = await AssignmentGrade.findAll({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id
             }
-        }).catch(function(err){
+        }).catch(function(err) {
             console.log(err);
         });
 
         var ai = await AssignmentInstance.findOne({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id
             },
-            attributes: ['AssignmentID', 'SectionID']
-        }).catch(function(err){
+            attributes: ["AssignmentID", "SectionID"]
+        }).catch(function(err) {
             console.log(err);
         });
 
         var assignment = await Assignment.findOne({
-            where:{
+            where: {
                 AssignmentID: ai.AssignmentID
             },
-            attributes: ['GradeDistribution', 'DisplayName', 'CourseID', 'WorkflowActivityIDs']
-        }).catch(function(err){
+            attributes: [
+                "GradeDistribution",
+                "DisplayName",
+                "CourseID",
+                "WorkflowActivityIDs"
+            ]
+        }).catch(function(err) {
             console.log(err);
         });
 
         var course = await Course.findOne({
-            where:{
+            where: {
                 CourseID: assignment.CourseID
             },
-            attributes: ['Number', 'Name']
-        }).catch(function(err){
+            attributes: ["Number", "Name"]
+        }).catch(function(err) {
             console.log(err);
         });
 
         var wi_grade = await WorkflowGrade.findAll({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id
             }
-        }).catch(function(err){
+        }).catch(function(err) {
             console.log(err);
         });
 
         var wa = await WorkflowActivity.findAll({
-            where:{
+            where: {
                 AssignmentID: ai.AssignmentID
             },
-            attributes: ['WorkflowActivityID', 'GradeDistribution', 'TaskActivityCollection']
-        }).catch(function(err){
+            attributes: [
+                "WorkflowActivityID",
+                "GradeDistribution",
+                "TaskActivityCollection"
+            ]
+        }).catch(function(err) {
             console.log(err);
         });
 
         var ti_grade = await TaskGrade.findAll({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id
             }
-        }).catch(function(err){
+        }).catch(function(err) {
             console.log(err);
         });
 
         var simple_grade = await TaskSimpleGrade.findAll({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id
             }
-        }).catch(function(err){
+        }).catch(function(err) {
             console.log(err);
         });
 
         var ta = await TaskActivity.findAll({
-            where:{
+            where: {
                 AssignmentID: ai.AssignmentID
             },
-            attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName', 'RefersToWhichTask', 'SimpleGrade']
-        }).catch(function(err){
+            attributes: [
+                "TaskActivityID",
+                "WorkflowActivityID",
+                "Type",
+                "DisplayName",
+                "RefersToWhichTask",
+                "SimpleGrade"
+            ]
+        }).catch(function(err) {
             console.log(err);
         });
 
-        let simple_grade_max = {}
-        await Promise.mapSeries(ta, (task) =>{
-            if(!_.has(simple_grade_max, task.WorkflowActivityID)){
+        let simple_grade_max = {};
+        await Promise.mapSeries(ta, task => {
+            if (!_.has(simple_grade_max, task.WorkflowActivityID)) {
                 simple_grade_max[task.WorkflowActivityID] = 0;
             }
 
-            if(task.SimpleGrade != 'none'){
+            if (task.SimpleGrade != "none") {
                 simple_grade_max[task.WorkflowActivityID] += 1;
             }
-        })
+        });
 
         var sec_users = await SectionUser.findAll({
-            where:{
+            where: {
                 SectionID: ai.SectionID
             },
-            include:{
-                model: User,
+            include: {
+                model: User
             }
-        }).catch(function(err){
+        }).catch(function(err) {
             console.log(err);
         });
 
-
         let result = {
-            'Course': course,
-            'AssignmentActivity': assignment,
-            'WorkflowActivity': wa,
-            'TaskActivity': ta,
-            'SectionUsers': sec_users,
-            'Grades': {
-                'Assignment': ai_grade,
-                'Workflow': wi_grade,
-                'Task': ti_grade,
-                'SimpleGrade': simple_grade,
-                'SimpleGradeMax': simple_grade_max
+            Course: course,
+            AssignmentActivity: assignment,
+            WorkflowActivity: wa,
+            TaskActivity: ta,
+            SectionUsers: sec_users,
+            Grades: {
+                Assignment: ai_grade,
+                Workflow: wi_grade,
+                Task: ti_grade,
+                SimpleGrade: simple_grade,
+                SimpleGradeMax: simple_grade_max
             }
-        }
+        };
 
         return result;
-
     }
 
-
-    async getUserTaskInfoArray(ai_id){
+    async getUserTaskInfoArray(ai_id) {
         let x = this;
         let ai = await x.getAssginmentInstance(ai_id);
         let gradableTaskObj = await x.getGradableTasks(ai.AssignmentID);
-        let wfs = await x.getWorkflowActivities(ai_id)
+        let wfs = await x.getWorkflowActivities(ai.AssignmentID);
         let UTIA = {
             ai_id: ai_id,
             ai_name: ai.DisplayName,
@@ -716,159 +784,212 @@ class Grade {
             extraQuality: {},
             extraQualityID: [],
             gradableTasks: gradableTaskObj.gradableTasks
-        }
+        };
 
         var tis = await TaskInstance.findAll({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id,
-                $or:[{
-                    TaskActivityID: {
-                        $in: gradableTaskObj.gradableTaskKeys
+                $or: [
+                    {
+                        TaskActivityID: {
+                            $in: gradableTaskObj.gradableTaskKeys
+                        }
                     },
-                },{
-                    ExtraCredit: 1
-                },{
-                    TASimpleGrade: {
-                        $notLike: 'none'
-                    } 
-                }]
+                    {
+                        ExtraCredit: 1
+                    },
+                    {
+                        TASimpleGrade: {
+                            $notLike: "none"
+                        }
+                    }
+                ]
             },
-            attributes: ['TaskInstanceID', 'TaskActivityID', 'WorkflowInstanceID', 'Status', 'UserID', 'TASimpleGrade', 'ExtraCredit'],
-            include: [{
-                model: WorkflowInstance,
-                attributes: ['WorkflowActivityID'],
-                include: [{
-                    model: WorkflowActivity,
-                    attributes: ['Name', 'GradeDistribution']
-                }]
-            }, {
-                model:TaskActivity,
-                attributes:['DisplayName']
-            }]
+            attributes: [
+                "TaskInstanceID",
+                "TaskActivityID",
+                "WorkflowInstanceID",
+                "Status",
+                "UserID",
+                "TASimpleGrade",
+                "ExtraCredit"
+            ],
+            include: [
+                {
+                    model: WorkflowInstance,
+                    attributes: ["WorkflowActivityID"],
+                    include: [
+                        {
+                            model: WorkflowActivity,
+                            attributes: ["Name", "GradeDistribution"]
+                        }
+                    ]
+                },
+                {
+                    model: TaskActivity,
+                    attributes: ["DisplayName"]
+                }
+            ]
         });
 
-        await Promise.mapSeries(tis, async (ti) => {
+        await Promise.mapSeries(tis, async ti => {
             var sectUserID = await util.findSectionUserID(ai_id, ti.UserID);
-            if(!_.contains(UTIA.userIDs, ti.UserID) && ti.ExtraCredit == 0){
-                let user = await UserContact.find({
-                    where:{
-                        UserID: ti.UserID
-                    },
-                    attributes:['UserID','FirstName', 'LastName', 'Email']
-                });
-                UTIA.users.push({
-                    sectionUserID: sectUserID,
-                    user: user
-                });
-                UTIA.userIDs.push(ti.UserID);
+            var isProf = await this.isInstructor(sectUserID);
+
+            if (!UTIA.quality.hasOwnProperty(sectUserID)) {
+                UTIA.quality[sectUserID] = [];
             }
-            if(gradableTaskObj.gradableTasks.hasOwnProperty(ti.TaskActivityID) && ti.ExtraCredit == 0){
-                if(!UTIA.quality.hasOwnProperty(sectUserID)){
-                    UTIA.quality[sectUserID] = [];
-                }
-
-                UTIA.quality[sectUserID].push(ti);
-                UTIA.qualityID.push(ti.TaskInstanceID);
+            if (!UTIA.timeliness.hasOwnProperty(sectUserID)) {
+                UTIA.timeliness[sectUserID] = [];
             }
-            if(ti.TASimpleGrade !== 'none' && ti.ExtraCredit == 0){
-
-                if(!await UTIA.timeliness.hasOwnProperty(sectUserID)){
-                    UTIA.timeliness[sectUserID] = [];
-                }
-
-                UTIA.timeliness[sectUserID].push(ti);
-                UTIA.timelinessID.push(ti.TaskInstanceID);
+            if (!UTIA.extraCredit.hasOwnProperty(SectionUser)) {
+                UTIA.extraCredit[sectUserID] = [];
             }
-            if(ti.ExtraCredit == 1) {
-                if(!await UTIA.extraCredit.hasOwnProperty(sectUserID)){
-                    UTIA.extraCredit[sectUserID] = [];
-                }
-
-                UTIA.extraCredit[sectUserID].push(ti);
-                UTIA.extraCreditID.push(ti.TaskInstanceID);
+            if (!UTIA.extraQuality.hasOwnProperty(sectUserID)) {
+                UTIA.extraQuality[sectUserID] = [];
             }
-            if(ti.ExtraCredit == 1 && gradableTaskObj.gradableTasks.hasOwnProperty(ti.TaskActivityID)) {
-                if(!await UTIA.extraQuality.hasOwnProperty(sectUserID)){
-                    UTIA.extraQuality[sectUserID] = [];
-                }
-
-                UTIA.extraQuality[sectUserID].push(ti);
-                UTIA.extraQualityID.push(ti.TaskInstanceID);
+            if (!UTIA.extraTimeliness.hasOwnProperty(sectUserID)) {
+                UTIA.extraTimeliness[sectUserID] = [];
             }
 
-            if(ti.ExtraCredit == 1 && ti.TASimpleGrade !== 'none'){
-
-                if(!await UTIA. extraTimeliness.hasOwnProperty(sectUserID)){
-                    UTIA.extraTimeliness[sectUserID] = [];
+            if (!isProf) {
+                if (
+                    !_.contains(UTIA.userIDs, ti.UserID) &&
+                    ti.ExtraCredit == 0
+                ) {
+                    let user = await UserContact.find({
+                        where: {
+                            UserID: ti.UserID
+                        },
+                        attributes: ["UserID", "FirstName", "LastName", "Email"]
+                    });
+                    UTIA.users.push({
+                        sectionUserID: sectUserID,
+                        user: user
+                    });
+                    UTIA.userIDs.push(ti.UserID);
                 }
 
-                UTIA.extraTimeliness[sectUserID].push(ti);
-                UTIA.extraTimelinessID.push(ti.TaskInstanceID);
+                if (
+                    gradableTaskObj.gradableTasks.hasOwnProperty(
+                        ti.TaskActivityID
+                    ) &&
+                    ti.ExtraCredit == 0
+                ) {
+                    UTIA.quality[sectUserID].push(ti);
+                    UTIA.qualityID.push(ti.TaskInstanceID);
+                }
+                if (ti.TASimpleGrade !== "none" && ti.ExtraCredit == 0) {
+                    UTIA.timeliness[sectUserID].push(ti);
+                    UTIA.timelinessID.push(ti.TaskInstanceID);
+                }
+                if (ti.ExtraCredit == 1) {
+                    UTIA.extraCredit[sectUserID].push(ti);
+                    UTIA.extraCreditID.push(ti.TaskInstanceID);
+                }
+                if (
+                    ti.ExtraCredit == 1 &&
+                    gradableTaskObj.gradableTasks.hasOwnProperty(
+                        ti.TaskActivityID
+                    )
+                ) {
+                    UTIA.extraQuality[sectUserID].push(ti);
+                    UTIA.extraQualityID.push(ti.TaskInstanceID);
+                }
+
+                if (ti.ExtraCredit == 1 && ti.TASimpleGrade !== "none") {
+                    UTIA.extraTimeliness[sectUserID].push(ti);
+                    UTIA.extraTimelinessID.push(ti.TaskInstanceID);
+                }
             }
         });
 
-        console.log('quality: ', UTIA.qualityID);
-        console.log('timeliness: ', UTIA.timelinessID);
-        console.log('extra quality', UTIA.extraQualityID);
-        console.log('extra timeliness', UTIA.extraTimelinessID)
-        console.log('extra credit: ', UTIA.extraCreditID);
-        console.log('users: ', UTIA.userIDs)
+        console.log("quality: ", UTIA.qualityID);
+        console.log("timeliness: ", UTIA.timelinessID);
+        console.log("extra quality", UTIA.extraQualityID);
+        console.log("extra timeliness", UTIA.extraTimelinessID);
+        console.log("extra credit: ", UTIA.extraCreditID);
+        console.log("users: ", UTIA.userIDs);
         return UTIA;
     }
 
-    async getAssginmentInstance(ai_id){
+    async isInstructor(sectUserID) {
+        var secUser = await SectionUser.find({
+            where: {
+                SectionUserID: sectUserID
+            },
+            attributes: ["Role"]
+        });
+
+        if (secUser.Role === "Instructor") {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    async getAssginmentInstance(ai_id) {
         let ai = await AssignmentInstance.find({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id
             },
-            attributes: ['AssignmentID', 'SectionID', 'DisplayName'],
-            include: [{
-                model:Assignment,
-                attributes: ['GradeDistribution']
-            }]
+            attributes: ["AssignmentID", "SectionID", "DisplayName"],
+            include: [
+                {
+                    model: Assignment,
+                    attributes: ["GradeDistribution"]
+                }
+            ]
         });
 
         return ai;
     }
 
-    async  getWorkflowActivities(a_id){
+    async getWorkflowActivities(a_id) {
         let wfs = await WorkflowActivity.findAll({
-            where:{
+            where: {
                 AssignmentID: a_id
             },
-            attributes: ['WorkflowActivityID', 'Name', 'NumberOfSets', 'GradeDistribution', 'TaskActivityCollection']
+            attributes: [
+                "WorkflowActivityID",
+                "Name",
+                "NumberOfSets",
+                "GradeDistribution",
+                "TaskActivityCollection"
+            ]
         });
 
         return wfs;
     }
 
-    //{ '1': [ 3, 5, 7 ], '8': [ 9, 11, 13 ] } 
-    //{ 'Gradable TaskActivityID': [ Potential Final Grade TaskActivityIDs ] } 
-    async getGradableTasks(a_id){
+    //{ '1': [ 3, 5, 7 ], '8': [ 9, 11, 13 ] }
+    //{ 'Gradable TaskActivityID': [ Potential Final Grade TaskActivityIDs ] }
+    async getGradableTasks(a_id) {
         let gradableTasks = {};
         let gradableTasksKeys = [];
         var tas = await TaskActivity.findAll({
-            where:{
+            where: {
                 AssignmentID: a_id
             },
-            attributes:["TaskActivityID", "RefersToWhichTask", "Type"]
+            attributes: ["TaskActivityID", "RefersToWhichTask", "Type"]
         });
-        
-        await Promise.mapSeries(tas, (ta) => {
 
-            if(ta.RefersToWhichTask !== null){
-
-                if(!gradableTasks.hasOwnProperty(ta.RefersToWhichTask)){
+        await Promise.mapSeries(tas, ta => {
+            if (ta.RefersToWhichTask !== null) {
+                if (!gradableTasks.hasOwnProperty(ta.RefersToWhichTask)) {
                     gradableTasks[ta.RefersToWhichTask] = [];
                     gradableTasksKeys.push(ta.RefersToWhichTask);
                 }
-                if(ta.Type === 'grade_problem' || ta.Type === 'consolidation' || ta.Type === 'resolve_dispute'){
-                    gradableTasks[ta.RefersToWhichTask].push(ta.TaskActivityID)
+                if (
+                    ta.Type === "grade_problem" ||
+                    ta.Type === "consolidation" ||
+                    ta.Type === "resolve_dispute"
+                ) {
+                    gradableTasks[ta.RefersToWhichTask].push(ta.TaskActivityID);
                 }
             }
-
         });
-        
+
         console.log(gradableTasks);
 
         return {
@@ -877,8 +998,7 @@ class Grade {
         };
     }
 
-
-    async getAssignmentGradeReport(ai_id){
+    async getAssignmentGradeReport(ai_id) {
         let x = this;
         let UTIA = await x.getUserTaskInfoArray(ai_id);
         let userContacts = UTIA.users;
@@ -886,17 +1006,31 @@ class Grade {
             assignmentName: UTIA.ai_name
         };
 
-        await Promise.mapSeries(userContacts, async (userContact) => {
-            
-            let a_grade = await x.getAssignmentGrade(ai_id, userContact.sectionUserID);
-            let workflowGradeReport = await x.getWorkflowGradeReport(UTIA, {sectionUserID: userContact.sectionUserID, userID: userContact.user.UserID});
-            let assignmentExtraCreditReport = await x.getAssignmentExtraCreditReport(UTIA, {sectionUserID: userContact.sectionUserID, userID: userContact.user.UserID});
-            let numOfExtraCredit = await x.getNumOfExtraCreditReport(UTIA, {sectionUserID: userContact.sectionUserID, userID: userContact.user.UserID});
+        await Promise.mapSeries(userContacts, async userContact => {
+            let a_grade = await x.getAssignmentGrade(
+                ai_id,
+                userContact.sectionUserID
+            );
+            let workflowGradeReport = await x.getWorkflowGradeReport(UTIA, {
+                sectionUserID: userContact.sectionUserID,
+                userID: userContact.user.UserID
+            });
+            let assignmentExtraCreditReport = await x.getAssignmentExtraCreditReport(
+                UTIA,
+                {
+                    sectionUserID: userContact.sectionUserID,
+                    userID: userContact.user.UserID
+                }
+            );
+            let numOfExtraCredit = await x.getNumOfExtraCreditReport(UTIA, {
+                sectionUserID: userContact.sectionUserID,
+                userID: userContact.user.UserID
+            });
 
-            if(a_grade !== null || a_grade !== null ){
+            if (a_grade !== null || a_grade !== null) {
                 a_grade = a_grade.Grade;
             } else {
-                a_grade= 'not yet completed';
+                a_grade = "not yet completed";
             }
 
             gradeReport[userContact.sectionUserID] = {
@@ -908,24 +1042,32 @@ class Grade {
                 workflowGradeReport: workflowGradeReport,
                 assignmentExtraCreditReport: assignmentExtraCreditReport,
                 numOfExtraCredit: numOfExtraCredit
-            }
+            };
         });
 
         return gradeReport;
     }
 
-    async getWorkflowGradeReport(UTIA, user){
+    async getWorkflowGradeReport(UTIA, user) {
         let x = this;
-        let workflowGradeReport = {}
+        let workflowGradeReport = {};
 
-        await Promise.mapSeries(UTIA.workflows, async (wf) => {
-            let w_grade = await x.getWorkflowGrade(UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
-            let problemAndTimelinessGrade = await x.getProblemAndTimelinessGradeReport(UTIA, user, wf)
+        await Promise.mapSeries(UTIA.workflows, async wf => {
+            let w_grade = await x.getWorkflowGrade(
+                UTIA.ai_id,
+                user.sectionUserID,
+                wf.WorkflowActivityID
+            );
+            let problemAndTimelinessGrade = await x.getProblemAndTimelinessGradeReport(
+                UTIA,
+                user,
+                wf
+            );
 
-            if(w_grade === null || w_grade === undefined){
-                w_grade = 'not yet complete'
+            if (w_grade === null || w_grade === undefined) {
+                w_grade = "not yet complete";
             } else {
-                w_grade = w_grade.Grade
+                w_grade = w_grade.Grade;
             }
 
             workflowGradeReport[wf.WorkflowActivityID] = {
@@ -934,208 +1076,262 @@ class Grade {
                 numberOfSets: wf.NumberOfSets,
                 weight: UTIA.wf_grade_distribution[wf.WorkflowActivityID],
                 workflowGrade: w_grade,
-                scaledGrade: '-',
+                scaledGrade: "-",
                 problemAndTimelinessGrade: problemAndTimelinessGrade
-            }
+            };
         });
 
         return workflowGradeReport;
     }
 
-    async getProblemAndTimelinessGradeReport(UTIA, user, wf){
+    async getProblemAndTimelinessGradeReport(UTIA, user, wf) {
         let x = this;
-        let problemAndTimelinessGrade = {}
+        let problemAndTimelinessGrade = {};
 
-        await Promise.mapSeries(UTIA.quality[user.sectionUserID], async (ti) =>{
+        await Promise.mapSeries(UTIA.quality[user.sectionUserID], async ti => {
+            console.log(
+                "ti_id ",
+                ti.TaskInstanceID,
+                " sect user id",
+                user.sectionUserID
+            );
             let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
-            let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
+            let taskGradeFields = await x.getTaskGradeFieldsReport(
+                UTIA,
+                user,
+                ti
+            );
 
-            if(wf.WorkflowActivityID === ti.WorkflowInstance.WorkflowActivityID){
+            if (
+                wf.WorkflowActivityID === ti.WorkflowInstance.WorkflowActivityID
+            ) {
                 problemAndTimelinessGrade[ti.TaskInstanceID] = {
                     name: ti.TaskActivity.DisplayName,
                     taskInstanceID: ti.TaskInstanceID,
                     workflowInstanceID: ti.WorkflowInstanceID,
                     workflowName: wf.Name,
-                    weightInProblem: JSON.parse(wf.GradeDistribution)[ti.TaskActivityID] || '-',
-                    weightInAssignment: t_grade.TAGradeWeightInAssignment || '-',
-                    taskGrade: t_grade.Grade || 'not yet complete',
-                    scaledGrade: t_grade.TIScaledGrade ||'-',
+                    weightInProblem:
+                        JSON.parse(wf.GradeDistribution)[ti.TaskActivityID] ||
+                        "-",
+                    weightInAssignment:
+                        t_grade.TAGradeWeightInAssignment || "-",
+                    taskGrade: t_grade.Grade || "not yet complete",
+                    scaledGrade: t_grade.TIScaledGrade || "-",
                     taskGradeFields: taskGradeFields || {}
-                }
+                };
             }
         });
 
-        let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA.ai_id, user.sectionUserID);
-        let timelinessGradeDetailsReport = await x.getTimelinessGradeDetailsReport(UTIA, user, wf);
-        let timelinessGradeDetails = timelinessGradeDetailsReport.timelinessGradeDetails;
+        let t_simple_grades_count = await x.getTaskSimpleGradeCount(
+            UTIA.ai_id,
+            user.sectionUserID
+        );
+        let timelinessGradeDetailsReport = await x.getTimelinessGradeDetailsReport(
+            UTIA,
+            user,
+            wf
+        );
+        let timelinessGradeDetails =
+            timelinessGradeDetailsReport.timelinessGradeDetails;
         let simpleGradeCount = timelinessGradeDetailsReport.simpleGradeCount;
-        
-        problemAndTimelinessGrade['timelinessGrade'] = {
+
+        problemAndTimelinessGrade["timelinessGrade"] = {
             workflowName: wf.Name,
-            weightInProblem: JSON.parse(wf.GradeDistribution)['simple'] || '-',
-            weightInAssignment: '-',
-            taskSimpleGrade: t_simple_grades_count + ' out of ' + simpleGradeCount + ' complete' ,
-            scaledGrade: '-',
+            weightInProblem: JSON.parse(wf.GradeDistribution)["simple"] || "-",
+            weightInAssignment: "-",
+            taskSimpleGrade:
+                t_simple_grades_count +
+                " out of " +
+                simpleGradeCount +
+                " complete",
+            scaledGrade: "-",
             timelinessGradeDetails: timelinessGradeDetails
-        }
-        
+        };
+
         return problemAndTimelinessGrade;
     }
 
-    async getAssignmentExtraCreditReport(UTIA, user){
+    async getAssignmentExtraCreditReport(UTIA, user) {
         let x = this;
-        let assignmentExtraCreditReport = {}
+        let assignmentExtraCreditReport = {};
 
-        if(!UTIA.extraQuality.hasOwnProperty(user.sectionUserID)){
+        if (!UTIA.extraQuality.hasOwnProperty(user.sectionUserID)) {
             return;
         }
 
-        await Promise.mapSeries(UTIA.extraQuality[user.sectionUserID], async (ti) =>{
-            let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
-            let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
+        await Promise.mapSeries(
+            UTIA.extraQuality[user.sectionUserID],
+            async ti => {
+                let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
+                let taskGradeFields = await x.getTaskGradeFieldsReport(
+                    UTIA,
+                    user,
+                    ti
+                );
 
-            assignmentExtraCreditReport[ti.TaskInstanceID] = {
-                name: ti.TaskActivity.DisplayName,
-                taskInstanceID: ti.TaskInstanceID,
-                workflowInstanceID: ti.WorkflowInstanceID,
-                workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
-                weightInProblem: JSON.parse(ti.WorkflowInstance.WorkflowActivity.GradeDistribution)[ti.TaskActivityID] || '-',
-                weightInAssignment: t_grade.TAGradeWeightInAssignment || '-',
-                taskGrade: t_grade.Grade || 'not yet complete',
-                scaledGrade: t_grade.TIScaledGrade ||'-',
-                taskGradeFields: taskGradeFields || {}
+                assignmentExtraCreditReport[ti.TaskInstanceID] = {
+                    name: ti.TaskActivity.DisplayName,
+                    taskInstanceID: ti.TaskInstanceID,
+                    workflowInstanceID: ti.WorkflowInstanceID,
+                    workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
+                    weightInProblem:
+                        JSON.parse(
+                            ti.WorkflowInstance.WorkflowActivity
+                                .GradeDistribution
+                        )[ti.TaskActivityID] || "-",
+                    weightInAssignment:
+                        t_grade.TAGradeWeightInAssignment || "-",
+                    taskGrade: t_grade.Grade || "not yet complete",
+                    scaledGrade: t_grade.TIScaledGrade || "-",
+                    taskGradeFields: taskGradeFields || {}
+                };
             }
-        });
+        );
 
-        let timelinessGradeDetailsReport = await x.getExtraCreditTimelinessGradeDetailsReport(UTIA, user);
-        let timelinessGradeDetails = timelinessGradeDetailsReport.timelinessGradeDetails;
-        let simpleGrade= timelinessGradeDetailsReport.simpleGradeCount;
-        
-        assignmentExtraCreditReport['timelinessGrade'] = {
-            workflowName: 'Entire Assignment',
+        let timelinessGradeDetailsReport = await x.getExtraCreditTimelinessGradeDetailsReport(
+            UTIA,
+            user
+        );
+        let timelinessGradeDetails =
+            timelinessGradeDetailsReport.timelinessGradeDetails;
+        let simpleGrade = timelinessGradeDetailsReport.simpleGradeCount;
+
+        assignmentExtraCreditReport["timelinessGrade"] = {
+            workflowName: "Entire Assignment",
             grade: simpleGrade,
-            weightInProblem: 'n/a',
-            weightInAssignment: 'n/a',
-            scaledGrade: 'n/a',
+            weightInProblem: "n/a",
+            weightInAssignment: "n/a",
+            scaledGrade: "n/a",
             timelinessGradeDetails: timelinessGradeDetails
-        }
+        };
 
-            
-
-
-        return assignmentExtraCreditReport
+        return assignmentExtraCreditReport;
     }
-    
-    async getTaskGradeFieldsReport(UTIA, user, ti){
+
+    async getTaskGradeFieldsReport(UTIA, user, ti) {
         let x = this;
         let taskGradeFields = {};
 
         let resolveDispute = await TaskInstance.find({
             where: {
                 ReferencedTask: ti.TaskInstanceID,
-                TAType: 'resolve_dispute'
+                TAType: "resolve_dispute"
             },
-            include:{
+            include: {
                 model: TaskActivity,
-                attributes: ['Fields']
+                attributes: ["Fields"]
             }
         });
 
-        if(resolveDispute !== null && resolveDispute !== undefined && resolveDispute.FinalGrade !== null){
-            console.log('here resolve')
-            taskGradeFields[resolveDispute.TaskInstanceID] = await this.getTaskGradeFields(resolveDispute);
+        if (
+            resolveDispute !== null &&
+            resolveDispute !== undefined &&
+            resolveDispute.FinalGrade !== null
+        ) {
+            console.log("here resolve");
+            taskGradeFields[
+                resolveDispute.TaskInstanceID
+            ] = await this.getTaskGradeFields(resolveDispute);
             return taskGradeFields;
         }
 
         let consolidation = await TaskInstance.find({
             where: {
                 ReferencedTask: ti.TaskInstanceID,
-                TAType: 'consolidation'
+                TAType: "consolidation"
             },
-            include:{
+            include: {
                 model: TaskActivity,
-                attributes: ['Fields']
+                attributes: ["Fields"]
             }
         });
 
-        if(consolidation !== null && consolidation !== undefined && consolidation.FinalGrade !== null){
-            console.log('here consolidate')
-            taskGradeFields[consolidation.TaskInstanceID] = await this.getTaskGradeFields(consolidation);
+        if (
+            consolidation !== null &&
+            consolidation !== undefined &&
+            consolidation.FinalGrade !== null
+        ) {
+            console.log("here consolidate");
+            taskGradeFields[
+                consolidation.TaskInstanceID
+            ] = await this.getTaskGradeFields(consolidation);
             return taskGradeFields;
         }
 
         let grades = await TaskInstance.findAll({
             where: {
                 ReferencedTask: ti.TaskInstanceID,
-                TAType: 'grade_problem'
+                TAType: "grade_problem"
             },
-            include:{
+            include: {
                 model: TaskActivity,
-                attributes: ['Fields']
+                attributes: ["Fields"]
             }
         });
 
-        if(grades !== null && grades !== undefined){
-            await Promise.mapSeries(grades, async (grade) => {
-                if(grade.FinalGrade !== null){
-                    taskGradeFields[grade.TaskInstanceID] = await this.getTaskGradeFields(grade);
+        if (grades !== null && grades !== undefined) {
+            await Promise.mapSeries(grades, async grade => {
+                if (grade.FinalGrade !== null) {
+                    taskGradeFields[
+                        grade.TaskInstanceID
+                    ] = await this.getTaskGradeFields(grade);
                 }
             });
         }
-        
+
         return taskGradeFields;
     }
 
-    async getTaskGradeFields(task){
-        
-
-        if(task.Data === null) {
+    async getTaskGradeFields(task) {
+        if (task.Data === null) {
             //console.log('ERROR!: No data from resolve dispute!');
-            return {}
+            return {};
         }
 
-        var taskGradeFields = {}
-        var data = JSON.parse(task.Data)[JSON.parse(task.Data).length-1];
-        var fields =  JSON.parse(task.TaskActivity.Fields);
-        var keys = Object.keys(fields)
-        await Promise.mapSeries(keys, async (key) => {
-            if(key !== 'field_titles' && key !== 'number_of_fields' && key !== 'field_distribution'){
-                var type = '-';
-                var name = '-';
-                var value = '-';
-                var max = '-';
-                var weight = '-';
-                var scaledGrade = '-';
+        var taskGradeFields = {};
+        var data = JSON.parse(task.Data)[JSON.parse(task.Data).length - 1];
+        var fields = JSON.parse(task.TaskActivity.Fields);
+        var keys = Object.keys(fields);
+        await Promise.mapSeries(keys, async key => {
+            if (
+                key !== "field_titles" &&
+                key !== "number_of_fields" &&
+                key !== "field_distribution"
+            ) {
+                var type = "-";
+                var name = "-";
+                var value = "-";
+                var max = "-";
+                var weight = "-";
+                var scaledGrade = "-";
 
-                if(fields[key].field_type === 'assessment'){
+                if (fields[key].field_type === "assessment") {
                     name = fields[key].title;
                     value = data[key][0];
                     weight = fields.field_distribution[key];
-                    switch(fields[key].assessment_type){
-                        case 'grade':
-                            type = 'Numeric';
-                            max = fields[key].numeric_max
+                    switch (fields[key].assessment_type) {
+                        case "grade":
+                            type = "Numeric";
+                            max = fields[key].numeric_max;
                             break;
-                        case 'pass':
+                        case "pass":
                             type = "Pass/Fail";
                             max = 1;
                             break;
-                        case 'rating':
+                        case "rating":
                             type = "Rating";
                             max = fields[key].rating_max;
                             break;
-                        case 'evaluation':
+                        case "evaluation":
                             type = "Label";
                             max = 100;
                             break;
                         default:
                             type = "-";
                             max = "-";
-                            
                     }
                 }
 
-                
                 taskGradeFields[key] = {
                     type: type,
                     name: name,
@@ -1143,153 +1339,178 @@ class Grade {
                     max: max,
                     weight: weight,
                     scaledGrade: scaledGrade
-                }
+                };
             }
         });
 
         // console.log('tgf2', taskGradeFields)
 
-        return taskGradeFields
+        return taskGradeFields;
     }
 
-    async getTimelinessGradeDetailsReport(UTIA, user, wf){
+    async getTimelinessGradeDetailsReport(UTIA, user, wf) {
         let x = this;
         let simpleGradeCount = 0;
         let timelinessGradeDetails = {};
 
-        if(!UTIA.timeliness.hasOwnProperty(user.sectionUserID)){
+        if (!UTIA.timeliness.hasOwnProperty(user.sectionUserID)) {
             return {
                 timelinessGradeDetails: timelinessGradeDetails,
                 simpleGradeCount: simpleGradeCount
-            }
+            };
         }
-        
-        await Promise.mapSeries(UTIA.timeliness[user.sectionUserID], async (ti) =>{
-            if(wf.WorkflowActivityID === ti.WorkflowInstance.WorkflowActivityID){
-                simpleGradeCount++;
-            }
 
-            let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
-
-            if(timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined){
-                timelinessGradeDetails[ti.TaskInstanceID] = {
-                    name: ti.TaskActivity.DisplayName,
-                    status: JSON.parse(ti.Status)[0],
-                    daysLate: '-',
-                    penalty: '-',
-                    totalPenalty: '-',
-                    grade: '-'
-                }
-            } else {
-                let totalPenalty = timelinessGrade.DaysLate * timelinessGrade.DailyPenalty;
-
-                if(totalPenalty > 100) {
-                    totalPenalty = 100;
-                }
-                timelinessGradeDetails[ti.TaskInstanceID] = {
-                    name: ti.TaskActivity.DisplayName,
-                    status: JSON.parse(ti.Status)[0],
-                    daysLate: timelinessGrade.DaysLate,
-                    penalty: timelinessGrade.DailyPenalty,
-                    totalPenalty: totalPenalty,
-                    grade: timelinessGrade.Grade
-                }
-            }
-
-        });
-
-        return {
-            timelinessGradeDetails: timelinessGradeDetails,
-            simpleGradeCount: simpleGradeCount
-        }
-    }
-
-    async getExtraCreditTimelinessGradeDetailsReport(UTIA, user){
-        let x = this;
-        let simpleGradeCount = 0;
-        let timelinessGradeDetails = {};
-
-        if(!UTIA.extraTimeliness.hasOwnProperty(user.sectionUserID)){
-            return {
-                timelinessGradeDetails: timelinessGradeDetails,
-                simpleGradeCount: simpleGradeCount
-            }
-        }
-        
-        await Promise.mapSeries(UTIA.extraTimeliness[user.sectionUserID], async (ti) =>{
-            let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
-
-            if(timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined){
-                timelinessGradeDetails[ti.TaskInstanceID] = {
-                    workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
-                    name: ti.TaskActivity.DisplayName,
-                    status: JSON.parse(ti.Status)[0],
-                    daysLate: '-',
-                    penalty: '-',
-                    grade: '-'
-                }
-            } else {
-                if(JSON.parse(ti.Status)[0] == 'complete'){
+        await Promise.mapSeries(
+            UTIA.timeliness[user.sectionUserID],
+            async ti => {
+                if (
+                    wf.WorkflowActivityID ===
+                    ti.WorkflowInstance.WorkflowActivityID
+                ) {
                     simpleGradeCount++;
                 }
-                timelinessGradeDetails[ti.TaskInstanceID] = {
-                    workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
-                    name: ti.TaskActivity.DisplayName,
-                    status: JSON.parse(ti.Status)[0],
-                    daysLate: timelinessGrade.DaysLate,
-                    penalty: timelinessGrade.DailyPenalty,
-                    grade: timelinessGrade.Grade
+
+                let timelinessGrade = await x.getTaskSimpleGrade(
+                    ti.TaskInstanceID
+                );
+
+                if (
+                    timelinessGrade === null ||
+                    typeof timelinessGrade === undefined ||
+                    timelinessGrade === undefined
+                ) {
+                    timelinessGradeDetails[ti.TaskInstanceID] = {
+                        name: ti.TaskActivity.DisplayName,
+                        status: JSON.parse(ti.Status)[0],
+                        daysLate: "-",
+                        penalty: "-",
+                        totalPenalty: "-",
+                        grade: "-"
+                    };
+                } else {
+                    let totalPenalty =
+                        timelinessGrade.DaysLate * timelinessGrade.DailyPenalty;
+
+                    if (totalPenalty > 100) {
+                        totalPenalty = 100;
+                    }
+                    timelinessGradeDetails[ti.TaskInstanceID] = {
+                        name: ti.TaskActivity.DisplayName,
+                        status: JSON.parse(ti.Status)[0],
+                        daysLate: timelinessGrade.DaysLate,
+                        penalty: timelinessGrade.DailyPenalty,
+                        totalPenalty: totalPenalty,
+                        grade: timelinessGrade.Grade
+                    };
                 }
             }
-
-        });
+        );
 
         return {
             timelinessGradeDetails: timelinessGradeDetails,
             simpleGradeCount: simpleGradeCount
-        }
+        };
     }
 
-    async getNumOfExtraCreditReport(UTIA, user){
+    async getExtraCreditTimelinessGradeDetailsReport(UTIA, user) {
+        let x = this;
+        let simpleGradeCount = 0;
+        let timelinessGradeDetails = {};
+
+        if (!UTIA.extraTimeliness.hasOwnProperty(user.sectionUserID)) {
+            return {
+                timelinessGradeDetails: timelinessGradeDetails,
+                simpleGradeCount: simpleGradeCount
+            };
+        }
+
+        await Promise.mapSeries(
+            UTIA.extraTimeliness[user.sectionUserID],
+            async ti => {
+                let timelinessGrade = await x.getTaskSimpleGrade(
+                    ti.TaskInstanceID
+                );
+
+                if (
+                    timelinessGrade === null ||
+                    typeof timelinessGrade === undefined ||
+                    timelinessGrade === undefined
+                ) {
+                    timelinessGradeDetails[ti.TaskInstanceID] = {
+                        workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
+                        name: ti.TaskActivity.DisplayName,
+                        status: JSON.parse(ti.Status)[0],
+                        daysLate: "-",
+                        penalty: "-",
+                        grade: "-"
+                    };
+                } else {
+                    if (JSON.parse(ti.Status)[0] == "complete") {
+                        simpleGradeCount++;
+                    }
+                    timelinessGradeDetails[ti.TaskInstanceID] = {
+                        workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
+                        name: ti.TaskActivity.DisplayName,
+                        status: JSON.parse(ti.Status)[0],
+                        daysLate: timelinessGrade.DaysLate,
+                        penalty: timelinessGrade.DailyPenalty,
+                        grade: timelinessGrade.Grade
+                    };
+                }
+            }
+        );
+
+        return {
+            timelinessGradeDetails: timelinessGradeDetails,
+            simpleGradeCount: simpleGradeCount
+        };
+    }
+
+    async getNumOfExtraCreditReport(UTIA, user) {
         let x = this;
         let getNumOfExtraCreditReport = {};
 
-        if(!UTIA.extraCredit.hasOwnProperty(user.sectionUserID)){
+        if (!UTIA.extraCredit.hasOwnProperty(user.sectionUserID)) {
             return;
         }
 
-        await Promise.mapSeries(UTIA.extraCredit[user.sectionUserID], async (ti) =>{
-            let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
-            let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
+        await Promise.mapSeries(
+            UTIA.extraCredit[user.sectionUserID],
+            async ti => {
+                let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
+                let timelinessGrade = await x.getTaskSimpleGrade(
+                    ti.TaskInstanceID
+                );
 
-            if(_.isEmpty(t_grade)){
-                t_grade = '-'
-            }
+                if (_.isEmpty(t_grade)) {
+                    t_grade = "-";
+                }
 
-            if(_.isEmpty(timelinessGrade)){
-                timelinessGrade = '-'
-            }
+                if (_.isEmpty(timelinessGrade)) {
+                    timelinessGrade = "-";
+                }
 
-            if(ti.TASimpleGrade === 'none'){
-                timelinessGrade = 'n/a'
-            }
+                if (ti.TASimpleGrade === "none") {
+                    timelinessGrade = "n/a";
+                }
 
-            getNumOfExtraCreditReport[ti.TaskInstanceID] = {
-                workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
-                workflowInstanceID: ti.WorkflowActivityID,
-                name: ti.TaskActivity.DisplayName,
-                taskInstanceID: ti.TaskInstanceID,
-                taskGrade: t_grade,
-                timelinessGrade: timelinessGrade
+                getNumOfExtraCreditReport[ti.TaskInstanceID] = {
+                    workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
+                    workflowInstanceID: ti.WorkflowActivityID,
+                    name: ti.TaskActivity.DisplayName,
+                    taskInstanceID: ti.TaskInstanceID,
+                    taskGrade: t_grade,
+                    timelinessGrade: timelinessGrade
+                };
             }
-        });
+        );
 
         return getNumOfExtraCreditReport;
     }
 
-    async getAssignmentGrade(ai_id, sectUserID){
+    async getAssignmentGrade(ai_id, sectUserID) {
         let a_grade = await AssignmentGrade.find({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id,
                 SectionUserID: sectUserID
             }
@@ -1298,31 +1519,31 @@ class Grade {
         return a_grade;
     }
 
-    async getWorkflowGrade(ai_id, sectUserID, wa_id){
+    async getWorkflowGrade(ai_id, sectUserID, wa_id) {
         let w_grade = await WorkflowGrade.findOne({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id,
                 SectionUserID: sectUserID,
-                WorkflowActivityID: wa_id,
+                WorkflowActivityID: wa_id
             }
         });
 
         return w_grade;
     }
 
-    async getTaskGrade(ti_id){
+    async getTaskGrade(ti_id) {
         let t_grade = await TaskGrade.find({
-            where:{
+            where: {
                 TaskInstanceID: ti_id
             }
         });
 
-        return t_grade || {}
+        return t_grade || {};
     }
 
-    async getTaskSimpleGradeCount(ai_id, sectUserID){
+    async getTaskSimpleGradeCount(ai_id, sectUserID) {
         let t_simple_grades = await TaskSimpleGrade.count({
-            where:{
+            where: {
                 AssignmentInstanceID: ai_id,
                 SectionUserID: sectUserID
             }
@@ -1331,16 +1552,15 @@ class Grade {
         return t_simple_grades;
     }
 
-    async getTaskSimpleGrade(ti_id){
-        let timelinessGrade= await TaskSimpleGrade.find({
-            where:{
+    async getTaskSimpleGrade(ti_id) {
+        let timelinessGrade = await TaskSimpleGrade.find({
+            where: {
                 TaskInstanceID: ti_id
             }
         });
 
         return timelinessGrade || {};
     }
-
 }
 
 module.exports = Grade;
