@@ -162,7 +162,7 @@ class Grade {
                 }
             ]
         });
-        console.log("add task grade ai_id :", ti.AssignmentInstanceID);
+        //console.log('add task grade ai_id :', ti.AssignmentInstanceID);
         var sec_user = await util.findSectionUserID(
             ti.AssignmentInstanceID,
             ti.UserID
@@ -208,7 +208,7 @@ class Grade {
     async addWorkflowGrade(wi_id, sec_user, grade) {
         logger.log("info", "/Workflow/Grade/addWorkflowGrade: Adding grade");
 
-        //console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
+        ////console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
         var wi = await WorkflowInstance.find({
             where: {
                 WorkflowInstanceID: wi_id
@@ -431,7 +431,7 @@ class Grade {
 
     async findFinalGrade(ti) {
         var x = this;
-        console.log("traversing the workflow to find final grade...");
+        //console.log('traversing the workflow to find final grade...');
         if (ti.FinalGrade !== null) {
             logger.log(
                 "info",
@@ -467,11 +467,11 @@ class Grade {
                 var data = await x.findFinalGrade(pre_ti);
                 return data;
             } else {
-                console.log("no grades found.");
+                //console.log('no grades found.');
                 return null;
             }
         } else {
-            console.log("no grades found.");
+            //console.log('no grades found.');
             return null;
         }
     }
@@ -633,7 +633,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var ai = await AssignmentInstance.findOne({
@@ -642,7 +642,7 @@ class Grade {
             },
             attributes: ["AssignmentID", "SectionID"]
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var assignment = await Assignment.findOne({
@@ -656,7 +656,7 @@ class Grade {
                 "WorkflowActivityIDs"
             ]
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var course = await Course.findOne({
@@ -665,7 +665,7 @@ class Grade {
             },
             attributes: ["Number", "Name"]
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var wi_grade = await WorkflowGrade.findAll({
@@ -673,7 +673,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var wa = await WorkflowActivity.findAll({
@@ -686,7 +686,7 @@ class Grade {
                 "TaskActivityCollection"
             ]
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var ti_grade = await TaskGrade.findAll({
@@ -694,7 +694,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var simple_grade = await TaskSimpleGrade.findAll({
@@ -763,7 +763,7 @@ class Grade {
 
     async getUserTaskInfoArray(ai_id) {
         let x = this;
-        let ai = await x.getAssginmentInstance(ai_id);
+        let ai = await x.getAssignmentInstance(ai_id);
         let gradableTaskObj = await x.getGradableTasks(ai.AssignmentID);
         let wfs = await x.getWorkflowActivities(ai.AssignmentID);
         let UTIA = {
@@ -1038,7 +1038,7 @@ class Grade {
                 firstName: userContact.user.FirstName,
                 lastName: userContact.user.LastName,
                 email: userContact.user.Email,
-                assginmentGrade: a_grade,
+                assignmentGrade: a_grade,
                 workflowGradeReport: workflowGradeReport,
                 assignmentExtraCreditReport: assignmentExtraCreditReport,
                 numOfExtraCredit: numOfExtraCredit
@@ -1343,7 +1343,7 @@ class Grade {
             }
         });
 
-        // console.log('tgf2', taskGradeFields)
+        // //console.log('tgf2', taskGradeFields)
 
         return taskGradeFields;
     }
