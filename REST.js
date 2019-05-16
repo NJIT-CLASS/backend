@@ -1142,6 +1142,55 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //Endpoint to get a user's active assignment instances by the section
+    router.get('/instructor/allAssignments/:userId', function (req, res) {
+
+        let response = {
+            sections:[]
+        };
+
+        SectionUser.findAll({
+            where: {
+                UserID: req.params.userId,
+                Role: 'Instructor'
+            },
+            attributes: ['SectionID'],
+            include: [{
+                model: Section,
+                attributes: ['Name'],
+                include: [{
+                    model: Course,
+                    attributes: ['Number']
+                }]
+            }]
+        }).then(function(section){
+
+            section["assignments"] = [];
+
+            AssignmentInstance.findAll({
+                where: {
+                    SectionID: section.SectionID
+                },
+                attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+                include: [{
+                    model: Assignment,
+                    attributes: ['DisplayName']
+                }]
+            }).then(function (assignment) {
+                section.assignments.push(assignment);
+            }).catch(function (err) {
+                res.status(400).json({
+                    Error: true
+                });
+            });
+
+            response.sections.push(section);
+        });
+
+        console.log(response);
+
+    });
+
+    //Endpoint to get a user's active assignment instances by the section
     router.get('/getActiveAssignmentsForSection/:sectionId', function (req, res) {
         logger.log('info', `/getActiveAssignmentsForSection/:sectionId: Finding Assignments for Section ${req.params.sectionId}`);
         //console.log(`/getActiveAssignmentsForSection/:sectionId: Finding Assignments for Section ${req.params.sectionId}`);

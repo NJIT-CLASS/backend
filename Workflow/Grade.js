@@ -139,7 +139,7 @@ class Grade {
                 attributes: ['SimpleGrade', 'DisplayName', 'Fields']
             }]
         });
-        console.log('add task grade ai_id :', ti.AssignmentInstanceID);
+        //console.log('add task grade ai_id :', ti.AssignmentInstanceID);
         var sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
 
         var user_history = JSON.parse(ti.UserHistory);
@@ -161,7 +161,7 @@ class Grade {
                 data: finalGrade.task.Data
             }
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
 
@@ -180,7 +180,7 @@ class Grade {
     async addWorkflowGrade(wi_id, sec_user, grade) {
         logger.log('info', '/Workflow/Grade/addWorkflowGrade: Adding grade');
 
-        //console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
+        ////console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
         var wi = await WorkflowInstance.find({
             where: {
                 WorkflowInstanceID: wi_id
@@ -395,7 +395,7 @@ class Grade {
 
     async findFinalGrade(ti) {
         var x = this;
-        console.log('traversing the workflow to find final grade...');
+        //console.log('traversing the workflow to find final grade...');
         if (ti.FinalGrade !== null) {
 
             logger.log('info', '/Workflow/Grade/findFinalGrade: final grade found! The final grade is:', ti.FinalGrade);
@@ -431,11 +431,11 @@ class Grade {
                 var data = await x.findFinalGrade(pre_ti);
                 return data;
             } else {
-                console.log('no grades found.');
+                //console.log('no grades found.');
                 return null;
             }
         } else {
-            console.log('no grades found.');
+            //console.log('no grades found.');
             return null;
         }
     }
@@ -578,7 +578,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         var ai = await AssignmentInstance.findOne({
@@ -587,7 +587,7 @@ class Grade {
             },
             attributes: ['AssignmentID', 'SectionID']
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         var assignment = await Assignment.findOne({
@@ -596,7 +596,7 @@ class Grade {
             },
             attributes: ['GradeDistribution', 'DisplayName', 'CourseID', 'WorkflowActivityIDs']
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         var course = await Course.findOne({
@@ -605,7 +605,7 @@ class Grade {
             },
             attributes: ['Number', 'Name']
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         var wi_grade = await WorkflowGrade.findAll({
@@ -613,7 +613,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         var wa = await WorkflowActivity.findAll({
@@ -622,7 +622,7 @@ class Grade {
             },
             attributes: ['WorkflowActivityID', 'GradeDistribution', 'TaskActivityCollection']
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         var ti_grade = await TaskGrade.findAll({
@@ -630,7 +630,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         var simple_grade = await TaskSimpleGrade.findAll({
@@ -638,7 +638,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         var ta = await TaskActivity.findAll({
@@ -647,7 +647,7 @@ class Grade {
             },
             attributes: ['TaskActivityID', 'WorkflowActivityID', 'Type', 'DisplayName', 'RefersToWhichTask', 'SimpleGrade']
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
         let simple_grade_max = {}
@@ -669,7 +669,7 @@ class Grade {
                 model: User,
             }
         }).catch(function(err){
-            console.log(err);
+            //console.log(err);
         });
 
 
@@ -762,35 +762,29 @@ class Grade {
                 });
                 UTIA.userIDs.push(ti.UserID);
             }
+
+            UTIA.quality[sectUserID] = [];
+            UTIA.timeliness[sectUserID] = [];
+            UTIA.extraCredit[sectUserID] = [];
+            UTIA.extraQuality[sectUserID] = [];
+            UTIA.extraTimeliness[sectUserID] = [];
+
             if(gradableTaskObj.gradableTasks.hasOwnProperty(ti.TaskActivityID) && ti.ExtraCredit == 0){
-                if(!UTIA.quality.hasOwnProperty(sectUserID)){
-                    UTIA.quality[sectUserID] = [];
-                }
 
                 UTIA.quality[sectUserID].push(ti);
                 UTIA.qualityID.push(ti.TaskInstanceID);
             }
             if(ti.TASimpleGrade !== 'none' && ti.ExtraCredit == 0){
 
-                if(!await UTIA.timeliness.hasOwnProperty(sectUserID)){
-                    UTIA.timeliness[sectUserID] = [];
-                }
-
                 UTIA.timeliness[sectUserID].push(ti);
                 UTIA.timelinessID.push(ti.TaskInstanceID);
             }
             if(ti.ExtraCredit == 1) {
-                if(!await UTIA.extraCredit.hasOwnProperty(sectUserID)){
-                    UTIA.extraCredit[sectUserID] = [];
-                }
 
                 UTIA.extraCredit[sectUserID].push(ti);
                 UTIA.extraCreditID.push(ti.TaskInstanceID);
             }
             if(ti.ExtraCredit == 1 && gradableTaskObj.gradableTasks.hasOwnProperty(ti.TaskActivityID)) {
-                if(!await UTIA.extraQuality.hasOwnProperty(sectUserID)){
-                    UTIA.extraQuality[sectUserID] = [];
-                }
 
                 UTIA.extraQuality[sectUserID].push(ti);
                 UTIA.extraQualityID.push(ti.TaskInstanceID);
@@ -798,21 +792,17 @@ class Grade {
 
             if(ti.ExtraCredit == 1 && ti.TASimpleGrade !== 'none'){
 
-                if(!await UTIA. extraTimeliness.hasOwnProperty(sectUserID)){
-                    UTIA.extraTimeliness[sectUserID] = [];
-                }
-
                 UTIA.extraTimeliness[sectUserID].push(ti);
                 UTIA.extraTimelinessID.push(ti.TaskInstanceID);
             }
         });
 
-        console.log('quality: ', UTIA.qualityID);
-        console.log('timeliness: ', UTIA.timelinessID);
-        console.log('extra quality', UTIA.extraQualityID);
-        console.log('extra timeliness', UTIA.extraTimelinessID)
-        console.log('extra credit: ', UTIA.extraCreditID);
-        console.log('users: ', UTIA.userIDs)
+        //console.log('quality: ', UTIA.qualityID);
+        //console.log('timeliness: ', UTIA.timelinessID);
+        //console.log('extra quality', UTIA.extraQualityID);
+        //console.log('extra timeliness', UTIA.extraTimelinessID)
+        //console.log('extra credit: ', UTIA.extraCreditID);
+        //console.log('users: ', UTIA.userIDs)
         return UTIA;
     }
 
@@ -869,7 +859,7 @@ class Grade {
 
         });
         
-        console.log(gradableTasks);
+        //console.log(gradableTasks);
 
         return {
             gradableTasks: gradableTasks,
@@ -945,8 +935,8 @@ class Grade {
     async getProblemAndTimelinessGradeReport(UTIA, user, wf){
         let x = this;
         let problemAndTimelinessGrade = {}
-        console.log(UTIA);
-        console.log(user);
+        //console.log(UTIA);
+        //console.log(user);
         await Promise.mapSeries(UTIA.quality[user.sectionUserID], async (ti) =>{
             let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
             let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
@@ -1043,7 +1033,7 @@ class Grade {
         });
 
         if(resolveDispute !== null && resolveDispute !== undefined && resolveDispute.FinalGrade !== null){
-            console.log('here resolve')
+            //console.log('here resolve')
             taskGradeFields[resolveDispute.TaskInstanceID] = await this.getTaskGradeFields(resolveDispute);
             return taskGradeFields;
         }
@@ -1060,7 +1050,7 @@ class Grade {
         });
 
         if(consolidation !== null && consolidation !== undefined && consolidation.FinalGrade !== null){
-            console.log('here consolidate')
+            //console.log('here consolidate')
             taskGradeFields[consolidation.TaskInstanceID] = await this.getTaskGradeFields(consolidation);
             return taskGradeFields;
         }
@@ -1091,7 +1081,7 @@ class Grade {
         
 
         if(task.Data === null) {
-            //console.log('ERROR!: No data from resolve dispute!');
+            ////console.log('ERROR!: No data from resolve dispute!');
             return {}
         }
 
@@ -1148,7 +1138,7 @@ class Grade {
             }
         });
 
-        // console.log('tgf2', taskGradeFields)
+        // //console.log('tgf2', taskGradeFields)
 
         return taskGradeFields
     }
