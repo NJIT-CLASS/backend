@@ -909,6 +909,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+
+    router.post('/gradeReport/section', participantAuthentication, async function(req, res) {
+        let grade = new Grade();
+        let report = {};
+
+        let ais = await AssignmentInstance.findAll({
+            where:{
+                SectionID: req.body.sectionID
+            },
+            attributes: ['AssignmentInstanceID']
+        });
+
+        await Promise.mapSeries(ais, async (ai) =>{
+            report[ai.AssignmentInstanceID] = await grade.getAssignmentGradeReport(ai.AssignmentInstanceID);
+        });
+
+        
+
+        res.json({
+            assignmentGradeReport:report
+        });
+
+    });
+
     //---------------------------------------------------------------------------
     router.get('/notifications/all', participantAuthentication, function(req, res) {
         console.log('/notifications/all: was called');
