@@ -177,7 +177,7 @@ class Grade {
     async addWorkflowGrade(wi_id, sec_user, grade) {
         logger.log('info', '/Workflow/Grade/addWorkflowGrade: Adding grade');
 
-        //console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
+        ////console.log('wi_id', wi_id, 'sec_user', sec_user, 'grade', grade);
         var wi = await WorkflowInstance.find({
             where: {
                 WorkflowInstanceID: wi_id
@@ -560,7 +560,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var ai = await AssignmentInstance.findOne({
@@ -569,7 +569,7 @@ class Grade {
             },
             attributes: ['AssignmentID', 'SectionID']
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var assignment = await Assignment.findOne({
@@ -578,7 +578,7 @@ class Grade {
             },
             attributes: ['GradeDistribution', 'DisplayName', 'CourseID', 'WorkflowActivityIDs']
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var course = await Course.findOne({
@@ -587,7 +587,7 @@ class Grade {
             },
             attributes: ['Number', 'Name']
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var wi_grade = await WorkflowGrade.findAll({
@@ -595,7 +595,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var wa = await WorkflowActivity.findAll({
@@ -604,7 +604,7 @@ class Grade {
             },
             attributes: ['WorkflowActivityID', 'GradeDistribution', 'TaskActivityCollection']
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var ti_grade = await TaskGrade.findAll({
@@ -612,7 +612,7 @@ class Grade {
                 AssignmentInstanceID: ai_id
             }
         }).catch(function(err) {
-            console.log(err);
+            //console.log(err);
         });
 
         var simple_grade = await TaskSimpleGrade.findAll({
@@ -916,7 +916,7 @@ class Grade {
                 firstName: userContact.user.FirstName,
                 lastName: userContact.user.LastName,
                 email: userContact.user.Email,
-                assginmentGrade: a_grade,
+                assignmentGrade: a_grade,
                 workflowGradeReport: workflowGradeReport,
                 assignmentExtraCreditReport: assignmentExtraCreditReport,
                 numOfExtraCredit: numOfExtraCredit
@@ -1153,7 +1153,7 @@ class Grade {
             }
         });
 
-        // console.log('tgf2', taskGradeFields)
+        // //console.log('tgf2', taskGradeFields)
 
         return taskGradeFields;
     }
