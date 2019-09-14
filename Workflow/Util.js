@@ -49,7 +49,6 @@ import {
     WorkflowInstance_Archive
 } from '../Util/models.js';
 
-
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
 //var sequelize = require('../models/index.js').sequelize;
@@ -60,7 +59,6 @@ const logger = require('./Logger.js');
  For other (miscellaneous) utilities
  */
 class Util {
-
     /*
      Add uploaded files' references
      */
@@ -70,11 +68,13 @@ class Util {
             file_infos: file_infos
         });
         var me = this;
-        return Promise.all(file_infos.map(function (file_info) {
-            return me.addFileRef(user_id, file_info);
-        })).then(function (file_refs) {
+        return Promise.all(
+            file_infos.map(function(file_info) {
+                return me.addFileRef(user_id, file_info);
+            })
+        ).then(function(file_refs) {
             logger.log('info', 'file references added', {
-                file_refs: file_refs.map(function (it) {
+                file_refs: file_refs.map(function(it) {
                     return it.toJSON();
                 })
             });
@@ -94,14 +94,16 @@ class Util {
         return FileReference.create({
             UserID: user_id,
             Info: file_info,
-            LastUpdated: new Date(),
-        }).then(function (file_ref) {
-            logger.log('debug', 'file reference added', file_ref.toJSON());
-            return file_ref;
-        }).catch(function (err) {
-            logger.log('error', 'add file reference failed', err);
-            return err;
-        });
+            LastUpdated: new Date()
+        })
+            .then(function(file_ref) {
+                logger.log('debug', 'file reference added', file_ref.toJSON());
+                return file_ref;
+            })
+            .catch(function(err) {
+                logger.log('error', 'add file reference failed', err);
+                return err;
+            });
     }
 
     async findWorkflowActivityID(wi_id) {
@@ -115,13 +117,11 @@ class Util {
             console.log('WorkflowInstanceID', wi.WorkflowActivityID);
             return wi.WorkflowActivityID;
         } catch (err) {
-
             logger.log('error', 'cannot find workflow activity from workflow instance', {
                 wi_id: wi_id,
                 error: err
             });
         }
-
     }
 
     async findSectionUserID(ai_id, user_id) {
@@ -148,8 +148,6 @@ class Util {
             });
         }
     }
-
-    
 }
 
 module.exports = Util;

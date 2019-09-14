@@ -125,7 +125,7 @@ class TaskTrigger {
                 await x.needsConsolidate(next_task);
             } else {
                 if (JSON.parse(next_task.Status)[0] !== 'complete' && JSON.parse(next_task.Status)[0] !== 'bypassed') { // added bypassed for bypassed tasks 4-8-18
-                    await x.triggerNext(next_task, false);
+                    await x.triggerNext(next_task, type, false);
                 }
             }
         });
@@ -559,7 +559,7 @@ class TaskTrigger {
      * @param  {[type]}  ti [description]
      * @return {Promise}    [description]
      */
-    async triggerNext(ti, isEditOrComment) { //ti == next_task
+    async triggerNext(ti, type, isEditOrComment) { //ti == next_task
         logger.log('info', 'triggering next task to start', {
             ti_id: ti.TaskInstanceID
         });
@@ -571,7 +571,29 @@ class TaskTrigger {
 
             var status = JSON.parse(ti.Status);
             status[0] = 'started';
-
+            
+            if(type === 'dispute'){
+                let finalGrade = await grade.findFinalGrade(ti);
+                if(finalGrade !== null){
+                    finalGrade = finalGrade.task.FinalGrade;
+                }
+                await TaskInstance.update({
+                    Status: JSON.stringify(status),
+                    StartDate: dates[0],
+                    EndDate: dates[1],
+                    FinalGrade: finalGrade
+                }, {
+                    where: {
+                        TaskInstanceID: ti.TaskInstanceID
+                    }
+                }).then(function() {
+                    if(isEditOrComment){
+                        email.sendNow(ti.UserID, 'revise', {'ti_id': ti.TaskInstanceID});
+                    } else {
+                        email.sendNow(ti.UserID, 'new_task', {'ti_id': ti.TaskInstanceID});
+                    }
+                });
+            } else {
             await TaskInstance.update({
                 Status: JSON.stringify(status),
                 StartDate: dates[0],
@@ -587,6 +609,7 @@ class TaskTrigger {
                     email.sendNow(ti.UserID, 'new_task', {'ti_id': ti.TaskInstanceID});
                 }
             });
+        }
 
             logger.log('info', 'trigger completed', {
                 ti_id: ti.TaskInstanceID

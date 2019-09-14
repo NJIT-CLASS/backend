@@ -899,9 +899,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     router.post('/gradeReport', participantAuthentication, async function(req, res) {
+
+        if(req.body.ai_id === null || typeof req.body.ai_id === undefined){
+            res.status(400).send('Assignment Instance ID Not Found');
+        }
+
         let grade = new Grade();
 
-        let report = await grade.getAssignmentGradeReport(req.body.ai_id);
+        let report = await grade.getAssignmentGradeReport(req.body.ai_id) || [];
 
         res.json({
             assignmentGradeReport:report
@@ -1786,10 +1791,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             newStatus[0] = 'complete';
 
             var final_grade = null;
-            if(ti.TaskActivity.Type === 'grade_problem'){
+            if(ti.TaskActivity.Type === 'grade_problem' || ti.TaskActivity.Type === 'consolidation'){
                 final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
             }
-
+            console.log('here 5', final_grade)
             var done = await TaskInstance.update({
                 Data: ti_data,
                 ActualEndDate: new Date(),

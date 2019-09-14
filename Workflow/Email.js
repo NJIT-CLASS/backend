@@ -1,19 +1,27 @@
+import { MASTER_EMAIL, MASTER_PASSWORD, EMAIL_SERVER_STATUS } from '../Util/constant.js';
 import {
-    MASTER_EMAIL,
-    MASTER_PASSWORD,
-    EMAIL_SERVER_STATUS
-} from '../Util/constant.js';
-import {RESET_PASS, LATE, NEW_TASK, INVITE_USER, CREATE_USER, ONBOARDING, INITIAL_USER, RESET_TASK, REVISE, INVITE_USER_NEW_TO_SYSTEM, INVITE_USER_TO_SECTION, REALLOCATE, REMOVE_REALLOCATE, CANCEL, BYPASS} from '../Util/emailTemplate.js';
-import {SERVER_PORT} from '../backend_settings.js';
+    RESET_PASS,
+    LATE,
+    NEW_TASK,
+    INVITE_USER,
+    CREATE_USER,
+    ONBOARDING,
+    INITIAL_USER,
+    RESET_TASK,
+    REVISE,
+    INVITE_USER_NEW_TO_SYSTEM,
+    INVITE_USER_TO_SECTION,
+    REALLOCATE,
+    REMOVE_REALLOCATE,
+    CANCEL,
+    BYPASS
+} from '../Util/emailTemplate.js';
+import { SERVER_PORT } from '../backend_settings.js';
 var Promise = require('bluebird');
 var nodemailer = require('nodemailer');
 var smtpTransport = require('nodemailer-smtp-transport');
 
-
-import {
-    UserContact,
-    UserLogin,
-} from '../Util/models.js';
+import { UserContact, UserLogin } from '../Util/models.js';
 
 const logger = require('./Logger.js');
 
@@ -41,9 +49,9 @@ var transporter = nodemailer.createTransport(
 let email = MASTER_EMAIL;
 
 // verify connection configuration
-transporter.verify(function (error, success) {
+transporter.verify(function(error, success) {
     if (error) {
-        console.log('transporter verify ',error);
+        console.log('transporter verify ', error);
     } else {
         console.log('Server is ready to take our messages');
     }
@@ -55,14 +63,11 @@ console.log('/Email: Transport Created');
   Constructor
 */
 class Email {
-
-  
     /*
       Send an email, provide an opts will allow you to send any email to anyone.
     */
     send(opts) {
         var mailOpts;
-
 
         // mailing options
         mailOpts = {
@@ -77,7 +82,7 @@ class Email {
         //console.log('Sending Mail...');
 
         // Send mail
-        transporter.sendMail(mailOpts, function (error, response) {
+        transporter.sendMail(mailOpts, function(error, response) {
             if (error) {
                 //console.log(error);
             } else {
@@ -86,7 +91,6 @@ class Email {
             // console.log('Closing Transport');
             // transporter.close();
         });
-
     }
 
     /*
@@ -101,10 +105,12 @@ class Email {
                 where: {
                     UserID: userid
                 },
-                include: [{
-                    model: UserContact
-                }]
-            }).then(async function (result) {
+                include: [
+                    {
+                        model: UserContact
+                    }
+                ]
+            }).then(async function(result) {
                 var send = result.Email;
                 //var send = 'qxl2@njit.edu';
                 console.log('Sending Email To: ', send, '...');
@@ -223,7 +229,7 @@ class Email {
                     });
                     break;
                 case 'new_reallocated':
-                    template = await REALLOCATE(data);
+                    template = await REALLOCATE(userid, data);
                     await x.send({
                         from: email,
                         replyTo: email,
@@ -287,9 +293,8 @@ class Email {
                         subject: NEW_PASSWORD.subject,
                         text: NEW_PASSWORD.text,
                         html: NEW_PASSWORD.html
-
                     });
-                    break; 
+                    break;
                 case 'new_reply':
                     await x.send({
                         from: email,
@@ -298,9 +303,8 @@ class Email {
                         subject: NEW_REPLY.subject,
                         text: NEW_REPLY.text,
                         html: NEW_REPLY.html
-
                     });
-                    break;    
+                    break;
                 case 'new_volunteer':
                     await x.send({
                         from: email,
@@ -309,9 +313,8 @@ class Email {
                         subject: NEW_VOLUNTEER.subject,
                         text: NEW_VOLUNTEER.text,
                         html: NEW_VOLUNTEER.html
-
                     });
-                    break;  
+                    break;
                 case 'new_flag':
                     await x.send({
                         from: email,
@@ -320,7 +323,6 @@ class Email {
                         subject: NEW_FLAG.subject,
                         text: NEW_FLAG.text,
                         html: NEW_FLAG.html
-
                     });
                     break;
                 case 'custom':
@@ -331,19 +333,14 @@ class Email {
                         subject: data.subject,
                         text: data.text,
                         html: data.html
-
                     });
                 default:
                     logger.log('error', '/Workflow/Email/sendNow: email option not found!');
                     return null;
                 }
             });
-
         }
     }
-
-
 }
-
 
 module.exports = Email;
