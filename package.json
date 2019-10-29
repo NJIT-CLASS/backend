@@ -29,7 +29,7 @@
     "rand-token": "^0.4.0",
     "random-number-csprng": "^1.0.2",
     "sendgrid": "^5.2.3",
-    "sequelize": "^3.30.4",
+    "sequelize": "^5.15.1",
     "sequelize-auto-migrations": "^1.0.3",
     "sequelize-cli": "^5.4.0",
     "supervisor": "^0.12.0",
