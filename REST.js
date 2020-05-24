@@ -2079,7 +2079,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
+                    attributes: ['AssignmentInstanceID', 'AssignmentID', 'DisplayName'],
                     include: [{
                         model: Section,
                         attributes: ['SectionID', 'Name'],
@@ -2138,7 +2138,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
+                    attributes: ['AssignmentInstanceID', 'AssignmentID', 'DisplayName'],
                     include: [{
                         model: Section,
                         attributes: ['SectionID', 'Name'],
