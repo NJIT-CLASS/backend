@@ -2079,7 +2079,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
+                    attributes: ['AssignmentInstanceID', 'AssignmentID', 'DisplayName'],
                     include: [{
                         model: Section,
                         attributes: ['SectionID', 'Name'],
@@ -2138,7 +2138,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [ ///// Need new mappings in index.js AssignmentInstance -> Assignment, Assignment ::=> AssignmentInstance
                 {
                     model: AssignmentInstance,
-                    attributes: ['AssignmentInstanceID', 'AssignmentID'],
+                    attributes: ['AssignmentInstanceID', 'AssignmentID', 'DisplayName'],
                     include: [{
                         model: Section,
                         attributes: ['SectionID', 'Name'],
@@ -5231,6 +5231,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     where: {
                         TaskInstanceID: taskInstanceID
                     },
+                    
                     attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
                     include: [{
                         model: TaskActivity,
@@ -5323,7 +5324,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     where: {
                         TaskInstanceID: taskInstanceID
                     },
-                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory'],
+                    attributes: ['TaskInstanceID', 'WorkflowInstanceID', 'Status', 'NextTask', 'IsSubWorkflow', 'UserHistory', 'StartDate', 'EndDate', 'ActualEndDate', 'DueType'],
                     include: [{
                         model: TaskActivity,
                         attributes: ['Name', 'DisplayName', 'Type', 'TaskActivityID', 'NumberParticipants']
