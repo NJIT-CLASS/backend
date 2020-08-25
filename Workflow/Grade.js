@@ -1114,6 +1114,9 @@ class Grade {
                 var max = '-';
                 var weight = '-';
                 var scaledGrade = '-';
+                var labelPosition = '-';
+                var labelMaxValue = '-';
+                var labelNumericValue = '-';
 
                 if (fields[key].field_type === 'assessment') {
                     name = fields[key].title;
@@ -1134,7 +1137,11 @@ class Grade {
                         break;
                     case 'evaluation':
                         type = 'Label';
-                        max = 100;
+                        max = fields[key].list_of_labels.length;
+                        labelMaxValue = fields[key].list_of_labels[max-1];
+                        labelPosition = fields[key].list_of_labels.indexOf(value) + 1;
+                        labelNumericValue = labelPosition / max * 100;
+                        // max = 100;
                         break;
                     default:
                         type = '-';
@@ -1142,14 +1149,28 @@ class Grade {
                     }
                 }
 
-                taskGradeFields[key] = {
-                    type: type,
-                    name: name,
-                    value: value,
-                    max: max,
-                    weight: weight,
-                    scaledGrade: scaledGrade
-                };
+                if (fields[key].field_type === 'assessment' && fields[key].assessment_type === 'evaluation') {
+                    taskGradeFields[key] = {
+                        type: type,
+                        name: name,
+                        value: value,
+                        max: max,
+                        weight: weight,
+                        scaledGrade: scaledGrade,
+                        labelNumericValue: labelNumericValue,
+                        labelPosition: labelPosition,
+                        labelMaxValue: labelMaxValue
+                    } 
+                } else {
+                        taskGradeFields[key] = {
+                        type: type,
+                        name: name,
+                        value: value,
+                        max: max,
+                        weight: weight,
+                        scaledGrade: scaledGrade
+                    };
+                }
             }
         });
 
