@@ -62,8 +62,23 @@ class Grade {
         var user_history = JSON.parse(ti.UserHistory);
 
         if (ti.TaskActivity.SimpleGrade !== 'none' && ti.TaskActivity.SimpleGrade.substr(0, 11) === 'off_per_day') {
-            var avg_grade = await x.getAverageSimpleGrade(JSON.parse(ti.WorkflowInstance.TaskCollection));
-            var days_late = await x.getNumberOfDaysLate(ti);
+
+// 2/9/2019 - find count of ti in wi with simple grade !== "none"; avg_grade = 100/count  
+        let simpleGradeTIs =
+                    await TaskInstance.findAll({
+                        where: {
+                            WorkflowInstanceID: ti.WorkflowInstanceID,
+                                TASimpleGrade: {
+                                    $notLike: 'none'
+                                }
+                        }
+                    });
+            var avg_grade = (100 / simpleGradeTIs.length);
+         //   console.log("addSimpleGrade, ti, length, 100/length, grade", ti.TaskInstanceID, simpleGradeTIs.length, (100 / simpleGradeTIs.length), avg_grade);
+         //   var avg_grade = await x.getAverageSimpleGrade(JSON.parse(ti.WorkflowInstance.TaskCollection));
+ 
+ 
+         var days_late = await x.getNumberOfDaysLate(ti);
             var regExp = /\(([^)]+)\)/;
             var penalty = regExp.exec(ti.TaskActivity.SimpleGrade);
             penalty = parseInt(penalty[1]);
@@ -110,6 +125,7 @@ class Grade {
 
     /**
      * adds task grade
+     * called by routines in TaskInstance.js
      *
      * @param {any} ti_id
      * @param {any} grade
@@ -134,8 +150,14 @@ class Grade {
                 },
                 {
                     model: TaskActivity,
-                    attributes: ['SimpleGrade', 'DisplayName', 'Fields']
-                }
+ //                   attributes: ['SimpleGrade', 'DisplayName', 'Fields']
+                    attributes: ['AssignmentID', 'SimpleGrade', 'DisplayName', 'Fields'],
+                    include: [
+                        {
+                            model: Assignment,
+                            attributes: ['GradeDistribution']
+                        }
+                    ]}
             ]
         });
         console.log('add task grade ai_id :', ti.AssignmentInstanceID);
@@ -143,7 +165,31 @@ class Grade {
 
         var user_history = JSON.parse(ti.UserHistory);
 
-        var task_grade = await TaskGrade.create({
+        var WAID = ti.WorkflowInstance.WorkflowActivityID;
+        var TAID = ti.TaskActivityID;
+
+     // refer to: weightInProblem: JSON.parse(wf.GradeDistribution)[ti.TaskActivityID],
+     //   var WAWeight = ti.TaskActivityID.Assignment.GradeDistribution.WIID;
+     //   var WAWeight = JSON.parse(ti.TaskActivityID.Assignment.GradeDistribution)[WAID];
+        var WAWeight = JSON.parse(ti.TaskActivity.Assignment.GradeDistribution)[WAID];
+        
+     // refer to: weightInProblem: JSON.parse(wf.GradeDistribution)[ti.TaskActivityID],
+     //   var TAGradeWeight = ti.WorkflowInstance.WorkflowActivity.GradeDistribution.TAID;
+        var TAGradeWeight = JSON.parse(ti.WorkflowInstance.WorkflowActivity.GradeDistribution)[TAID];
+        // 2/15/2021 added AdjustedTAGradeWeight to account for problem sets
+        var AdjustedTAGradeWeight = TAGradeWeight / ti.WorkflowInstance.WorkflowActivity.NumberOfSets;
+        var TAGradeWeightinAssignment = ((TAGradeWeight * WAWeight)/100) / ti.WorkflowInstance.WorkflowActivity.NumberOfSets;
+     //   may need to just use ti.FinalGrade
+        var TIScaledGrade = (finalGrade.task.FinalGrade * TAGradeWeightinAssignment) / 100;
+    // Comments is not currently used.  I'm hijacking it and putting the status value in the Comments field in case we need it later
+        //var Comments = ti.Status[0];
+
+        console.log("addTaskGrade", ti.TaskInstanceID, "FinalGrade", finalGrade.task.FinalGrade, 
+                "WAWeight", WAWeight, "TAGradeWeight", TAGradeWeight, "AdjustedTAGradeWeight", AdjustedTAGradeWeight, 
+                "TAGradeWeightinAssignment", TAGradeWeightinAssignment, "TIScaledGrade", TIScaledGrade);
+     
+        // missing values in WAWeight, TAGradeWeight, TAGradeWeightinAssignment, TIScaledGrade, Comments
+        /*var task_grade = await TaskGrade.create({
             TaskInstanceID: ti.TaskInstanceID,
             TaskActivityID: ti.TaskActivityID,
             WorkflowInstanceID: ti.WorkflowInstanceID,
@@ -158,8 +204,31 @@ class Grade {
             TIFields: {
                 fields: ti.TaskActivity.Fields,
                 data: finalGrade.task.Data
-            }
-        }).catch(function(err) {
+            } */
+            var task_grade = await TaskGrade.create({
+                TaskInstanceID: ti.TaskInstanceID,
+                TaskActivityID: ti.TaskActivityID,
+                WorkflowInstanceID: ti.WorkflowInstanceID,
+                WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
+                AssignmentInstanceID: ti.AssignmentInstanceID,
+                SectionUserID: sec_user,
+                TADisplayName: ti.TaskActivity.DisplayName,
+                WADisplayName: ti.WorkflowInstance.WorkflowActivity.Name,
+                Grade: finalGrade.task.FinalGrade,
+                TIExtraCredit: ti.ExtraCredit,
+                WANumberOfSets: ti.WorkflowInstance.WorkflowActivity.NumberOfSets,
+                WAWeight: WAWeight,
+                // 2/15/2021 Adjusting TAGradeWeight for number of problem sets
+                //TAGradeWeight: TAGradeWeight,
+                TAGradeWeight: AdjustedTAGradeWeight,
+                TAGradeWeightInAssignment:TAGradeWeightinAssignment,
+                TIScaledGrade: TIScaledGrade,
+                //Comments: Comments,
+                TIFields: {
+                    fields: ti.TaskActivity.Fields,
+                    data: finalGrade.task.Data
+                }
+                }).catch(function(err) {
             console.log(err);
         });
 
@@ -474,20 +543,41 @@ class Grade {
         }
     }
 
-    async getAverageSimpleGrade(task_collection) {
-        var grade = 100;
-        var length = task_collection.length;
-        return grade / length;
-    }
+    //2/9/2021 Note: wi.task_collection includes needs consolidation tasks; Also, why is that count used in the simple grade weight?
+    // fixed this in addSimpleGrade, so don't need this
+    //async getAverageSimpleGrade(task_collection) {
+    //    var grade = 100;
+    //    var length = task_collection.length;
+    //    return grade / length;
+    //}
 
+
+    /* original
     async getNumberOfDaysLate(ti) {
         var now = moment();
         var endDate = ti.EndDate;
+        var actualEndDate = ti.ActualEndDate;
         now.diff(endDate, 'days');
         return now.diff(endDate, 'days') + 1;
     }
+*/
 
-    async getStudentSimpleGrade(user_id, ai_id) {
+// 1/26/2021 Confirm that we return late+1 instead of late (2/9/2021: NO, just return late); confirm late < 0 instead of late <= 0 (2/9/2021: doesn't matter)
+    async getNumberOfDaysLate(ti) {
+//        var now = moment();
+        var endDate = ti.EndDate;
+        var actualEndDate = moment(ti.ActualEndDate);
+        var late = actualEndDate.diff(endDate,"days");
+        if (late < 0) {
+            return 0
+        }
+        // else {return (late + 1)
+        else {
+            return late
+            }
+    }
+
+   async getStudentSimpleGrade(user_id, ai_id) {
         var tis = await TaskInstance.findAll({
             Where: {
                 UserID: user_id,
@@ -694,7 +784,11 @@ class Grade {
             extraTimelinessID: [],
             extraQuality: {},
             extraQualityID: [],
-            gradableTasks: gradableTaskObj.gradableTasks
+ //           gradableTasks: gradableTaskObj.gradableTasks
+            gradableTasks: gradableTaskObj.gradableTasks,
+// 2/7/2021 Here added new field UTIA.weights for info needed for calculating scaled grades
+            weights: []
+            // tiAttributes: {}  with findall for AI or maybe only for gradable tasks // add comma to prior item
         };
 
         var tis =
@@ -772,25 +866,69 @@ class Grade {
                 }
 
                 if (gradableTaskObj.gradableTasks.hasOwnProperty(ti.TaskActivityID) && ti.ExtraCredit == 0) {
+// 2/15/2021 Don't include bypassed or cancelled tasks
+                let ti_status = JSON.parse(ti.Status);
+                if (ti_status[1] !== 'cancelled' && ti_status[0] !== 'bypassed') {
                     UTIA.quality[sectUserID].push(ti);
                     UTIA.qualityID.push(ti.TaskInstanceID);
-                }
-                if (ti.TASimpleGrade !== 'none' && ti.ExtraCredit == 0) {
-                    UTIA.timeliness[sectUserID].push(ti);
-                    UTIA.timelinessID.push(ti.TaskInstanceID);
-                }
-                if (ti.ExtraCredit == 1) {
-                    UTIA.extraCredit[sectUserID].push(ti);
-                    UTIA.extraCreditID.push(ti.TaskInstanceID);
-                }
-                if (ti.ExtraCredit == 1 && gradableTaskObj.gradableTasks.hasOwnProperty(ti.TaskActivityID)) {
-                    UTIA.extraQuality[sectUserID].push(ti);
-                    UTIA.extraQualityID.push(ti.TaskInstanceID);
-                }
+// 2/7/2021 Here push all info needed for calculating scaled grades to UTIA.weights   
+// 2/15/2021 Note: TAGradeWeight now has been adjusted for the number of problem sets
+                    let taskWeights = await TaskGrade.find({
+                        where: {
+                            TaskInstanceID: ti.TaskInstanceID
+                        },
+                        attributes: ['WANumberOfSets', 'WAWeight', 'TAGradeWeight', 'TAGradeWeightInAssignment']
+                    });
+                    if (taskWeights !== null) {
+                        UTIA.weights.push({
+                            TaskInstanceID: ti.TaskInstanceID,
+                            taskWeights
+                        })
+                    };
 
-                if (ti.ExtraCredit == 1 && ti.TASimpleGrade !== 'none') {
-                    UTIA.extraTimeliness[sectUserID].push(ti);
-                    UTIA.extraTimelinessID.push(ti.TaskInstanceID);
+/*                 
+            var task_grade = await TaskGrade.create({
+                TaskInstanceID: ti.TaskInstanceID,
+                TaskActivityID: ti.TaskActivityID,
+                WorkflowInstanceID: ti.WorkflowInstanceID,
+                WorkflowActivityID: ti.WorkflowInstance.WorkflowActivityID,
+                AssignmentInstanceID: ti.AssignmentInstanceID,
+                SectionUserID: sec_user,
+                TADisplayName: ti.TaskActivity.DisplayName,
+                WADisplayName: ti.WorkflowInstance.WorkflowActivity.Name,
+                Grade: finalGrade.task.FinalGrade,
+                TIExtraCredit: ti.ExtraCredit,
+                WANumberOfSets: ti.WorkflowInstance.WorkflowActivity.NumberOfSets,
+                WAWeight: WAWeight,
+                TAGradeWeight: TAGradeWeight,
+                TAGradeWeightInAssignment:TAGradeWeightinAssignment,
+                TIScaledGrade: TIScaledGrade,                    
+                */
+
+                }
+            }
+
+// 2/11/2021 Don't include bypassed or cancelled tasks
+                let ti_status = JSON.parse(ti.Status);
+                if (ti_status[1] !== 'cancelled' && ti_status[0] !== 'bypassed') {
+                    if (ti.TASimpleGrade !== 'none' && ti.ExtraCredit == 0) {
+                        UTIA.timeliness[sectUserID].push(ti);
+                        UTIA.timelinessID.push(ti.TaskInstanceID);
+                    }
+                    if (ti.ExtraCredit == 1) {
+                        UTIA.extraCredit[sectUserID].push(ti);
+                        UTIA.extraCreditID.push(ti.TaskInstanceID);
+                    }
+                    if (ti.ExtraCredit == 1 && gradableTaskObj.gradableTasks.hasOwnProperty(ti.TaskActivityID)) {
+                        UTIA.extraQuality[sectUserID].push(ti);
+                        UTIA.extraQualityID.push(ti.TaskInstanceID);
+    // 2/7/2021 Here push all info needed for calculating scaled grades to UTIA.weights                    
+                    }
+
+                    if (ti.ExtraCredit == 1 && ti.TASimpleGrade !== 'none') {
+                        UTIA.extraTimeliness[sectUserID].push(ti);
+                        UTIA.extraTimelinessID.push(ti.TaskInstanceID);
+                    }
                 }
             }
         });
@@ -866,6 +1004,7 @@ class Grade {
                     gradableTasksKeys.push(ta.RefersToWhichTask);
                 }
                 if (ta.Type === 'grade_problem' || ta.Type === 'consolidation' || ta.Type === 'resolve_dispute') {
+ // 1/26/2021 Possibly add needs_consolidation
                     gradableTasks[ta.RefersToWhichTask].push(ta.TaskActivityID);
                 }
             }
@@ -933,11 +1072,16 @@ class Grade {
         await Promise.mapSeries(UTIA.workflows, async wf => {
             let w_grade = await x.getWorkflowGrade(UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
             let problemAndTimelinessGrade = await x.getProblemAndTimelinessGradeReport(UTIA, user, wf);
+            // 2/8/2021  fix scaled grade; can't use UTIA.weights since no ti
+            let wfScaledGrade = '-';
 
             if (w_grade === null || w_grade === undefined) {
                 w_grade = 'not yet complete';
+ 
             } else {
                 w_grade = w_grade.Grade;
+            // 2/8/2021  fix scaled grade; can't use UTIA.weights since no ti
+            wfScaledGrade = (w_grade * UTIA.wf_grade_distribution[wf.WorkflowActivityID]) / 100;
             }
 
             workflowGradeReport[wf.WorkflowActivityID] = {
@@ -946,8 +1090,9 @@ class Grade {
                 numberOfSets: wf.NumberOfSets,
                 weight: UTIA.wf_grade_distribution[wf.WorkflowActivityID],
                 workflowGrade: w_grade,
-                scaledGrade: '-',
-                problemAndTimelinessGrade: problemAndTimelinessGrade
+                // scaledGrade: '-',
+                scaledGrade: wfScaledGrade,
+               problemAndTimelinessGrade: problemAndTimelinessGrade
             };
         });
 
@@ -957,44 +1102,200 @@ class Grade {
     async getProblemAndTimelinessGradeReport(UTIA, user, wf) {
         let x = this;
         let problemAndTimelinessGrade = {};
-
+        let WAWeight = UTIA.wf_grade_distribution[wf.WorkflowActivityID];
+        
         await Promise.mapSeries(UTIA.quality[user.sectionUserID], async ti => {
             console.log('ti_id ', ti.TaskInstanceID, ' sect user id', user.sectionUserID);
             let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
             let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
 
+            //need routine to add number of steps
+            //let ptgrNumberOfSteps = await x.getNumberOfSteps(UTIA, ti);
+            //need routine to calculate weightInAssignment
+            //let ptgrWeightInAssignment = await x.getWeightInAssignment(UTIA,ti);
+
+            /* 1/27/2021 probably not needed here if we can get the data into the TaskGrade database instead.
+            //Now calculate weightInProblem, weightInAssignment, taskGrade, scaledGrade
+             // Prepping the following does not seem to do anything when executed; doesn't show up in DB or report
+            var WIID = ti.WorkflowInstance.WorkflowActivityID;
+            var TAID = ti.TaskActivityID;
+
+            var WAWeight = ti.TaskActivityID.Assignment.GradeDistribution.WIID;
+            var TAGradeWeight = ti.WorkflowInstance.WorkflowActivity.GradeDistribution.TAID;
+            var TAGradeWeightinAssignment = (TAGradeWeight * WAWeight)/ ti.WorkflowInstance.WorkflowActivity.NumberOfSets;
+            //   may need to just use ti.FinalGrade
+            var TIScaledGrade = finalGrade.task.FinalGrade * TAGradeWeightinAssignment;
+*/
+
+             
             if (wf.WorkflowActivityID === ti.WorkflowInstance.WorkflowActivityID) {
+                let problemQualityWeight = JSON.parse(wf.GradeDistribution)[ti.TaskActivityID];
+                //let assignmentQualityWeight = ((WAWeight * problemQualityWeight) / ti.WorkflowInstance.WorkflowActivity.NumberOfSets) / 100;
+                let assignmentQualityWeight = ((WAWeight * problemQualityWeight) / wf.NumberOfSets) / 100;
+
+                // 2/15/2021 Added ScaledWIGrade
+                let scaledWIGrade = (t_grade.TIScaledGrade / WAWeight) * 100;
+
                 problemAndTimelinessGrade[ti.TaskInstanceID] = {
                     name: ti.TaskActivity.DisplayName,
                     taskInstanceID: ti.TaskInstanceID,
                     workflowInstanceID: ti.WorkflowInstanceID,
                     workflowName: wf.Name,
-                    weightInProblem: JSON.parse(wf.GradeDistribution)[ti.TaskActivityID] || '-',
-                    weightInAssignment: t_grade.TAGradeWeightInAssignment || '-',
+                    
+                    // 2/15/2021: Adjusted weightInProblem for #sets; changed weightInAssignment to fullWeightInAssignment and added weightInAssignment 
+                    //weightInProblem: JSON.parse(wf.GradeDistribution)[ti.TaskActivityID] || '-',
+                    //weightInProblem: problemQualityWeight || '-',
+                    weightInProblem: t_grade.TAGradeWeight || '-',
+                    weightInAssignment: t_grade.WAWeight || '-',
+                    fullWeightInAssignment: assignmentQualityWeight || '-',
                     taskGrade: t_grade.Grade || 'not yet complete',
+                    // 2/15/2021 Add weighted WA grade
+                    scaledWIGrade: scaledWIGrade  || '-',
                     scaledGrade: t_grade.TIScaledGrade || '-',
                     taskGradeFields: taskGradeFields || {}
                 };
             }
         });
 
-        let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA.ai_id, user.sectionUserID);
+        // 2/10/2021 Updated to only count tasks in the current workflow
+        // 2/15/2021 Updated further to only count tasks in UTIA.timelinessID (thus passing UTIA as parameter)
+        let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA, UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
+        //let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
+        //let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA.ai_id, user.sectionUserID);
         let timelinessGradeDetailsReport = await x.getTimelinessGradeDetailsReport(UTIA, user, wf);
         let timelinessGradeDetails = timelinessGradeDetailsReport.timelinessGradeDetails;
         let simpleGradeCount = timelinessGradeDetailsReport.simpleGradeCount;
+        // 2/15/2021 capture the timelinessGradeTotal, completedTaskCount, startedTaskCount, unstartedTaskCount
+        let completedTaskCount = timelinessGradeDetailsReport.completedTaskCount;
+        let startedTaskCount = timelinessGradeDetailsReport.startedTaskCount;
+        let unstartedTaskCount = simpleGradeCount - completedTaskCount - startedTaskCount;
+        let timelinessGradeTotal = timelinessGradeDetailsReport.timelinessGradeTotal;
 
+        //let WAWeight = UTIA.wf_grade_distribution[wf.WorkflowActivityID];
+        //let WAWeight = JSON.parse(wf.AssignmentID.GradeDistribution)[ti.WorkflowInstance.WorkflowActivityID];
+        let problemWeight = JSON.parse(wf.GradeDistribution)['simple'];
+        //let assignmentWeight = (WAWeight * problemWeight)/ ti.WorkflowInstance.WorkflowActivity.NumberOfSets;
+        // 1/28/2021 I don't believe number of sets affects simplegrade weight, but please confirm
+        // 2/9/2021 I now believe number of sets affects assignment weight; also should add number of WAWeight, timelinessMaxiumumGrade (see XL) and #problem sets to timelinessgrade attributes
+        let assignmentWeight = (WAWeight * problemWeight)/100;
+   
+  // 2/15/2021 determine scaledGrade
+  // 2/15/2021 Note new way of timeliness grading - only include completed + started tasks, but not unstarted tasks
+        let gradeTotal = timelinessGradeTotal / (completedTaskCount + startedTaskCount);
+        let scaledGradeInWA = (gradeTotal * problemWeight) / 100;
+        let scaledGradeInAssignment = (gradeTotal * assignmentWeight) / 100;
+    // 2/16/2021 determine scaledWeightInAssignment, but on second thought, don't push into timelinessGradeDetailsReport
+        //let scaledWeightInAssignment = assignmentWeight / (completedTaskCount + startedTaskCount);
+    // 2/16/2021 determine scaledWeightInWA
+        //let scaledWeightInWA = problemWeight / (completedTaskCount + startedTaskCount);
+    // timelinessGradeDetails.scaledWeightInAssignment = scaledWeightInAssignment;
+
+    // 2/16/2021  Adding timelinessStatistics for end of timelinessGradeDetailsReport
+        let timelinessStatistics = {};    
+        timelinessStatistics['timelinessStatistics'] = {
+            gradeSummation: timelinessGradeTotal,
+            completedTaskCount: completedTaskCount,
+            startedTaskCount: startedTaskCount,
+            adjustedTimelinessGrade: gradeTotal
+        };
+        
+        console.log("PTG-timeliness: WID", wf.WorkflowActivityID, "WAWeight", WAWeight, "problemWeight", problemWeight, "assignmentWeight", assignmentWeight, 
+        //        "scaledWeightInWA", scaledWeightInWA, "scaledWeightInAssignment", scaledWeightInAssignment, 
+                "gradeTotal", gradeTotal, "timelinessGradeTotal", timelinessGradeTotal,"ScaledGrade", scaledGradeInAssignment);
+ 
+        
         problemAndTimelinessGrade['timelinessGrade'] = {
             workflowName: wf.Name,
-            weightInProblem: JSON.parse(wf.GradeDistribution)['simple'] || '-',
-            weightInAssignment: '-',
+         //   weightInProblem: JSON.parse(wf.GradeDistribution)['simple'] || '-',
+         //   weightInAssignment: '-',
+            simpleGradeWeightInProblem: problemWeight || '-',
+            problemWeightInAssignment: WAWeight || '-',
+            adjustedTimelinessGradeFromPTGDR: gradeTotal,
+            // weightInAssignment: assignmentWeight || '-',
             taskSimpleGrade: t_simple_grades_count + ' out of ' + simpleGradeCount + ' complete',
-            scaledGrade: '-',
-            timelinessGradeDetails: timelinessGradeDetails
+        // 2/15/2021 return completedTaskCount, startedTaskCount, unstartedTaskCount, , scaledGradeinWA, scaledGradeinAssignment
+        // 22/16/2021 return scaledWeightInWA, scaledWeightInAssignment (for each timeliness task), gradeTotal
+            //gradeSummation: gradeTotal,    
+            //scaledWeightInWA: scaledWeightInWA,    
+            //scaledWeightInAssignment: scaledWeightInAssignment,
+            completedTaskCount: completedTaskCount,
+            startedTaskCount: startedTaskCount,
+            unstartedTaskCount: unstartedTaskCount,
+            scaledGradeInWA: scaledGradeInWA || '-',
+            scaledGrade: scaledGradeInAssignment || '-',
+            //scaledGrade: '-',
+            timelinessGradeDetails: timelinessGradeDetails,
+        // 2/16/2021 Added timelinessStatistics
+            timelinessStatistics: timelinessStatistics
         };
 
         return problemAndTimelinessGrade;
     }
+/*  playing around...
+    async getNumberOfSteps(UTIA, ti) {
+            //weight: UTIA.wf_grade_distribution[wf.WorkflowActivityID],
+        let sets = UTIA.workflows.NumberOfSets;
+        return sets;
+    }
 
+    async getWeightInAssignment(UTIA,ti) {
+        // add gradableTIInfo to UTIA, just for the Gradable tasks (see that array); FINDALL TIs for TA, and extract attributes we want
+        // i.e., TA, WA, whether it's subworkflow is complete, and the latest grade and its task (look for "consolidate/ion in this file")
+
+
+        let ta = //function to get TA
+
+        var firstTask = await TaskInstance.findOne({
+            where: {
+                TaskInstanceID: taskCollection[0]
+            },
+            attributes: ["TaskInstanceID", "Data"]
+        });
+
+        var tis =
+        (await TaskInstance.findAll({
+            where: {
+                AssignmentInstanceID: ai_id,
+                $or: [
+                    {
+                        TaskActivityID: {
+                            $in: gradableTaskObj.gradableTaskKeys
+                        }
+                    },
+                    {
+                        ExtraCredit: 1
+                    },
+                    {
+                        TASimpleGrade: {
+                            $notLike: 'none'
+                        }
+                    }
+                ]
+            },
+            attributes: ['TaskInstanceID', 'TaskActivityID', 'WorkflowInstanceID', 'Status', 'UserID', 'TASimpleGrade', 'ExtraCredit'],
+            include: [
+                {
+                    model: WorkflowInstance,
+                    attributes: ['WorkflowActivityID'],
+                    include: [
+                        {
+                            model: WorkflowActivity,
+                            attributes: ['Name', 'GradeDistribution']
+                        }
+                    ]
+                },
+                {
+                    model: TaskActivity,
+                    attributes: ['DisplayName']
+                }
+            ]
+        })) || [];
+
+        let sets = UTIA.workflows.NumberOfSets;
+        let wfGradeDistribution = UTIA.workflows.GradeDistribution;  //From here extract TI's-TA
+
+    }
+*/
     async getAssignmentExtraCreditReport(UTIA, user) {
         let x = this;
         let assignmentExtraCreditReport = {};
@@ -1117,6 +1418,10 @@ class Grade {
                 var labelPosition = '-';
                 var labelMaxValue = '-';
                 var labelNumericValue = '-';
+// 2/8/2021 Adding fieldScaledGrade and all calculations for it below, as well as convertedNumericValue
+                var fieldScaledGrade = '-';
+                var convertedNumericValue = '-';
+
 
                 if (fields[key].field_type === 'assessment') {
                     name = fields[key].title;
@@ -1126,22 +1431,43 @@ class Grade {
                     case 'grade':
                         type = 'Numeric';
                         max = fields[key].numeric_max;
+                        fieldScaledGrade = value/max * weight;
+                        convertedNumericValue = value/max * 100;
                         break;
                     case 'pass':
                         type = 'Pass/Fail';
                         max = 1;
+                        if (value == "pass") {
+                            fieldScaledGrade = max * weight;
+                            convertedNumericValue = 100;
+                        }
+                        else {
+                            fieldScaledGrade = 0;
+                            convertedNumericValue = 0;
+                        }
                         break;
                     case 'rating':
                         type = 'Rating';
                         max = fields[key].rating_max;
+                        fieldScaledGrade = value/max * weight;
+                        convertedNumericValue = value/max * 100;
                         break;
                     case 'evaluation':
                         type = 'Label';
                         max = fields[key].list_of_labels.length;
                         labelMaxValue = fields[key].list_of_labels[max-1];
                         labelPosition = fields[key].list_of_labels.indexOf(value) + 1;
-                        labelNumericValue = labelPosition / max * 100;
+// 2/7/2021 Changed labels so first label (0th) has the grade/labelNumericValue = zero, and to allow a single label
+//                        labelNumericValue = labelPosition / max * 100;
+                        if (max == 1) {
+                            labelNumericValue = 100;
+                        }
+                        else {
+                            labelNumericValue = (labelPosition - 1) / (max - 1) * 100;
+                        }
                         // max = 100;
+                        fieldScaledGrade = (labelNumericValue * weight) / 100; 
+                        convertedNumericValue = labelNumericValue;
                         break;
                     default:
                         type = '-';
@@ -1156,11 +1482,13 @@ class Grade {
                         value: value,
                         max: max,
                         weight: weight,
-                        scaledGrade: scaledGrade,
+                        //scaledGrade: scaledGrade,
+                        convertedNumericValue: convertedNumericValue,
+                        scaledGrade: fieldScaledGrade,
                         labelNumericValue: labelNumericValue,
                         labelPosition: labelPosition,
                         labelMaxValue: labelMaxValue
-                    } 
+                    }
                 } else {
                         taskGradeFields[key] = {
                         type: type,
@@ -1168,7 +1496,9 @@ class Grade {
                         value: value,
                         max: max,
                         weight: weight,
-                        scaledGrade: scaledGrade
+                        convertedNumericValue: convertedNumericValue,
+                        //scaledGrade: scaledGrade
+                        scaledGrade: fieldScaledGrade
                     };
                 }
             }
@@ -1183,49 +1513,88 @@ class Grade {
         let x = this;
         let simpleGradeCount = 0;
         let timelinessGradeDetails = {};
+        // 2/15/2021 capture the timelinessGradeTotal, completedTaskCount, startedTaskCount
+        let completedTaskCount = 0;
+        let startedTaskCount = 0;
+        var timelinessGradeTotal = 0;
 
         if (!UTIA.timeliness.hasOwnProperty(user.sectionUserID)) {
             return {
                 timelinessGradeDetails: timelinessGradeDetails,
+                // 2/15/2021 also return timelinessGradeTotal, completedTaskCount, startedTaskCount
+                timelinessGradeTotal: timelinessGradeTotal,
+                completedTaskCount: completedTaskCount,
+                startedTaskCount: startedTaskCount,
                 simpleGradeCount: simpleGradeCount
             };
         }
 
+        // 2/10/2021  Extend WAID "if" span for entire routine, so timelinessGradeDetails only contains tasks from this WAID
+        // ****** may need to extend so it doesn't count extra credit, cancelled or bypassed tasks
         await Promise.mapSeries(UTIA.timeliness[user.sectionUserID], async ti => {
             if (wf.WorkflowActivityID === ti.WorkflowInstance.WorkflowActivityID) {
                 simpleGradeCount++;
-            }
+        // 2/10/2021 moving endbracket, tabbed content over one tab
+        //    }
 
-            let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
+        // 2/15/2021 separating out status to use later
+                let status = JSON.parse(ti.Status)[0];
 
-            if (timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
-                timelinessGradeDetails[ti.TaskInstanceID] = {
-                    name: ti.TaskActivity.DisplayName,
-                    status: JSON.parse(ti.Status)[0],
-                    daysLate: '-',
-                    penalty: '-',
-                    totalPenalty: '-',
-                    grade: '-'
-                };
-            } else {
-                let totalPenalty = timelinessGrade.DaysLate * timelinessGrade.DailyPenalty;
+                let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
 
-                if (totalPenalty > 100) {
-                    totalPenalty = 100;
+                if (timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+                    timelinessGradeDetails[ti.TaskInstanceID] = {
+                        name: ti.TaskActivity.DisplayName,
+                        status: status,
+                        //status: JSON.parse(ti.Status)[0],
+                        daysLate: '-',
+                        penalty: '-',
+                        totalPenalty: '-',
+                        grade: '-'
+                    };
+                } else {
+                    let totalPenalty = timelinessGrade.DaysLate * timelinessGrade.DailyPenalty;
+
+                    if (totalPenalty > 100) {
+                        totalPenalty = 100;
+                    }
+                    
+                    // 2/15/2021 using grade calcluated here instead of from TaskSimpleGrade database
+                    let grade = 100 - totalPenalty;
+
+                    timelinessGradeDetails[ti.TaskInstanceID] = {
+                        name: ti.TaskActivity.DisplayName,
+                        status: status,
+                        //status: JSON.parse(ti.Status)[0],
+                        daysLate: timelinessGrade.DaysLate,
+                        penalty: timelinessGrade.DailyPenalty,
+                        totalPenalty: totalPenalty,
+                        // 2/15/2021 using grade calcluated here instead of from TaskSimpleGrade database
+                        grade: grade
+                        // grade: timelinessGrade.Grade
+                    };
+                    // 2/15/2021 also calculate timelinessGradeTotal, completedTaskCount, startedTaskCount
+                    if (status == 'complete') {
+                        completedTaskCount++;
+                        timelinessGradeTotal += grade;
+                    }
+                    if (status == 'started') {
+                        startedTaskCount++;
+                    }
+                    //console.log("getTimelinessGradeDetailsReport: ti, grade, status,timelinessGradeTotal, startedTaskCount, completedTaskCount", 
+                    //  ti.TaskInstanceID, grade, status,timelinessGradeTotal, startedTaskCount, completedTaskCount);                
                 }
-                timelinessGradeDetails[ti.TaskInstanceID] = {
-                    name: ti.TaskActivity.DisplayName,
-                    status: JSON.parse(ti.Status)[0],
-                    daysLate: timelinessGrade.DaysLate,
-                    penalty: timelinessGrade.DailyPenalty,
-                    totalPenalty: totalPenalty,
-                    grade: timelinessGrade.Grade
-                };
+                
+        // 2/10/2021 moved endbracket here
             }
         });
 
         return {
             timelinessGradeDetails: timelinessGradeDetails,
+            // also return timelinessGradeTotal, completedTaskCount, startedTaskCount
+            timelinessGradeTotal: timelinessGradeTotal,
+            completedTaskCount: completedTaskCount,
+            startedTaskCount: startedTaskCount,
             simpleGradeCount: simpleGradeCount
         };
     }
@@ -1344,7 +1713,7 @@ class Grade {
 
         return t_grade || {};
     }
-
+/*
     async getTaskSimpleGradeCount(ai_id, sectUserID) {
         let t_simple_grades = await TaskSimpleGrade.count({
             where: {
@@ -1355,6 +1724,40 @@ class Grade {
 
         return t_simple_grades;
     }
+
+// 2/10/2021 Updated to only count tasks in the current workflow
+    async getTaskSimpleGradeCount(ai_id, sectUserID,wa_id) {
+        let t_simple_grades = await TaskSimpleGrade.count({
+            where: {
+                AssignmentInstanceID: ai_id,
+                WorkflowActivityID: wa_id,
+                SectionUserID: sectUserID
+            }
+        });
+
+        return t_simple_grades;
+    }
+*/
+
+
+
+// 2/10/2021 Updated to only count tasks in the current workflow
+// 2/15/2021 Updated further to only count tasks in UTIA.timelinessID list
+    async getTaskSimpleGradeCount(UTIA, ai_id, sectUserID,wa_id) {
+        let t_simple_grades = await TaskSimpleGrade.count({
+            where: {
+                AssignmentInstanceID: ai_id,
+                WorkflowActivityID: wa_id,
+                SectionUserID: sectUserID,
+                TaskInstanceID: {
+                                $in: UTIA.timelinessID
+                            }
+            }
+        });
+
+        return t_simple_grades;
+    }
+
 
     async getTaskSimpleGrade(ti_id) {
         let timelinessGrade = await TaskSimpleGrade.find({

@@ -118,7 +118,7 @@ class TaskTrigger {
                     TaskInstanceID: task.id
                 }
             });
-
+            // console.log("trigger start - ti.id, ti.finalgrade, nexttask", ti.TaskInstanceID, ti.FinalGrade, next_task.TaskInstanceID);
             var type = await next_task.getType(); //get next tasks' type
 
             if (type === 'needs_consolidation') {
@@ -128,6 +128,7 @@ class TaskTrigger {
                     await x.triggerNext(next_task, type, false);
                 }
             }
+            // console.log("trigger end - ti.id, ti.finalgrade", ti.TaskInstanceID, ti.FinalGrade);
         });
     }
 
@@ -663,6 +664,8 @@ class TaskTrigger {
         logger.log('info', '/finalGrade:checking for grades...');
         var x = this;
         var final_grade = 0;
+        //MB added 2/1/2021 to allow final grades of zero
+        let gradeExists = false;
         
         var ta = await TaskActivity.find({
             where: {
@@ -677,25 +680,36 @@ class TaskTrigger {
             var keys = Object.keys(data); //find the latest version of the data
         }
         await Promise.mapSeries(keys, function(val) {
-            
             if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution') && field[val].field_type === 'assessment') { //check if field type is assessment
                 let distribution = field.field_distribution[val];
                 if (field[val].assessment_type === 'grade') {
                     final_grade += (parseInt(data[val][0])/field[val].numeric_max)*(distribution/100)*100;
+                    //MB added 2/1/2021 to allow for final grade = 0
+                    gradeExists = true;
                 } else if (field[val].assessment_type === 'rating') {
                     final_grade += (parseInt(data[val][0])/field[val].rating_max)*(distribution/100)*100;
+                    //MB added 2/1/2021 to allow for final grade = 0
+                    gradeExists = true;
                 } else if (field[val].assessment_type === 'pass') {
                     if(data[val][0] == 'pass'){
                         final_grade += (distribution/100)*100;
+                        //MB added 2/1/2021 to allow for final grade = 0
+                        gradeExists = true;
                     }
                 } else if (field[val].assessment_type === 'evaluation') {
                     let label_length = field[val].list_of_labels.length;
-                    final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
+                    //MB 2/1/2021 Changed to make lowest position label equivalent = 0, instead of = position/length
+                    //final_grade += ((field[val].list_of_labels.indexOf(data[val][0])+1)/label_length)*(distribution/100)*100;
+                    final_grade += ((field[val].list_of_labels.indexOf(data[val][0]))/(label_length - 1))*(distribution/100)*100;
+                   //MB added 2/1/2021 to allow for final grade = 0
+                    gradeExists = true;
                 }
             }
         });
 
-        if (final_grade === 0) {
+        //MB 2/1/2021 This is a mistake - the final grade can = 0
+        //MB 2/1/2021 if (final_grade === 0) {
+        if (!gradeExists) {
             logger.log('info', 'no grade has been found!');
             return null;
 
@@ -1145,6 +1159,8 @@ class TaskTrigger {
                         ActualEndDate: null,
                         FinalGrade: null,
                         Data: null,
+                        //MB 2/1/2021 added removal of any file references
+                        Files: null,
                         UserHistory: u_history,
                         ExtraCredit: 0
                     }, {
@@ -1248,6 +1264,8 @@ class TaskTrigger {
                     ActualEndDate: null,
                     FinalGrade: null,
                     Data: null,
+                    //MB 2/1/2021 added removal of any file references
+                    Files: null,
                     UserHistory: u_history,
                     ExtraCredit: 0
                 }, {
