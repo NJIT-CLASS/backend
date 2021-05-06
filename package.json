@@ -34,7 +34,7 @@
     "sequelize-cli": "^5.4.0",
     "supervisor": "^0.12.0",
     "tree-model": "^1.0.6",
-    "underscore": "^1.8.3",
+    "underscore": "^1.12.1",
     "url": "^0.11.0",
     "winston": "^2.4.0",
     "winston-daily-rotate-file": "^1.7.2",
