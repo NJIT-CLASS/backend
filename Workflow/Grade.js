@@ -17,6 +17,7 @@ import {
     UserContact
 } from '../Util/models.js';
 import { stringArrayToSet } from 'winston/lib/winston/common';
+import { isNaN } from 'underscore';
 var Promise = require('bluebird');
 var Util = require('./Util.js');
 var _ = require('underscore');
@@ -63,7 +64,7 @@ class Grade {
 
         if (ti.TaskActivity.SimpleGrade !== 'none' && ti.TaskActivity.SimpleGrade.substr(0, 11) === 'off_per_day') {
 
-// 2/9/2019 - find count of ti in wi with simple grade !== "none"; avg_grade = 100/count  
+//MB 2/9/2019 - find count of ti in wi with simple grade !== "none"; avg_grade = 100/count  
         let simpleGradeTIs =
                     await TaskInstance.findAll({
                         where: {
@@ -314,6 +315,32 @@ class Grade {
         logger.log('info', '/Workflow/Grade/addAssignmentGrade: Done! AssignmentGradeID: ', assignment_grade.AssignmentGradeID);
     }
 
+ /**
+     * Finds and returns task collection
+     *
+     * @param {any} wi_id
+     * @returns
+     * @memberof Grade
+     */
+    /*
+    //MB Added 2/22/2021 Gets subworkflow for task, including IsSubWorkflow = 0  - CAN REMOVE
+    async getSubWorkflowTaskCollection(ti, wi) {
+        try {
+            var x = this;
+            var task_collection = JSON.parse(wi.TaskCollection);
+            var wi = await WorkflowInstance.find({
+                where: {
+                    WorkflowInstanceID: wi_id
+                }
+            });
+
+            return task_collection;
+        } catch (err) {
+            logger.log('error', 'cannot find task collection', ti.TaskInstanceID);
+        }
+    }
+*/
+
     /**
      * Finds and returns task collection
      *
@@ -417,6 +444,224 @@ class Grade {
         }
     }
 
+
+    //MB added 2/22/2021 - checks if all task instances with the same IsSubWorkflow (including 0) within a workflow instance are done
+     async checkSubworkflowDone(ti, UTIA) {
+        var x = this;
+        var target_ta = ti.TaskActivityID;
+        var ta_collection = UTIA.gradableTasks[target_ta];
+         var tasks_not_done = [];
+        //MB 2/25/2021, can remove tis_done after debugging
+        var tasks_done = [];
+        var tis_done = [];
+        var subworkflowComplete = false;
+
+    // console.log("checkSubworkflowDone: ti, ta, ta_collection",ti.TaskInstanceID, target_ta, ta_collection);
+
+        await Promise.map(ta_collection, async function(ta_id) {
+            var ti_in_ta = await TaskInstance.findAll({
+                where: {
+                    TaskActivityID: ta_id,
+                    WorkflowInstanceID: ti.WorkflowInstanceID
+                }
+            });
+
+     //   console.log("checkSubworkflowDone in ta_collection map",ta_id);
+/*
+//MB 2/26/2021 trying a different way
+            await Promise.mapSeries(ti_in_ta, async ti_in_ta_instance => {
+                 if (!(await x.checkTaskDoneOrCancelled(ti_in_ta_instance))) {
+                    tasks_not_done.push(ti_in_ta_instance.TaskInstanceID);
+
+                    //MB 2/22/2021 can remove console logs and the else clause
+                    console.log("checkSubworkflowDone in mapSeries(ta_in_ta - task NOT done:",ta_id, ti_in_ta_instance.TaskInstanceID);
+                }
+                else {
+                    //MB 2/25/2021 can remove tis_done after debugging
+                    // *** make tasks_done an array of TIs keyed by tiid
+                    tasks_done.push(ti_in_ta_instance);
+                    tis_done.push(ti_in_ta_instance.TaskInstanceID);
+                    console.log("checkSubworkflowDone in mapSeries(ta_in_ta - tasks DONE:",ta_id, ti_in_ta_instance.TaskInstanceID,tis_done);
+                }
+            }
+ */ 
+  
+            await Promise.mapSeries(ti_in_ta, async ti_in_ta_instance => {
+                let ti_in_ta_instance_status = await x.checkTaskDoneOrCancelled2(ti_in_ta_instance);
+                if (ti_in_ta_instance_status == "false") {
+                   tasks_not_done.push(ti_in_ta_instance.TaskInstanceID);
+
+                   //MB 2/22/2021 can remove console logs and the else clause
+                //   console.log("checkSubworkflowDone in mapSeries(ta_in_ta - task NOT done, ti_in_ta_instance_status:",ta_id, ti_in_ta_instance.TaskInstanceID, ti_in_ta_instance_status);
+               }
+               else {
+                   //MB 2/25/2021 can remove tis_done after debugging
+                   // *** make tasks_done an array of TIs keyed by tiid
+                   if (ti_in_ta_instance_status == 'complete') {
+                        tasks_done.push(ti_in_ta_instance);
+                        tis_done.push(ti_in_ta_instance.TaskInstanceID);
+                   }
+                //   console.log("checkSubworkflowDone in mapSeries(ta_in_ta - tasks DONE, ti_in_ta_instance_status:",ta_id, ti_in_ta_instance.TaskInstanceID,tis_done, ti_in_ta_instance_status);
+               }
+           }          
+        )});
+
+        //console.log("checkSubworkflowDone tasks_not_done, tis_done",tasks_not_done, tis_done);
+
+    /*
+    //MB 2/26/2021 - old
+        if (_.isEmpty(tasks_not_done)) {
+            logger.log('info', 'subworkflow completed!', ti.TaskInstanceID);
+            return true;
+        } else {
+            logger.log('info', 'subworkflow still in progress, waiting users to complete for', ti.TaskInstanceID, {
+                tasks: tasks_not_done
+            });
+            return false;
+        }
+    */
+
+
+    /*
+    //MB 2/26/2021 - return object instead of T/F
+        if (_.isEmpty(tasks_not_done)) {
+            logger.log('info', 'subworkflow completed!', ti.TaskInstanceID);
+            // get last task, which has the highest ti_id
+            var last_ti = tis_done[0];
+            let last_task_index = 0;
+            let i = 0;
+            for (i = 0; i < tis_done.length; i++) {
+                if (last_ti < tis_done[i] ) {
+                    last_ti = tis_done[i];
+                    last_task_index = i;
+                }
+            }
+           
+            // get last task, which has the highest ti_id
+            // let last_ti = Math.max.apply(0, tis_done);
+            var last_task = tasks_done[last_task_index];
+            var last_ta = await TaskActivity.find({
+                where: {
+                    TaskActivityID: last_task.TaskActivityID
+                }
+            });
+            console.log("checkSubworkflowDone after TA.find: last_task.id, last_task.TAType, last_ta.TaskActivityID, last_ta.Type",
+                        last_ti, last_task.TaskInstanceID, last_task.TAType,last_ta.TaskActivityID, last_ta.Type);
+
+            //let last_task_type = last_task.TAType;
+            //let last_task_type = last_ta.Type;
+
+            // if last task = grade_problem, then need to determine function_type
+            var consolidationFunction = "max";
+            //if (last_task_type = "grade_problem" && last_ta.NumberParticipants > 1) {
+            if (last_ta.Type = "grade_problem" && last_ta.NumberParticipants > 1) {
+                var needsConsolidationTA = await TaskActivity.find({
+                    where: {
+                        WorkflowActivityID: last_ta.WorkflowActivityID,
+                        Type: "needs_consolidation"
+                    }
+                });
+                if (needsConsolidationTA !== null) {
+                    consolidationFunction = needsConsolidationTA.FunctionType;
+                }
+            }
+            console.log("checkSubworkflowDone complete: last_ti, last_task.id, last_ta, last_ta.Type, last_task.TAType, consolidationFunction",
+                        last_ti, last_task.TaskInstanceID,last_ta.TaskActivityID, last_ta.Type, last_task.TAType, consolidationFunction);
+
+            return {
+                complete: true,
+                gradeTaskDisplayName: last_ta.DisplayName,
+                gradeTaskType: last_task.TAType,
+                consolidationFunction: consolidationFunction
+            };
+        } else {
+            logger.log('info', 'subworkflow still in progress, waiting users to complete for', ti.TaskInstanceID, {
+                tasks: tasks_not_done
+            });
+            return {
+                complete: false,
+                gradeTaskDisplayName: '-',
+                gradeTaskType: '-',
+                consolidationFunction: '-'
+                // tis_done: tis_done,
+            };
+        }
+        */
+
+    //MB 2/26/2021 - return object instead of T/F
+    //MB 2/28/2021 - return gradeTask info if any grading tasks have been completed (will be in tis_done)
+    //if (_.isEmpty(tasks_not_done)) {
+        if (!(_.isEmpty(tis_done))) {
+
+            if (_.isEmpty(tasks_not_done)) {
+                logger.log('info', 'subworkflow completed!', ti.TaskInstanceID);
+                subworkflowComplete = true;
+            }
+            // get last task, which has the highest ti_id
+            var last_ti = tis_done[0];
+            let last_task_index = 0;
+            let i = 0;
+            for (i = 0; i < tis_done.length; i++) {
+                if (last_ti < tis_done[i] ) {
+                    last_ti = tis_done[i];
+                    last_task_index = i;
+                }
+            }
+        
+            // get last task, which has the highest ti_id
+            // let last_ti = Math.max.apply(0, tis_done);
+            var last_task = tasks_done[last_task_index];
+            var last_ta = await TaskActivity.find({
+                where: {
+                    TaskActivityID: last_task.TaskActivityID
+                }
+            });
+        //    console.log("checkSubworkflowDone after TA.find: last_task.id, last_task.TAType, last_ta.TaskActivityID, last_ta.Type",
+        //                last_ti, last_task.TaskInstanceID, last_task.TAType,last_ta.TaskActivityID, last_ta.Type);
+
+            //let last_task_type = last_task.TAType;
+            //let last_task_type = last_ta.Type;
+
+            // if last task = grade_problem, then need to determine function_type
+            var consolidationFunction = "max";
+            //if (last_task_type = "grade_problem" && last_ta.NumberParticipants > 1) {
+            if (last_ta.Type = "grade_problem" && last_ta.NumberParticipants > 1) {
+                var needsConsolidationTA = await TaskActivity.find({
+                    where: {
+                        WorkflowActivityID: last_ta.WorkflowActivityID,
+                        Type: "needs_consolidation",
+                        RefersToWhichTask: last_ta.RefersToWhichTask
+                    }
+                });
+                if (needsConsolidationTA !== null) {
+                    consolidationFunction = needsConsolidationTA.FunctionType;
+                //    console.log("checkSubworkflowDone grade_problem - ti_id, needsConsolidationTA.FunctionType", ti.TaskInstanceID, needsConsolidationTA.FunctionType);
+                }
+            }
+        //console.log("checkSubworkflowDone some grading complete: ti_id, subworkflowComplete, last_ti, last_task.id, last_ta, last_ta.Type, last_task.TAType, consolidationFunction",
+        //           ti.TaskInstanceID, subworkflowComplete, last_ti, last_task.TaskInstanceID,last_ta.TaskActivityID, last_ta.Type, last_task.TAType, consolidationFunction);
+
+            return {
+                complete: subworkflowComplete,
+                gradeTaskDisplayName: last_ta.DisplayName,
+                gradeTaskType: last_task.TAType,
+                consolidationFunction: consolidationFunction
+            };
+        } else {
+            logger.log('info', 'no subworkflow grading tasks started, waiting users to complete for', ti.TaskInstanceID, {
+                tasks: tasks_not_done
+            });
+            return {
+                complete: false,
+                gradeTaskDisplayName: '-',
+                gradeTaskType: '-',
+                consolidationFunction: '-'
+                // tis_done: tis_done,
+            };
+        }
+
+    }
+
     /**
      * checks if a task is done
      *
@@ -447,11 +692,55 @@ class Grade {
         }
     }
 
+    //MB 2/22/2021 Added: checks if a task is done and not cancelled
+    async checkTaskDoneOrCancelled(ti) {
+        try {
+            var x = this;
+
+             if ((JSON.parse(ti.Status)[0] === 'complete' || JSON.parse(ti.Status)[0] === 'automatic' || 
+                    JSON.parse(ti.Status)[0] === 'bypassed') && !(JSON.parse(ti.Status)[1] === 'cancelled')) {
+                        //console.log("checkTaskDoneOrCancelled - true", ti.TaskInstanceID, ti.Status);
+                return true;
+            } else {
+                //console.log("checkTaskDoneOrCancelled - false", ti.TaskInstanceID, ti.Status);
+                return false;
+            }
+        } catch (err) {
+            logger.log('error', 'cannot check whether the tasks are done or cancelled', {
+                TaskInstanceID: ti.TaskInstanceID,
+                error: err
+            });
+        }
+    }
+
+
+    //MB 2/26/2021 Added: checks if a task is done and not cancelled, and returns only complete tasks
+    async checkTaskDoneOrCancelled2(ti) {
+        try {
+            var x = this;
+
+             if ((JSON.parse(ti.Status)[0] === 'complete' || JSON.parse(ti.Status)[0] === 'automatic' || 
+                    JSON.parse(ti.Status)[0] === 'bypassed') && !(JSON.parse(ti.Status)[1] === 'cancelled')) {
+                        //console.log("checkTaskDoneOrCancelled - true", ti.TaskInstanceID, ti.Status);
+                return JSON.parse(ti.Status)[0];
+            } else {
+                //console.log("checkTaskDoneOrCancelled - false", ti.TaskInstanceID, ti.Status);
+                return "false";
+            }
+        } catch (err) {
+            logger.log('error', 'cannot check whether the tasks are done or cancelled', {
+                TaskInstanceID: ti.TaskInstanceID,
+                error: err
+            });
+        }
+    }
+
     async findFinalGrade(ti) {
         var x = this;
         console.log('traversing the workflow to find final grade...');
         if (ti.FinalGrade !== null) {
-            logger.log('info', '/Workflow/Grade/findFinalGrade: final grade found! The final grade is:', ti.FinalGrade);
+            //MB 2/19/2021 logger.log('info', '/Workflow/Grade/findFinalGrade: final grade found! The final grade is:', ti.FinalGrade);
+            logger.log('info', '/Workflow/Grade/findFinalGrade: final grade found! The final grade is:', ti.TaskInstanceID, ti.FinalGrade);
 
             var wi = await WorkflowInstance.find({
                 where: {
@@ -471,6 +760,7 @@ class Grade {
                 };
             }
         } else if (ti.FinalGrade === null && ti.PreviousTask !== null) {
+            // e.g., dispute task returns consolidation grade (???)
             var pre_ti = await TaskInstance.find({
                 where: {
                     TaskInstanceID: JSON.parse(ti.PreviousTask)[0].id
@@ -795,6 +1085,10 @@ class Grade {
             (await TaskInstance.findAll({
                 where: {
                     AssignmentInstanceID: ai_id,
+                    //MB 3/3/2021
+                    Status: {
+                        $notLike: '%"automatic"%'
+                    },
                     $or: [
                         {
                             TaskActivityID: {
@@ -831,6 +1125,9 @@ class Grade {
             })) || [];
 
         await Promise.mapSeries(tis, async ti => {
+            //let ti_status = JSON.parse(ti.Status);
+            //if (!(ti_status[0] !== 'automatic') {
+
             var sectUserID = await util.findSectionUserID(ai_id, ti.UserID);
             var isProf = await this.isInstructor(sectUserID);
 
@@ -840,7 +1137,8 @@ class Grade {
             if (!UTIA.timeliness.hasOwnProperty(sectUserID)) {
                 UTIA.timeliness[sectUserID] = [];
             }
-            if (!UTIA.extraCredit.hasOwnProperty(SectionUser)) {
+            //MB 3/3/2021 if (!UTIA.extraCredit.hasOwnProperty(SectionUser)) {
+            if (!UTIA.extraCredit.hasOwnProperty(sectUserID)) {
                 UTIA.extraCredit[sectUserID] = [];
             }
             if (!UTIA.extraQuality.hasOwnProperty(sectUserID)) {
@@ -866,7 +1164,8 @@ class Grade {
                 }
 
                 if (gradableTaskObj.gradableTasks.hasOwnProperty(ti.TaskActivityID) && ti.ExtraCredit == 0) {
-// 2/15/2021 Don't include bypassed or cancelled tasks
+//MB 2/15/2021 Don't include bypassed or cancelled tasks
+//MB 3/15/2021 Move let ti_status earlier
                 let ti_status = JSON.parse(ti.Status);
                 if (ti_status[1] !== 'cancelled' && ti_status[0] !== 'bypassed') {
                     UTIA.quality[sectUserID].push(ti);
@@ -928,9 +1227,13 @@ class Grade {
                     if (ti.ExtraCredit == 1 && ti.TASimpleGrade !== 'none') {
                         UTIA.extraTimeliness[sectUserID].push(ti);
                         UTIA.extraTimelinessID.push(ti.TaskInstanceID);
-                    }
+                    };
+                    //console.log("creating UTIA non cancelled/bypassed: ti, ti.ExtraCredit,sectUserID, UTIA.extraCredit[sectUserID]", 
+                    //        ti.TaskInstanceID, ti.ExtraCredit, sectUserID, UTIA.extraCredit[sectUserID]);
+                    
                 }
             }
+        //}
         });
 
         console.log('quality: ', UTIA.qualityID);
@@ -998,7 +1301,9 @@ class Grade {
         });
 
         await Promise.mapSeries(tas, ta => {
-            if (ta.RefersToWhichTask !== null) {
+            //MB 3/14/2021 fix that Edit is returned as a gradable task... 
+            //MB 3/14/2021 if (ta.RefersToWhichTask !== null) {
+            if (ta.RefersToWhichTask !== null && (ta.Type === 'grade_problem' || ta.Type === 'consolidation' || ta.Type === 'resolve_dispute')) {
                 if (!gradableTasks.hasOwnProperty(ta.RefersToWhichTask)) {
                     gradableTasks[ta.RefersToWhichTask] = [];
                     gradableTasksKeys.push(ta.RefersToWhichTask);
@@ -1007,10 +1312,11 @@ class Grade {
  // 1/26/2021 Possibly add needs_consolidation
                     gradableTasks[ta.RefersToWhichTask].push(ta.TaskActivityID);
                 }
+                //console.log("getGradableTasks Map series; a_id, ta, gradableTasks, gradableTasksKeys", a_id, ta.TaskActivityID, gradableTasks, gradableTasksKeys);
             }
         });
 
-        console.log(gradableTasks);
+        //console.log("getGradableTasks; a_id, gradableTasks, gradableTasksKeys", a_id, gradableTasks, gradableTasksKeys);
 
         return {
             gradableTasks: gradableTasks,
@@ -1018,6 +1324,8 @@ class Grade {
         };
     }
 
+    //MB 3/1/2021 Redoing getAssignmentGradeReport for in progress grades, and hopefully also correcting grades reported
+    /*
     async getAssignmentGradeReport(ai_id) {
         let x = this;
         let UTIA = await x.getUserTaskInfoArray(ai_id);
@@ -1064,7 +1372,157 @@ class Grade {
 
         return gradeReport;
     }
+    */
 
+    //SM 8/2/2021 Student version of getAssignmentGradeReport
+    async getStudentAssignmentGradeReport(ai_id, sectionUserID) {
+        let x = this;
+        let UTIA = await x.getUserTaskInfoArray(ai_id);
+        let userContacts = UTIA.users || [];
+        let gradeReport = {
+            assignmentName: UTIA.ai_name || 'Not Found'
+        };
+
+        await Promise.mapSeries(userContacts, async userContact => {
+            //let a_grade = (await x.getAssignmentGrade(ai_id, userContact.sectionUserID)) || 0;
+            let workflowGradeReport =
+                (await x.getWorkflowGradeReport(UTIA, {
+                    sectionUserID: userContact.sectionUserID,
+                    userID: userContact.user.UserID
+                })) || [];
+            let assignmentExtraCreditReport =
+                (await x.getAssignmentExtraCreditReport(UTIA, {
+                    sectionUserID: userContact.sectionUserID,
+                    userID: userContact.user.UserID
+                })) || [];
+            
+            //MB 3/3/2021 numOfExtraCredit is the number of extra credit tasks, and has nothing to do with the grades    
+            //    let numOfExtraCredit = UTIA.extraCreditID.length;
+                //    (await x.getNumOfExtraCreditReport(UTIA, {
+            //        sectionUserID: userContact.sectionUserID,
+            //        userID: userContact.user.UserID
+            //    })) || 0;
+
+            let numOfExtraCredit =
+                (await x.getNumOfExtraCreditReport(UTIA, {
+                    sectionUserID: userContact.sectionUserID,
+                    userID: userContact.user.UserID
+                    },
+                    assignmentExtraCreditReport
+                    )
+                    ) || 0;
+
+            /*
+            //MB 3/4/2021  Temporary until fixed
+            let totalTaskCount = numOfExtraCredit;
+            numOfExtraCredit = {
+                totalTaskCount: totalTaskCount,
+                completedTaskCount: 0,
+                startedTaskCount: 0,
+                reachedTaskCount: 0,
+                notReachedTaskCount: 0
+            };
+            */
+
+            //MB 8/12/2021 let a_grade = workflowGradeReport.assignmentStatisics.wfSummation;
+            //console.log("wfSummation before", workflowGradeReport.assignmentStatisics.wfSummation);
+            let a_grade = workflowGradeReport.assignmentStatisics.wfSummation;
+            //console.log("wfSummation, a_grade after", workflowGradeReport.assignmentStatisics.wfSummation, a_grade);
+            let a_inProgress = workflowGradeReport.assignmentStatisics.assignmentInProgress;
+
+            gradeReport[userContact.sectionUserID] = {
+                UserID: userContact.user.UserID,
+                firstName: userContact.user.FirstName,
+                lastName: userContact.user.LastName,
+                email: userContact.user.Email,
+                //MB 8/12/2021 assignmentGrade: a_grade,
+                assignmentGrade: await util.roundDecimal(a_grade),
+                 assignmentInProgress: a_inProgress,
+                workflowGradeReport: workflowGradeReport,
+                assignmentExtraCreditReport: assignmentExtraCreditReport,
+                numOfExtraCredit: numOfExtraCredit
+            };
+        });
+
+        return gradeReport[sectionUserID];
+    }
+
+
+    //MB 3/1/2021  New version of getAssignmentGradeReport to include in progress grades
+    async getAssignmentGradeReport(ai_id) {
+        let x = this;
+        let UTIA = await x.getUserTaskInfoArray(ai_id);
+        let userContacts = UTIA.users || [];
+        let gradeReport = {
+            assignmentName: UTIA.ai_name || 'Not Found'
+        };
+
+        await Promise.mapSeries(userContacts, async userContact => {
+            //let a_grade = (await x.getAssignmentGrade(ai_id, userContact.sectionUserID)) || 0;
+            let workflowGradeReport =
+                (await x.getWorkflowGradeReport(UTIA, {
+                    sectionUserID: userContact.sectionUserID,
+                    userID: userContact.user.UserID
+                })) || [];
+            let assignmentExtraCreditReport =
+                (await x.getAssignmentExtraCreditReport(UTIA, {
+                    sectionUserID: userContact.sectionUserID,
+                    userID: userContact.user.UserID
+                })) || [];
+            
+            //MB 3/3/2021 numOfExtraCredit is the number of extra credit tasks, and has nothing to do with the grades    
+            //    let numOfExtraCredit = UTIA.extraCreditID.length;
+                //    (await x.getNumOfExtraCreditReport(UTIA, {
+            //        sectionUserID: userContact.sectionUserID,
+            //        userID: userContact.user.UserID
+            //    })) || 0;
+
+            let numOfExtraCredit =
+                (await x.getNumOfExtraCreditReport(UTIA, {
+                    sectionUserID: userContact.sectionUserID,
+                    userID: userContact.user.UserID
+                    },
+                    assignmentExtraCreditReport
+                    )
+                    ) || 0;
+
+            /*
+            //MB 3/4/2021  Temporary until fixed
+            let totalTaskCount = numOfExtraCredit;
+            numOfExtraCredit = {
+                totalTaskCount: totalTaskCount,
+                completedTaskCount: 0,
+                startedTaskCount: 0,
+                reachedTaskCount: 0,
+                notReachedTaskCount: 0
+            };
+            */
+
+            
+            //MB 8/12/2021 let a_grade = workflowGradeReport.assignmentStatisics.wfSummation;
+            //MB alternate that works: let a_grade = await util.roundDecimal(workflowGradeReport.assignmentStatisics.wfSummation);
+            let a_grade = workflowGradeReport.assignmentStatisics.wfSummation;
+            let a_inProgress = workflowGradeReport.assignmentStatisics.assignmentInProgress;
+
+            gradeReport[userContact.sectionUserID] = {
+                UserID: userContact.user.UserID,
+                firstName: userContact.user.FirstName,
+                lastName: userContact.user.LastName,
+                email: userContact.user.Email,
+                //MB 8/12/2021 assignmentGrade: a_grade,
+                assignmentGrade: await util.roundDecimal(a_grade),
+                assignmentInProgress: a_inProgress,
+                workflowGradeReport: workflowGradeReport,
+                assignmentExtraCreditReport: assignmentExtraCreditReport,
+                numOfExtraCredit: numOfExtraCredit
+            };
+        });
+
+        return gradeReport;
+    }
+
+    //MB 3/1/2021 Redoing getWorkflowGradeReport for in progress grades, and hopefully also correcting grades reported
+    /*
     async getWorkflowGradeReport(UTIA, user) {
         let x = this;
         let workflowGradeReport = {};
@@ -1098,16 +1556,69 @@ class Grade {
 
         return workflowGradeReport;
     }
+    */
+
+    //MB 3/1/2021  New version of getWorkflowGradeReport to include in progress grades
+    async getWorkflowGradeReport(UTIA, user) {
+        let x = this;
+        let workflowGradeReport = {};
+        let wfSummation = 0;
+        let assignmentInProgress = "complete";
+
+        await Promise.mapSeries(UTIA.workflows, async wf => {
+            //let w_grade = await x.getWorkflowGrade(UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
+            let problemAndTimelinessGrade = await x.getProblemAndTimelinessGradeReport(UTIA, user, wf);
+            let w_grade = problemAndTimelinessGrade.waStatistics.waScaledGradeSummation;
+            let wfScaledGrade = problemAndTimelinessGrade.waStatistics.assignmentScaledGradeSummation;
+            let waInProgress = problemAndTimelinessGrade.waStatistics.waInProgress;
+            wfSummation = wfSummation + wfScaledGrade;
+            if (waInProgress == "in progress") {
+                assignmentInProgress = "in progress";
+            };
+
+            workflowGradeReport[wf.WorkflowActivityID] = {
+                name: wf.Name,
+                workflowActivityID: wf.WorkflowActivityID,
+                numberOfSets: wf.NumberOfSets,
+                weight: UTIA.wf_grade_distribution[wf.WorkflowActivityID],
+                //MB 8/13/2021 workflowGrade: w_grade,
+                workflowGrade: await util.roundDecimal(w_grade),
+                // scaledGrade: '-',
+                //MB 8/16/2021 scaledGrade: wfScaledGrade,
+                scaledGrade: await util.roundDecimal(wfScaledGrade),
+                waInProgress: waInProgress,
+                problemAndTimelinessGrade: problemAndTimelinessGrade
+            };
+        });
+        
+        workflowGradeReport['assignmentStatisics'] = {
+            //MB 8/13/2021 wfSummation: wfSummation,
+            wfSummation: await util.roundDecimal(wfSummation),
+            assignmentInProgress: assignmentInProgress
+        };
+
+        return workflowGradeReport;
+    }
 
     async getProblemAndTimelinessGradeReport(UTIA, user, wf) {
         let x = this;
         let problemAndTimelinessGrade = {};
         let WAWeight = UTIA.wf_grade_distribution[wf.WorkflowActivityID];
+        let inProgress = "n/a";
+        //MB 2/25/2021
+        var tisComplete = {};
+        //MB 3/1/2021
+        let WAScaledTotal = 0;
+        let waInProgress = "in progress";
         
         await Promise.mapSeries(UTIA.quality[user.sectionUserID], async ti => {
-            console.log('ti_id ', ti.TaskInstanceID, ' sect user id', user.sectionUserID);
-            let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
-            let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
+            //console.log('getProblemAndTimelinessGradeReport: ti_id ', ti.TaskInstanceID, ' sect user id', user.sectionUserID);
+
+            //MB 3/1/2021 Moving these inside wf if statement
+            //let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
+            //let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
+       
+
 
             //need routine to add number of steps
             //let ptgrNumberOfSteps = await x.getNumberOfSteps(UTIA, ti);
@@ -1126,15 +1637,162 @@ class Grade {
             //   may need to just use ti.FinalGrade
             var TIScaledGrade = finalGrade.task.FinalGrade * TAGradeWeightinAssignment;
 */
-
+           
              
             if (wf.WorkflowActivityID === ti.WorkflowInstance.WorkflowActivityID) {
+            
+                //MB 3/2/2021 let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
+                let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
+
+                /*//MB 2/22/2021 Setting up for checking whether the TI's "subworkflow" is complete
+                let tiGradingComplete = false;
+                if (await x.checkTaskDone(ti.TaskInstanceID)) {
+                    tiGradingComplete = await x.checkSubworkflowDone(ti, UTIA);
+                }
+                if (tiGradingComplete) {
+                    inProgress = "complete"
+                }
+                else {
+                    inProgress = "in progress"
+                };
+                console.log('inProgress: ti, tiGradingComplete, inProgress', ti.TaskInstanceID, tiGradingComplete, inProgress);
+                //MB 2/22/2021 End of new code
+                */
+
+
+                /*
+            return {
+                complete: true,
+                gradeTaskDisplayName: last_ta.DisplayName,
+                gradeTaskType: last_task_type,
+                consolidationFunction: consolidationFunction
+            };
+        } else {
+            logger.log('info', 'subworkflow still in progress, waiting users to complete for', ti.TaskInstanceID, {
+                tasks: tasks_not_done
+            });
+            return {
+                complete: false,
+                tis_done: tis_done,
+            };
+
+            */
+
+                //MB 2/25/2021 Setting up for checking whether the TI's "subworkflow" is complete
+                //MB 3/3/2021 never used:  let tiGradingComplete = false;
+                if (await x.checkTaskDone(ti.TaskInstanceID)) {
+                    tisComplete = await x.checkSubworkflowDone(ti, UTIA);
+                    if (tisComplete.complete) {
+                        inProgress = "complete";
+                        //MB 3/1/2021 waInProgress
+                        waInProgress = "complete";
+                    }
+                    else {
+                        inProgress = "in progress"
+                    }
+                }
+                else {
+                    inProgress = "in progress";
+                    tisComplete = {
+                        complete: false,
+                        gradeTaskDisplayName: '-',
+                        gradeTaskType: '-',
+                        consolidationFunction: '-'
+                    }
+                };
+
+                
+            //MB 2/28/2021 How many grading tasks were returned?
+                let taskGrades = Object.keys(taskGradeFields);
+                let countOfTaskGrades = taskGrades.length;
+
+                //console.log("getProblemAndTimelinessGradeReport: taskGrades, taskGradeFields, countOfTaskGrades", taskGrades, taskGradeFields, countOfTaskGrades);
+            
+            //MB 2/28/2021 Calculate taskGrade for in-progress subworkflows
+            /*    let taskGrade = 0;
+                if (countOfTaskGrades > 0) {
+                    await Promise.mapSeries(taskGradeFields, async gradeTask => {
+                        //console.log("getProblemAndTimelinessGradeReport: gradeTask", gradeTask);
+                        taskGrade = taskGrade + gradeTask.gradeTotal;
+                    });
+                }
+                else {
+                    taskGrade = 'not yet complete';
+                };
+                */
+            
+            // for each tiid in taskGrades, need to max, avg or min if > 1 task
+            //   taskGrade = taskGrade + taskGradeFields[taskGrades[i]].gradeTotal;
+                
+                let taskGrade = 0;
+                let taskGradeSum = 0;
+                let taskGradeArray = [];
+                if (countOfTaskGrades > 0) {
+                    if (countOfTaskGrades == 1) {
+                        taskGrade = taskGradeFields[taskGrades[0]].gradeTotal;
+                    }
+                    else {
+                        let i = 0;
+                        for (i = 0; i < countOfTaskGrades; i++) {
+                            taskGradeArray.push(taskGradeFields[taskGrades[i]].gradeTotal);
+                            taskGradeSum = taskGradeSum + taskGradeFields[taskGrades[i]].gradeTotal;
+                        };
+                        switch (tisComplete.consolidationFunction) {
+                            case 'max':
+                                taskGrade = Math.max.apply(0, taskGradeArray);
+                                break;
+                            case 'min':
+                                taskGrade = Math.min.apply(0, taskGradeArray);
+                                break;
+                            case 'avg':
+                                taskGrade = taskGradeSum / countOfTaskGrades;
+                                break;
+                        }
+                    }
+                } 
+                else {
+                    taskGrade = 'not yet complete';
+                };
+               
+               //console.log('inProgress: ti, tiGradingComplete, inProgress, tisComplete', ti.TaskInstanceID, tiGradingComplete, inProgress, tisComplete);
+               //console.log('inProgress: ti, tiGradingComplete, inProgress, tisComplete, taskGrade', ti.TaskInstanceID, tiGradingComplete, inProgress, tisComplete, taskGrade);
+               //console.log('inProgress: ti, inProgress, tisComplete, taskGrade', ti.TaskInstanceID, inProgress, tisComplete, taskGrade);
+                //MB 2/25/2021 End of new code
+                
+                
+                
+                //MB 2/22/2021 Calculating Weights
+                var taGradeDistribution = {};
+                var numberOfSets = 0;
+                for(var i = 0; i < UTIA.workflows.length; i++){
+                    if(UTIA.workflows[i].WorkflowActivityID === wf.WorkflowActivityID){
+                        taGradeDistribution = UTIA.workflows[i].GradeDistribution;
+                        numberOfSets = UTIA.workflows[i].NumberOfSets;
+                    break;
+                    }
+                }
+                var TAGradeWeight = JSON.parse(taGradeDistribution)[ti.TaskActivityID];
+                // 2/15/2021 and 2/22/2021 added AdjustedTAGradeWeight to account for problem sets
+                var AdjustedTAGradeWeight = TAGradeWeight / numberOfSets;
+                var TAGradeWeightinAssignment = ((TAGradeWeight * WAWeight)/100) / numberOfSets;
+                //MB 2/22/2021 End of new code
+                
+            
                 let problemQualityWeight = JSON.parse(wf.GradeDistribution)[ti.TaskActivityID];
                 //let assignmentQualityWeight = ((WAWeight * problemQualityWeight) / ti.WorkflowInstance.WorkflowActivity.NumberOfSets) / 100;
                 let assignmentQualityWeight = ((WAWeight * problemQualityWeight) / wf.NumberOfSets) / 100;
 
-                // 2/15/2021 Added ScaledWIGrade
-                let scaledWIGrade = (t_grade.TIScaledGrade / WAWeight) * 100;
+                //MB 2/15/2021 Added ScaledWIGrade
+                // let scaledWIGrade = (t_grade.TIScaledGrade / WAWeight) * 100;
+
+                //MB 3/1/2021 Allow scaled grades for in progress grading
+                let scaledWIGrade = "-";
+                let scaledGrade = "-";
+                if (!(taskGrade == 'not yet complete')) {
+                    scaledWIGrade = taskGrade * (AdjustedTAGradeWeight / 100);
+                    scaledGrade = scaledWIGrade * (WAWeight / 100);
+                    WAScaledTotal = WAScaledTotal + scaledWIGrade;
+                }
 
                 problemAndTimelinessGrade[ti.TaskInstanceID] = {
                     name: ti.TaskActivity.DisplayName,
@@ -1142,16 +1800,37 @@ class Grade {
                     workflowInstanceID: ti.WorkflowInstanceID,
                     workflowName: wf.Name,
                     
-                    // 2/15/2021: Adjusted weightInProblem for #sets; changed weightInAssignment to fullWeightInAssignment and added weightInAssignment 
+                    // 2/15/2021: Adjusted weightInProblem for #sets (???); changed weightInAssignment to fullWeightInAssignment and added weightInAssignment 
                     //weightInProblem: JSON.parse(wf.GradeDistribution)[ti.TaskActivityID] || '-',
-                    //weightInProblem: problemQualityWeight || '-',
-                    weightInProblem: t_grade.TAGradeWeight || '-',
-                    weightInAssignment: t_grade.WAWeight || '-',
-                    fullWeightInAssignment: assignmentQualityWeight || '-',
-                    taskGrade: t_grade.Grade || 'not yet complete',
+                    weightInProblem: problemQualityWeight || '-',
+                    //weightInProblem: t_grade.TAGradeWeight || '-',
+                    //MB 3/1/2021 weightInAssignment, fullWeightInAssignment are redundant
+                    //weightInAssignment: t_grade.WAWeight || '-',
+                    //fullWeightInAssignment: assignmentQualityWeight || '-',
+                    //MB 2/25/2021 taskGrade: t_grade.Grade || 'not yet complete',
+                    //taskGrade: t_grade.Grade || 'not yet complete',
+                    //MB 8/13/2021 taskGrade: taskGrade || '-',
+                    taskGrade: await util.roundDecimal(taskGrade) || '-',
                     // 2/15/2021 Add weighted WA grade
-                    scaledWIGrade: scaledWIGrade  || '-',
-                    scaledGrade: t_grade.TIScaledGrade || '-',
+                    //MB 8/13/2021 scaledWIGrade: scaledWIGrade  || '-',
+                    scaledWIGrade: await util.roundDecimal(scaledWIGrade)  || '-',
+                    //MB 3/1/2021 added scaledWIGrade and scaledGrade for in progress grading tasks
+                    //scaledGrade: t_grade.TIScaledGrade || '-',
+                    //MB 8/13/2021 scaledGrade: scaledGrade || '-',
+                    scaledGrade: await util.roundDecimal(scaledGrade) || '-',
+                     //MB 2/22/2021 Add in progress, and grade weights, so they can show for all gradable tasks, even if they are not complete and have no taskgrade
+                     taskGradeInProgress: inProgress || '-',
+                     //MB 8/16/2021 problemWeightInAssignment: WAWeight  || '-',
+                     problemWeightInAssignment: await util.roundDecimal(WAWeight)  || '-',
+                     //MB 8/16/2021 adjustedWeightInProblem: AdjustedTAGradeWeight)  || '-',
+                     adjustedWeightInProblem: await util.roundDecimal(AdjustedTAGradeWeight)  || '-',
+                     //MB 8/16/2021 taskGradeWeightInAssignment:TAGradeWeightinAssignment  || '-',
+                     taskGradeWeightInAssignment: await util.roundDecimal(TAGradeWeightinAssignment)  || '-',
+                     //MB 2/25/2021 Add in details about the grading task(s)
+                    gradeTaskDisplayName: tisComplete.gradeTaskDisplayName  || '-',
+                    gradeTaskType: tisComplete.gradeTaskType  || '-',
+                    consolidationFunction: tisComplete.consolidationFunction  || '-',
+                    countOfTaskGrades: countOfTaskGrades,
                     taskGradeFields: taskGradeFields || {}
                 };
             }
@@ -1159,7 +1838,7 @@ class Grade {
 
         // 2/10/2021 Updated to only count tasks in the current workflow
         // 2/15/2021 Updated further to only count tasks in UTIA.timelinessID (thus passing UTIA as parameter)
-        let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA, UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
+        //MB 3/4/2021 let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA, UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
         //let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
         //let t_simple_grades_count = await x.getTaskSimpleGradeCount(UTIA.ai_id, user.sectionUserID);
         let timelinessGradeDetailsReport = await x.getTimelinessGradeDetailsReport(UTIA, user, wf);
@@ -1168,12 +1847,25 @@ class Grade {
         // 2/15/2021 capture the timelinessGradeTotal, completedTaskCount, startedTaskCount, unstartedTaskCount
         let completedTaskCount = timelinessGradeDetailsReport.completedTaskCount;
         let startedTaskCount = timelinessGradeDetailsReport.startedTaskCount;
-        let unstartedTaskCount = simpleGradeCount - completedTaskCount - startedTaskCount;
+        //MB 3/4/2021 added reachedTaskCount, notReachedTaskCount
+        //let unstartedTaskCount = simpleGradeCount - completedTaskCount - startedTaskCount;
+        let notReachedTaskCount = simpleGradeCount - completedTaskCount - startedTaskCount;
+        let reachedTaskCount = completedTaskCount + startedTaskCount;
         let timelinessGradeTotal = timelinessGradeDetailsReport.timelinessGradeTotal;
 
         //let WAWeight = UTIA.wf_grade_distribution[wf.WorkflowActivityID];
         //let WAWeight = JSON.parse(wf.AssignmentID.GradeDistribution)[ti.WorkflowInstance.WorkflowActivityID];
         let problemWeight = JSON.parse(wf.GradeDistribution)['simple'];
+
+        //console.log("getPATGR: problemWeight, WAWeight, WAScaledTotal, inProgress, waInProgress", problemWeight, WAWeight, WAScaledTotal, inProgress, waInProgress);
+
+        //MB 3/14/2021 If no simplegrade weight
+        if (problemWeight === undefined) {
+            problemWeight = 0;
+        };
+
+        //console.log("getPATGR, undefined check: problemWeight", problemWeight);
+
         //let assignmentWeight = (WAWeight * problemWeight)/ ti.WorkflowInstance.WorkflowActivity.NumberOfSets;
         // 1/28/2021 I don't believe number of sets affects simplegrade weight, but please confirm
         // 2/9/2021 I now believe number of sets affects assignment weight; also should add number of WAWeight, timelinessMaxiumumGrade (see XL) and #problem sets to timelinessgrade attributes
@@ -1181,27 +1873,50 @@ class Grade {
    
   // 2/15/2021 determine scaledGrade
   // 2/15/2021 Note new way of timeliness grading - only include completed + started tasks, but not unstarted tasks
-        let gradeTotal = timelinessGradeTotal / (completedTaskCount + startedTaskCount);
+        let gradeTotal = 0;      
+        //if ((completedTaskCount + startedTaskCount) > 0) {
+            //gradeTotal = timelinessGradeTotal / (completedTaskCount + startedTaskCount);
+        if (reachedTaskCount > 0) {
+                    gradeTotal = timelinessGradeTotal / reachedTaskCount;
+        };      
         let scaledGradeInWA = (gradeTotal * problemWeight) / 100;
         let scaledGradeInAssignment = (gradeTotal * assignmentWeight) / 100;
-    // 2/16/2021 determine scaledWeightInAssignment, but on second thought, don't push into timelinessGradeDetailsReport
-        //let scaledWeightInAssignment = assignmentWeight / (completedTaskCount + startedTaskCount);
-    // 2/16/2021 determine scaledWeightInWA
-        //let scaledWeightInWA = problemWeight / (completedTaskCount + startedTaskCount);
-    // timelinessGradeDetails.scaledWeightInAssignment = scaledWeightInAssignment;
+    
+        //console.log("getPATGR: gradeTotal, assignmentWeight, scaledGradeInWA, scaledGradeInAssignment", gradeTotal, assignmentWeight, scaledGradeInWA, scaledGradeInAssignment);
 
     // 2/16/2021  Adding timelinessStatistics for end of timelinessGradeDetailsReport
+    // 3/4/2021 removed, since they all are in timelinessreport
+        /*
         let timelinessStatistics = {};    
         timelinessStatistics['timelinessStatistics'] = {
             gradeSummation: timelinessGradeTotal,
+             //MB 3/4/2021 added reachedTaskCount, notReachedTaskCount
+            reachedTaskCount: reachedTaskCount,
+            notReachedTaskCount: notReachedTaskCount,
             completedTaskCount: completedTaskCount,
             startedTaskCount: startedTaskCount,
+            totalTaskCount: simpleGradeCount,
             adjustedTimelinessGrade: gradeTotal
         };
+        */
+       
+        let timelinessStatistics = {
+            //MB 8/13/2021 gradeSummation: timelinessGradeTotal,
+            gradeSummation: await util.roundDecimal(timelinessGradeTotal),
+             //MB 3/4/2021 added reachedTaskCount, notReachedTaskCount
+            totalTaskCount: simpleGradeCount,
+            completedTaskCount: completedTaskCount,
+            startedTaskCount: startedTaskCount,
+            reachedTaskCount: reachedTaskCount,
+            notReachedTaskCount: notReachedTaskCount,
+            //MB 8/13/2021 adjustedTimelinessGrade: gradeTotal
+            adjustedTimelinessGrade: await util.roundDecimal(gradeTotal)
+        };
         
-        console.log("PTG-timeliness: WID", wf.WorkflowActivityID, "WAWeight", WAWeight, "problemWeight", problemWeight, "assignmentWeight", assignmentWeight, 
+
+        //console.log("PTG-timeliness: WID", wf.WorkflowActivityID, "WAWeight", WAWeight, "problemWeight", problemWeight, "assignmentWeight", assignmentWeight, 
         //        "scaledWeightInWA", scaledWeightInWA, "scaledWeightInAssignment", scaledWeightInAssignment, 
-                "gradeTotal", gradeTotal, "timelinessGradeTotal", timelinessGradeTotal,"ScaledGrade", scaledGradeInAssignment);
+        //        "gradeTotal", gradeTotal, "timelinessGradeTotal", timelinessGradeTotal,"ScaledGrade", scaledGradeInAssignment);
  
         
         problemAndTimelinessGrade['timelinessGrade'] = {
@@ -1210,9 +1925,12 @@ class Grade {
          //   weightInAssignment: '-',
             simpleGradeWeightInProblem: problemWeight || '-',
             problemWeightInAssignment: WAWeight || '-',
-            adjustedTimelinessGradeFromPTGDR: gradeTotal,
+            //MB 8/13/2021 gradeSummation: timelinessGradeTotal,
+            gradeSummation: await util.roundDecimal(timelinessGradeTotal),
+            //MB 8/13/2021 adjustedTimelinessGradeFromPTGDR: gradeTotal,
+            adjustedTimelinessGradeFromPTGDR: await util.roundDecimal(gradeTotal),
             // weightInAssignment: assignmentWeight || '-',
-            taskSimpleGrade: t_simple_grades_count + ' out of ' + simpleGradeCount + ' complete',
+            //MB 3/4/2021 taskSimpleGrade: t_simple_grades_count + ' out of ' + simpleGradeCount + ' complete',
         // 2/15/2021 return completedTaskCount, startedTaskCount, unstartedTaskCount, , scaledGradeinWA, scaledGradeinAssignment
         // 22/16/2021 return scaledWeightInWA, scaledWeightInAssignment (for each timeliness task), gradeTotal
             //gradeSummation: gradeTotal,    
@@ -1220,16 +1938,57 @@ class Grade {
             //scaledWeightInAssignment: scaledWeightInAssignment,
             completedTaskCount: completedTaskCount,
             startedTaskCount: startedTaskCount,
-            unstartedTaskCount: unstartedTaskCount,
-            scaledGradeInWA: scaledGradeInWA || '-',
-            scaledGrade: scaledGradeInAssignment || '-',
+            //MB 3/4/2021 added reachedTaskCount, totalTaskCount
+            reachedTaskCount: reachedTaskCount,
+            totalTaskCount: simpleGradeCount,
+            notReachedTaskCount: notReachedTaskCount,
+            //MB 8/13/2021 scaledGradeInWA: scaledGradeInWA || '-',
+            scaledGradeInWA: await util.roundDecimal(scaledGradeInWA) || '-',
+            //MB 8/13/2021 scaledGrade: scaledGradeInAssignment || '-',
+            scaledGrade: await util.roundDecimal(scaledGradeInAssignment) || '-',
             //scaledGrade: '-',
             timelinessGradeDetails: timelinessGradeDetails,
         // 2/16/2021 Added timelinessStatistics
             timelinessStatistics: timelinessStatistics
         };
 
-        return problemAndTimelinessGrade;
+    //console.log("getPATGR: after timeliness, before adding: WAScaledTotal, waInProgress, notReachedTaskCount, startedTaskCount", WAScaledTotal, waInProgress, notReachedTaskCount, startedTaskCount);
+
+        // 3/1/2021  Adding WA Statistics to problemAndTimelinessGrade
+        WAScaledTotal = WAScaledTotal + scaledGradeInWA;
+        let assignmentScaledTotal = WAScaledTotal * (WAWeight / 100);
+        // if non-completed TaskCount == 0, then use waInProgress from the grading tasks
+        if (notReachedTaskCount + startedTaskCount > 0) {
+            waInProgress = "in progress";
+        };
+
+    //console.log("getPATGR: after timeliness, after adding: WAScaledTotal, assignmentScaledTotal, waInProgress", WAScaledTotal, assignmentScaledTotal, waInProgress);
+
+        //MB 3/10/2021  When launching an assignment, some fields are empty
+        if (isNaN(WAScaledTotal)) {
+            WAScaledTotal = 0;
+            assignmentScaledTotal = 0;
+        }
+
+        //console.log("getPATGR: after timeliness, after isNAN: WAScaledTotal, assignmentScaledTotal, waInProgress", WAScaledTotal, assignmentScaledTotal, waInProgress);
+
+        problemAndTimelinessGrade['waStatistics'] = {
+            //MB 8/13/2021 waScaledGradeSummation: WAScaledTotal,
+            waScaledGradeSummation: await util.roundDecimal(WAScaledTotal),
+            //MB 8/13/2021 assignmentScaledGradeSummation: assignmentScaledTotal,
+            assignmentScaledGradeSummation: await util.roundDecimal(assignmentScaledTotal),
+            waInProgress: waInProgress
+        };
+
+/* MB 8/12/2021 - check this later
+        problemAndTimelinessGrade['waStatistics'] = {
+            waScaledGradeSummation: await util.roundDecimal(WAScaledTotal),
+            assignmentScaledGradeSummation: await util.roundDecimal(assignmentScaledTotal),
+            waInProgress: waInProgress
+        };
+        */
+
+return problemAndTimelinessGrade;
     }
 /*  playing around...
     async getNumberOfSteps(UTIA, ti) {
@@ -1299,37 +2058,197 @@ class Grade {
     async getAssignmentExtraCreditReport(UTIA, user) {
         let x = this;
         let assignmentExtraCreditReport = {};
-
+    
         if (!UTIA.extraQuality.hasOwnProperty(user.sectionUserID)) {
             return;
         }
 
+        //MB 3/2/2021 adding infrastructure for in-progress grades and weights
+        //let WAWeight = UTIA.wf_grade_distribution[wf.WorkflowActivityID];
+        let inProgress = "n/a";
+        var tisComplete = {};
+        let extraInProgress = "n/a";
+        let assignmentScaledTotal = 0;
+
         await Promise.mapSeries(UTIA.extraQuality[user.sectionUserID], async ti => {
-            let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
+            //MB 3/2/2021  let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
             let taskGradeFields = await x.getTaskGradeFieldsReport(UTIA, user, ti);
+
+            //MB 3/3/2021 The first time in this mapping loop, initialize extraInProgress to "complete"
+            if (extraInProgress == "n/a") {
+                extraInProgress = "complete";
+            }
+
+            //MB 3/3/2021 never used:  let tiGradingComplete = false;
+            if (await x.checkTaskDone(ti.TaskInstanceID)) {
+                tisComplete = await x.checkSubworkflowDone(ti, UTIA);
+                if (tisComplete.complete) {
+                    inProgress = "complete";
+                }
+                else {
+                    inProgress = "in progress"
+                    //MB 3/3/2021 extraInProgress
+                    extraInProgress = "in progress";
+                }
+            }
+            else {
+                inProgress = "in progress";
+                //MB 3/3/2021 extraInProgress
+                extraInProgress = "in progress";
+                tisComplete = {
+                    complete: false,
+                    gradeTaskDisplayName: '-',
+                    gradeTaskType: '-',
+                    consolidationFunction: '-'
+                }
+            };
+
+            
+        //MB 2/28/2021 How many grading tasks were returned?
+            let taskGrades = Object.keys(taskGradeFields);
+            let countOfTaskGrades = taskGrades.length;
+
+            //console.log("getProblemAndTimelinessGradeReport: taskGrades, taskGradeFields, countOfTaskGrades", taskGrades, taskGradeFields, countOfTaskGrades);
+                  
+            let taskGrade = 0;
+            let taskGradeSum = 0;
+            let taskGradeArray = [];
+            if (countOfTaskGrades > 0) {
+                if (countOfTaskGrades == 1) {
+                    taskGrade = taskGradeFields[taskGrades[0]].gradeTotal;
+                }
+                else {
+                    let i = 0;
+                    for (i = 0; i < countOfTaskGrades; i++) {
+                        taskGradeArray.push(taskGradeFields[taskGrades[i]].gradeTotal);
+                        taskGradeSum = taskGradeSum + taskGradeFields[taskGrades[i]].gradeTotal;
+                    };
+                    switch (tisComplete.consolidationFunction) {
+                        case 'max':
+                            taskGrade = Math.max.apply(0, taskGradeArray);
+                            break;
+                        case 'min':
+                            taskGrade = Math.min.apply(0, taskGradeArray);
+                            break;
+                        case 'avg':
+                            taskGrade = taskGradeSum / countOfTaskGrades;
+                            break;
+                    }
+                }
+            } 
+            else {
+                taskGrade = 'not yet complete';
+            };
+           
+           //console.log('inProgress: ti, tiGradingComplete, inProgress, tisComplete', ti.TaskInstanceID, tiGradingComplete, inProgress, tisComplete);
+           //console.log('Extra inProgress: ti, tiGradingComplete, inProgress, tisComplete, taskGrade', ti.TaskInstanceID, tiGradingComplete, inProgress, tisComplete, taskGrade);
+           //console.log('Extra inProgress: ti, inProgress, tisComplete, taskGrade', ti.TaskInstanceID, inProgress, tisComplete, taskGrade);
+        
+            
+            
+            //MB 2/22/2021 Calculating Weights
+
+            let wi = await WorkflowInstance.find({
+                where: {
+                    WorkflowInstanceID: ti.WorkflowInstanceID
+                },
+                include: {
+                    model: WorkflowActivity
+                }
+            });
+
+            var taGradeDistribution = {};
+            var numberOfSets = 0;
+            for(var i = 0; i < UTIA.workflows.length; i++){
+                if(UTIA.workflows[i].WorkflowActivityID === wi.WorkflowActivityID){
+                    taGradeDistribution = UTIA.workflows[i].GradeDistribution;
+                    numberOfSets = UTIA.workflows[i].NumberOfSets;
+                break;
+                }
+            }
+            var TAGradeWeight = JSON.parse(taGradeDistribution)[ti.TaskActivityID];
+            // 2/15/2021 and 2/22/2021 added AdjustedTAGradeWeight to account for problem sets
+            var AdjustedTAGradeWeight = TAGradeWeight / numberOfSets;
+                       
+            let WAWeight = UTIA.wf_grade_distribution[wi.WorkflowActivityID];
+        
+            //MB 3/1/2021 Allow scaled grades for in progress grading
+            let scaledWIGrade = "-";
+            let scaledGrade = "-";
+            if (!(taskGrade == 'not yet complete')) {
+                scaledWIGrade = taskGrade * (AdjustedTAGradeWeight / 100);
+                scaledGrade = scaledWIGrade * (WAWeight / 100);
+                assignmentScaledTotal = assignmentScaledTotal + scaledGrade;
+            }
 
             assignmentExtraCreditReport[ti.TaskInstanceID] = {
                 name: ti.TaskActivity.DisplayName,
                 taskInstanceID: ti.TaskInstanceID,
                 workflowInstanceID: ti.WorkflowInstanceID,
                 workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
-                weightInProblem: JSON.parse(ti.WorkflowInstance.WorkflowActivity.GradeDistribution)[ti.TaskActivityID] || '-',
-                weightInAssignment: t_grade.TAGradeWeightInAssignment || '-',
-                taskGrade: t_grade.Grade || 'not yet complete',
-                scaledGrade: t_grade.TIScaledGrade || '-',
+                //MB 8/16/2021 adjustedWeightInProblem: AdjustedTAGradeWeight || '-',
+                adjustedWeightInProblem: await util.roundDecimal(AdjustedTAGradeWeight) || '-',
+                problemWeightInAssignment: WAWeight || '-',
+                //MB 8/13/2021 taskGrade: taskGrade || 'not yet complete',
+                taskGrade: await util.roundDecimal(taskGrade) || 'not yet complete',
+                taskGradeInProgress: inProgress || '-',
+                //MB 8/13/2021 scaledGrade: scaledGrade || '-',
+                scaledGrade: await util.roundDecimal(scaledGrade) || '-',
+                //MB 8/13/2021 scaledWIGrade: scaledWIGrade  || '-',
+                scaledWIGrade: await util.roundDecimal(scaledWIGrade)  || '-',
+                gradeTaskDisplayName: tisComplete.gradeTaskDisplayName  || '-',
+                gradeTaskType: tisComplete.gradeTaskType  || '-',
+                consolidationFunction: tisComplete.consolidationFunction  || '-',
+                countOfTaskGrades: countOfTaskGrades,
                 taskGradeFields: taskGradeFields || {}
             };
         });
 
+        // 3/1/2021  Adding WA Statistics to problemAndTimelinessGrade
+        
+        assignmentExtraCreditReport['extraGradableTaskStatistics'] = {
+            //MB 8/13/2021 assignmentExtraScaledGradeSummation: assignmentScaledTotal,
+            assignmentExtraScaledGradeSummation: await util.roundDecimal(assignmentScaledTotal),
+            extraInProgress: extraInProgress
+        };
+    
+        // 2/10/2021 Updated to only count tasks in the current workflow
+        // 2/15/2021 Updated further to only count tasks in UTIA.timelinessID (thus passing UTIA as parameter)
+        //MB 3/7/2021 let t_simple_grades_count = await x.getExtraTaskSimpleGradeCount(UTIA, UTIA.ai_id, user.sectionUserID);
         let timelinessGradeDetailsReport = await x.getExtraCreditTimelinessGradeDetailsReport(UTIA, user);
         let timelinessGradeDetails = timelinessGradeDetailsReport.timelinessGradeDetails;
-        let simpleGrade = timelinessGradeDetailsReport.simpleGradeCount;
-
+        //console.log("timelinessGradeDetails",user, timelinessGradeDetails);
+        let simpleGradeCount = timelinessGradeDetailsReport.simpleGradeCount;
+        // 2/15/2021 capture the timelinessGradeTotal, completedTaskCount, startedTaskCount, unstartedTaskCount
+        let completedTaskCount = timelinessGradeDetailsReport.completedTaskCount;
+        let startedTaskCount = timelinessGradeDetailsReport.startedTaskCount;
+        //MB 3/4/2021 added reachedTaskCount, notReachedTaskCount
+        //let unstartedTaskCount = simpleGradeCount - completedTaskCount - startedTaskCount;
+        let notReachedTaskCount = simpleGradeCount - completedTaskCount - startedTaskCount;
+        let reachedTaskCount = completedTaskCount + startedTaskCount;
+        let timelinessGradeTotal = timelinessGradeDetailsReport.timelinessGradeTotal;
+  // 2/15/2021 Note new way of timeliness grading - only include completed + started tasks, but not unstarted tasks
+        let simpleGradeTotal = 0;      
+        if (reachedTaskCount > 0) {
+            simpleGradeTotal = timelinessGradeTotal / reachedTaskCount;
+        };
+ 
         assignmentExtraCreditReport['timelinessGrade'] = {
             workflowName: 'Entire Assignment',
-            grade: simpleGrade,
+            //MB 8/13/2021 gradeSummation: timelinessGradeTotal,
+            gradeSummation: await util.roundDecimal(timelinessGradeTotal),
+            //MB 8/13/2021 grade: simpleGradeTotal,
+            grade: await util.roundDecimal(simpleGradeTotal),
+            //MB 3/4/2021 taskSimpleGrade: t_simple_grades_count + ' out of ' + simpleGradeCount + ' complete',
+            totalTaskCount: simpleGradeCount,
+            completedTaskCount: completedTaskCount,
+            startedTaskCount: startedTaskCount,
+            reachedTaskCount: reachedTaskCount,
+            notReachedTaskCount: notReachedTaskCount,
+            //unstartedTaskCount: unstartedTaskCount,
             weightInProblem: 'n/a',
             weightInAssignment: 'n/a',
+            scaledGradeInWA: 'n/a',
             scaledGrade: 'n/a',
             timelinessGradeDetails: timelinessGradeDetails
         };
@@ -1353,10 +2272,10 @@ class Grade {
         });
 
         if (resolveDispute !== null && resolveDispute !== undefined && resolveDispute.FinalGrade !== null) {
-            console.log('here resolve');
+            //console.log('here resolve');
             taskGradeFields[resolveDispute.TaskInstanceID] = await this.getTaskGradeFields(resolveDispute);
             return taskGradeFields;
-        }
+       }
 
         let consolidation = await TaskInstance.find({
             where: {
@@ -1370,7 +2289,7 @@ class Grade {
         });
 
         if (consolidation !== null && consolidation !== undefined && consolidation.FinalGrade !== null) {
-            console.log('here consolidate');
+            //console.log('here consolidate');
             taskGradeFields[consolidation.TaskInstanceID] = await this.getTaskGradeFields(consolidation);
             return taskGradeFields;
         }
@@ -1407,6 +2326,9 @@ class Grade {
         var data = JSON.parse(task.Data)[JSON.parse(task.Data).length - 1];
         var fields = JSON.parse(task.TaskActivity.Fields);
         var keys = Object.keys(fields);
+        //MB 8/18/2021 added to total up the scaled grades for each field
+        var finalScaledGradeTotal = 0;
+        
         await Promise.mapSeries(keys, async key => {
             if (key !== 'field_titles' && key !== 'number_of_fields' && key !== 'field_distribution') {
                 var type = '-';
@@ -1414,14 +2336,13 @@ class Grade {
                 var value = '-';
                 var max = '-';
                 var weight = '-';
-                var scaledGrade = '-';
+                var scaledGrade = '-';   // 8/16/2021 is this no referenced anywhere?
                 var labelPosition = '-';
                 var labelMaxValue = '-';
                 var labelNumericValue = '-';
-// 2/8/2021 Adding fieldScaledGrade and all calculations for it below, as well as convertedNumericValue
+                // 2/8/2021 Adding fieldScaledGrade and all calculations for it below, as well as convertedNumericValue
                 var fieldScaledGrade = '-';
                 var convertedNumericValue = '-';
-
 
                 if (fields[key].field_type === 'assessment') {
                     name = fields[key].title;
@@ -1457,8 +2378,8 @@ class Grade {
                         max = fields[key].list_of_labels.length;
                         labelMaxValue = fields[key].list_of_labels[max-1];
                         labelPosition = fields[key].list_of_labels.indexOf(value) + 1;
-// 2/7/2021 Changed labels so first label (0th) has the grade/labelNumericValue = zero, and to allow a single label
-//                        labelNumericValue = labelPosition / max * 100;
+                        // 2/7/2021 Changed labels so first label (0th) has the grade/labelNumericValue = zero, and to allow a single label
+                        //labelNumericValue = labelPosition / max * 100;
                         if (max == 1) {
                             labelNumericValue = 100;
                         }
@@ -1483,29 +2404,50 @@ class Grade {
                         max: max,
                         weight: weight,
                         //scaledGrade: scaledGrade,
-                        convertedNumericValue: convertedNumericValue,
-                        scaledGrade: fieldScaledGrade,
+                        //MB 8/13/2021 convertedNumericValue: convertedNumericValue,
+                        //MB 8/13/2021 scaledGrade: fieldScaledGrade,
+                        convertedNumericValue: await util.roundDecimal(convertedNumericValue),
+                        scaledGrade: await util.roundDecimal(fieldScaledGrade),
                         labelNumericValue: labelNumericValue,
                         labelPosition: labelPosition,
                         labelMaxValue: labelMaxValue
-                    }
-                } else {
+                    };
+                    //MB 8/18/2021 added to total up the scaled grades for each field
+                    //finalScaledGradeTotal += fieldScaledGrade;
+                    //MB 8/19/2021 added check for NaN
+                     if (fieldScaledGrade !== '-' && !(isNaN(fieldScaledGrade))) {
+                        finalScaledGradeTotal += fieldScaledGrade;
+                    };
+                  } else {
                         taskGradeFields[key] = {
                         type: type,
                         name: name,
                         value: value,
                         max: max,
                         weight: weight,
-                        convertedNumericValue: convertedNumericValue,
+                        //MB 8/13/2021 convertedNumericValue: convertedNumericValue,
+                        convertedNumericValue: await util.roundDecimal(convertedNumericValue),
                         //scaledGrade: scaledGrade
-                        scaledGrade: fieldScaledGrade
+                        //MB 8/13/2021 scaledGrade: fieldScaledGrade
+                        scaledGrade: await util.roundDecimal(fieldScaledGrade)
                     };
-                }
+                    //MB 8/18/2021 added to total up the scaled grades for each field
+                    //finalScaledGradeTotal += fieldScaledGrade;
+                    //MB 8/19/2021 added check for NaN
+                    if (fieldScaledGrade !== '-' && !(isNaN(fieldScaledGrade))) {
+                        finalScaledGradeTotal += fieldScaledGrade;
+                    };
+                 }
             }
         });
 
         // //console.log('tgf2', taskGradeFields)
 
+        //MB 2/28/2015 add total Grade to taskGradeFields
+        //MB 8/13/2021 taskGradeFields.gradeTotal = task.FinalGrade;
+        //MB 8/18/2021 wrong to use FinalGrade taskGradeFields.gradeTotal = await util.roundDecimal(task.FinalGrade);
+        //console.log("gradeTotal (finalScaledGradeTotal):", finalScaledGradeTotal);
+        taskGradeFields.gradeTotal = await util.roundDecimal(finalScaledGradeTotal);
         return taskGradeFields;
     }
 
@@ -1542,7 +2484,12 @@ class Grade {
 
                 let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
 
-                if (timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+                //console.log("2469 getTimelinessGradeDetailsReport", ti.TaskInstanceID, status, timelinessGrade); 
+
+                //MB 8/16/2021 if (timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+                //MB 8/16/2021 tried, didn't work:  if (status = "not_yet_started" || timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+                if (Object.keys(timelinessGrade).length === 0 || timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+                        //console.log("2470 - penalty per days:", status, timelinessGrade.DailyPenalty);
                     timelinessGradeDetails[ti.TaskInstanceID] = {
                         name: ti.TaskActivity.DisplayName,
                         status: status,
@@ -1568,15 +2515,20 @@ class Grade {
                         //status: JSON.parse(ti.Status)[0],
                         daysLate: timelinessGrade.DaysLate,
                         penalty: timelinessGrade.DailyPenalty,
-                        totalPenalty: totalPenalty,
+                        //MB 8/16/2021 totalPenalty: totalPenalty,
+                        totalPenalty: await util.roundDecimal(totalPenalty),
                         // 2/15/2021 using grade calcluated here instead of from TaskSimpleGrade database
-                        grade: grade
+                        //MB 8/16/2021 grade: grade
+                        grade: await util.roundDecimal(grade)
                         // grade: timelinessGrade.Grade
                     };
                     // 2/15/2021 also calculate timelinessGradeTotal, completedTaskCount, startedTaskCount
                     if (status == 'complete') {
                         completedTaskCount++;
-                        timelinessGradeTotal += grade;
+                        //MB 3/9/2021 in case grade wasn't recorded in database for some bug
+                        if (!(isNaN(grade))) {
+                            timelinessGradeTotal += grade;
+                        }
                     }
                     if (status == 'started') {
                         startedTaskCount++;
@@ -1603,83 +2555,280 @@ class Grade {
         let x = this;
         let simpleGradeCount = 0;
         let timelinessGradeDetails = {};
+        // 2/15/2021 capture the timelinessGradeTotal, completedTaskCount, startedTaskCount
+        let completedTaskCount = 0;
+        let startedTaskCount = 0;
+        let timelinessGradeTotal = 0;
 
         if (!UTIA.extraTimeliness.hasOwnProperty(user.sectionUserID)) {
             return {
                 timelinessGradeDetails: timelinessGradeDetails,
+                timelinessGradeTotal: timelinessGradeTotal,
+                completedTaskCount: completedTaskCount,
+                startedTaskCount: startedTaskCount,
                 simpleGradeCount: simpleGradeCount
             };
         }
 
         await Promise.mapSeries(UTIA.extraTimeliness[user.sectionUserID], async ti => {
+            simpleGradeCount++;
+
+            // 2/15/2021 separating out status to use later
+            let status = JSON.parse(ti.Status)[0];
+
             let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
 
-            if (timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+            //console.log("timelinessGrade",user.sectionUserID, timelinessGrade);
+
+            //console.log("2561 getTimelinessGradeDetailsReport", ti.TaskInstanceID, status, timelinessGrade);
+
+            //MB 8/16/2021 if (timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+            //MB 8/16/2021 tried, didn't work:  if (status = "not_yet_started" || timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+            if (Object.keys(timelinessGrade).length === 0 || timelinessGrade === null || typeof timelinessGrade === undefined || timelinessGrade === undefined) {
+                    //console.log("2561 - penalty per days:", status, timelinessGrade.DailyPenalty);
                 timelinessGradeDetails[ti.TaskInstanceID] = {
                     workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
                     name: ti.TaskActivity.DisplayName,
-                    status: JSON.parse(ti.Status)[0],
+                    status: status,
                     daysLate: '-',
                     penalty: '-',
+                    totalPenalty: '-',
                     grade: '-'
                 };
             } else {
-                if (JSON.parse(ti.Status)[0] == 'complete') {
-                    simpleGradeCount++;
+                let totalPenalty = timelinessGrade.DaysLate * timelinessGrade.DailyPenalty;
+
+                if (totalPenalty > 100) {
+                    totalPenalty = 100;
                 }
+                
+                // 2/15/2021 using grade calcluated here instead of from TaskSimpleGrade database
+                let grade = 100 - totalPenalty;
+                //MB 8/16/2021 let grade = 100 - await util.roundDecimal(totalPenalty);
+
                 timelinessGradeDetails[ti.TaskInstanceID] = {
-                    workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
                     name: ti.TaskActivity.DisplayName,
-                    status: JSON.parse(ti.Status)[0],
+                    status: status,
+                    //status: JSON.parse(ti.Status)[0],
                     daysLate: timelinessGrade.DaysLate,
                     penalty: timelinessGrade.DailyPenalty,
-                    grade: timelinessGrade.Grade
+                    //MB 8/16/2021 totalPenalty: totalPenalty,
+                    totalPenalty: await util.roundDecimal(totalPenalty),
+                    // 2/15/2021 using grade calcluated here instead of from TaskSimpleGrade database
+                    //MB 8/16/2021 grade: grade
+                    grade: await util.roundDecimal(grade)
+                    //grade: timelinessGrade.Grade
                 };
+                // 2/15/2021 also calculate timelinessGradeTotal, completedTaskCount, startedTaskCount
+                if (status == 'complete') {
+                    completedTaskCount++;
+                    //MB 3/9/2021 in case grade wasn't recorded in database for some bug
+                    if (!(isNaN(grade))) {
+                        timelinessGradeTotal += grade;
+                    }
+                }
+                if (status == 'started') {
+                    startedTaskCount++;
+                }
+                //console.log("getExtraCreditTimelinessGradeDetailsReport: ti, grade, status,timelinessGradeTotal, startedTaskCount, completedTaskCount", 
+                //  ti.TaskInstanceID, grade, status,timelinessGradeTotal, startedTaskCount, completedTaskCount);                
             }
+            
+    // 2/10/2021 moved endbracket here
+        
         });
 
+    return {
+        timelinessGradeDetails: timelinessGradeDetails,
+        // also return timelinessGradeTotal, completedTaskCount, startedTaskCount
+        timelinessGradeTotal: timelinessGradeTotal,
+        completedTaskCount: completedTaskCount,
+        startedTaskCount: startedTaskCount,
+        simpleGradeCount: simpleGradeCount
+    };
+}
+
+//MB 3/3/2021  Revised below
+/*
+async getNumOfExtraCreditReport(UTIA, user) {
+    let x = this;
+    let getNumOfExtraCreditReport = {};
+
+    if (!UTIA.extraCredit.hasOwnProperty(user.sectionUserID)) {
+        return;
+    }
+
+    await Promise.mapSeries(UTIA.extraCredit[user.sectionUserID], async ti => {
+        let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
+        let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
+
+        if (_.isEmpty(t_grade)) {
+            t_grade = '-';
+        }
+
+        if (_.isEmpty(timelinessGrade)) {
+            timelinessGrade = '-';
+        }
+
+        if (ti.TASimpleGrade === 'none') {
+            timelinessGrade = 'n/a';
+        }
+
+        getNumOfExtraCreditReport[ti.TaskInstanceID] = {
+            workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
+            workflowInstanceID: ti.WorkflowActivityID,
+            name: ti.TaskActivity.DisplayName,
+            taskInstanceID: ti.TaskInstanceID,
+            taskGrade: t_grade,
+            timelinessGrade: timelinessGrade
+        };
+    });
+
+    return getNumOfExtraCreditReport;
+}
+*/
+
+/*
+//MB 3/3/2021 Return just the count for this user
+    async getNumOfExtraCreditReport(UTIA, user) {
+        let x = this;
+    //    let getNumOfExtraCreditReport = {};
+
+        if (!UTIA.extraCredit.hasOwnProperty(user.sectionUserID)) {
+            return 0;
+        }
+        else {
+            let extraCreditTasks = Object.keys(UTIA.extraCredit[user.sectionUserID]);
+            return extraCreditTasks.length;
+        };
+    }
+*/
+
+//MB 3/4/2021 Rework to return task count types
+async getNumOfExtraCreditReport(UTIA, user, assignmentExtraCreditReport) {
+    let x = this;
+    let totalTaskCount = 0;
+    let completedTaskCount = 0;
+    let startedTaskCount = 0;
+
+    let getNumOfExtraCreditReport = {};
+
+    if (!UTIA.extraCredit.hasOwnProperty(user.sectionUserID)) {
         return {
-            timelinessGradeDetails: timelinessGradeDetails,
-            simpleGradeCount: simpleGradeCount
+             totalTaskCount: totalTaskCount
         };
     }
 
-    async getNumOfExtraCreditReport(UTIA, user) {
-        let x = this;
-        let getNumOfExtraCreditReport = {};
+    await Promise.mapSeries(UTIA.extraCredit[user.sectionUserID], async ti => {
+        let ti_id = ti.TaskInstanceID;
+        let taskGrade = 'n/a';
+        let taskGradeInProgress = 'n/a';
+        let timelinessGrade = 'n/a';
+ 
+ /*       let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
+        let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
 
-        if (!UTIA.extraCredit.hasOwnProperty(user.sectionUserID)) {
-            return;
+        if (_.isEmpty(t_grade)) {
+            t_grade = '-';
         }
 
-        await Promise.mapSeries(UTIA.extraCredit[user.sectionUserID], async ti => {
-            let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
-            let timelinessGrade = await x.getTaskSimpleGrade(ti.TaskInstanceID);
+        if (_.isEmpty(timelinessGrade)) {
+            timelinessGrade = '-';
+        }
 
-            if (_.isEmpty(t_grade)) {
-                t_grade = '-';
+        if (ti.TASimpleGrade === 'none') {
+            timelinessGrade = 'n/a';
+        }
+*/
+        let status = JSON.parse(ti.Status)[0];
+
+        //console.log('AECTR', ti_id, assignmentExtraCreditReport['timelinessGrade'].timelinessGradeDetails[ti_id]);
+        
+        if (assignmentExtraCreditReport.hasOwnProperty(ti_id)) {
+            taskGrade = assignmentExtraCreditReport[ti_id].taskGrade;
+            taskGradeInProgress = assignmentExtraCreditReport[ti_id].taskGradeInProgress;
+        };
+
+        //if (taskGrade == "not yet complete") {
+        //    taskGrade = "in progress"
+        //};
+
+
+        //MB 3/10/2021 if complete & has timeliness entry, then get grade
+        if (assignmentExtraCreditReport['timelinessGrade'].timelinessGradeDetails.hasOwnProperty(ti_id)) {
+            if (status == 'complete') {
+                timelinessGrade = 
+                    assignmentExtraCreditReport['timelinessGrade'].timelinessGradeDetails[ti_id].grade;
+                    // if the grade is missing in the database
+                    if (isNaN(timelinessGrade)) {
+                        timelinessGrade = 'n/a';
+                    }
             }
-
-            if (_.isEmpty(timelinessGrade)) {
-                timelinessGrade = '-';
+            // else it has a timeliness entry but status !== complete
+            else {
+                timelinessGrade = 'not yet started'; 
             }
+        }
+        // else no timeliness entry
+        else {
+            timelinessGrade = 'n/a';
+        };
 
-            if (ti.TASimpleGrade === 'none') {
-                timelinessGrade = 'n/a';
-            }
 
-            getNumOfExtraCreditReport[ti.TaskInstanceID] = {
-                workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
-                workflowInstanceID: ti.WorkflowActivityID,
-                name: ti.TaskActivity.DisplayName,
-                taskInstanceID: ti.TaskInstanceID,
-                taskGrade: t_grade,
-                timelinessGrade: timelinessGrade
-            };
-        });
+/*
+        if (assignmentExtraCreditReport['timelinessGrade'].timelinessGradeDetails.hasOwnProperty(ti_id)) {
+            timelinessGrade = 
+                assignmentExtraCreditReport['timelinessGrade'].timelinessGradeDetails[ti_id].grade;
+        };
 
-        return getNumOfExtraCreditReport;
-    }
+        // if timelinessGrade == null, change to "not yet complete"
+        if (!(isNaN(timelinessGrade) && !(timelinessGrade == 'n/a'))) {
+            timelinessGrade = "not yet complete";
+        }
+*/
+
+        totalTaskCount++;
+
+        if (status == 'complete') {
+            completedTaskCount++;
+        }
+        if (status == 'started') {
+            startedTaskCount++;
+        }
+
+        //console.log('AECTR: started, completed, total', ti_id, status, startedTaskCount, completedTaskCount, totalTaskCount);
+
+        //MB 8/13/2021 - this was just hanging here (maybe left over from a console.log???):
+        //assignmentExtraCreditReport
+
+        getNumOfExtraCreditReport[ti.TaskInstanceID] = {
+            workflowName: ti.WorkflowInstance.WorkflowActivity.Name,
+            workflowInstanceID: ti.WorkflowInstanceID,
+            name: ti.TaskActivity.DisplayName,
+            taskInstanceID: ti.TaskInstanceID,
+            status: status,
+            //MB 8/13/2021 taskGrade: taskGrade,
+            taskGrade: await util.roundDecimal(taskGrade),
+            taskGradeInProgress: taskGradeInProgress,
+            //MB 8/13/2021 timelinessGrade: timelinessGrade
+            timelinessGrade: await util.roundDecimal(timelinessGrade)
+        };
+    });
+
+    let notReachedTaskCount = totalTaskCount - completedTaskCount - startedTaskCount;
+    let reachedTaskCount = completedTaskCount + startedTaskCount;
+
+    getNumOfExtraCreditReport['statistics'] = {
+        totalTaskCount: totalTaskCount,
+        completedTaskCount: completedTaskCount,
+        startedTaskCount: startedTaskCount,
+        reachedTaskCount: reachedTaskCount,
+        notReachedTaskCount: notReachedTaskCount
+    };
+
+    return getNumOfExtraCreditReport;
+}
+
 
     async getAssignmentGrade(ai_id, sectUserID) {
         let a_grade = await AssignmentGrade.find({
@@ -1741,8 +2890,8 @@ class Grade {
 
 
 
-// 2/10/2021 Updated to only count tasks in the current workflow
-// 2/15/2021 Updated further to only count tasks in UTIA.timelinessID list
+//MB 2/10/2021 Updated to only count tasks in the current workflow
+//MB 2/15/2021 Updated further to only count tasks in UTIA.timelinessID list
     async getTaskSimpleGradeCount(UTIA, ai_id, sectUserID,wa_id) {
         let t_simple_grades = await TaskSimpleGrade.count({
             where: {
@@ -1758,6 +2907,20 @@ class Grade {
         return t_simple_grades;
     }
 
+//MB 3/2/2021 
+    async getExtraTaskSimpleGradeCount(UTIA, ai_id, sectUserID) {
+        let t_simple_grades = await TaskSimpleGrade.count({
+            where: {
+                AssignmentInstanceID: ai_id,
+                SectionUserID: sectUserID,
+                TaskInstanceID: {
+                                $in: UTIA.extraTimelinessID
+                            }
+            }
+        });
+
+        return t_simple_grades;
+    }
 
     async getTaskSimpleGrade(ti_id) {
         let timelinessGrade = await TaskSimpleGrade.find({

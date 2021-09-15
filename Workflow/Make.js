@@ -529,6 +529,8 @@ class Make {
             return [obj.tis, obj.ti_to_ta, obj.ta_to_u_id, obj.index];
         } else {
 
+            //console.log(obj);
+
             let parents = []; // find parents to this task
 
             await Promise.mapSeries(obj.tis, function (ti) { //collects all parents and create edit for each of the parent
@@ -550,14 +552,22 @@ class Make {
         
             ////////////////////////////////////////////////////////////////////////////////////////////////////
             if (parents_ta.Type === 'grade_problem' && ta.Type !== 'needs_consolidation' && ta.Type !== 'consolidation' && ta.Type !== 'dispute' && ta.Type !== 'resolve_dispute'){ //dealing with special case where grade has follow on tasks
-               
-                await Promise.mapSeries(user_ids, async function (userid) {
+     
+                //MB 4/15/2021 added index
+                await Promise.mapSeries(user_ids, async function (userid, index) {
+                //await Promise.mapSeries(user_ids, async function (userid) {
 
                     var ti_u_hist = [{
                         time: new Date(),
                         user_id: userid,
                         is_extra_credit: false,
                     }];
+
+                    //MB 4/15/2021
+                    if(parents_ta.Type === 'grade_problem'){
+                        refers = parents[index].id
+                    };
+
 
                     var ti = await TaskInstance.create({
                         UserID: userid,
@@ -570,7 +580,9 @@ class Make {
                         ReferencedTask: refers,
                         UserHistory: ti_u_hist,
                         NextTask: [],
-                        PreviousTask: [parents[0]],
+                        //MB 4/15/2021 added index
+                        PreviousTask: [parents[index]],
+                        //PreviousTask: [0],
                         DueType: duration,
                         IsSubWorkflow: obj.ta.isSubWorkflow
                     });

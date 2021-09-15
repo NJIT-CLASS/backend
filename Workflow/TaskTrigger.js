@@ -269,11 +269,16 @@ class TaskTrigger {
      */
     async needsConsolidate(ti) {
         //try{
+
+        //console.log("needsConsolidate: ti.id", ti.TaskInstanceID);
+
         var x = this;
         if (await x.checkPrevious(ti)) {
             logger.log('info', '/TaskTrigger/needsConsolidate: consolidating tasks...');
 
             var final_grade = await x.findGrades(ti);
+
+            //console.log("needsConsolidate: ti.id, final_grade", ti.TaskInstanceID, final_grade);
 
             if (final_grade !== null) { //update final grade if something has returned
                 await TaskInstance.update({
@@ -399,13 +404,23 @@ class TaskTrigger {
                 }
             }
 
+            //console.log('findGrades: task.id, grades, max, min, threshold, triggerConsolidate', task.TaskInstanceID, grades, max, min, 
+            //            JSON.parse(ta.TriggerConsolidationThreshold)[0], JSON.parse(ta.TriggerConsolidationThreshold)[1], triggerConsolidate);
+
             //determine function type and return appropriate grade
             if (ta.FunctionType === 'max') {
                 return [max, triggerConsolidate];
             } else if (ta.FunctionType === 'min') {
                 return [min, triggerConsolidate];
-            } else if (ta.FunctionType === 'average' ||ta.FunctionType === 'avg') {
-                return [(max + min) / 2, triggerConsolidate];
+            } 
+            //MB 3/11/2021 TO FIX: Need to average all the siblings, not just the min and max
+            else if (ta.FunctionType === 'average' ||ta.FunctionType === 'avg') {
+                let i = 0;
+                let sum = 0;
+                        for (i = 0; i < grades.length; i++) {
+                            sum = sum += grades[i];
+                        };
+                return [(sum/grades.length), triggerConsolidate];
             } else {
                 logger.log('error', 'unknown function type', {
                     function: ta.FunctionType
@@ -1179,15 +1194,37 @@ class TaskTrigger {
                 }
             });
     
-            await TaskSimpleGrade.destroy({
+       //MB 3/12/2021 If resetting a task that refers to another task, destroy the other's taskgrade, workflowgrade, assignmentgrade
+       if (!(isNaN(ti.ReferencedTask))) {
+            await TaskGrade.destroy({
                 where:{
-                    TaskInstanceID: ti_id
+                    TaskInstanceID: ti.ReferencedTask
                 }
             });
+        };
 
+         if (!(isNaN(ti.ReferencedTask))) {
+            let sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
+            await WorkflowGrade.destroy({
+                where:{
+                    WorkflowInstanceID: ti.WorkflowInstanceID,
+                    SectionUserID: sec_user
+                }
+            });
+            await AssignmentGrade.destroy({
+                where:{
+                    AssignmentInstanceID: ti.AssignmentInstanceID,
+                    SectionUserID: sec_user
+                }
+            });
+        };
 
-
-    }
+        await TaskSimpleGrade.destroy({
+            where:{
+                TaskInstanceID: ti.TaskInstanceID
+            }
+        });
+   }
 
     async resetFollowingTask(previous_ti, nextTasks, keep_content){ //recursive call to reset following tasks
         let x = this;
@@ -1284,6 +1321,31 @@ class TaskTrigger {
                 TaskInstanceID: ti.TaskInstanceID
             }
         });
+
+        //MB 3/12/2021 If resetting a task that refers to another task, destroy the other's taskgrade, workflowgrade, assignmentgrade
+        if (!(isNaN(ti.ReferencedTask))) {
+            await TaskGrade.destroy({
+                where:{
+                    TaskInstanceID: ti.ReferencedTask
+                }
+            });
+        };
+        
+        if (!(isNaN(ti.ReferencedTask))) {
+            let sec_user = await util.findSectionUserID(ti.AssignmentInstanceID, ti.UserID);
+            await WorkflowGrade.destroy({
+                where:{
+                    WorkflowInstanceID: ti.WorkflowInstanceID,
+                    SectionUserID: sec_user
+                }
+            });
+            await AssignmentGrade.destroy({
+                where:{
+                    AssignmentInstanceID: ti.AssignmentInstanceID,
+                    SectionUserID: sec_user
+                }
+            });
+        };
 
         await TaskSimpleGrade.destroy({
             where:{

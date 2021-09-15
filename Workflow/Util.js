@@ -148,6 +148,39 @@ class Util {
             });
         }
     }
+
+        //MB 8/12/2021  Round numbers to 0, 1 or 2 decimal places (not showing extra zeros)
+        // call using: await util.roundDecimal(...)
+    async roundDecimal(value) {
+        if (isNaN(value)) {
+            return value;
+        }
+        else {
+            //let value0 = Math.round(value);  checking V0 unnecessary since V1 supercedes it, just V1 or V2
+            let value2 = Math.round(value * 100) / 100;
+            let value1 = Math.round(value * 10) / 10;
+            // console.log("value,0,1,2", value, value0, value1, value2);
+        /*    if (value2 == value1) 
+                {
+                if (value1 == value0) {
+                     return value0;
+                }
+                else {
+                    return value1;
+                }
+            }
+                else {
+                    return value2;
+                } */
+            if (value2 == value1) {
+                    return value1;
+                }
+            else {
+                    return value2;
+                }
+        }
+    }
+    
 }
 
 module.exports = Util;
