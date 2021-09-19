@@ -934,6 +934,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         let report = await grade.getStudentAssignmentGradeReport(req.body.ai_id, req.body.sectionUserID);
 
+
         res.json({
             assignmentStudentGradeReport: report
         });
@@ -2083,6 +2084,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+        //     return WorkflowInstance.findAll({
+        //         where: {
+        //             AssignmentInstanceID: req.params.assignmentInstanceid
+        //         }
+        //     }).then(function (WI_Result) {
 
     //Endpoint to get completed task instances for user
     router.get('/getCompletedTaskInstances/:userID',  participantAuthentication, function (req, res) {
