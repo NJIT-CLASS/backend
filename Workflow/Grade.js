@@ -1444,7 +1444,9 @@ class Grade {
             };
         });
 
-        return gradeReport[sectionUserID];
+        let studentGradeReport = {};
+        studentGradeReport[sectionUserID] = gradeReport[sectionUserID];
+        return studentGradeReport;
     }
 
 
