@@ -918,7 +918,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    router.post('/gradeReport', participantAuthentication, async function(req, res) {
+    router.post('/gradeReport', teacherAuthentication, async function(req, res) {
         let grade = new Grade();
 
         let report = await grade.getAssignmentGradeReport(req.body.ai_id);
@@ -11819,3 +11819,5 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
 };
 module.exports = REST_ROUTER;
+
+
