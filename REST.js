@@ -7064,6 +7064,41 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
+    router.get('/studentSemesters/:userID', async function (req, res) {
+
+        let select = `SELECT * FROM (SELECT B.SemesterID, pla_rsrch.semester.Name FROM
+            (SELECT A.SectionUserID, A.SectionID, pla_rsrch.section.CourseID, pla_rsrch.section.SemesterID FROM
+            (SELECT * FROM pla_rsrch.sectionuser
+            WHERE UserID = ?) A
+            INNER JOIN 
+            pla_rsrch.section
+            ON A.SectionID = pla_rsrch.section.SectionID) 
+            B
+            INNER JOIN pla_rsrch.semester ON
+            pla_rsrch.semester.SemesterID = B.SemesterID) C
+            GROUP BY C.SemesterID`;
+
+        sequelize.query(select, {
+            replacements: [
+                req.params.userID
+            ],
+            type: sequelize.QueryTypes.SELECT
+        }).then(result => {
+
+            if (!result) {
+                result = [];
+            }
+            res.json({
+                'Error': false,
+                'semesters': result
+            });
+        }).catch(() => {
+            res.status(400).end();
+        });
+    });
+
+
+
     //Endpoint to get badges for each category
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function (req, res) {
 
