@@ -1383,6 +1383,18 @@ class Grade {
             assignmentName: UTIA.ai_name || 'Not Found'
         };
 
+        //MB 1/18/2022
+        let oneWorkflow = false;
+        if (UTIA.workflows.length == 1) {
+            oneWorkflow = true;
+        }
+
+        //MB 1/18/2022
+        let anyExtraCredit = true;
+        if (UTIA.extraCreditID.length == 0) {
+            anyExtraCredit = false;
+        };
+
         await Promise.mapSeries(userContacts, async userContact => {
             //let a_grade = (await x.getAssignmentGrade(ai_id, userContact.sectionUserID)) || 0;
             let workflowGradeReport =
@@ -1437,16 +1449,18 @@ class Grade {
                 email: userContact.user.Email,
                 //MB 8/12/2021 assignmentGrade: a_grade,
                 assignmentGrade: await util.roundDecimal(a_grade),
-                 assignmentInProgress: a_inProgress,
+                assignmentInProgress: a_inProgress,
+                //MB 1/18/2022
+                oneWorkflow: oneWorkflow,
                 workflowGradeReport: workflowGradeReport,
+                //MB 1/18/2022
+                anyExtraCredit: anyExtraCredit,
                 assignmentExtraCreditReport: assignmentExtraCreditReport,
                 numOfExtraCredit: numOfExtraCredit
             };
         });
 
-        let studentGradeReport = {};
-        studentGradeReport[sectionUserID] = gradeReport[sectionUserID];
-        return studentGradeReport;
+        return gradeReport[sectionUserID];
     }
 
 
@@ -1457,6 +1471,18 @@ class Grade {
         let userContacts = UTIA.users || [];
         let gradeReport = {
             assignmentName: UTIA.ai_name || 'Not Found'
+        };
+
+        //MB 1/18/2022
+        let oneWorkflow = false;
+        if (UTIA.workflows.length == 1) {
+            oneWorkflow = true;
+        }
+
+        //MB 1/18/2022
+        let anyExtraCredit = true;
+        if (UTIA.extraCreditID.length == 0) {
+            anyExtraCredit = false;
         };
 
         await Promise.mapSeries(userContacts, async userContact => {
@@ -1514,7 +1540,11 @@ class Grade {
                 //MB 8/12/2021 assignmentGrade: a_grade,
                 assignmentGrade: await util.roundDecimal(a_grade),
                 assignmentInProgress: a_inProgress,
+                //MB 1/18/2022
+                oneWorkflow: oneWorkflow,
                 workflowGradeReport: workflowGradeReport,
+                //MB 1/18/2022
+                anyExtraCredit: anyExtraCredit,
                 assignmentExtraCreditReport: assignmentExtraCreditReport,
                 numOfExtraCredit: numOfExtraCredit
             };
@@ -1566,6 +1596,8 @@ class Grade {
         let workflowGradeReport = {};
         let wfSummation = 0;
         let assignmentInProgress = "complete";
+        //MB 1/17/2022 - tried following and decided against it
+        //let oneWorkflowAndSet = false;
 
         await Promise.mapSeries(UTIA.workflows, async wf => {
             //let w_grade = await x.getWorkflowGrade(UTIA.ai_id, user.sectionUserID, wf.WorkflowActivityID);
@@ -1577,6 +1609,11 @@ class Grade {
             if (waInProgress == "in progress") {
                 assignmentInProgress = "in progress";
             };
+
+            //MB 1/17/2022 - tried following and decided against it
+            /*if (UTIA.workflows.length == 1 && wf.NumberOfSets == 1) {
+                oneWorkflowAndSet = true;
+            } */
 
             workflowGradeReport[wf.WorkflowActivityID] = {
                 name: wf.Name,
@@ -1590,6 +1627,9 @@ class Grade {
                 scaledGrade: await util.roundDecimal(wfScaledGrade),
                 waInProgress: waInProgress,
                 problemAndTimelinessGrade: problemAndTimelinessGrade
+                //MB 1/17/2022 added oneWorkflowAndSet - tried following and decided against it
+                //problemAndTimelinessGrade: problemAndTimelinessGrade,
+                //oneWorkflowAndSet: oneWorkflowAndSet
             };
         });
         
@@ -1612,6 +1652,8 @@ class Grade {
         //MB 3/1/2021
         let WAScaledTotal = 0;
         let waInProgress = "in progress";
+        //MB 1/18/2022 moved var up here from below
+        var AdjustedTAGradeWeight = 0;
         
         await Promise.mapSeries(UTIA.quality[user.sectionUserID], async ti => {
             //console.log('getProblemAndTimelinessGradeReport: ti_id ', ti.TaskInstanceID, ' sect user id', user.sectionUserID);
@@ -1775,7 +1817,9 @@ class Grade {
                 }
                 var TAGradeWeight = JSON.parse(taGradeDistribution)[ti.TaskActivityID];
                 // 2/15/2021 and 2/22/2021 added AdjustedTAGradeWeight to account for problem sets
-                var AdjustedTAGradeWeight = TAGradeWeight / numberOfSets;
+                //MB and 1/18/2022 moved var definition up top
+                //var AdjustedTAGradeWeight = TAGradeWeight / numberOfSets;
+                AdjustedTAGradeWeight = TAGradeWeight / numberOfSets;
                 var TAGradeWeightinAssignment = ((TAGradeWeight * WAWeight)/100) / numberOfSets;
                 //MB 2/22/2021 End of new code
                 
@@ -1917,7 +1961,6 @@ class Grade {
         
 
         //console.log("PTG-timeliness: WID", wf.WorkflowActivityID, "WAWeight", WAWeight, "problemWeight", problemWeight, "assignmentWeight", assignmentWeight, 
-        //        "scaledWeightInWA", scaledWeightInWA, "scaledWeightInAssignment", scaledWeightInAssignment, 
         //        "gradeTotal", gradeTotal, "timelinessGradeTotal", timelinessGradeTotal,"ScaledGrade", scaledGradeInAssignment);
  
         
@@ -1925,7 +1968,9 @@ class Grade {
             workflowName: wf.Name,
          //   weightInProblem: JSON.parse(wf.GradeDistribution)['simple'] || '-',
          //   weightInAssignment: '-',
-            simpleGradeWeightInProblem: problemWeight || '-',
+         // MB 1/25/2022
+         //   simpleGradeWeightInProblem: problemWeight || '-',
+            simpleGradeWeightInProblem: problemWeight,
             problemWeightInAssignment: WAWeight || '-',
             //MB 8/13/2021 gradeSummation: timelinessGradeTotal,
             gradeSummation: await util.roundDecimal(timelinessGradeTotal),
@@ -1989,6 +2034,19 @@ class Grade {
             waInProgress: waInProgress
         };
         */
+
+        //MB 1/18/2022
+        let oneTaskNoTimelinessGrade = false;
+        // MB 1/25/2022  
+        //if (AdjustedTAGradeWeight == 100 && simpleGradeCount == 0) {
+        if (AdjustedTAGradeWeight == 100) {
+                oneTaskNoTimelinessGrade = true;
+        }
+
+//MB 1/18/2022
+problemAndTimelinessGrade['oneTaskNoTimelinessGrade'] = {
+    oneTaskNoTimelinessGrade: oneTaskNoTimelinessGrade
+};
 
 return problemAndTimelinessGrade;
     }
@@ -2071,6 +2129,8 @@ return problemAndTimelinessGrade;
         var tisComplete = {};
         let extraInProgress = "n/a";
         let assignmentScaledTotal = 0;
+        //MB 1/25/2022
+        let allTasks100 = true;
 
         await Promise.mapSeries(UTIA.extraQuality[user.sectionUserID], async ti => {
             //MB 3/2/2021  let t_grade = await x.getTaskGrade(ti.TaskInstanceID);
@@ -2171,6 +2231,12 @@ return problemAndTimelinessGrade;
             var TAGradeWeight = JSON.parse(taGradeDistribution)[ti.TaskActivityID];
             // 2/15/2021 and 2/22/2021 added AdjustedTAGradeWeight to account for problem sets
             var AdjustedTAGradeWeight = TAGradeWeight / numberOfSets;
+
+            //MB 1/25/2022
+            if (!(AdjustedTAGradeWeight == 100)) {
+                allTasks100 = false
+            };
+
                        
             let WAWeight = UTIA.wf_grade_distribution[wi.WorkflowActivityID];
         
@@ -2214,6 +2280,11 @@ return problemAndTimelinessGrade;
             extraInProgress: extraInProgress
         };
     
+        //MB 1/18/2022
+        assignmentExtraCreditReport['allTasks100'] = {
+            allTasks100: allTasks100
+        };
+
         // 2/10/2021 Updated to only count tasks in the current workflow
         // 2/15/2021 Updated further to only count tasks in UTIA.timelinessID (thus passing UTIA as parameter)
         //MB 3/7/2021 let t_simple_grades_count = await x.getExtraTaskSimpleGradeCount(UTIA, UTIA.ai_id, user.sectionUserID);

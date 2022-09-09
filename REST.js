@@ -68,10 +68,10 @@ import {
     ROLES,
     canRoleAccess
 } from './Util/constant';
-import {TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE} from './backend_settings';
+import { TOKEN_KEY, REFRESH_TOKEN_KEY, TOKEN_LIFE, REFRESH_TOKEN_LIFE } from './backend_settings';
 
 var url = require('url');
-import {adminAuthentication, enhancedAuthentication, teacherAuthentication, participantAuthentication} from './Util/authentication.js';
+import { adminAuthentication, enhancedAuthentication, teacherAuthentication, participantAuthentication } from './Util/authentication.js';
 var dateFormat = require('dateformat');
 var Guid = require('guid');
 var Promise = require('bluebird');
@@ -110,7 +110,7 @@ var storage = multer({
 
 let ra = new Reallocator();
 
-Date.prototype.addDays = function(days) {
+Date.prototype.addDays = function (days) {
     var dat = new Date(this.valueOf());
     dat.setDate(dat.getDate() + days);
     return dat;
@@ -175,8 +175,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     //API Logging
 
-    router.use(async function(req,res,next){
-        var path = url.parse(req.url).pathname.replace(/[0-9]*/g, '' );
+    router.use(async function (req, res, next) {
+        var path = url.parse(req.url).pathname.replace(/[0-9]*/g, '');
 
 
         let insertAPIResult = await sequelize.query(' INSERT INTO apistatistics (StartTime, Route) VALUES(NOW(6), :route) ',
@@ -191,12 +191,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         next();
     });
 
-    router.use(function(req, res,next){
+    router.use(function (req, res, next) {
         //overide json and end functions in res;
         let oldJson = res.json;
         let oldEnd = res.end;
         let statID = req.statID;
-        res.json = function(){
+        res.json = function () {
             sequelize.query(' UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID',
                 {
                     replacements: {
@@ -208,7 +208,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
         };
 
-        res.end = function(){
+        res.end = function () {
             sequelize.query(' UPDATE apistatistics SET EndTime = NOW(6) WHERE StatID = :statID',
                 {
                     replacements: {
@@ -301,7 +301,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             'Message': 'Success',
                             'UserID': user.UserID,
                             'Pending': user.Pending,
-                            'Token':token,
+                            'Token': token,
                             'RefreshToken': refreshToken
                         });
 
@@ -327,26 +327,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     if (attempts >= 5) {
                         console.log('/login: setting new timeout for ' + user.Email);
                         switch (attempts) {
-                        case 5:
-                            minutes = 1;
-                            break;
-                        case 6:
-                            minutes = 2;
-                            break;
-                        case 7:
-                            minutes = 5;
-                            break;
-                        case 8:
-                            minutes = 10;
-                            break;
-                        case 9:
-                            minutes = 15;
-                            break;
-                        case 10:
-                            minutes = 30;
-                            break;
-                        default:
-                            minutes = 60;
+                            case 5:
+                                minutes = 1;
+                                break;
+                            case 6:
+                                minutes = 2;
+                                break;
+                            case 7:
+                                minutes = 5;
+                                break;
+                            case 8:
+                                minutes = 10;
+                                break;
+                            case 9:
+                                minutes = 15;
+                                break;
+                            case 10:
+                                minutes = 30;
+                                break;
+                            default:
+                                minutes = 60;
                         }
                         let timeout = current_timestamp;
                         timeout.setMinutes(timeout.getMinutes() + minutes);
@@ -391,7 +391,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 Email: req.body.email
             }
-        }).then(async(user) => {
+        }).then(async (user) => {
 
             if (user == null) {
                 return res.status(400).end();
@@ -406,7 +406,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             user.save().then((result) => {
                 console.log('temp pass: ', result);
                 let email = new Email();
-                email.sendNow(result.UserID, 'reset password', {'pass':temp_pass});
+                email.sendNow(result.UserID, 'reset password', { 'pass': temp_pass });
                 res.status(200).end();
             });
         })
@@ -435,9 +435,9 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
     });
 
-    router.post('/addInitialUser',async function (req, res) {
+    router.post('/addInitialUser', async function (req, res) {
         let isThereOneUser = await User.findOne();
-        if(isThereOneUser !== null){
+        if (isThereOneUser !== null) {
             return res.status(400).end();
         }
 
@@ -451,27 +451,27 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         return sequelize.query('CALL addInitialUserToSystem (:firstName,:lastName,:Instructor,:Admin,:Role,:Email,:Phone,:Password,:Pending );',
             {
                 replacements: {
-                    firstName :req.body.firstname
-                    ,lastName : req.body.lastname
-                    ,Instructor : 1
-                    ,Admin : 1
-                    ,Role : ROLES.ADMIN
-                    ,Email : req.body.email
-                    ,Phone : '(XXX) XXX-XXXX'
-                    ,Password : generatedPassword
-                    ,Pending :0
+                    firstName: req.body.firstname
+                    , lastName: req.body.lastname
+                    , Instructor: 1
+                    , Admin: 1
+                    , Role: ROLES.ADMIN
+                    , Email: req.body.email
+                    , Phone: '(XXX) XXX-XXXX'
+                    , Password: generatedPassword
+                    , Pending: 0
                 }
             })
-            .then(function(queryResult){
+            .then(function (queryResult) {
 
                 let email = new Email();
-                email.sendNow(queryResult[0].UserID, 'invite user', { pass:'[user defined]'});
+                email.sendNow(queryResult[0].UserID, 'invite user', { pass: '[user defined]' });
 
                 res.json({
                     'Message': 'User has succesfully added'
                 });
             })
-            .catch(function(err){
+            .catch(function (err) {
                 console.log(err);
                 res.status(500).end();
             });
@@ -479,13 +479,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    router.post('/refreshToken',async function(req,res){
+    router.post('/refreshToken', async function (req, res) {
         let refreshToken = req.body.refreshToken;
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         let userId = req.body.UserID;
 
-        if(refreshToken){
-            if(refreshToken in refreshTokens){
+        if (refreshToken) {
+            if (refreshToken in refreshTokens) {
                 // jwt.verify(refreshToken,TOKEN_KEY, async function(err, decoded) {
                 //let expDate = refreshTokens[refreshToken][0];
                 if (Date.now() >= refreshTokens[refreshToken][0]) {
@@ -498,12 +498,12 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 let decodedToken = jwt.decode(token, TOKEN_KEY);
                 var userIDFromToken = decodedToken.id;
                 var userIDFromMemory = refreshTokens[refreshToken][1];
-                if(userIDFromToken === userId && userIDFromMemory  === userId ){
+                if (userIDFromToken === userId && userIDFromMemory === userId) {
                     const user = await User.findOne({
                         where: {
                             UserID: userId
                         },
-                        attributes: ['UserID','Admin', 'Instructor']
+                        attributes: ['UserID', 'Admin', 'Instructor']
                     });
 
                     const payload = {
@@ -537,8 +537,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
 
     //Middleware to verify token
-    router.use(function(req,res,next){
-        if(!USE_TOKENS){
+    router.use(function (req, res, next) {
+        if (!USE_TOKENS) {
             req.user = {
                 role: ROLES.ADMIN,
             };
@@ -547,10 +547,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
         let token = req.body.token || req.query.token || req.headers['x-access-token'];
         if (token) {
-            jwt.verify(token,TOKEN_KEY, function(err, decoded) {
+            jwt.verify(token, TOKEN_KEY, function (err, decoded) {
 
                 if (err) {
-                    if(err.name == 'TokenExpiredError'){
+                    if (err.name == 'TokenExpiredError') {
                         console.log('Expired Token');
                         return res.status(400).end();
                     } else {
@@ -598,7 +598,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let UTIA = await grade.getUserTaskInfoArray(132);
         res.json({
             UTIA: UTIA,
-            assignmentGradeReport:report
+            assignmentGradeReport: report
         })
         // grade.getUserTaskInfoArray(1,1)
     });
@@ -620,16 +620,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////                 Guest Level APIs
 
     //Endpoint for intial password change check
-    router.get('/user/pendingStatus/:userId', async function(req,res){
+    router.get('/user/pendingStatus/:userId', async function (req, res) {
         console.log('Called user/pendingStatus with ', req.params.userId);
         var user = await UserLogin.findOne({
 
-            where: {UserID: req.params.userId},
+            where: { UserID: req.params.userId },
             attributes: ['Pending']
 
         });
 
-        if(user.Pending == 1 ){
+        if (user.Pending == 1) {
             return res.status(200).end();
         } else {
             return res.status(403).end();
@@ -715,20 +715,20 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             }
             ]
         }).then(function (user) {
-            if(user == null){
+            if (user == null) {
                 console.log('/generalUser : Not found');
                 res.status(400).end();
             }
-            if(user.UserContact.AdministrativeSupport == null){          // substitute null for old database fields TODO: remove in the future
-                user.UserContact.AdministrativeSupport = [ 0, [] ];
+            if (user.UserContact.AdministrativeSupport == null) {          // substitute null for old database fields TODO: remove in the future
+                user.UserContact.AdministrativeSupport = [0, []];
             }
-            if(user.UserContact.TechnicalSupport == null){      // substitute null for old database fields TODO: remove in the future
-                user.UserContact.TechnicalSupport = [ 0, [] ];
+            if (user.UserContact.TechnicalSupport == null) {      // substitute null for old database fields TODO: remove in the future
+                user.UserContact.TechnicalSupport = [0, []];
             }
-            var org_group = typeof user.OrganizationGroup == 'string'? JSON.parse(user.OrganizationGroup):user.OrganizationGroup;
-            if(org_group != null){
+            var org_group = typeof user.OrganizationGroup == 'string' ? JSON.parse(user.OrganizationGroup) : user.OrganizationGroup;
+            if (org_group != null) {
                 var org_ids = org_group.OrganizationID;  // array of organization IDS user is part of
-            }else{
+            } else {
                 var org_ids = [];                       // if field is null
             }
             Organization.findAll({
@@ -738,7 +738,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }
                 },
                 attributes: ['OrganizationID', 'Name']
-            }).then(function(organizations){
+            }).then(function (organizations) {
                 res.json({
                     'Error': false,
                     'Message': 'Success',
@@ -762,10 +762,10 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let email = new Email();
         if (req.body.UserID === null || req.body.oldPasswd === null || req.body.newPasswd === null) {
             console.log('/update/password : Missing attributes');
-            res.status(400).json({error:'Missing Attributes'}).end();
+            res.status(400).json({ error: 'Missing Attributes' }).end();
         } else if (req.body.oldPasswd == req.body.newPasswd) {
             console.log('/update/password : Same password');
-            res.status(400).json({error:'New Password cannot match old password.'}).end();
+            res.status(400).json({ error: 'New Password cannot match old password.' }).end();
         } else {
             UserLogin.find({
                 where: {
@@ -784,15 +784,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     }).then(function (done) {
                         console.log('/update/password: Password updated successfully');
                         email.sendNow(userLogin.UserID, 'new password');
-                        res.status(200).json({error:false}).end();
+                        res.status(200).json({ error: false }).end();
                     }).catch(function (err) {
                         console.log(err);
-                        res.status(400).json({error:'Password could not be updated.'}).end();
+                        res.status(400).json({ error: 'Password could not be updated.' }).end();
                     });
 
                 } else {
                     console.log('/update/password: Password not match');
-                    res.status(400).json({error:'Current password does not match.'}).end();
+                    res.status(400).json({ error: 'Current password does not match.' }).end();
                 }
             });
         }
@@ -802,13 +802,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ///////////////////////////
     ////////////----------------   END Guest APIs                           ////////////////////////////
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    router.use(function(req,res,next){
-        if(!USE_TOKENS){
+    router.use(function (req, res, next) {
+        if (!USE_TOKENS) {
             next();
             return;
         }
 
-        if(canRoleAccess(req.user.role, ROLES.PARTICIPANT)){
+        if (canRoleAccess(req.user.role, ROLES.PARTICIPANT)) {
             next();
         } else {
             return res.status(401).end();
@@ -817,23 +817,23 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     ////////////////////////////////////////////////////////////////////////////////////////////////////
     ///////////////                 Participant Level APIs                   ///////////////////////////
     router.post('/task/reset', teacherAuthentication, async function (req, res) {
-        if(req.body.ti_id === null || typeof req.body.ti_id === undefined){
+        if (req.body.ti_id === null || typeof req.body.ti_id === undefined) {
             logger.log('error', '/task/reset: no TaskInstanceID.');
             res.status(400).end();
         }
 
-        if(req.body.keep_content === null || typeof req.body.keep_content === undefined){
+        if (req.body.keep_content === null || typeof req.body.keep_content === undefined) {
             logger.log('error', '/task/reset: no keep_content.');
             res.status(400).end();
         }
 
-        if(req.body.duration === null || typeof req.body.duration === undefined){
+        if (req.body.duration === null || typeof req.body.duration === undefined) {
             logger.log('error', '/task/reset: no duration.');
             res.status(400).end();
         }
-        console.log('/task/reset:' ,req.body)
+        console.log('/task/reset:', req.body)
 
-        console.log('/task/reset:',req.body);
+        console.log('/task/reset:', req.body);
         var trigger = new TaskTrigger();
         await trigger.reset(req.body.ti_id, req.body.duration, req.body.keep_content);
         res.status(200).end();
@@ -918,18 +918,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    router.post('/gradeReport', teacherAuthentication, async function(req, res) {
+    router.post('/gradeReport', teacherAuthentication, async function (req, res) {
         let grade = new Grade();
 
         let report = await grade.getAssignmentGradeReport(req.body.ai_id);
 
         res.json({
-            assignmentGradeReport:report
+            assignmentGradeReport: report
         });
 
     });
 
-    router.post('/studentGradeReport', participantAuthentication, async function(req, res) {
+    router.post('/studentGradeReport', participantAuthentication, async function (req, res) {
         let grade = new Grade();
 
         let report = await grade.getStudentAssignmentGradeReport(req.body.ai_id, req.body.sectionUserID);
@@ -941,21 +941,34 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+    // TODO: unimplemented
+    router.post('/studentAssignments', participantAuthentication, async function (req, res) {
+        let grade = new Grade();
+
+        let report = await grade.getStudentAssignmentGradeReport(req.body.sectionUserID);
+
+
+        res.json({
+            assignmentStudentGradeReport: report
+        });
+
+    });
+
     //---------------------------------------------------------------------------
-    router.get('/notifications/all', participantAuthentication, function(req, res) {
+    router.get('/notifications/all', participantAuthentication, function (req, res) {
         console.log('/notifications/all: was called');
 
         Notifications.findAll({
             where: {
                 Dismiss: null
             }
-        }).then(function(rows) {
+        }).then(function (rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success',
                 'Notifications': rows
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/notifications/all ' + err.message);
             res.status(400).end();
         });
@@ -1059,24 +1072,24 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             req_params: req.params
         });
         PartialAssignments.max('PartialAssignmentID').then(max => {
-            newid = max+1;
+            newid = max + 1;
         }).then(
             PartialAssignments.find({
                 where: {
                     PartialAssignmentID: req.params.partialAssignmentId,
                 }
             }).then(result => {
-		    let data = JSON.parse(result.Data);
-		    data.AA_name = result.PartialAssignmentName+'-copy-'+newid;
-	        data.AA_display_name = result.PartialAssignmentName+'-copy-'+newid;
+                let data = JSON.parse(result.Data);
+                data.AA_name = result.PartialAssignmentName + '-copy-' + newid;
+                data.AA_display_name = result.PartialAssignmentName + '-copy-' + newid;
 
                 PartialAssignments.create({
-                    UserID:result.UserID,
+                    UserID: result.UserID,
                     CourseID: result.CourseID,
-                    PartialAssignmentName: result.PartialAssignmentName+'-copy-'+newid,
+                    PartialAssignmentName: result.PartialAssignmentName + '-copy-' + newid,
                     Data: data
-                }).then(function(){
-			    return res.json({
+                }).then(function () {
+                    return res.json({
                         'Error': false
                     });
                 });
@@ -1093,34 +1106,34 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     router.get('/partialAssignments/duplicate/:partialAssignmentId/:CourseID', function (req, res) {
         var newid;
         PartialAssignments.max('PartialAssignmentID').then(max => {
-            newid = max+1;
+            newid = max + 1;
         }).then(
-	    PartialAssignments.find({
+            PartialAssignments.find({
                 where: {
                     PartialAssignmentID: req.params.partialAssignmentId,
                 }
             }).then(result => {
-		        let data = JSON.parse(result.Data);
-		        data.AA_name = result.PartialAssignmentName+'-copy-'+newid;
-		        data.AA_display_name = result.PartialAssignmentName+'-copy-'+newid;
-		        data.AA_course = parseInt(req.params.CourseID);
+                let data = JSON.parse(result.Data);
+                data.AA_name = result.PartialAssignmentName + '-copy-' + newid;
+                data.AA_display_name = result.PartialAssignmentName + '-copy-' + newid;
+                data.AA_course = parseInt(req.params.CourseID);
 
                 PartialAssignments.create({
-                    UserID:result.UserID,
+                    UserID: result.UserID,
                     CourseID: req.params.CourseID,
-                    PartialAssignmentName: result.PartialAssignmentName+'-copy-'+newid,
+                    PartialAssignmentName: result.PartialAssignmentName + '-copy-' + newid,
                     Data: data
-                }).then(function() {
+                }).then(function () {
                     return res.json({
                         'Error': false
                     });
                 });
             })).catch(result => {
-			    console.log(result);
-			    res.status(400).json({
-				    Error: true
+                console.log(result);
+                res.status(400).json({
+                    Error: true
+                });
             });
-        });
     });
 
     //Endpoint to get an assignment associate with courseId
@@ -1219,7 +1232,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 LastUpdated: new Date(),
             }).then(function (result) {
                 successfulFiles.push(file);
-                return {File: file, FileID: result.FileID};
+                return { File: file, FileID: result.FileID };
             }).catch(function (err) {
                 unsuccessfulFiles.push(file);
                 return { File: file, Error: err };
@@ -1228,65 +1241,65 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             console.log(results);
             let newFileIDs = results.map(instanceInfo => instanceInfo.FileID);
             switch (req.params.type) {
-            case 'task':
-                return TaskInstance.find({
-                    where: {
-                        TaskInstanceID: req.body.taskInstanceId
-                    }
-                }).then(ti => {
-                    let newFilesArray = JSON.parse(ti.Files) || [];
-                    newFilesArray = newFilesArray.concat(newFileIDs);
-
-                    // Update task instance with the new file references
-                    return TaskInstance.update({
-                        Files: newFilesArray
-                    }, {
+                case 'task':
+                    return TaskInstance.find({
                         where: {
                             TaskInstanceID: req.body.taskInstanceId
                         }
-                    }).then(done => {
-                        logger.log('info', 'task updated with new files', {
+                    }).then(ti => {
+                        let newFilesArray = JSON.parse(ti.Files) || [];
+                        newFilesArray = newFilesArray.concat(newFileIDs);
+
+                        // Update task instance with the new file references
+                        return TaskInstance.update({
+                            Files: newFilesArray
+                        }, {
+                            where: {
+                                TaskInstanceID: req.body.taskInstanceId
+                            }
+                        }).then(done => {
+                            logger.log('info', 'task updated with new files', {
+                                res: done
+                            });
+                            // Respond wtih file info
+                            return res.status(200).json({
+                                SuccessfulFiles: successfulFiles,
+                                UnsuccessfulFiles: unsuccessfulFiles
+                            });
+                        });
+                    })
+                        .catch(er => {
+                            logger.log('error', 'file task info not uploaded successfully', er);
+                            res.status(400).end();
+                        });
+                    break;
+                case 'profile-picture':
+                    UserContact.update({
+                        ProfilePicture: newFileIDs[0]
+                    }, {
+                        where: {
+                            UserID: req.body.userId
+                        }
+                    }).then(function (done) {
+                        logger.log('info', 'user updated with new profile pictures info', {
                             res: done
                         });
-                        // Respond wtih file info
+                        // respond with file info
                         return res.status(200).json({
                             SuccessfulFiles: successfulFiles,
                             UnsuccessfulFiles: unsuccessfulFiles
                         });
+                    })
+                        .catch(er => {
+                            logger.log('error', 'profile-picture info not uploaded successfully', er);
+                            res.status(400).end();
+                        });
+                    break;
+                default:
+                    res.status(200).json({
+                        FileID: result.FileID
                     });
-                })
-                    .catch(er => {
-                        logger.log('error', 'file task info not uploaded successfully', er);
-                        res.status(400).end();
-                    });
-                break;
-            case 'profile-picture':
-                UserContact.update({
-                    ProfilePicture: newFileIDs[0]
-                }, {
-                    where: {
-                        UserID: req.body.userId
-                    }
-                }).then(function (done) {
-                    logger.log('info', 'user updated with new profile pictures info', {
-                        res: done
-                    });
-                    // respond with file info
-                    return res.status(200).json({
-                        SuccessfulFiles: successfulFiles,
-                        UnsuccessfulFiles: unsuccessfulFiles
-                    });
-                })
-                    .catch(er => {
-                        logger.log('error', 'profile-picture info not uploaded successfully', er);
-                        res.status(400).end();
-                    });
-                break;
-            default:
-                res.status(200).json({
-                    FileID: result.FileID
-                });
-                break;
+                    break;
             }
         });
 
@@ -1302,64 +1315,64 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function (result) {
 
             switch (req.params.type) {
-            case 'task':
-                TaskInstance.find({
-                    where: {
-                        TaskInstanceID: req.body.taskInstanceId
-                    }
-                }).then(ti => {
-                    let newFilesArray = JSON.parse(ti.Files) || [];
-                    newFilesArray = newFilesArray.concat([result.FileID]);
-
-                    // Update task instance with the new file references
-                    return TaskInstance.update({
-                        Files: newFilesArray
-                    }, {
+                case 'task':
+                    TaskInstance.find({
                         where: {
                             TaskInstanceID: req.body.taskInstanceId
                         }
-                    }).then(done => {
-                        logger.log('info', 'task updated with new files', {
+                    }).then(ti => {
+                        let newFilesArray = JSON.parse(ti.Files) || [];
+                        newFilesArray = newFilesArray.concat([result.FileID]);
+
+                        // Update task instance with the new file references
+                        return TaskInstance.update({
+                            Files: newFilesArray
+                        }, {
+                            where: {
+                                TaskInstanceID: req.body.taskInstanceId
+                            }
+                        }).then(done => {
+                            logger.log('info', 'task updated with new files', {
+                                res: done
+                            });
+                            // Respond wtih file info
+                            res.status(200).json({
+                                FileID: result.FileID
+                            });
+                        });
+                    })
+                        .catch(er => {
+                            logger.log('error', 'file task info not uploaded successfully', er);
+                            res.status(400).end();
+                        });
+                    break;
+                case 'profile-picture':
+                    UserContact.update({
+                        ProfilePicture: [result.FileID]
+                    }, {
+                        where: {
+                            UserID: req.body.userId
+                        }
+                    }).then(function (done) {
+                        logger.log('info', 'user updated with new profile pictures info', {
                             res: done
                         });
-                        // Respond wtih file info
+                        // respond with file info
                         res.status(200).json({
                             FileID: result.FileID
                         });
-                    });
-                })
-                    .catch(er => {
-                        logger.log('error', 'file task info not uploaded successfully', er);
-                        res.status(400).end();
-                    });
-                break;
-            case 'profile-picture':
-                UserContact.update({
-                    ProfilePicture: [result.FileID]
-                }, {
-                    where: {
-                        UserID: req.body.userId
-                    }
-                }).then(function (done) {
-                    logger.log('info', 'user updated with new profile pictures info', {
-                        res: done
-                    });
-                    // respond with file info
+                        return done;
+                    })
+                        .catch(er => {
+                            logger.log('error', 'profile-picture info not uploaded successfully', er);
+                            res.status(400).end();
+                        });
+                    break;
+                default:
                     res.status(200).json({
                         FileID: result.FileID
                     });
-                    return done;
-                })
-                    .catch(er => {
-                        logger.log('error', 'profile-picture info not uploaded successfully', er);
-                        res.status(400).end();
-                    });
-                break;
-            default:
-                res.status(200).json({
-                    FileID: result.FileID
-                });
-                break;
+                    break;
             }
 
         })
@@ -1383,25 +1396,25 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             });
     });
 
-    router.delete('/file/delete/:fileId',  participantAuthentication, async function (req, res) {
+    router.delete('/file/delete/:fileId', participantAuthentication, async function (req, res) {
         let taskId = req.body.taskId || '';
         var userId = req.body.userId;
-        if(userId === null || userId === ''){
+        if (userId === null || userId === '') {
             logger.log('error', '/file/delete User Not Authorized');
             return res.status(400).end();
         }
-        logger.log('info', 'deleting file info from database with FileID: ',req.params.fileId, req.body);
+        logger.log('info', 'deleting file info from database with FileID: ', req.params.fileId, req.body);
         FileReference.findOne({
             where: {
                 FileID: req.params.fileId,
                 UserID: userId
             }
         }).then(async function (fileResult) {
-            console.log("file result"   +fileResult);
+            console.log("file result" + fileResult);
             var fileInfo = fileResult;
             fileResult.destroy();
 
-            if(taskId !== ''){
+            if (taskId !== '') {
                 let result = await TaskInstance.findOne({
                     where: {
                         TaskInstanceID: taskId
@@ -1421,11 +1434,11 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 await TaskInstance.update({
                     Files: fileArray
                 },
-                {
-                    where: {
-                        TaskInstanceID: taskId
-                    }
-                });
+                    {
+                        where: {
+                            TaskInstanceID: taskId
+                        }
+                    });
 
                 return res.json(fileInfo);
             }
@@ -1589,7 +1602,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     // Created Brandon Caton
     router.get('/getCourses', participantAuthentication, function (req, res) {
         Course.findAll({
-            attributes: ['CourseID','Number', 'Name']
+            attributes: ['CourseID', 'Number', 'Name']
         }).then(function (Courses) {
             console.log('/getOrganizationCourses/ Courses found');
             res.json({
@@ -1599,22 +1612,22 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.post('/getUserID/',  participantAuthentication, function (req, res) {
+    router.post('/getUserID/', participantAuthentication, function (req, res) {
         UserLogin.findOne({
             where: {
                 Email: req.body.email
             }
         }).then(function (user) {
-            if(user === null){
+            if (user === null) {
                 UserContact.findOne({
-                    where: {Email: req.body.email}
+                    where: { Email: req.body.email }
 
-                }).then(function(userCon) {
-                    if(userCon === null){
+                }).then(function (userCon) {
+                    if (userCon === null) {
                         res.json({
                             'UserID': null
                         });
-                    } else{
+                    } else {
                         res.json({
                             'UserID': userCon.UserID
                         });
@@ -1672,7 +1685,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
             }]
         })
-            .catch(function(err) {
+            .catch(function (err) {
                 //Catch error and print into console.
                 console.log(err);
                 logger.log('error', '/taskInstanceTemplate/main/', {
@@ -1728,13 +1741,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             include: [{
                 model: TaskActivity,
                 attributes: ['Type', 'AllowRevision', 'AllowReflection'],
-            }, ],
+            },],
         });
         var user = await User.find({
-            where:{
+            where: {
                 UserID: req.body.UserID
             },
-            attributes:['Admin']
+            attributes: ['Admin']
         });
 
 
@@ -1774,7 +1787,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             newStatus[0] = 'complete';
 
             var final_grade = null;
-            if(ti.TaskActivity.Type === 'grade_problem'){
+            if (ti.TaskActivity.Type === 'grade_problem') {
                 final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
             }
 
@@ -1796,7 +1809,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 include: [{
                     model: TaskActivity,
                     attributes: ['Type'],
-                }, ],
+                },],
             });
 
             //console.log(JSON.parse(new_ti.Data), new_ti.TaskInstanceID);
@@ -1960,7 +1973,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //Endpoint to save the task instance input
-    router.post('/taskInstanceTemplate/create/save',  participantAuthentication,  async function (req, res) {
+    router.post('/taskInstanceTemplate/create/save', participantAuthentication, async function (req, res) {
         if (req.body.taskInstanceid == null) {
             console.log('/taskInstanceTemplate/create/save : TaskInstanceID cannot be null');
             res.status(400).end();
@@ -2015,25 +2028,26 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-    router.get('/getPendingTaskInstances/:userID',  participantAuthentication, function (req, res) {
+    router.get('/getPendingTaskInstances/:userID', participantAuthentication, function (req, res) {
         TaskInstance.findAll({
             where: {
                 UserID: req.params.userID,
                 $and: [
                     {
-                        Status:{
+                        Status: {
                             $notLike: '%"cancelled"%'
                         }
                     },
-                    {$or: [{
-                        Status: {
-                            $like: '%"incomplete"%'
-                        }
-                    }, {
-                        Status: {
-                            $like: '%"started"%'
-                        }
-                    }]
+                    {
+                        $or: [{
+                            Status: {
+                                $like: '%"incomplete"%'
+                            }
+                        }, {
+                            Status: {
+                                $like: '%"started"%'
+                            }
+                        }]
                     }
                 ]
             },
@@ -2059,7 +2073,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                 /*TaskInstance - > AssignmentInstance - > Section - > Course */
                 {
                     model: TaskActivity,
-                    attributes: ['Name', 'DisplayName', 'Type', 'AllowRevision','MustCompleteThisFirst'],
+                    attributes: ['Name', 'DisplayName', 'Type', 'AllowRevision', 'MustCompleteThisFirst'],
                     include: [{
                         model: WorkflowActivity,
                         attributes: ['Name']
@@ -2084,14 +2098,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
-        //     return WorkflowInstance.findAll({
-        //         where: {
-        //             AssignmentInstanceID: req.params.assignmentInstanceid
-        //         }
-        //     }).then(function (WI_Result) {
+    //     return WorkflowInstance.findAll({
+    //         where: {
+    //             AssignmentInstanceID: req.params.assignmentInstanceid
+    //         }
+    //     }).then(function (WI_Result) {
 
     //Endpoint to get completed task instances for user
-    router.get('/getCompletedTaskInstances/:userID',  participantAuthentication, function (req, res) {
+    router.get('/getCompletedTaskInstances/:userID', participantAuthentication, function (req, res) {
 
         TaskInstance.findAll({
             where: {
@@ -2145,7 +2159,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //Endpoint to retrieve all the assignment and its current state
-    router.get('/getAssignmentRecord/:assignmentInstanceid',  participantAuthentication, function (req, res) {
+    router.get('/getAssignmentRecord/:assignmentInstanceid', participantAuthentication, function (req, res) {
         // var taskFactory = new TaskFactory();
 
         console.log('/getAssignmentRecord/:assignmentInstanceid: Initiating...');
@@ -2272,7 +2286,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //Endpoint assignments in Section
-    router.get('/AssignmentsBySection/:SectionID',  participantAuthentication, function (req, res) {
+    router.get('/AssignmentsBySection/:SectionID', participantAuthentication, function (req, res) {
         AssignmentInstance.findAll({
             where: {
                 SectionID: req.params.SectionID
@@ -2286,7 +2300,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     attributes: ['CourseID', 'Name', 'Number']
                 }]
             }]
-        }).then(function(assignments) {
+        }).then(function (assignments) {
             res.json({
                 'Error': false,
                 'Message': 'Success',
@@ -2298,20 +2312,20 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         );
     });
 
-    router.get('/SectionsByUser/:userId',  participantAuthentication,function (req, res) {
+    router.get('/SectionsByUser/:userId', participantAuthentication, function (req, res) {
 
         SectionUser.findAll({
             where: {
                 UserID: req.params.userId
             },
-            attributes: ['SectionID','Role'],
+            attributes: ['SectionID', 'Role'],
             include: [{
                 model: Section,
                 attributes: ['Name'],
                 include: [{
                     model: Course,
                     attributes: ['CourseID', 'Name', 'Number']
-                }, ]
+                },]
 
             }]
         }).then(function (rows) {
@@ -2355,30 +2369,30 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }).then(function (SectionUsers) {
             console.log('/sectionUsers called');
             //if (req.params.role === 'Student') {
-                SectionUsers = SectionUsers.map(user => {
-                    let newUser = {
-                        UserID: user.UserID,
-                        SectionUserID: user.SectionUserID,
-                        Active: user.Active,
-                        Role: user.Role,
-                        User: user.User,
-                        UserLogin: user.UserLogin
-                    };
-                    if (user.User.VolunteerPools.length != 0) {
-                        newUser.Volunteer = 'Some';
-                        //newUser.Status = user.User.VolunteerPools[0].status;
+            SectionUsers = SectionUsers.map(user => {
+                let newUser = {
+                    UserID: user.UserID,
+                    SectionUserID: user.SectionUserID,
+                    Active: user.Active,
+                    Role: user.Role,
+                    User: user.User,
+                    UserLogin: user.UserLogin
+                };
+                if (user.User.VolunteerPools.length != 0) {
+                    newUser.Volunteer = 'Some';
+                    //newUser.Status = user.User.VolunteerPools[0].status;
 
-                    }
-                    else if (user.Volunteer != 0 && user.Volunteer != 'Declined' && user.Volunteer != 'Removed') {
-                        newUser.Volunteer = 'All';
-                    }
-                    else {
-                        newUser.Volunteer = 'None';
-                        newUser.Status = 'Inactive';
+                }
+                else if (user.Volunteer != 0 && user.Volunteer != 'Declined' && user.Volunteer != 'Removed') {
+                    newUser.Volunteer = 'All';
+                }
+                else {
+                    newUser.Volunteer = 'None';
+                    newUser.Status = 'Inactive';
 
-                    }
-                    return newUser;
-                });
+                }
+                return newUser;
+            });
             //}
             return res.json({
                 'Error': false,
@@ -2388,20 +2402,20 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
     });
 
     //End point to add mutliple users to a section and invite any new ones
-    router.post('/sectionUsers/addMany/:sectionid',  teacherAuthentication, function (req, res) {
+    router.post('/sectionUsers/addMany/:sectionid', teacherAuthentication, function (req, res) {
         //expects - users
-        return Promise.mapSeries(req.body.users, async function(userDetails) {
+        return Promise.mapSeries(req.body.users, async function (userDetails) {
 
             let role = null;
-            switch(userDetails.role){
-            case 'Instructor':
-                role = ROLES.TEACHER;
-                break;
-            case 'Student':
-                role = ROLES.PARTICIPANT;
-                break;
-            case 'Observer':
-                role = ROLES.GUEST;
+            switch (userDetails.role) {
+                case 'Instructor':
+                    role = ROLES.TEACHER;
+                    break;
+                case 'Student':
+                    role = ROLES.PARTICIPANT;
+                    break;
+                case 'Observer':
+                    role = ROLES.GUEST;
             }
 
             let temp_pass = await password.generate();
@@ -2410,25 +2424,25 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             return sequelize.query('CALL addUserToSection (:FirstName,:LastName,:Instructor,:Admin,:Role,:Email,:Phone,:Password,:Pending,:SectionID,:Active,:Volunteer,:SectionRole )',
                 {
                     replacements: {
-                        FirstName : (userDetails.firstName || '')
-                        ,LastName :( userDetails.lastName || '' )
-                        ,Instructor : userDetails.role === 'Instructor' ? 1 : 0
-                        ,Admin : 0
-                        ,Role : role
-                        ,Email : userDetails.email
-                        ,Phone : '(XXX) XXX-XXXX'
-                        ,Password : hashedPassword
-                        ,Pending :1
-                        ,SectionID : req.params.sectionid
-                        ,Active : (userDetails.active || 1)
-                        ,Volunteer :(userDetails.volunteer || 1 )
-                        ,SectionRole : userDetails.role
+                        FirstName: (userDetails.firstName || '')
+                        , LastName: (userDetails.lastName || '')
+                        , Instructor: userDetails.role === 'Instructor' ? 1 : 0
+                        , Admin: 0
+                        , Role: role
+                        , Email: userDetails.email
+                        , Phone: '(XXX) XXX-XXXX'
+                        , Password: hashedPassword
+                        , Pending: 1
+                        , SectionID: req.params.sectionid
+                        , Active: (userDetails.active || 1)
+                        , Volunteer: (userDetails.volunteer || 1)
+                        , SectionRole: userDetails.role
                     }
                 })
-                .then(function(queryResult){
-                    if(queryResult[0].SendEmail == 1){
+                .then(function (queryResult) {
+                    if (queryResult[0].SendEmail == 1) {
                         let email = new Email();
-                        email.sendNow(queryResult[0].UserID, 'invite user', {'sectionid': req.params.sectionid, 'pass': temp_pass, 'role': role});
+                        email.sendNow(queryResult[0].UserID, 'invite user', { 'sectionid': req.params.sectionid, 'pass': temp_pass, 'role': role });
                     }
 
                 })
@@ -2443,14 +2457,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     res.status(500).end();
                 });
         })
-            .then(function(done){
+            .then(function (done) {
                 console.log('Promise.map Results: ', done);
                 res.status(200).end();
             });
     });
 
     // endpoint to add sectionusers, invite users not yet in system
-    router.post('/sectionUsers/:sectionid',  teacherAuthentication, async function (req, res) {
+    router.post('/sectionUsers/:sectionid', teacherAuthentication, async function (req, res) {
 
         //expects -email
         //        -firstName
@@ -2465,7 +2479,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         if (req.body.volunteer === null) {
             console.log('course/adduser : volunteer null');
         } else {
-            if (req.body.volunteer === 0){
+            if (req.body.volunteer === 0) {
                 console.log('course/adduser : volunteer 0');
             } else {
                 req.body.volunteer = 'Appointed'
@@ -2485,15 +2499,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                         return sequelize.transaction(function (t) {
 
                             let role = null;
-                            switch(req.body.role){
-                            case 'Instructor':
-                                role = ROLES.TEACHER;
-                                break;
-                            case 'Student':
-                                role = ROLES.PARTICIPANT;
-                                break;
-                            case 'Observer':
-                                role = ROLES.GUEST;
+                            switch (req.body.role) {
+                                case 'Instructor':
+                                    role = ROLES.TEACHER;
+                                    break;
+                                case 'Student':
+                                    role = ROLES.PARTICIPANT;
+                                    break;
+                                case 'Observer':
+                                    role = ROLES.GUEST;
                             }
                             return User.create({
                                 FirstName: req.body.firstName,
@@ -2503,7 +2517,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             }, {
                                 transaction: t
                             })
-                                .catch(function(err) {
+                                .catch(function (err) {
                                     console.error(err);
                                     logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
                                         req_body: req.body,
@@ -2524,18 +2538,18 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                         Phone: '(XXX) XXX-XXXX'
                                     }, {
                                         transaction: t
-                                    }).catch(function(err) {
+                                    }).catch(function (err) {
                                         console.error(err);
                                         logger.log('error', 'post: sectionUsers/:sectionid, user invited to system', {
                                             req_body: req.body,
                                             error: err
                                         });
                                         sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                            .then(function() {
+                                            .then(function () {
                                                 res.status(500).end();
                                             });
                                     })
-                                        .then(async function(userCon) {
+                                        .then(async function (userCon) {
                                             return UserLogin.create({
                                                 UserID: user.UserID,
                                                 Email: req.body.email,
@@ -2554,7 +2568,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                     });
                                             }).then(function (userLogin) {
                                                 let email = new Email();
-                                                email.sendNow(user.UserID, 'invite_user_new_to_system', {'pass':temp_pass, 'sectionid': req.params.sectionid});
+                                                email.sendNow(user.UserID, 'invite_user_new_to_system', { 'pass': temp_pass, 'sectionid': req.params.sectionid });
                                                 return SectionUser.create({
                                                     SectionID: req.params.sectionid,
                                                     UserID: userLogin.UserID,
@@ -2581,7 +2595,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', {
                                                         transaction: t
                                                     })
-                                                        .then(function() {
+                                                        .then(function () {
                                                             res.json({
                                                                 success: true,
                                                                 message: 'new user'
@@ -2615,16 +2629,16 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                             res.status(500).end();
                         }).then(function (result) {
                             console.log('User exists, adding to section');
-                            if(req.body.role == 'Instructor'){
+                            if (req.body.role == 'Instructor') {
                                 //making Teacher role
                                 User.update({
                                     Role: ROLES.TEACHER
-                                },{
+                                }, {
                                     where: {
                                         UserID: response.UserID
                                     }
                                 }
-                                ).then(function(makeTeacher){
+                                ).then(function (makeTeacher) {
                                     res.json({
                                         success: true,
                                         message: 'existing user'
@@ -2650,7 +2664,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.post('/sectionUsers/changeActive/:sectionUserID', teacherAuthentication,(req, res) => {
+    router.post('/sectionUsers/changeActive/:sectionUserID', teacherAuthentication, (req, res) => {
         // TODO:  This API does a simple database update, but it may need
         // to do some special reallocation to deal with inactive students
         //
@@ -2754,7 +2768,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-    router.get('/task/files/:taskId', participantAuthentication,async function (req, res) {
+    router.get('/task/files/:taskId', participantAuthentication, async function (req, res) {
 
         let result = await TaskInstance.findOne({
             where: {
@@ -2778,7 +2792,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
         let fileArray = [];
-        try{
+        try {
             let fileInfoJSON = JSON.parse(result.Files);
 
             await Promise.map(fileInfoJSON, async file => {
@@ -2786,13 +2800,13 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                     where: {
                         FileID: file
                     },
-                    attributes: ['FileID','Info']
+                    attributes: ['FileID', 'Info']
                 });
 
                 fileArray.push(fr);
             });
 
-        } catch(e){
+        } catch (e) {
             console.log('File list err:', e);
         }
 
@@ -2804,15 +2818,15 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
 
     //get Section information
-    router.get('/section/info/:sectionId', participantAuthentication, async function(req,res) {
+    router.get('/section/info/:sectionId', participantAuthentication, async function (req, res) {
         let sectionInfo = await Section.findOne({
             where: {
                 SectionID: req.params.sectionId
             },
             include: [{
                 model: Course
-            },{
-                model:Semester
+            }, {
+                model: Semester
             }]
         });
 
@@ -2820,7 +2834,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             where: {
                 SectionID: req.params.sectionId
             },
-            attributes: ['DisplayName','AssignmentInstanceID', 'StartDate', 'EndDate'],
+            attributes: ['DisplayName', 'AssignmentInstanceID', 'StartDate', 'EndDate'],
             include: [{
                 model: Assignment,
                 attributes: ['DisplayName']
@@ -2862,7 +2876,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         //allocator.updatePreviousAndNextTasks(13);
         var allocat
 
-        = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
+            = new Allocator([1, 3, 4, 69, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19], 0);
         Promise.all([allocator.getUser(1)]).then(function (done) {
             console.log(done[0]);
         }).then(function () {
@@ -2955,8 +2969,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     // Grade reporting ==========================================================================
 
-    router.post('/getUserAssignmentGrades', participantAuthentication, function(req, res){
-        if(req.body.UserID == null || req.body.sectionID == null){
+    router.post('/getUserAssignmentGrades', participantAuthentication, function (req, res) {
+        if (req.body.UserID == null || req.body.sectionID == null) {
             console.log(req);
             console.log('/getUserAssignmentGrades:userID : no user or section ID passed');
             res.status(400).end();
@@ -2964,57 +2978,57 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         }
 
         var json = {
-            error:false,
-            grades:[]
+            error: false,
+            grades: []
         };
 
         return SectionUser.findAll({
             where: {
-                UserID:req.body.UserID,
-                SectionID:req.body.sectionID
+                UserID: req.body.UserID,
+                SectionID: req.body.sectionID
             },
-            attributes:['SectionUserID','Role','SectionID']
-        }).then(function(response){
-            if(!response) return;
+            attributes: ['SectionUserID', 'Role', 'SectionID']
+        }).then(function (response) {
+            if (!response) return;
 
             console.log('User grades called');
-            return Promise.map(response, function(sectionIDs){
-                if(!sectionIDs) return;
+            return Promise.map(response, function (sectionIDs) {
+                if (!sectionIDs) return;
 
-                var userSectionIDs=sectionIDs.toJSON();
+                var userSectionIDs = sectionIDs.toJSON();
 
                 return AssignmentGrade.find({
-                    where:{
-                        SectionUserID:userSectionIDs.SectionUserID
+                    where: {
+                        SectionUserID: userSectionIDs.SectionUserID
                     },
-                    attributes:['Grade','AssignmentGradeID','AssignmentInstanceID','Comments']
-                }).then(function (grades){
-                    if(!grades) return;
+                    attributes: ['Grade', 'AssignmentGradeID', 'AssignmentInstanceID', 'Comments']
+                }).then(function (grades) {
+                    if (!grades) return;
                     var gradesJSON = grades.toJSON();
-                    gradesJSON['AssignmentDetails']={};
+                    gradesJSON['AssignmentDetails'] = {};
                     json.grades.push(gradesJSON);
 
                     return AssignmentInstance.find({
-                        where:{
-                            AssignmentInstanceID:gradesJSON.AssignmentInstanceID
+                        where: {
+                            AssignmentInstanceID: gradesJSON.AssignmentInstanceID
                         },
-                        attributes:['AssignmentID']
-                    }).then(function (params){
-                        if(!params) return;
+                        attributes: ['AssignmentID']
+                    }).then(function (params) {
+                        if (!params) return;
 
                         return Assignment.find({
-                            where:{AssignmentID:params.AssignmentID}
-                        }).then(function (params){
-                            if(!params) return;
-                            gradesJSON.AssignmentDetails=params;
+                            where: { AssignmentID: params.AssignmentID }
+                        }).then(function (params) {
+                            if (!params) return;
+                            gradesJSON.AssignmentDetails = params;
                         });
                     });
                     return grades;
                 });
             });
-        }).then(function(done){
+        }).then(function (done) {
             res.json(json);
-        }).catch(function(error){
+        }).catch(function (error) {
             res.status(400).end();
         });
     });
@@ -3471,52 +3485,52 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             if (response == null || response.UserID == null) {
                 sequelize.query('SET FOREIGN_KEY_CHECKS = 0')
 
-                    .then(function() {
+                    .then(function () {
                         User.create({
                             FirstName: req.body.firstname,
                             LastName: req.body.lastname,
                             Role: req.body.role,
                             Test: isTestUSer,
-                            OrganizationGroup:organization
-                        }).catch(function(err) {
+                            OrganizationGroup: organization
+                        }).catch(function (err) {
                             console.log(err);
                             sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                 .then(function () {
                                     res.status(500).end();
                                 });
-                        }).then(async function(user) {
+                        }).then(async function (user) {
                             UserContact.create({
                                 UserID: user.UserID,
                                 FirstName: req.body.firstname,
                                 LastName: req.body.lastname,
                                 Email: req.body.email,
                                 Phone: '(XXX) XXX-XXXX'
-                            }).catch(function(err) {
+                            }).catch(function (err) {
                                 console.log(err);
                                 sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
                                     .then(function () {
                                         res.status(500).end();
                                     });
-                            }).then(async function(userCon) {
+                            }).then(async function (userCon) {
                                 console.log('trustpass', req.body.trustpassword);
                                 UserLogin.create({
                                     UserID: user.UserID,
                                     Email: req.body.email,
                                     Password: await password.hash(req.body.password),
                                     Pending: req.body.trustpassword ? false : true
-                                }).catch(function(err) {
+                                }).catch(function (err) {
                                     console.log(err);
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function() {
+                                        .then(function () {
                                             res.status(500).end();
                                         });
-                                }).then(function(userLogin) {
-                                    if(!isTestUSer){
+                                }).then(function (userLogin) {
+                                    if (!isTestUSer) {
                                         let email = new Email();
-                                        email.sendNow(user.UserID, 'invite user', {'pass':req.body.password});
+                                        email.sendNow(user.UserID, 'invite user', { 'pass': req.body.password });
                                     }
                                     sequelize.query('SET FOREIGN_KEY_CHECKS = 1')
-                                        .then(function() {
+                                        .then(function () {
                                             res.json({
                                                 'Message': 'User has succesfully added'
                                             });
@@ -3552,7 +3566,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         if (req.body.volunteer === null) {
             console.log('course/adduser : volunteer null');
         } else {
-            if (req.body.volunteer === 0){
+            if (req.body.volunteer === 0) {
                 console.log('course/adduser : volunteer 0');
             } else {
                 req.body.volunteer = 'Appointed'
@@ -3596,7 +3610,7 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
                                     console.log(err);
                                 }).then(function (userLogin) {
                                     //Email User With Password
-                                    email.sendNow(userLogin.UserID, 'invite user', {'sectionid': req.body.sectionid, 'pass': req.body.password, 'role': req.body.role});
+                                    email.sendNow(userLogin.UserID, 'invite user', { 'sectionid': req.body.sectionid, 'pass': req.body.password, 'role': req.body.role });
                                     SectionUser.create({
                                         SectionID: req.body.sectionid,
                                         UserID: userLogin.UserID,
@@ -3633,41 +3647,41 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         });
     });
 
-//Endpoint to find course
-router.get('/course/:courseId', participantAuthentication, function (req, res) {
-    Course.find({
-        where: {
-            CourseID: req.params.courseId
-        },
-        attributes: ['CourseID', 'Number', 'Name', 'Description'],
-        include:{
-            model: Organization,
-            attributes:['Name']
-        }
-    }).then(function (result) {
-        Section.findAll({
+    //Endpoint to find course
+    router.get('/course/:courseId', participantAuthentication, function (req, res) {
+        Course.find({
             where: {
                 CourseID: req.params.courseId
             },
-            include: [{
-                model: Semester,
+            attributes: ['CourseID', 'Number', 'Name', 'Description'],
+            include: {
+                model: Organization,
                 attributes: ['Name']
-            }]
-        }).then(function (sections) {
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Course': result,
-                'Sections': sections
+            }
+        }).then(function (result) {
+            Section.findAll({
+                where: {
+                    CourseID: req.params.courseId
+                },
+                include: [{
+                    model: Semester,
+                    attributes: ['Name']
+                }]
+            }).then(function (sections) {
+                res.json({
+                    'Error': false,
+                    'Message': 'Success',
+                    'Course': result,
+                    'Sections': sections
+                });
             });
+
+        }).catch(function (err) {
+            console.log('/course ERROR_WJE : ' + err.message);
+            res.status(400).end();
         });
 
-    }).catch(function (err) {
-        console.log('/course ERROR_WJE : ' + err.message);
-        res.status(400).end();
     });
-
-});
 
     //-----------------------------------------------------------------------------------------------------
 
@@ -4011,14 +4025,14 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             req_query: req.query,
             req_params: req.params
         });
-        var pre_tis =[];                // previous ti_ids
+        var pre_tis = [];                // previous ti_ids
         var pre_tis_version = [];       // previous versions
         var BlockedView = false;        // is the current task blocked?
-        var ViewTask    = true;         // is the task Viewable?
+        var ViewTask = true;         // is the task Viewable?
         var current_user_id = Number(req.query.UserID);     // the user trying to access the task
         var view_constraint;
         var allocator = new TaskFactory();
-        let taskInstanceAttributes = ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask','AssignmentInstanceID','WorkflowInstanceID', 'FinalGrade'];
+        let taskInstanceAttributes = ['TaskInstanceID', 'Data', 'Status', 'Files', 'UserID', 'PreviousTask', 'AssignmentInstanceID', 'WorkflowInstanceID', 'FinalGrade'];
         let taskActivityAttributes = ['TaskActivityID', 'Type', 'Rubric', 'Instructions', 'Fields', 'NumberParticipants', 'FileUpload', 'DisplayName', 'AllowRevision', 'SeeSibblings', 'SeeSameActivity'];
 
         /*  find the current task being viewed  */
@@ -4033,13 +4047,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         }).then(async function (current_ti) {
             var ti = current_ti;
             var user = await User.find({
-                where:{
+                where: {
                     UserID: current_user_id
                 },
-                attributes:['Admin']
+                attributes: ['Admin']
             });
             /* Pre check current task and return immidiently with error to save processing */
-            if (JSON.parse(ti.Status)[1] == 'cancelled' || JSON.parse(ti.Status)[0] == 'bypassed' ) {
+            if (JSON.parse(ti.Status)[1] == 'cancelled' || JSON.parse(ti.Status)[0] == 'bypassed') {
                 logger.log('info', ' Algorithm Cancelled returning error');
                 ViewTask = 0;
                 res.json({
@@ -4049,7 +4063,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                 return;
             }
             /*    1   */
-            if (JSON.parse(ti.Status)[0] == 'not_yet_started' ) {
+            if (JSON.parse(ti.Status)[0] == 'not_yet_started') {
                 logger.log('info', ' Algorithm 1  returning denided access');
                 ViewTask = 0;
                 res.json({
@@ -4060,7 +4074,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             }
             /*   2    */
             console.log(ti.UserID, current_user_id);
-            if ((JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != current_user_id) && !user.Admin) ) {
+            if ((JSON.parse(ti.Status)[0] == 'started' && (ti.UserID != current_user_id) && !user.Admin)) {
                 logger.log('info', ' Algorithm  2 returning denied access');
                 ViewTask = 0;
                 res.json({
@@ -4073,12 +4087,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             ////////    Here we gather required parameters for view_access function
             ////////    MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances
             ////////////////////////////////////////////////////////////////////////////////////////////
-            var sibling_ti=[];                      // for current task sibling
+            var sibling_ti = [];                      // for current task sibling
             /* Make MultipleUsers parameter  + get sibling  for view_access function*/
             var MultipleUsers = [];
-            if(ti.TaskActivity.SeeSibblings){
+            if (ti.TaskActivity.SeeSibblings) {
                 // MultipleUsers stays empty
-            }else if (ti.TaskActivity.NumberParticipants > 1){
+            } else if (ti.TaskActivity.NumberParticipants > 1) {
                 var ti_temp = await TaskInstance.findAll({
                     where: {
                         AssignmentInstanceID: ti.AssignmentInstanceID,
@@ -4089,21 +4103,21 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         model: TaskActivity,
                     }]
                 });
-                await Promise.map(ti_temp, async(ti) =>{
+                await Promise.map(ti_temp, async (ti) => {
                     MultipleUsers.push(ti.UserID);
-                    if(ti.TaskInstanceID != req.params.taskInstanceId) {
+                    if (ti.TaskInstanceID != req.params.taskInstanceId) {
                         sibling_ti.push(ti);
                     }
                 });
-            }else{
+            } else {
                 MultipleUsers.push(current_user_id);
             }
 
             /*   fullPath parameter  for view_access function  */
-            var fullPath = await allocator.makeFullPath(current_ti , new Array()) || [];
-            if(sibling_ti.length == 0){
+            var fullPath = await allocator.makeFullPath(current_ti, new Array()) || [];
+            if (sibling_ti.length == 0) {
                 fullPath.push(current_ti);
-            }else{
+            } else {
                 sibling_ti.push(current_ti);
                 fullPath.push(sibling_ti);
             }
@@ -4122,13 +4136,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     MustCompleteThisFirst: 1
                 },
             });
-            await Promise.map(ti_temp, async(ti) =>{
+            await Promise.map(ti_temp, async (ti) => {
                 BlockableTAs.push(ti.TaskActivityID);
             });
 
             /*  PendingTaskInstance for view_access function  */
             var PendingTaskInstances = [];
-            if(BlockableTAs.lenth !== 0){
+            if (BlockableTAs.lenth !== 0) {
                 var ti_temp = await TaskInstance.findAll({
                     where: {
                         AssignmentInstanceID: ti.AssignmentInstanceID,
@@ -4142,7 +4156,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         model: TaskActivity,
                     }]
                 });
-                await Promise.map(ti_temp, async(ti) =>{
+                await Promise.map(ti_temp, async (ti) => {
                     PendingTaskInstances.push(ti);
                 });
             }
@@ -4153,9 +4167,9 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             /////////////////////////////////////////////////////////////////////////////////
 
             // if its blocked/ not viewable, skip the below code and return blocked message
-            var view_constraint = await allocator.View_Access(res, current_user_id, current_ti, MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances );
+            var view_constraint = await allocator.View_Access(res, current_user_id, current_ti, MultipleUsers, fullPath, BlockableTAs, PendingTaskInstances);
             BlockedView = view_constraint.BlockedView;
-            ViewTask    = view_constraint.ViewTask;
+            ViewTask = view_constraint.ViewTask;
             /////////////////////////////////////////////////////////////////////////////////
             //////  If the current task can be viewed and is not Blocked
             //////  Process all privious tasks before this one, and apply view_access on it
@@ -4163,7 +4177,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             //////  View access determines if task can be viewed and sets the version
             /////////////////////////////////////////////////////////////////////////////////
             /*  Process Privious Tasks  if not blocked and viewable*/
-            if(! BlockedView && ViewTask ){
+            if (!BlockedView && ViewTask) {
                 var ar = new Array();
                 var PathLength = fullPath.length;
                 //console.log('debug' , 'pathlength' , PathLength);
@@ -4171,23 +4185,23 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     await allocator.SetDataVersion(current_ti, view_constraint.WhichVersion); // set version on current task if its not first task
                     // go through each privious task before the current task, and appy view access on it
                     // if task is not viewable, dont add it to the privious task list
-                    for(var t = PathLength -2; t >= 0; t--){  // Go in reverse Order
+                    for (var t = PathLength - 2; t >= 0; t--) {  // Go in reverse Order
                         var task = fullPath[t];
-                        var prev_tis =[];
-                        if( task.constructor === Array){    // if there were siblings add each to array
-                            await Promise.map(task, async (taskInstance)=>{
+                        var prev_tis = [];
+                        if (task.constructor === Array) {    // if there were siblings add each to array
+                            await Promise.map(task, async (taskInstance) => {
                                 prev_tis.push(taskInstance);
                             });
-                        }else{
+                        } else {
                             prev_tis.push(task);            // if no siblings add only this to array
                         }
-                        await Promise.map(prev_tis, async(pre_ti)=>{  // for each sibling or single task
+                        await Promise.map(prev_tis, async (pre_ti) => {  // for each sibling or single task
                             /* Skip Tasks that were Cancelled  */
-                            if(JSON.parse(pre_ti.Status)[1] != 'cancelled'){
-                                view_constraint = await allocator.View_Access(res, current_user_id, pre_ti, [] , fullPath, BlockableTAs, PendingTaskInstances );
-                                if(view_constraint.ViewTask != 0){
+                            if (JSON.parse(pre_ti.Status)[1] != 'cancelled') {
+                                view_constraint = await allocator.View_Access(res, current_user_id, pre_ti, [], fullPath, BlockableTAs, PendingTaskInstances);
+                                if (view_constraint.ViewTask != 0) {
                                     // set the data version based on the view_access function, and add it to array
-                                    await allocator.SetDataVersion(pre_ti , view_constraint.WhichVersion);  // set the data version
+                                    await allocator.SetDataVersion(pre_ti, view_constraint.WhichVersion);  // set the data version
                                     ar.push(pre_ti);
                                     pre_tis.push(pre_ti.TaskInstanceID);
                                     pre_tis_version.push(view_constraint.WhichVersion);
@@ -4211,31 +4225,31 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                 }
             }
             /* User Not Allowed to Do this task    */
-            if(BlockedView){
-                var Ta_Names='';
+            if (BlockedView) {
+                var Ta_Names = '';
                 // find the names of the tasks that are blocking the user from doing this task
-                await Promise.map(PendingTaskInstances, async(ti)=>{
-                    if( BlockableTAs.includes( ti.TaskActivity.TaskActivityID) ){
-                        Ta_Names+= ti.TaskActivity.Name;
-                        if(BlockableTAs.length > 1){
-                            Ta_Names+=', ';
+                await Promise.map(PendingTaskInstances, async (ti) => {
+                    if (BlockableTAs.includes(ti.TaskActivity.TaskActivityID)) {
+                        Ta_Names += ti.TaskActivity.Name;
+                        if (BlockableTAs.length > 1) {
+                            Ta_Names += ', ';
                         }
                     }
                 });
                 res.json({
                     'error': true,
-                    'message': 'You cannot work on this task until you have completed your task(s): '+ Ta_Names
+                    'message': 'You cannot work on this task until you have completed your task(s): ' + Ta_Names
                 });
                 return;
-            /* User Not Allowed to view this task  */
-            }else if(!ViewTask){
+                /* User Not Allowed to view this task  */
+            } else if (!ViewTask) {
                 res.json({
                     'error': true,
                     'message': 'At at this time'
                 });
                 return;
             } else {
-            /* Return All Viewable Data   */
+                /* Return All Viewable Data   */
                 ar.push(current_ti);
                 res.json({
                     'error': false,
@@ -4464,9 +4478,9 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         //Promise workflowActivity has all the data returned
         Promise.all(workflowActivity).then(function (result) {
 
-        //Check if result is empty
+            //Check if result is empty
             if (result !== null || typeof result !== undefined) {
-            //WorkflowActivityID -- key
+                //WorkflowActivityID -- key
                 result.forEach(function (workflow) {
                     taskCollection[workflow.WorkflowActivityID] = [];
                     workflowNames[workflow.WorkflowActivityID] = workflow.Name;
@@ -4495,7 +4509,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     }).then(function (taskActivity) {
 
-                    //Push the resulting name and TaskActivityID on to javascript object
+                        //Push the resulting name and TaskActivityID on to javascript object
                         taskCollection[workflow.WorkflowActivityID].push({
                             'taskActivityID': taskActivity.TaskActivityID,
                             'name': taskActivity.Name,
@@ -4516,7 +4530,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             });
 
         }).then(function (done) {
-        //if sectionIDs are set then return
+            //if sectionIDs are set then return
 
             if (isDone === true) {
                 res.json({
@@ -4536,7 +4550,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
     //Endopint to assign an assignment to a section
     router.post('/getAssignToSection/submit/', teacherAuthentication, async function (req, res) {
-    //creates new allocator object
+        //creates new allocator object
         var taskFactory = new TaskFactory();
         var manager = new Manager();
         var make = new Make();
@@ -4551,7 +4565,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             console.log(typeof req.body.wf_timing, req.body.startDate);
             if (moment(req.body.startDate) <= new Date()) {
                 await Promise.mapSeries(req.body.sectionIDs, async function (secId) {
-                    await Promise.mapSeries(done, async function(assignmentInstanceId){
+                    await Promise.mapSeries(done, async function (assignmentInstanceId) {
                         console.log('Assignment Instance ID?:', assignmentInstanceId);
                         await make.allocateUsers(secId, assignmentInstanceId);
                     });
@@ -4595,7 +4609,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
     });
 
-    router.get('/openRevision/save', participantAuthentication,function (res, req) {
+    router.get('/openRevision/save', participantAuthentication, function (res, req) {
         if (req.body.data == null) {
             console.log('/openRevision/save: data is missing');
             res.status(400).end();
@@ -4619,7 +4633,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
     });
 
-    router.get('/openRevision/submit', participantAuthentication,function (res, req) {
+    router.get('/openRevision/submit', participantAuthentication, function (res, req) {
         if (req.body.data == null) {
             console.log('/openRevision/save: data is missing');
             res.status(400).end();
@@ -4666,7 +4680,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         realloc.reallocate(req.body.taskid, req.body.users);
     });
 
-    router.post('/reallocate/task_to_user/', teacherAuthentication, async(req, res) => {
+    router.post('/reallocate/task_to_user/', teacherAuthentication, async (req, res) => {
         // console.log('req.body.ti_id', req.body.ti_id);
         // console.log('req.body.user_id,', req.body.user_id,);
         // console.log('req.body.isExtraCredit,', req.body.isExtraCredit,);
@@ -4678,13 +4692,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
 
         //let response = await ra.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
-        var a = new Allocator([],0);  // use updated version
+        var a = new Allocator([], 0);  // use updated version
         let response = await a.reallocate_user_to_task(ti, req.body.user_id, req.body.isExtraCredit);
         console.log('respose back', response);
         res.json(response);
     });
 
-    router.post('/reallocate/tasks',  teacherAuthentication, async(req, res) => {
+    router.post('/reallocate/tasks', teacherAuthentication, async (req, res) => {
         console.log('req.body.tasks', req.body.tasks);
         console.log('req.body.users', req.body.users);
         console.log('req.body.sectionID', req.body.sectionID);
@@ -4916,7 +4930,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     router.delete('/delete/user/:userID', teacherAuthentication, (req, res) => {
         console.log('deleting user', req.params.userID);
 
-        return sequelize.transaction(function(t) {
+        return sequelize.transaction(function (t) {
             return UserLogin.destroy({
                 where: {
                     UserID: req.params.userID
@@ -4979,15 +4993,15 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             res.status(400).end();
             return;
         }
-        else{
+        else {
             // var va2 = va[0];
         }
         UserContact.upsert(
             req.body, {
-                where: {
-                    UserID: req.body.UserID
-                }
+            where: {
+                UserID: req.body.UserID
             }
+        }
         ).then(function (result) {
             sequelize.options.omitNull = true;
             res.json({
@@ -5000,7 +5014,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
     });
 
-    router.get('/EveryonesWork/:assignmentInstanceID',participantAuthentication, async function (req, res) {
+    router.get('/EveryonesWork/:assignmentInstanceID', participantAuthentication, async function (req, res) {
         var everyones_work = {};
         var ai = await AssignmentInstance.find({
             where: {
@@ -5106,7 +5120,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     where: {
                         WorkflowInstanceID: wI.WorkflowInstanceID
                     },
-                    attributes: ['TaskInstanceID', 'Data','Status'],
+                    attributes: ['TaskInstanceID', 'Data', 'Status'],
                     include: {
                         model: TaskActivity,
                         attributes: ['DisplayName', 'TaskActivityID']
@@ -5323,7 +5337,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             }
         }).then((aiResult) => {
-            try{
+            try {
                 let workflowsList = JSON.parse(aiResult.WorkflowCollection);
 
 
@@ -5334,13 +5348,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         'Result': arrArr
                     });
                 })
-                    .catch(function(){
+                    .catch(function () {
                         return res.json({
                             'Result': []
                         });
                     });
 
-            } catch(exc){
+            } catch (exc) {
                 return res.json({
                     'Result': []
                 });
@@ -5435,8 +5449,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             where: {
                 AssignmentInstanceID: req.params.assignmentInstanceID
             }
-        }).then(async(aiResult) => {
-            try{
+        }).then(async (aiResult) => {
+            try {
                 let workflowsList = JSON.parse(aiResult.WorkflowCollection);
                 let finalResults = fetchWorkflow(workflowsList);
                 Promise.all(finalResults.map(Promise.all, Promise)).then(arrArr => {
@@ -5446,7 +5460,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                 }).catch(err => {
                     console.log(err);
                 });
-            } catch(exc){
+            } catch (exc) {
                 return res.json({
                     'Result': assignmentObject
                 });
@@ -5493,22 +5507,22 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     router.get('/displayarchivedinstance/', function (req, res) {
 
         ArchivedAssignmentInstance.findAll({
-            include:[
+            include: [
                 {
-                    model:Section,
-                    include:[{
+                    model: Section,
+                    include: [{
                         model: Semester
                     },
                     {
-		                model: Course
+                        model: Course
                     }]
                 },
                 {
                     model: ArchivedAssignment
                 },
                 {
-		            model: Assignment
-	            }
+                    model: Assignment
+                }
             ]
         }).then(function (rows) {
             res.json({
@@ -5525,10 +5539,10 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     router.get('/displayremovedinstance/', function (req, res) {
 
         RemovedAssignmentInstance.findAll({
-            include:[
+            include: [
                 {
-                    model:Section,
-                    include:[{
+                    model: Section,
+                    include: [{
                         model: Semester
                     },
                     {
@@ -5555,7 +5569,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
     router.get('/displayarchivedactivity/', function (req, res) {
         ArchivedAssignment.findAll({
-            include:[Course]
+            include: [Course]
         }).then(function (rows) {
             res.json({
                 'Error': false,
@@ -5571,7 +5585,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     router.get('/displayremovedactivity/', function (req, res) {
 
         RemovedAssignment.findAll({
-            include:[Course]
+            include: [Course]
         }).then(function (rows) {
             res.json({
                 'Error': false,
@@ -5586,7 +5600,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
     router.get('/displayactiveactivity/', function (req, res) {
         Assignment.findAll({
-            include:[Course]
+            include: [Course]
         }).then(function (rows) {
             res.json({
                 'Error': false,
@@ -5601,10 +5615,10 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
     router.get('/displayactiveinstance/', function (req, res) {
         AssignmentInstance.findAll({
-            include:[
+            include: [
                 {
-                    model:Section,
-                    include:[{
+                    model: Section,
+                    include: [{
                         model: Semester
                     },
                     {
@@ -5709,7 +5723,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //Endpoint to change status of volunteer update all in assignment instance
-    router.post('/VolunteerPool/assignmentInstanceStatusUpdate/', teacherAuthentication,  function (req, res) {
+    router.post('/VolunteerPool/assignmentInstanceStatusUpdate/', teacherAuthentication, function (req, res) {
 
         VolunteerPool.update({
             status: req.body.status
@@ -5778,13 +5792,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //---------------------comments APIs----------------------------------------------
-    router.post('/comments/add', function(req, res) {
+    router.post('/comments/add', function (req, res) {
         console.log("/comments/add : was called");
 
-        if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null ) || req.body.ReplyLevel === null) {
-             console.log("/comments/add : Missing attributes");
-             res.status(400).end();
-         }
+        if (req.body.UserID === null || ((req.body.TaskInstanceID === null) && (req.body.AssignmentInstanceID === null)) || (req.body.CommentsText === null && req.body.Rating === null) || req.body.ReplyLevel === null) {
+            console.log("/comments/add : Missing attributes");
+            res.status(400).end();
+        }
 
         console.log("got to create part");
 
@@ -5793,7 +5807,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             CommentsID: req.body.CommentsID,
             UserID: req.body.UserID,
             TargetID: req.body.TargetID,
-            AssignmentInstanceID:req.body.AssignmentInstanceID,
+            AssignmentInstanceID: req.body.AssignmentInstanceID,
             Type: req.body.Type,
             CommentsText: req.body.CommentsText,
             Rating: req.body.Rating,
@@ -5803,66 +5817,66 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             Parents: req.body.Parents,
             Hide: 0,
             Viewed: 0,
-            Time:req.body.Time,
+            Time: req.body.Time,
             Complete: req.body.Complete,
             CommentTarget: req.body.CommentTarget,
             OriginTaskInstanceID: req.body.OriginTaskInstanceID
 
 
 
-        }).then(function(result){
-          console.log ('Finding one task instance')
-          TaskInstance.findOne({
-            where: {
-              TaskInstanceID: req.body.TargetID,
-            }
-          }).then(function(rows) {
-            console.log('Creating notification to task owner');
-            Notifications.create({
-                  NotificationTarget: req.body.Flag == 1 ? 'Flag' : 'Comment',
-                  TargetID: result.CommentsID,
-                  UserID: rows.UserID,
-                  Time: req.body.Time,
-                  OriginTaskInstanceID: req.body.OriginTaskInstanceID,
-                  Dismiss: (rows.UserID == req.body.UserID) ? 1 : 0
-              })
-              console.log('Finding one comment');
-              Comments.findOne({
+        }).then(function (result) {
+            console.log('Finding one task instance')
+            TaskInstance.findOne({
                 where: {
-                    CommentsID: req.body.Parents
+                    TaskInstanceID: req.body.TargetID,
                 }
-              }).then(function(rows2) {
+            }).then(function (rows) {
+                console.log('Creating notification to task owner');
+                Notifications.create({
+                    NotificationTarget: req.body.Flag == 1 ? 'Flag' : 'Comment',
+                    TargetID: result.CommentsID,
+                    UserID: rows.UserID,
+                    Time: req.body.Time,
+                    OriginTaskInstanceID: req.body.OriginTaskInstanceID,
+                    Dismiss: (rows.UserID == req.body.UserID) ? 1 : 0
+                })
+                console.log('Finding one comment');
+                Comments.findOne({
+                    where: {
+                        CommentsID: req.body.Parents
+                    }
+                }).then(function (rows2) {
                     console.log('Creating notification to parent');
                     if (rows2.UserID > 0) {
-                      console.log('Notify parent pathway', rows2.UserID);
-                     Notifications.create({
-                           NotificationTarget: req.body.Flag == 1 ? 'Flag' : 'Comment',
-                           TargetID: result.CommentsID,
-                           UserID: rows2.UserID,
-                           Time: req.body.Time,
-                           OriginTaskInstanceID: req.body.OriginTaskInstanceID,
-                           Dismiss: ((rows2.UserID == req.body.UserID) || (rows.UserID == rows2.UserID)) ? 1 : 0
-                       })
-                     };
-              }).then(function(rows) {
-                  res.json({
-                      'Error': false,
-                      'Message': 'Success'
-                  });
-              }).catch(function(err) {
-                  console.log('/comments/add/ ' + err.message);
-                  res.status(401).end();
-              });
-          })
-
-
-          res.status(200).end();
-        }).catch(function(err) {
-                    console.log(err);
-                    res.status(400).end();
+                        console.log('Notify parent pathway', rows2.UserID);
+                        Notifications.create({
+                            NotificationTarget: req.body.Flag == 1 ? 'Flag' : 'Comment',
+                            TargetID: result.CommentsID,
+                            UserID: rows2.UserID,
+                            Time: req.body.Time,
+                            OriginTaskInstanceID: req.body.OriginTaskInstanceID,
+                            Dismiss: ((rows2.UserID == req.body.UserID) || (rows.UserID == rows2.UserID)) ? 1 : 0
+                        })
+                    };
+                }).then(function (rows) {
+                    res.json({
+                        'Error': false,
+                        'Message': 'Success'
+                    });
+                }).catch(function (err) {
+                    console.log('/comments/add/ ' + err.message);
+                    res.status(401).end();
                 });
+            })
 
-              });
+
+            res.status(200).end();
+        }).catch(function (err) {
+            console.log(err);
+            res.status(400).end();
+        });
+
+    });
 
 
     //------------------------------------------------------------------------------------------
@@ -5987,25 +6001,25 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             Time: req.body.Time,
 
         }).then(function (result) {
-          Notifications.update({
-            Dismiss: 1,
-          },{
-            where: {
-                UserID: req.body.UserID,
-                NotificationTarget: 'Flag',
-                TargetID: result.CommentsID
-            }
-          });
-          Notifications.update({
-            Dismiss: 1,
-            DismissType: 'User'
-          },{
-            where: {
-                UserID: req.body.UserID,
-                NotificationTarget: 'Comment',
-                TargetID: result.CommentsID
-            }
-          });
+            Notifications.update({
+                Dismiss: 1,
+            }, {
+                where: {
+                    UserID: req.body.UserID,
+                    NotificationTarget: 'Flag',
+                    TargetID: result.CommentsID
+                }
+            });
+            Notifications.update({
+                Dismiss: 1,
+                DismissType: 'User'
+            }, {
+                where: {
+                    UserID: req.body.UserID,
+                    NotificationTarget: 'Comment',
+                    TargetID: result.CommentsID
+                }
+            });
             res.status(200).end();
             console.log('/comments/viewed/ was called ', req.body.CommentsID);
         }).catch(function (err) {
@@ -6016,27 +6030,27 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
     //------------------------------------------------------------------------------
 
-    router.post('/comments/setFlag', function(req, res) {
+    router.post('/comments/setFlag', function (req, res) {
 
-        if (req.body.CommentsID  == null) {
+        if (req.body.CommentsID == null) {
             console.log("/comments/setFlag : CommentsID cannot be null");
             res.status(400).end();
             return;
         }
 
         Comments.update({
-                Flag: 1
+            Flag: 1
         }, {
             where: {
                 CommentsID: req.body.CommentsID,
                 Delete: null
             }
-        }).then(function(result) {
+        }).then(function (result) {
             Comments.findOne({
                 where: {
                     CommentsID: req.body.CommentsID
                 }
-            }).then(function(CommentsUpdated) {
+            }).then(function (CommentsUpdated) {
                 Notifications.create({
                     NotificationTarget: 'Flag',
                     TargetID: req.body.CommentsID,
@@ -6050,13 +6064,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     "Flag": CommentsUpdated
                 });
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/comment/setFlag: ' + err);
             res.status(401).end();
         });
     });
     //-------------------------------------------------------------------------
-    router.post('/comments/removeFlag', participantAuthentication,function (req, res) {
+    router.post('/comments/removeFlag', participantAuthentication, function (req, res) {
 
         if (req.body.CommentsID == null) {
             console.log('/comments/removeFlag : CommentsID cannot be null');
@@ -6780,7 +6794,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             attributes: ['WorkflowActivityID', 'Name']
         });
 
-        await Promise.mapSeries(was, async(wa) => {
+        await Promise.mapSeries(was, async (wa) => {
             console.log('wa id', wa.WorkflowActivityID);
             let tas = [];
             let ta = await TaskActivity.findAll({
@@ -6823,7 +6837,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             }
         });
 
-        await Promise.mapSeries(workflows, async(workflow) => {
+        await Promise.mapSeries(workflows, async (workflow) => {
             let tasks = {};
             let tis = await TaskInstance.findAll({
                 where: {
@@ -6838,7 +6852,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
             tasks['id'] = workflow.WorkflowInstanceID;
 
-            await Promise.mapSeries(tis, async(ti) => {
+            await Promise.mapSeries(tis, async (ti) => {
                 tasks[ti.TaskActivityID] = {
                     TaskInstanceID: ti.TaskInstanceID,
                     WorkflowInstanceID: ti.WorkflowInstanceID,
@@ -7013,6 +7027,43 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
     });
 
+
+    //Endpoint for user sections based on course and semester
+    router.get('/studentCourseSections/:userID/:courseID/:semesterID', async function (req, res) {
+
+        let select = `SELECT DISTINCT A.SectionUserID, B.Name, A.SectionID, B.CourseID, B.SemesterID, A.UserID, A.Role, A.Active, A.Volunteer, B.Description FROM 
+        (
+            (SELECT * FROM sectionuser
+            WHERE UserID = ? ) A  
+            INNER JOIN 
+            (SELECT * FROM section
+            WHERE SemesterID = ?
+            AND CourseID = ? ) B 
+            ON
+            A.SectionID = B.SectionID
+        )`;
+
+        sequelize.query(select, {
+            replacements: [
+                req.params.userID,
+                req.params.semesterID,
+                req.params.courseID
+            ],
+            type: sequelize.QueryTypes.SELECT
+        }).then(result => {
+
+            if (!result) {
+                result = [];
+            }
+            res.json({
+                'Error': false,
+                'sections': result
+            });
+        }).catch(() => {
+            res.status(400).end();
+        });
+    });
+
     //Endpoint to get badges for each category
     router.get('/badgeCategories/:courseID/:sectionID/:semesterID', async function (req, res) {
 
@@ -7044,7 +7095,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                     JOIN categoryinstance ci ON ci.CategoryInstanceID = bi.CategoryInstanceID
                                     WHERE ci.CategoryInstanceID = ${item.CategoryID}`;
 
-                sequelize.query(select).then(function(badges) {
+                sequelize.query(select).then(function (badges) {
                     if (badges.length > 0) {
                         item.badges = badges[0];
                     } else {
@@ -7326,455 +7377,455 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
      ************************************************************************************************************/
 
 
-     //---------------------------------------------------------------------------
-     router.get('/notifications/user/:UserID', function(req, res) {
-         console.log("/notifications/user/:UserID was called ", req.params.UserID);
-       var count = 0;
-       Notifications.findAll({
-           where: {
-               UserID: req.params.UserID,
-               Dismiss: 0
-           }
-         }).then(function(rows) {
-           console.log(rows.length);
-           if (rows.length == 0) {
-             res.json({
+    //---------------------------------------------------------------------------
+    router.get('/notifications/user/:UserID', function (req, res) {
+        console.log("/notifications/user/:UserID was called ", req.params.UserID);
+        var count = 0;
+        Notifications.findAll({
+            where: {
+                UserID: req.params.UserID,
+                Dismiss: 0
+            }
+        }).then(function (rows) {
+            console.log(rows.length);
+            if (rows.length == 0) {
+                res.json({
                     'Error': false,
                     'Message': 'Success',
                     'Notifications': rows,
-             });
-           }
-           else {
-           rows.forEach((i, index, array) => {
-             console.log('STARTING TO PROCESS NOTIFICATION', i.NotificationsID, i.NotificationTarget);
-             if (i.NotificationTarget == 'Comment' || i.NotificationTarget == 'Flag') {
-               Comments.findOne({
-                 where: {
-                   CommentsID: i.TargetID
-                 }
-               }).then(function(commentsRows) {
-                 AssignmentInstance.findOne({
-                   where: {
-                     AssignmentInstanceID: commentsRows.AssignmentInstanceID
-                   }
-                 }).then(function(assignmentInstanceRows){
-                   Assignment.findOne({
-                     where: {
-                       AssignmentID: assignmentInstanceRows.AssignmentID
-                     }
-                   }).then(function(assignmentRows) {
-                     TaskInstance.findOne({
-                       where: {
-                         TaskInstanceID: commentsRows.TargetID
-                       }
-                     }).then(function(taskInstanceRows) {
-                       TaskActivity.findOne({
-                         where: {
-                           TaskActivityID: taskInstanceRows.TaskActivityID
-                         }
-                       }).then (function(taskActivityRows) {
-                         i.dataValues.TaskName = taskActivityRows.DisplayName;
-                         i.dataValues.AssignmentName = assignmentRows.DisplayName;
-                         i.dataValues.CommentTarget = commentsRows.CommentTarget;
-                         i.dataValues.CommentTargetID = commentsRows.TargetID;
-                       }).then (function (result2) {
-                         var taskFactory = new TaskFactory();
-                         i.dataValues.LinkID = i.OriginTaskInstanceID;
-                         taskFactory.getNextTask(i.OriginTaskInstanceID, new Array()).then(function(NextTask) {
-                           if (NextTask != null) {
-                             NextTask.forEach((task, index) => {
-                               if (JSON.parse(task.Status)[0] == 'complete') {
-                                   i.dataValues.LinkID = task.TaskInstanceID;
-                               }
-                             }, this);
-                           }
-                         }).then (function(result3) {
-                         count++;
-                         if (count == array.length) {
-                           res.json({
-                                  'Error': false,
-                                  'Message': 'Success',
-                                  'Notifications': rows,
-                           });
-                         }
-                       });
-                     })
-                   });
-                 })
-               })
-             })
-           }
-             if (i.NotificationTarget == 'VolunteerPool') {
-               VolunteerPool.findOne({
-                 where: {
-                   VolunteerPoolID: i.TargetID
-                 }
-               }).then(function(volunteerPoolRows) {
-                 AssignmentInstance.findOne({
-                   where: {
-                     AssignmentInstanceID: volunteerPoolRows.AssignmentInstanceID
-                   }
-                 }).then(function(assignmentInstanceRows){
-                   Assignment.findOne({
-                     where: {
-                       AssignmentID: assignmentInstanceRows.AssignmentID
-                     }
-               }).then(function(assignmentRows) {
-                 Section.findOne({
-                   where: {
-                     SectionID: volunteerPoolRows.SectionID
-                   }
-                 }).then(function(sectionRows) {
-                   Course.findOne({
-                     where: {
-                       CourseID: sectionRows.CourseID
-                     }
-                   }).then(function(courseRows) {
-                     User.findOne({
-                       where: {
-                         UserID: volunteerPoolRows.UserID
-                       }
-                     }).then(function(userRows) {
-                       SectionUser.findOne({
-                         where: {
-                           SectionID: sectionRows.SectionID,
-                           UserID: i.UserID
-                         }
-                       }).then(function(sectionUserRows) {
-                         i.dataValues.SectionName = sectionRows.Name;
-                         i.dataValues.AssignmentName = assignmentRows.DisplayName;
-                         i.dataValues.CourseName = courseRows.Name;
-                         i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
-                         i.dataValues.ActorID = userRows.UserID;
-                         i.dataValues.OrganizationID = courseRows.OrganizationID;
-                         i.dataValues.CourseID = courseRows.CourseID;
-                         i.dataValues.SemesterID = sectionRows.SemesterID;
-                         i.dataValues.SectionID = sectionRows.SectionID;
-                         i.dataValues.Role = sectionUserRows.Role;
-                         count++;
-                         if (count == array.length) {
-                           res.json({
-                                  'Error': false,
-                                  'Message': 'Success',
-                                  'Notifications': rows,
-                           });
-                         }
-                       })
-                     })
-                   })
-                 })
-             });
-       });
-     });
-   }
-             if (i.NotificationTarget == 'SectionUser') {
-               SectionUser.findOne({
-                 where: {
-                   SectionUserID: i.TargetID
-                 }
-               }).then(function(sectionUserRows) {
-                 Section.findOne({
-                   where: {
-                     SectionID: sectionUserRows.SectionID
-                   }
-                 }).then(function(sectionRows) {
-                   Course.findOne({
-                     where: {
-                       CourseID: sectionRows.CourseID
-                     }
-                   }).then(function(courseRows) {
-                     User.findOne({
-                       where: {
-                         UserID: sectionUserRows.UserID
-                       }
-                     }).then(function(userRows) {
-                       SectionUser.findOne({
-                         where: {
-                           SectionID: sectionRows.SectionID,
-                           UserID: i.UserID
-                         }
-                       }).then(function(sectionUserRows2) {
-                           i.dataValues.SectionName = sectionRows.Name;
-                           i.dataValues.CourseName = courseRows.Name;
-                           i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
-                           i.dataValues.ActorID = userRows.UserID;
-                           i.dataValues.OrganizationID = courseRows.OrganizationID;
-                           i.dataValues.CourseID = courseRows.CourseID;
-                           i.dataValues.SemesterID = sectionRows.SemesterID;
-                           i.dataValues.SectionID = sectionRows.SectionID;
-                           i.dataValues.Role = sectionUserRows2.Role;
-                           count++;
-                           if (count == array.length) {
-                             res.json({
-                                    'Error': false,
-                                    'Message': 'Success',
-                                    'Notifications': rows,
-                             });
-                           }
-                       })
-                     })
-                   })
-                 })
-               })
-             }
-           });
-         }
-         }).catch(function(err) {
-             console.log('/notifications/user/:UserID ' + err.message);
-             res.status(401).end();
-         });
+                });
+            }
+            else {
+                rows.forEach((i, index, array) => {
+                    console.log('STARTING TO PROCESS NOTIFICATION', i.NotificationsID, i.NotificationTarget);
+                    if (i.NotificationTarget == 'Comment' || i.NotificationTarget == 'Flag') {
+                        Comments.findOne({
+                            where: {
+                                CommentsID: i.TargetID
+                            }
+                        }).then(function (commentsRows) {
+                            AssignmentInstance.findOne({
+                                where: {
+                                    AssignmentInstanceID: commentsRows.AssignmentInstanceID
+                                }
+                            }).then(function (assignmentInstanceRows) {
+                                Assignment.findOne({
+                                    where: {
+                                        AssignmentID: assignmentInstanceRows.AssignmentID
+                                    }
+                                }).then(function (assignmentRows) {
+                                    TaskInstance.findOne({
+                                        where: {
+                                            TaskInstanceID: commentsRows.TargetID
+                                        }
+                                    }).then(function (taskInstanceRows) {
+                                        TaskActivity.findOne({
+                                            where: {
+                                                TaskActivityID: taskInstanceRows.TaskActivityID
+                                            }
+                                        }).then(function (taskActivityRows) {
+                                            i.dataValues.TaskName = taskActivityRows.DisplayName;
+                                            i.dataValues.AssignmentName = assignmentRows.DisplayName;
+                                            i.dataValues.CommentTarget = commentsRows.CommentTarget;
+                                            i.dataValues.CommentTargetID = commentsRows.TargetID;
+                                        }).then(function (result2) {
+                                            var taskFactory = new TaskFactory();
+                                            i.dataValues.LinkID = i.OriginTaskInstanceID;
+                                            taskFactory.getNextTask(i.OriginTaskInstanceID, new Array()).then(function (NextTask) {
+                                                if (NextTask != null) {
+                                                    NextTask.forEach((task, index) => {
+                                                        if (JSON.parse(task.Status)[0] == 'complete') {
+                                                            i.dataValues.LinkID = task.TaskInstanceID;
+                                                        }
+                                                    }, this);
+                                                }
+                                            }).then(function (result3) {
+                                                count++;
+                                                if (count == array.length) {
+                                                    res.json({
+                                                        'Error': false,
+                                                        'Message': 'Success',
+                                                        'Notifications': rows,
+                                                    });
+                                                }
+                                            });
+                                        })
+                                    });
+                                })
+                            })
+                        })
+                    }
+                    if (i.NotificationTarget == 'VolunteerPool') {
+                        VolunteerPool.findOne({
+                            where: {
+                                VolunteerPoolID: i.TargetID
+                            }
+                        }).then(function (volunteerPoolRows) {
+                            AssignmentInstance.findOne({
+                                where: {
+                                    AssignmentInstanceID: volunteerPoolRows.AssignmentInstanceID
+                                }
+                            }).then(function (assignmentInstanceRows) {
+                                Assignment.findOne({
+                                    where: {
+                                        AssignmentID: assignmentInstanceRows.AssignmentID
+                                    }
+                                }).then(function (assignmentRows) {
+                                    Section.findOne({
+                                        where: {
+                                            SectionID: volunteerPoolRows.SectionID
+                                        }
+                                    }).then(function (sectionRows) {
+                                        Course.findOne({
+                                            where: {
+                                                CourseID: sectionRows.CourseID
+                                            }
+                                        }).then(function (courseRows) {
+                                            User.findOne({
+                                                where: {
+                                                    UserID: volunteerPoolRows.UserID
+                                                }
+                                            }).then(function (userRows) {
+                                                SectionUser.findOne({
+                                                    where: {
+                                                        SectionID: sectionRows.SectionID,
+                                                        UserID: i.UserID
+                                                    }
+                                                }).then(function (sectionUserRows) {
+                                                    i.dataValues.SectionName = sectionRows.Name;
+                                                    i.dataValues.AssignmentName = assignmentRows.DisplayName;
+                                                    i.dataValues.CourseName = courseRows.Name;
+                                                    i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
+                                                    i.dataValues.ActorID = userRows.UserID;
+                                                    i.dataValues.OrganizationID = courseRows.OrganizationID;
+                                                    i.dataValues.CourseID = courseRows.CourseID;
+                                                    i.dataValues.SemesterID = sectionRows.SemesterID;
+                                                    i.dataValues.SectionID = sectionRows.SectionID;
+                                                    i.dataValues.Role = sectionUserRows.Role;
+                                                    count++;
+                                                    if (count == array.length) {
+                                                        res.json({
+                                                            'Error': false,
+                                                            'Message': 'Success',
+                                                            'Notifications': rows,
+                                                        });
+                                                    }
+                                                })
+                                            })
+                                        })
+                                    })
+                                });
+                            });
+                        });
+                    }
+                    if (i.NotificationTarget == 'SectionUser') {
+                        SectionUser.findOne({
+                            where: {
+                                SectionUserID: i.TargetID
+                            }
+                        }).then(function (sectionUserRows) {
+                            Section.findOne({
+                                where: {
+                                    SectionID: sectionUserRows.SectionID
+                                }
+                            }).then(function (sectionRows) {
+                                Course.findOne({
+                                    where: {
+                                        CourseID: sectionRows.CourseID
+                                    }
+                                }).then(function (courseRows) {
+                                    User.findOne({
+                                        where: {
+                                            UserID: sectionUserRows.UserID
+                                        }
+                                    }).then(function (userRows) {
+                                        SectionUser.findOne({
+                                            where: {
+                                                SectionID: sectionRows.SectionID,
+                                                UserID: i.UserID
+                                            }
+                                        }).then(function (sectionUserRows2) {
+                                            i.dataValues.SectionName = sectionRows.Name;
+                                            i.dataValues.CourseName = courseRows.Name;
+                                            i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
+                                            i.dataValues.ActorID = userRows.UserID;
+                                            i.dataValues.OrganizationID = courseRows.OrganizationID;
+                                            i.dataValues.CourseID = courseRows.CourseID;
+                                            i.dataValues.SemesterID = sectionRows.SemesterID;
+                                            i.dataValues.SectionID = sectionRows.SectionID;
+                                            i.dataValues.Role = sectionUserRows2.Role;
+                                            count++;
+                                            if (count == array.length) {
+                                                res.json({
+                                                    'Error': false,
+                                                    'Message': 'Success',
+                                                    'Notifications': rows,
+                                                });
+                                            }
+                                        })
+                                    })
+                                })
+                            })
+                        })
+                    }
+                });
+            }
+        }).catch(function (err) {
+            console.log('/notifications/user/:UserID ' + err.message);
+            res.status(401).end();
+        });
 
-     });
-     //---------------------------------------------------------------------------
-     router.get('/oldnotifications/user/:UserID', function(req, res) {
-         console.log("/oldnotifications/user/:UserID was called ", req.params.UserID);
-       var count = 0;
-       Notifications.findAll({
-           where: {
-               UserID: req.params.UserID,
-               Dismiss: 1,
-               DismissType: 'User'
-           }
-         }).then(function(rows) {
-           console.log(rows.length);
-           if (rows.length == 0) {
-             res.json({
+    });
+    //---------------------------------------------------------------------------
+    router.get('/oldnotifications/user/:UserID', function (req, res) {
+        console.log("/oldnotifications/user/:UserID was called ", req.params.UserID);
+        var count = 0;
+        Notifications.findAll({
+            where: {
+                UserID: req.params.UserID,
+                Dismiss: 1,
+                DismissType: 'User'
+            }
+        }).then(function (rows) {
+            console.log(rows.length);
+            if (rows.length == 0) {
+                res.json({
                     'Error': false,
                     'Message': 'Success',
                     'Notifications': rows,
-             });
-           }
-           else {
-           rows.forEach((i, index, array) => {
-             console.log('STARTING TO PROCESS NOTIFICATION', i.NotificationsID, i.NotificationTarget);
-             if (i.NotificationTarget == 'Comment' || i.NotificationTarget == 'Flag') {
-               Comments.findOne({
-                 where: {
-                   CommentsID: i.TargetID
-                 }
-               }).then(function(commentsRows) {
-                 AssignmentInstance.findOne({
-                   where: {
-                     AssignmentInstanceID: commentsRows.AssignmentInstanceID
-                   }
-                 }).then(function(assignmentInstanceRows){
-                   Assignment.findOne({
-                     where: {
-                       AssignmentID: assignmentInstanceRows.AssignmentID
-                     }
-                   }).then(function(assignmentRows) {
-                     TaskInstance.findOne({
-                       where: {
-                         TaskInstanceID: commentsRows.TargetID
-                       }
-                     }).then(function(taskInstanceRows) {
-                       TaskActivity.findOne({
-                         where: {
-                           TaskActivityID: taskInstanceRows.TaskActivityID
-                         }
-                       }).then (function(taskActivityRows) {
-                         i.dataValues.TaskName = taskActivityRows.DisplayName;
-                         i.dataValues.AssignmentName = assignmentRows.DisplayName;
-                         i.dataValues.CommentTarget = commentsRows.CommentTarget;
-                         i.dataValues.CommentTargetID = commentsRows.TargetID;
-                       }).then (function (result2) {
-                         var taskFactory = new TaskFactory();
-                         i.dataValues.LinkID = i.OriginTaskInstanceID;
-                         taskFactory.getNextTask(i.OriginTaskInstanceID, new Array()).then(function(NextTask) {
-                           if (NextTask != null) {
-                             NextTask.forEach((task, index) => {
-                               if (JSON.parse(task.Status)[0] == 'complete') {
-                                   i.dataValues.LinkID = task.TaskInstanceID;
-                               }
-                             }, this);
-                           }
-                         }).then (function(result3) {
-                         count++;
-                         if (count == array.length) {
-                           res.json({
-                                  'Error': false,
-                                  'Message': 'Success',
-                                  'Notifications': rows,
-                           });
-                         }
-                       });
-                     })
-                   });
-                 })
-               })
-             })
-           }
-             if (i.NotificationTarget == 'VolunteerPool') {
-               VolunteerPool.findOne({
-                 where: {
-                   VolunteerPoolID: i.TargetID
-                 }
-               }).then(function(volunteerPoolRows) {
-                 AssignmentInstance.findOne({
-                   where: {
-                     AssignmentInstanceID: volunteerPoolRows.AssignmentInstanceID
-                   }
-                 }).then(function(assignmentInstanceRows){
-                   Assignment.findOne({
-                     where: {
-                       AssignmentID: assignmentInstanceRows.AssignmentID
-                     }
-               }).then(function(assignmentRows) {
-                 Section.findOne({
-                   where: {
-                     SectionID: volunteerPoolRows.SectionID
-                   }
-                 }).then(function(sectionRows) {
-                   Course.findOne({
-                     where: {
-                       CourseID: sectionRows.CourseID
-                     }
-                   }).then(function(courseRows) {
-                     User.findOne({
-                       where: {
-                         UserID: volunteerPoolRows.UserID
-                       }
-                     }).then(function(userRows) {
-                       SectionUser.findOne({
-                         where: {
-                           SectionID: sectionRows.SectionID,
-                           UserID: i.UserID
-                         }
-                       }).then(function(sectionUserRows) {
-                         i.dataValues.SectionName = sectionRows.Name;
-                         i.dataValues.AssignmentName = assignmentRows.DisplayName;
-                         i.dataValues.CourseName = courseRows.Name;
-                         i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
-                         i.dataValues.ActorID = userRows.UserID;
-                         i.dataValues.OrganizationID = courseRows.OrganizationID;
-                         i.dataValues.CourseID = courseRows.CourseID;
-                         i.dataValues.SemesterID = sectionRows.SemesterID;
-                         i.dataValues.SectionID = sectionRows.SectionID;
-                         i.dataValues.Role = sectionUserRows.Role;
-                         count++;
-                         if (count == array.length) {
-                           res.json({
-                                  'Error': false,
-                                  'Message': 'Success',
-                                  'Notifications': rows,
-                           });
-                         }
-                       })
-                     })
-                   })
-                 })
-             });
-       });
-     });
-   }
-             if (i.NotificationTarget == 'SectionUser') {
-               SectionUser.findOne({
-                 where: {
-                   SectionUserID: i.TargetID
-                 }
-               }).then(function(sectionUserRows) {
-                 Section.findOne({
-                   where: {
-                     SectionID: sectionUserRows.SectionID
-                   }
-                 }).then(function(sectionRows) {
-                   Course.findOne({
-                     where: {
-                       CourseID: sectionRows.CourseID
-                     }
-                   }).then(function(courseRows) {
-                     User.findOne({
-                       where: {
-                         UserID: sectionUserRows.UserID
-                       }
-                     }).then(function(userRows) {
-                       SectionUser.findOne({
-                         where: {
-                           SectionID: sectionRows.SectionID,
-                           UserID: i.UserID
-                         }
-                       }).then(function(sectionUserRows2) {
-                           i.dataValues.SectionName = sectionRows.Name;
-                           i.dataValues.CourseName = courseRows.Name;
-                           i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
-                           i.dataValues.ActorID = userRows.UserID;
-                           i.dataValues.OrganizationID = courseRows.OrganizationID;
-                           i.dataValues.CourseID = courseRows.CourseID;
-                           i.dataValues.SemesterID = sectionRows.SemesterID;
-                           i.dataValues.SectionID = sectionRows.SectionID;
-                           i.dataValues.Role = sectionUserRows2.Role;
-                           count++;
-                           if (count == array.length) {
-                             res.json({
-                                    'Error': false,
-                                    'Message': 'Success',
-                                    'Notifications': rows,
-                             });
-                           }
-                       })
-                     })
-                   })
-                 })
-               })
-             }
-           });
-         }
-         }).catch(function(err) {
-             console.log('/notifications/user/:UserID ' + err.message);
-             res.status(401).end();
-         });
+                });
+            }
+            else {
+                rows.forEach((i, index, array) => {
+                    console.log('STARTING TO PROCESS NOTIFICATION', i.NotificationsID, i.NotificationTarget);
+                    if (i.NotificationTarget == 'Comment' || i.NotificationTarget == 'Flag') {
+                        Comments.findOne({
+                            where: {
+                                CommentsID: i.TargetID
+                            }
+                        }).then(function (commentsRows) {
+                            AssignmentInstance.findOne({
+                                where: {
+                                    AssignmentInstanceID: commentsRows.AssignmentInstanceID
+                                }
+                            }).then(function (assignmentInstanceRows) {
+                                Assignment.findOne({
+                                    where: {
+                                        AssignmentID: assignmentInstanceRows.AssignmentID
+                                    }
+                                }).then(function (assignmentRows) {
+                                    TaskInstance.findOne({
+                                        where: {
+                                            TaskInstanceID: commentsRows.TargetID
+                                        }
+                                    }).then(function (taskInstanceRows) {
+                                        TaskActivity.findOne({
+                                            where: {
+                                                TaskActivityID: taskInstanceRows.TaskActivityID
+                                            }
+                                        }).then(function (taskActivityRows) {
+                                            i.dataValues.TaskName = taskActivityRows.DisplayName;
+                                            i.dataValues.AssignmentName = assignmentRows.DisplayName;
+                                            i.dataValues.CommentTarget = commentsRows.CommentTarget;
+                                            i.dataValues.CommentTargetID = commentsRows.TargetID;
+                                        }).then(function (result2) {
+                                            var taskFactory = new TaskFactory();
+                                            i.dataValues.LinkID = i.OriginTaskInstanceID;
+                                            taskFactory.getNextTask(i.OriginTaskInstanceID, new Array()).then(function (NextTask) {
+                                                if (NextTask != null) {
+                                                    NextTask.forEach((task, index) => {
+                                                        if (JSON.parse(task.Status)[0] == 'complete') {
+                                                            i.dataValues.LinkID = task.TaskInstanceID;
+                                                        }
+                                                    }, this);
+                                                }
+                                            }).then(function (result3) {
+                                                count++;
+                                                if (count == array.length) {
+                                                    res.json({
+                                                        'Error': false,
+                                                        'Message': 'Success',
+                                                        'Notifications': rows,
+                                                    });
+                                                }
+                                            });
+                                        })
+                                    });
+                                })
+                            })
+                        })
+                    }
+                    if (i.NotificationTarget == 'VolunteerPool') {
+                        VolunteerPool.findOne({
+                            where: {
+                                VolunteerPoolID: i.TargetID
+                            }
+                        }).then(function (volunteerPoolRows) {
+                            AssignmentInstance.findOne({
+                                where: {
+                                    AssignmentInstanceID: volunteerPoolRows.AssignmentInstanceID
+                                }
+                            }).then(function (assignmentInstanceRows) {
+                                Assignment.findOne({
+                                    where: {
+                                        AssignmentID: assignmentInstanceRows.AssignmentID
+                                    }
+                                }).then(function (assignmentRows) {
+                                    Section.findOne({
+                                        where: {
+                                            SectionID: volunteerPoolRows.SectionID
+                                        }
+                                    }).then(function (sectionRows) {
+                                        Course.findOne({
+                                            where: {
+                                                CourseID: sectionRows.CourseID
+                                            }
+                                        }).then(function (courseRows) {
+                                            User.findOne({
+                                                where: {
+                                                    UserID: volunteerPoolRows.UserID
+                                                }
+                                            }).then(function (userRows) {
+                                                SectionUser.findOne({
+                                                    where: {
+                                                        SectionID: sectionRows.SectionID,
+                                                        UserID: i.UserID
+                                                    }
+                                                }).then(function (sectionUserRows) {
+                                                    i.dataValues.SectionName = sectionRows.Name;
+                                                    i.dataValues.AssignmentName = assignmentRows.DisplayName;
+                                                    i.dataValues.CourseName = courseRows.Name;
+                                                    i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
+                                                    i.dataValues.ActorID = userRows.UserID;
+                                                    i.dataValues.OrganizationID = courseRows.OrganizationID;
+                                                    i.dataValues.CourseID = courseRows.CourseID;
+                                                    i.dataValues.SemesterID = sectionRows.SemesterID;
+                                                    i.dataValues.SectionID = sectionRows.SectionID;
+                                                    i.dataValues.Role = sectionUserRows.Role;
+                                                    count++;
+                                                    if (count == array.length) {
+                                                        res.json({
+                                                            'Error': false,
+                                                            'Message': 'Success',
+                                                            'Notifications': rows,
+                                                        });
+                                                    }
+                                                })
+                                            })
+                                        })
+                                    })
+                                });
+                            });
+                        });
+                    }
+                    if (i.NotificationTarget == 'SectionUser') {
+                        SectionUser.findOne({
+                            where: {
+                                SectionUserID: i.TargetID
+                            }
+                        }).then(function (sectionUserRows) {
+                            Section.findOne({
+                                where: {
+                                    SectionID: sectionUserRows.SectionID
+                                }
+                            }).then(function (sectionRows) {
+                                Course.findOne({
+                                    where: {
+                                        CourseID: sectionRows.CourseID
+                                    }
+                                }).then(function (courseRows) {
+                                    User.findOne({
+                                        where: {
+                                            UserID: sectionUserRows.UserID
+                                        }
+                                    }).then(function (userRows) {
+                                        SectionUser.findOne({
+                                            where: {
+                                                SectionID: sectionRows.SectionID,
+                                                UserID: i.UserID
+                                            }
+                                        }).then(function (sectionUserRows2) {
+                                            i.dataValues.SectionName = sectionRows.Name;
+                                            i.dataValues.CourseName = courseRows.Name;
+                                            i.dataValues.Actor = userRows.FirstName.concat(' ').concat(userRows.LastName);
+                                            i.dataValues.ActorID = userRows.UserID;
+                                            i.dataValues.OrganizationID = courseRows.OrganizationID;
+                                            i.dataValues.CourseID = courseRows.CourseID;
+                                            i.dataValues.SemesterID = sectionRows.SemesterID;
+                                            i.dataValues.SectionID = sectionRows.SectionID;
+                                            i.dataValues.Role = sectionUserRows2.Role;
+                                            count++;
+                                            if (count == array.length) {
+                                                res.json({
+                                                    'Error': false,
+                                                    'Message': 'Success',
+                                                    'Notifications': rows,
+                                                });
+                                            }
+                                        })
+                                    })
+                                })
+                            })
+                        })
+                    }
+                });
+            }
+        }).catch(function (err) {
+            console.log('/notifications/user/:UserID ' + err.message);
+            res.status(401).end();
+        });
 
-     });
-     //---------------------------------------------------------------------------
-     router.post('/notifications/dismiss/:notificationsID', function(req, res) {
-         console.log("/notifications/dismiss/:notificationsID was called");
+    });
+    //---------------------------------------------------------------------------
+    router.post('/notifications/dismiss/:notificationsID', function (req, res) {
+        console.log("/notifications/dismiss/:notificationsID was called");
 
-         Notifications.update({
-           Dismiss:1,
-           DismissType: 'User',
-         },{
-           where: {
-               NotificationsID: req.params.notificationsID
-           }
-         }).then(function(rows) {
-             res.json({
-                 'Error': false,
-                 'Message': 'Success'
-             });
-         }).catch(function(err) {
-             console.log('/notifications/dismiss/:notificationsID' + err.message);
-             res.status(401).end();
-         });
+        Notifications.update({
+            Dismiss: 1,
+            DismissType: 'User',
+        }, {
+            where: {
+                NotificationsID: req.params.notificationsID
+            }
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function (err) {
+            console.log('/notifications/dismiss/:notificationsID' + err.message);
+            res.status(401).end();
+        });
 
-     });
-     //---------------------------------------------------------------------------
-     router.post('/notifications/dismiss/:userID/:commentsID', function(req, res) {
-         console.log("/notifications/dismiss/:userID/:commentsID was called");
+    });
+    //---------------------------------------------------------------------------
+    router.post('/notifications/dismiss/:userID/:commentsID', function (req, res) {
+        console.log("/notifications/dismiss/:userID/:commentsID was called");
 
-         Notifications.update({
-           Dismiss:1
-         },{
-           where: {
-               UserID: req.params.userID,
-               CommentsID: req.params.commentsID
-           }
-         }).then(function(rows) {
-             res.json({
-                 'Error': false,
-                 'Message': 'Success'
-             });
-         }).catch(function(err) {
-             console.log('/notifications/dismiss/:userID/:commentsID' + err.message);
-             res.status(401).end();
-         });
+        Notifications.update({
+            Dismiss: 1
+        }, {
+            where: {
+                UserID: req.params.userID,
+                CommentsID: req.params.commentsID
+            }
+        }).then(function (rows) {
+            res.json({
+                'Error': false,
+                'Message': 'Success'
+            });
+        }).catch(function (err) {
+            console.log('/notifications/dismiss/:userID/:commentsID' + err.message);
+            res.status(401).end();
+        });
 
-     });
+    });
     //----------------------------------------------------------------
-    router.post('/volunteerpool/section/:section_id',async function(req, res) {
+    router.post('/volunteerpool/section/:section_id', async function (req, res) {
         console.log('/volunteerpool/section/ : was called');
         VolunteerPool.findAll({
-            where:{
-                SectionID:req.params.section_id
+            where: {
+                SectionID: req.params.section_id
             }
         }).then(function (result) {
             console.log('Volunteers have been found by section.');
@@ -7788,7 +7839,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         });
     });
 
-    router.post('/getSectionByAssignmentInstance', function(req, res){
+    router.post('/getSectionByAssignmentInstance', function (req, res) {
         //console.log(req);
         AssignmentInstance.find({
             where: {
@@ -7801,12 +7852,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
     ////////////----------------   END Participant APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    router.use(function(req,res,next){
-        if(!USE_TOKENS){
+    router.use(function (req, res, next) {
+        if (!USE_TOKENS) {
             next();
             return;
         }
-        if(canRoleAccess(req.user.role, ROLES.TEACHER)){
+        if (canRoleAccess(req.user.role, ROLES.TEACHER)) {
             next();
         } else {
             return res.status(401).end();
@@ -7820,12 +7871,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     ///////////////////////////
     ////////////----------------   END Teacher Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    router.use(function(req,res,next){
-        if(!USE_TOKENS){
+    router.use(function (req, res, next) {
+        if (!USE_TOKENS) {
             next();
             return;
         }
-        if(canRoleAccess(req.user.role, ROLES.ENHANCED)){
+        if (canRoleAccess(req.user.role, ROLES.ENHANCED)) {
             next();
         } else {
             return res.status(401).end();
@@ -7912,12 +7963,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     ///////////////////////////
     ////////////----------------   END Enhanced Access APIs
     ////////////////////////////////////////////////////////////////////////////////////////////////////
-    router.use(function(req,res,next){
-        if(!USE_TOKENS){
+    router.use(function (req, res, next) {
+        if (!USE_TOKENS) {
             next();
             return;
         }
-        if(canRoleAccess(req.user.role, ROLES.ADMIN)){
+        if (canRoleAccess(req.user.role, ROLES.ADMIN)) {
             next();
         } else {
             return res.status(401).end();
@@ -8046,384 +8097,384 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         //         });
     });
 
-    function archiveinstance(AssignInsID){
-	    return sequelize.transaction(function(t) {
-		    var options = { raw: true, transaction: t };
-		    var promises = [];
-		    return sequelize
-			    .query('SET FOREIGN_KEY_CHECKS = 0', options)
-                .then(function() {
+    function archiveinstance(AssignInsID) {
+        return sequelize.transaction(function (t) {
+            var options = { raw: true, transaction: t };
+            var promises = [];
+            return sequelize
+                .query('SET FOREIGN_KEY_CHECKS = 0', options)
+                .then(function () {
                     return AssignmentGrade.findAll({
                         where: {
-	                        AssignmentInstanceID: AssignInsID
-				        },
-				        attributes: ['AssignmentGradeID','AssignmentInstanceID','SectionUserID','Grade','Comments']
-                    }).then(function(rows){
-	                    var arrayLength = rows.length;
-	                    for (var x = 0; x < arrayLength; x++) {
-	                        ArchivedAssignmentGrade.create({
-		                        AssignmentGradeID: rows[x].AssignmentGradeID,
-		                        AssignmentInstanceID: rows[x].AssignmentInstanceID,
-		                        SectionUserID: rows[x].SectionUserID,
-		                        Grade: rows[x].Grade,
-		                        Comments: rows[x].Comments
-                            },{
-		                        transaction: t
-	                        });
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        attributes: ['AssignmentGradeID', 'AssignmentInstanceID', 'SectionUserID', 'Grade', 'Comments']
+                    }).then(function (rows) {
+                        var arrayLength = rows.length;
+                        for (var x = 0; x < arrayLength; x++) {
+                            ArchivedAssignmentGrade.create({
+                                AssignmentGradeID: rows[x].AssignmentGradeID,
+                                AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                SectionUserID: rows[x].SectionUserID,
+                                Grade: rows[x].Grade,
+                                Comments: rows[x].Comments
+                            }, {
+                                transaction: t
+                            });
                         }
                     });
                 })
-			    .then(function() {
-				    return AssignmentGrade.destroy({
-						    where: {
-							    AssignmentInstanceID: AssignInsID
-						    },
-						    transaction: t
-					    })
-					    .then(function(rows){
-						    console.log('Delete AssignmentGrade Success and saved to other back up');
-					    });
-			    })
-			    .then(function() {
-				    return WorkflowGrade.findAll({
-					    where: {
-						    AssignmentInstanceID: AssignInsID
-					    },
-					    attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
-				    }).then(function(rows){
-					    var arrayLength = rows.length;
-					    for (var x = 0; x < arrayLength; x++) {
-						    ArchivedWorkflowGrade.create({
-							    WorkflowGradeID: rows[x].WorkflowGradeID,
-							    WorkflowActivityID: rows[x].WorkflowActivityID,
-							    SectionUserID: rows[x].SectionUserID,
-							    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-							    Grade: rows[x].Grade,
-							    Comments: rows[x].Comments
-						    },{
-							    transaction: t
-						    });
-					    }
-				    });
-			    })
-			    .then(function() {
-				    return WorkflowGrade.destroy({
-						    where: {
-							    AssignmentInstanceID: AssignInsID
-						    },
-						    transaction: t
-					    })
-					    .then(function(rows){
-						    console.log('Delete WorkflowGrade Success and saved to other back up');
-					    });
-			    })
-			    .then(function() {
-				    return TaskGrade.findAll({
-					    where: {
-						    AssignmentInstanceID: AssignInsID
-					    },
-					    attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
-				    }).then(function(rows){
-					    var arrayLength = rows.length;
-					    for (var x = 0; x < arrayLength; x++) {
-						    ArchivedTaskGrade.create({
-							    TaskGradeID: rows[x].TaskGradeID,
-							    TaskInstanceID: rows[x].TaskInstanceID,
-							    SectionUserID: rows[x].SectionUserID,
-							    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-							    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-							    WorkflowActivityID: rows[x].WorkflowActivityID,
-							    Grade: rows[x].Grade,
-							    IsExtraCredit: rows[x].IsExtraCredit,
-							    MaxGrade: rows[x].MaxGrade,
-							    Comments: rows[x].Comments,
-						    },{
-							    transaction: t
-						    });
-					    }
-				    });
-			    })
-			    .then(function() {
-				    return TaskGrade.destroy({
-						    where: {
-							    AssignmentInstanceID: AssignInsID
-						    },
-						    transaction: t
-					    })
-					    .then(function(rows) {
-						    console.log('Delete TaskGrade Success and saved to other back up');
-					    });
-			    })
-			    .then(function() {
-				    return TaskInstance.findAll({
-					    where: {
-						    AssignmentInstanceID: AssignInsID
-					    },
-					    attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
-				    }).then(async function (assigninstancerows) {
-					    var arrayLength = assigninstancerows.length;
-					    for (var x = 0; x < arrayLength; x++) {
-						    await TaskSimpleGrade.findAll({
-							    where: {
-								    TaskInstanceID: assigninstancerows[x].TaskInstanceID
-							    },
-							    attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
-						    }).then(function(rows){
-							    var arrayLength = rows.length;
-							    for (var x = 0; x < arrayLength; x++) {
-								    ArchivedTaskSimpleGrade.create({
-									    TaskSimpleGradeID: rows[x].TaskSimpleGradeID,
-									    TaskInstanceID: rows[x].TaskInstanceID,
-									    SectionUserID: rows[x].SectionUserID,
-									    WorkflowActivityID: rows[x].WorkflowActivityID,
-									    Grade: rows[x].Grade,
-									    IsExtraCredit: rows[x].IsExtraCredit,
-									    Comments: rows[x].Comments,
-								    },{
-									    transaction: t
-								    });
-							    }
-						    }).then(function(){
-							    return TaskSimpleGrade.destroy({
-									    where: {
-										    TaskInstanceID: assigninstancerows[x].TaskInstanceID
-									    },
-									    transaction: t
-								    })
-								    .then(function(rows) {
-									    console.log('Delete TaskSimpleGRade Success and saved to other back up');
-								    });
+                .then(function () {
+                    return AssignmentGrade.destroy({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        transaction: t
+                    })
+                        .then(function (rows) {
+                            console.log('Delete AssignmentGrade Success and saved to other back up');
+                        });
+                })
+                .then(function () {
+                    return WorkflowGrade.findAll({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        attributes: ['WorkflowGradeID', 'WorkflowActivityID', 'SectionUserID', 'AssignmentInstanceID', 'Grade', 'Comments']
+                    }).then(function (rows) {
+                        var arrayLength = rows.length;
+                        for (var x = 0; x < arrayLength; x++) {
+                            ArchivedWorkflowGrade.create({
+                                WorkflowGradeID: rows[x].WorkflowGradeID,
+                                WorkflowActivityID: rows[x].WorkflowActivityID,
+                                SectionUserID: rows[x].SectionUserID,
+                                AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                Grade: rows[x].Grade,
+                                Comments: rows[x].Comments
+                            }, {
+                                transaction: t
                             });
-					    }
-				    });
-			    })
-			    .then(function() {
-				    return TaskInstance.findAll({
-					    where: {
-						    AssignmentInstanceID: AssignInsID
-					    },
-					    attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
-				    }).then(function (rows) {
-						    //console.log(rows[0].OwnerID);
-						    var arrayLength = rows.length;
-						    for (var x = 0; x < arrayLength; x++) {
+                        }
+                    });
+                })
+                .then(function () {
+                    return WorkflowGrade.destroy({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        transaction: t
+                    })
+                        .then(function (rows) {
+                            console.log('Delete WorkflowGrade Success and saved to other back up');
+                        });
+                })
+                .then(function () {
+                    return TaskGrade.findAll({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        attributes: ['TaskGradeID', 'TaskInstanceID', 'SectionUserID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'WorkflowActivityID', 'Grade', 'IsExtraCredit', 'MaxGrade', 'Comments']
+                    }).then(function (rows) {
+                        var arrayLength = rows.length;
+                        for (var x = 0; x < arrayLength; x++) {
+                            ArchivedTaskGrade.create({
+                                TaskGradeID: rows[x].TaskGradeID,
+                                TaskInstanceID: rows[x].TaskInstanceID,
+                                SectionUserID: rows[x].SectionUserID,
+                                WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                                AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                WorkflowActivityID: rows[x].WorkflowActivityID,
+                                Grade: rows[x].Grade,
+                                IsExtraCredit: rows[x].IsExtraCredit,
+                                MaxGrade: rows[x].MaxGrade,
+                                Comments: rows[x].Comments,
+                            }, {
+                                transaction: t
+                            });
+                        }
+                    });
+                })
+                .then(function () {
+                    return TaskGrade.destroy({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        transaction: t
+                    })
+                        .then(function (rows) {
+                            console.log('Delete TaskGrade Success and saved to other back up');
+                        });
+                })
+                .then(function () {
+                    return TaskInstance.findAll({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+                    }).then(async function (assigninstancerows) {
+                        var arrayLength = assigninstancerows.length;
+                        for (var x = 0; x < arrayLength; x++) {
+                            await TaskSimpleGrade.findAll({
+                                where: {
+                                    TaskInstanceID: assigninstancerows[x].TaskInstanceID
+                                },
+                                attributes: ['TaskSimpleGradeID', 'TaskInstanceID', 'SectionUserID', 'WorkflowActivityID', 'Grade', 'IsExtraCredit', 'Comments']
+                            }).then(function (rows) {
+                                var arrayLength = rows.length;
+                                for (var x = 0; x < arrayLength; x++) {
+                                    ArchivedTaskSimpleGrade.create({
+                                        TaskSimpleGradeID: rows[x].TaskSimpleGradeID,
+                                        TaskInstanceID: rows[x].TaskInstanceID,
+                                        SectionUserID: rows[x].SectionUserID,
+                                        WorkflowActivityID: rows[x].WorkflowActivityID,
+                                        Grade: rows[x].Grade,
+                                        IsExtraCredit: rows[x].IsExtraCredit,
+                                        Comments: rows[x].Comments,
+                                    }, {
+                                        transaction: t
+                                    });
+                                }
+                            }).then(function () {
+                                return TaskSimpleGrade.destroy({
+                                    where: {
+                                        TaskInstanceID: assigninstancerows[x].TaskInstanceID
+                                    },
+                                    transaction: t
+                                })
+                                    .then(function (rows) {
+                                        console.log('Delete TaskSimpleGRade Success and saved to other back up');
+                                    });
+                            });
+                        }
+                    });
+                })
+                .then(function () {
+                    return TaskInstance.findAll({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        attributes: ['TaskInstanceID', 'UserID', 'TaskActivityID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'GroupID', 'Status', 'StartDate', 'EndDate', 'ActualEndDate', 'Data', 'UserHistory', 'FinalGrade', 'Files', 'ReferencedTask', 'NextTask', 'PreviousTask', 'EmailLastSent']
+                    }).then(function (rows) {
+                        //console.log(rows[0].OwnerID);
+                        var arrayLength = rows.length;
+                        for (var x = 0; x < arrayLength; x++) {
 
-							    ArchivedTaskInstance.create({
-								    TaskInstanceID: rows[x].TaskInstanceID,
-								    UserID: rows[x].UserID,
-								    TaskActivityID: rows[x].TaskActivityID,
-								    WorkflowInstanceID: rows[x].WorkflowInstanceID,
-								    AssignmentInstanceID: rows[x].AssignmentInstanceID,
-								    GroupID: rows[x].GroupID,
-								    Status: rows[x].Status,
-								    StartDate: rows[x].StartDate,
-								    EndDate: rows[x].EndDate,
-								    ActualEndDate: rows[x].ActualEndDate,
-								    Data: JSON.parse(rows[x].Data),
-								    UserHistory: JSON.parse(rows[x].UserHistory),
-								    FinalGrade: rows[x].FinalGrade,
-								    Files: rows[x].Files,
-								    ReferencedTask: rows[x].ReferencedTask,
-								    NextTask: JSON.parse(rows[x].NextTask),
-								    PreviousTask: JSON.parse(rows[x].PreviousTask),
-								    EmailLastSent: rows[x].EmailLastSent
-							    }, {
-								    transaction: t
-							    });
-						    }
-					    })
-					    .then(WorkflowInstance.findAll({
-						    where: {
-							    AssignmentInstanceID: AssignInsID
-						    },
-						    attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
-					    }).then(function (workflowrows) {
-						    var arrayLength = workflowrows.length;
-						    for (var x = 0; x < arrayLength; x++) {
-							    ArchivedWorkflowInstance.create({
-								    WorkflowInstanceID: workflowrows[x].WorkflowInstanceID,
-								    WorkflowActivityID: workflowrows[x].WorkflowActivityID,
-								    AssignmentInstanceID: workflowrows[x].AssignmentInstanceID,
-								    StartTime: workflowrows[x].StartTime,
-								    EndTime: workflowrows[x].EndTime,
-								    TaskCollection: JSON.parse(workflowrows[x].TaskCollection),
-								    Data: JSON.parse(workflowrows[x].Data)
-							    }, {
-								    transaction: t
-							    });
-						    }
-					    }))
-					    .then(AssignmentInstance.findAll({
-						    where: {
-							    AssignmentInstanceID: AssignInsID
-						    }
-					    }).then(function (assigninstancerows) {
-						    //console.log(rows[0].OwnerID);
-						    var arrayLength = assigninstancerows.length;
-						    for (var x = 0; x < arrayLength; x++) {
+                            ArchivedTaskInstance.create({
+                                TaskInstanceID: rows[x].TaskInstanceID,
+                                UserID: rows[x].UserID,
+                                TaskActivityID: rows[x].TaskActivityID,
+                                WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                                AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                                GroupID: rows[x].GroupID,
+                                Status: rows[x].Status,
+                                StartDate: rows[x].StartDate,
+                                EndDate: rows[x].EndDate,
+                                ActualEndDate: rows[x].ActualEndDate,
+                                Data: JSON.parse(rows[x].Data),
+                                UserHistory: JSON.parse(rows[x].UserHistory),
+                                FinalGrade: rows[x].FinalGrade,
+                                Files: rows[x].Files,
+                                ReferencedTask: rows[x].ReferencedTask,
+                                NextTask: JSON.parse(rows[x].NextTask),
+                                PreviousTask: JSON.parse(rows[x].PreviousTask),
+                                EmailLastSent: rows[x].EmailLastSent
+                            }, {
+                                transaction: t
+                            });
+                        }
+                    })
+                        .then(WorkflowInstance.findAll({
+                            where: {
+                                AssignmentInstanceID: AssignInsID
+                            },
+                            attributes: ['WorkflowInstanceID', 'WorkflowActivityID', 'AssignmentInstanceID', 'StartTime', 'EndTime', 'TaskCollection', 'Data']
+                        }).then(function (workflowrows) {
+                            var arrayLength = workflowrows.length;
+                            for (var x = 0; x < arrayLength; x++) {
+                                ArchivedWorkflowInstance.create({
+                                    WorkflowInstanceID: workflowrows[x].WorkflowInstanceID,
+                                    WorkflowActivityID: workflowrows[x].WorkflowActivityID,
+                                    AssignmentInstanceID: workflowrows[x].AssignmentInstanceID,
+                                    StartTime: workflowrows[x].StartTime,
+                                    EndTime: workflowrows[x].EndTime,
+                                    TaskCollection: JSON.parse(workflowrows[x].TaskCollection),
+                                    Data: JSON.parse(workflowrows[x].Data)
+                                }, {
+                                    transaction: t
+                                });
+                            }
+                        }))
+                        .then(AssignmentInstance.findAll({
+                            where: {
+                                AssignmentInstanceID: AssignInsID
+                            }
+                        }).then(function (assigninstancerows) {
+                            //console.log(rows[0].OwnerID);
+                            var arrayLength = assigninstancerows.length;
+                            for (var x = 0; x < arrayLength; x++) {
 
-							    ArchivedAssignmentInstance.create({
-								    AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
-								    AssignmentID: assigninstancerows[x].AssignmentID,
-								    DisplayName: assigninstancerows[x].DisplayName,
-								    SectionID: assigninstancerows[x].SectionID,
-								    StartDate: assigninstancerows[x].StartDate,
-								    EndDate: assigninstancerows[x].EndDate,
-								    WorkflowCollection: JSON.parse(assigninstancerows[x].WorkflowCollection),
-								    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming)
-							    }, {
-								    transaction: t
-							    });
-						    }
-					    }));
-			    })
-			    .then(function() {
-				    return TaskInstance.destroy({
-						    where: {
-							    AssignmentInstanceID: AssignInsID
-						    },
-						    transaction: t
-					    })
-					    .then(function(rows){
-						    console.log('Delete TaskInstance Success and saved to other back up');
-					    });
-			    })
-			    .then(function() {
-				    return WorkflowInstance.destroy({
-						    where: {
-							    AssignmentInstanceID: AssignInsID
-						    },
-						    transaction: t
-					    })
-					    .then(function(rows){
-						    console.log('Delete WorkflowInstance Success and saved to other back up');
-					    });
-			    })
-			    .then(function() {
-				    return AssignmentInstance.destroy({
-						    where: {
-							    AssignmentInstanceID: AssignInsID
-						    },
-						    transaction: t
-					    })
-					    .then(function(rows){
-						    console.log('Delete AssignmentInstance Success and saved to other back up');
-					    });
-			    })
-			    .then(function(){
-				    return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
-			    })
-			    .catch(function(err) {
-			        console.log(err);
-				    return t.rollback();
-			    });
-	    });
+                                ArchivedAssignmentInstance.create({
+                                    AssignmentInstanceID: assigninstancerows[x].AssignmentInstanceID,
+                                    AssignmentID: assigninstancerows[x].AssignmentID,
+                                    DisplayName: assigninstancerows[x].DisplayName,
+                                    SectionID: assigninstancerows[x].SectionID,
+                                    StartDate: assigninstancerows[x].StartDate,
+                                    EndDate: assigninstancerows[x].EndDate,
+                                    WorkflowCollection: JSON.parse(assigninstancerows[x].WorkflowCollection),
+                                    WorkflowTiming: JSON.parse(assigninstancerows[x].WorkflowTiming)
+                                }, {
+                                    transaction: t
+                                });
+                            }
+                        }));
+                })
+                .then(function () {
+                    return TaskInstance.destroy({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        transaction: t
+                    })
+                        .then(function (rows) {
+                            console.log('Delete TaskInstance Success and saved to other back up');
+                        });
+                })
+                .then(function () {
+                    return WorkflowInstance.destroy({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        transaction: t
+                    })
+                        .then(function (rows) {
+                            console.log('Delete WorkflowInstance Success and saved to other back up');
+                        });
+                })
+                .then(function () {
+                    return AssignmentInstance.destroy({
+                        where: {
+                            AssignmentInstanceID: AssignInsID
+                        },
+                        transaction: t
+                    })
+                        .then(function (rows) {
+                            console.log('Delete AssignmentInstance Success and saved to other back up');
+                        });
+                })
+                .then(function () {
+                    return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
+                })
+                .catch(function (err) {
+                    console.log(err);
+                    return t.rollback();
+                });
+        });
     }
 
     router.get('/archiveinstance/:AssignmentInstanceID', function (req, res) {
         var assignmentArray = new Array();
         console.log('ArchiveInstance is called\n');
         archiveinstance(req.params.AssignmentInstanceID)
-            .then(function(){
-			    res.status(201).end();
-		    });
+            .then(function () {
+                res.status(201).end();
+            });
     });
 
     router.get('/archiveactivity/:AssignmentID', function (req, res) {
         var assignmentArray = new Array();
         var promises = [];
         console.log('TaskInstanceArchive is called\n');
-        return sequelize.transaction(function(t) {
+        return sequelize.transaction(function (t) {
             var options = { raw: true, transaction: t };
             return sequelize
                 .query('SET FOREIGN_KEY_CHECKS = 0', options)
-                .then(function(){
-	                return TaskActivity.findAll({
-		                where: {
-			                AssignmentID: req.params.AssignmentID
-		                },
-		                attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
-	                }).then(function (rows) {
-		                //console.log(rows[0].OwnerID);
-		                var arrayLength = rows.length;
-		                for (var x = 0; x < arrayLength; x++) {
+                .then(function () {
+                    return TaskActivity.findAll({
+                        where: {
+                            AssignmentID: req.params.AssignmentID
+                        },
+                        attributes: ['TaskActivityID', 'WorkflowActivityID', 'AssignmentID', 'Name', 'Type', 'FileUpload', 'DueType', 'StartDelay', 'AtDUrationEnd', 'WhatIfLate', 'DisplayName', 'Documentation', 'OneOrSeparate', 'AssigneeConstraints', 'Difficulty', 'SimpleGrade', 'IsFinalGradingTask', 'Instructions', 'Rubric', 'Fields', 'AllowReflection', 'AllowAssessment', 'NumberParticipants', 'TriggerConsolidationThreshold', 'FunctionType', 'Function', 'AllowDispute', 'LeadsToNewProblem', 'LeadsToNewSolution', 'VisualID', 'VersionHistory', 'RefersToWhichTask', 'TriggerCondition', 'PreviousTasks', 'NextTasks', 'MinimumDuration', 'AssignmentInstanceID']
+                    }).then(function (rows) {
+                        //console.log(rows[0].OwnerID);
+                        var arrayLength = rows.length;
+                        for (var x = 0; x < arrayLength; x++) {
 
-			                ArchivedTaskActivity.create({
-				                TaskActivityID: rows[x].TaskActivityID,
-				                WorkflowActivityID: rows[x].WorkflowActivityID,
-				                AssignmentID: rows[x].AssignmentID,
-				                Name: rows[x].Name,
-				                Type: rows[x].Type,
-				                FileUpload: JSON.parse(rows[x].FileUpload),
-				                DueType: JSON.parse(rows[x].DueType),
-				                StartDelay: rows[x].StartDelay,
-				                AtDUrationEnd: rows[x].AtDUrationEnd,
-				                WhatIfLate: JSON.parse(rows[x].WhatIfLate),
-				                DisplayName: rows[x].DisplayName,
-				                Documentation: rows[x].Documentation,
-				                OneOrSeparate: rows[x].OneOrSeparate,
-				                AssigneeConstraints: JSON.parse(rows[x].AssigneeConstraints),
-				                Difficulty: rows[x].Difficulty,
-				                SimpleGrade: rows[x].SimpleGrade,
-				                IsFinalGradingTask: rows[x].IsFinalGradingTask,
-				                Instructions: rows[x].Instructions,
-				                Rubric: rows[x].Rubric,
-				                Fields: JSON.parse(rows[x].Fields),
-				                AllowReflection: JSON.parse(rows[x].AllowReflection),
-				                AllowAssessment: rows[x].AllowAssessment,
-				                NumberParticipants: rows[x].NumberParticipants,
-				                TriggerConsolidationThreshold: JSON.parse(rows[x].TriggerConsolidationThreshold),
-				                FunctionType: rows[x].FunctionType,
-				                Function: rows[x].Function,
-				                AllowDispute: rows[x].AllowDispute,
-				                LeadsToNewProblem: rows[x].LeadsToNewProblem,
-				                LeadsToNewSolution: rows[x].LeadsToNewSolution,
-				                VisualID: rows[x].VisualID,
-				                VersionHistory: JSON.parse(rows[x].VersionHistory),
-				                RefersToWhichTask: rows[x].RefersToWhichTask,
-				                TriggerCondition: JSON.parse(rows[x].TriggerCondition),
-				                PreviousTasks: JSON.parse(rows[x].PreviousTasks),
-				                NextTasks: JSON.parse(rows[x].NextTasks),
-				                MinimumDuration: rows[x].MinimumDuration,
-				                AssignmentInstanceID: rows[x].AssignmentInstanceID
-			                }, {
-				                transaction: t
-			                });
-		                }
-	                });
+                            ArchivedTaskActivity.create({
+                                TaskActivityID: rows[x].TaskActivityID,
+                                WorkflowActivityID: rows[x].WorkflowActivityID,
+                                AssignmentID: rows[x].AssignmentID,
+                                Name: rows[x].Name,
+                                Type: rows[x].Type,
+                                FileUpload: JSON.parse(rows[x].FileUpload),
+                                DueType: JSON.parse(rows[x].DueType),
+                                StartDelay: rows[x].StartDelay,
+                                AtDUrationEnd: rows[x].AtDUrationEnd,
+                                WhatIfLate: JSON.parse(rows[x].WhatIfLate),
+                                DisplayName: rows[x].DisplayName,
+                                Documentation: rows[x].Documentation,
+                                OneOrSeparate: rows[x].OneOrSeparate,
+                                AssigneeConstraints: JSON.parse(rows[x].AssigneeConstraints),
+                                Difficulty: rows[x].Difficulty,
+                                SimpleGrade: rows[x].SimpleGrade,
+                                IsFinalGradingTask: rows[x].IsFinalGradingTask,
+                                Instructions: rows[x].Instructions,
+                                Rubric: rows[x].Rubric,
+                                Fields: JSON.parse(rows[x].Fields),
+                                AllowReflection: JSON.parse(rows[x].AllowReflection),
+                                AllowAssessment: rows[x].AllowAssessment,
+                                NumberParticipants: rows[x].NumberParticipants,
+                                TriggerConsolidationThreshold: JSON.parse(rows[x].TriggerConsolidationThreshold),
+                                FunctionType: rows[x].FunctionType,
+                                Function: rows[x].Function,
+                                AllowDispute: rows[x].AllowDispute,
+                                LeadsToNewProblem: rows[x].LeadsToNewProblem,
+                                LeadsToNewSolution: rows[x].LeadsToNewSolution,
+                                VisualID: rows[x].VisualID,
+                                VersionHistory: JSON.parse(rows[x].VersionHistory),
+                                RefersToWhichTask: rows[x].RefersToWhichTask,
+                                TriggerCondition: JSON.parse(rows[x].TriggerCondition),
+                                PreviousTasks: JSON.parse(rows[x].PreviousTasks),
+                                NextTasks: JSON.parse(rows[x].NextTasks),
+                                MinimumDuration: rows[x].MinimumDuration,
+                                AssignmentInstanceID: rows[x].AssignmentInstanceID
+                            }, {
+                                transaction: t
+                            });
+                        }
+                    });
                 })
-                .then(function() {
-	                return WorkflowActivity.findAll({
-		                where: {
-			                AssignmentID: req.params.AssignmentID
-		                },
-		                attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
-	                }).then(function (rows) {
-		                //console.log(rows[0].OwnerID);
-		                var arrayLength = rows.length;
-		                for (var x = 0; x < arrayLength; x++) {
+                .then(function () {
+                    return WorkflowActivity.findAll({
+                        where: {
+                            AssignmentID: req.params.AssignmentID
+                        },
+                        attributes: ['WorkflowActivityID', 'AssignmentID', 'TaskActivityCollection', 'Name', 'Type', 'GradeDistribution', 'NumberOfSets', 'Documentation', 'GroupSize', 'StartTaskActivity', 'WorkflowStructure', 'VersionHistory']
+                    }).then(function (rows) {
+                        //console.log(rows[0].OwnerID);
+                        var arrayLength = rows.length;
+                        for (var x = 0; x < arrayLength; x++) {
 
-			                ArchivedWorkflowActivity.create({
-				                WorkflowActivityID: rows[x].WorkflowActivityID,
-				                AssignmentID: rows[x].AssignmentID,
-				                TaskActivityCollection: JSON.parse(rows[x].TaskActivityCollection),
-				                Name: rows[x].Name,
-				                Type: rows[x].Type,
-				                GradeDistribution: JSON.parse(rows[x].GradeDistribution),
-				                NumberOfSets: rows[x].NumberOfSets,
-				                Documentation: rows[x].Documentation,
-				                GroupSize: rows[x].GroupSize,
-				                StartTaskActivity: rows[x].StartTaskActivity,
-				                WorkflowStructure: JSON.parse(rows[x].WorkflowStructure),
-				                VersionHistory: rows[x].VersionHistory
+                            ArchivedWorkflowActivity.create({
+                                WorkflowActivityID: rows[x].WorkflowActivityID,
+                                AssignmentID: rows[x].AssignmentID,
+                                TaskActivityCollection: JSON.parse(rows[x].TaskActivityCollection),
+                                Name: rows[x].Name,
+                                Type: rows[x].Type,
+                                GradeDistribution: JSON.parse(rows[x].GradeDistribution),
+                                NumberOfSets: rows[x].NumberOfSets,
+                                Documentation: rows[x].Documentation,
+                                GroupSize: rows[x].GroupSize,
+                                StartTaskActivity: rows[x].StartTaskActivity,
+                                WorkflowStructure: JSON.parse(rows[x].WorkflowStructure),
+                                VersionHistory: rows[x].VersionHistory
 
-			                }, {
-				                transaction: t
-			                });
-		                }
-	                });
+                            }, {
+                                transaction: t
+                            });
+                        }
+                    });
                 })
-                .then(function() {
+                .then(function () {
                     return Assignment.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8448,65 +8499,65 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         });
                     });
                 })
-                .then(function(){
+                .then(function () {
                     return TaskActivity.destroy({
-		                    where: {
-			                    AssignmentID: req.params.AssignmentID
-		                    },
-		                transaction: t
-	                })
-	                .then(function(rows){
-		                console.log('Delete Taskactivity Success and saved to other back up');
-	                });
+                        where: {
+                            AssignmentID: req.params.AssignmentID
+                        },
+                        transaction: t
+                    })
+                        .then(function (rows) {
+                            console.log('Delete Taskactivity Success and saved to other back up');
+                        });
                 })
-                .then(function(){
+                .then(function () {
                     return WorkflowActivity.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowActivity Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return Assignment.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete Assignment Success and saved to other back up');
                         });
                 })
-                .then(function() {
-	                AssignmentInstance.findAll({
-		                where: {
-			                AssignmentID: req.params.AssignmentID
-		                },
-		                attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
-	                }).then(function (assigninstancerows) {
-		                var arrayLength = assigninstancerows.length;
-		                for (var x = 0; x < arrayLength; x++) {
-			                promises.push(archiveinstance(assigninstancerows[x].AssignmentInstanceID));
-		                }
-	                });
+                .then(function () {
+                    AssignmentInstance.findAll({
+                        where: {
+                            AssignmentID: req.params.AssignmentID
+                        },
+                        attributes: ['AssignmentInstanceID', 'AssignmentID', 'SectionID', 'StartDate', 'EndDate', 'WorkflowCollection', 'WorkflowTiming']
+                    }).then(function (assigninstancerows) {
+                        var arrayLength = assigninstancerows.length;
+                        for (var x = 0; x < arrayLength; x++) {
+                            promises.push(archiveinstance(assigninstancerows[x].AssignmentInstanceID));
+                        }
+                    });
                 })
-                .then(function(){
-                    return Promise.all(promises).then(function(){
+                .then(function () {
+                    return Promise.all(promises).then(function () {
                         console.log('done');
                     });
                 })
-                .then(function(){
+                .then(function () {
                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
                 })
-                .then(function(){
-                	res.status(201).end();
+                .then(function () {
+                    res.status(201).end();
                 })
-                .catch(function(err) {
-				    console.log(err);
+                .catch(function (err) {
+                    console.log(err);
                     return t.rollback();
                 });
         });
@@ -8522,11 +8573,11 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         var assignmentArray = new Array();
         var promises = [];
         console.log('TaskInstanceArchive is called\n');
-        return sequelize.transaction(function(t) {
+        return sequelize.transaction(function (t) {
             var options = { raw: true, transaction: t };
             return sequelize
                 .query('SET FOREIGN_KEY_CHECKS = 0', options)
-                .then(function(){
+                .then(function () {
                     return ArchivedTaskActivity.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8581,7 +8632,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedWorkflowActivity.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8612,7 +8663,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedAssignment.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8637,40 +8688,40 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         });
                     });
                 })
-                .then(function(){
+                .then(function () {
                     return ArchivedTaskActivity.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete Taskactivity Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return ArchivedWorkflowActivity.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowActivity Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return ArchivedAssignment.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete Assignment Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     ArchivedAssignmentInstance.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8682,18 +8733,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function(){
-                    return Promise.all(promises).then(function(){
+                .then(function () {
+                    return Promise.all(promises).then(function () {
                         console.log('done');
                     });
                 })
-                .then(function(){
+                .then(function () {
                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
                 })
-                .then(function(){
+                .then(function () {
                     res.status(201).end();
                 })
-                .catch(function(err) {
+                .catch(function (err) {
                     return t.rollback();
                 });
         });
@@ -8728,8 +8779,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             try {
                 fun(logs, res);
             }
-            catch(err){
-			    res.json({'err':true, error: err});
+            catch (err) {
+                res.json({ 'err': true, error: err });
             }
         });
 
@@ -8740,11 +8791,11 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         var assignmentArray = new Array();
         var promises = [];
         console.log('TaskInstanceArchive is called\n');
-        return sequelize.transaction(function(t) {
+        return sequelize.transaction(function (t) {
             var options = { raw: true, transaction: t };
             return sequelize
                 .query('SET FOREIGN_KEY_CHECKS = 0', options)
-                .then(function(){
+                .then(function () {
                     return RemovedTaskActivity.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8799,7 +8850,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedWorkflowActivity.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8830,7 +8881,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedAssignment.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8855,40 +8906,40 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         });
                     });
                 })
-                .then(function(){
+                .then(function () {
                     return RemovedTaskActivity.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete Taskactivity Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return RemovedWorkflowActivity.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowActivity Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return RemovedAssignment.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete Assignment Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     RemovedAssignmentInstance.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8900,18 +8951,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function(){
-                    return Promise.all(promises).then(function(){
+                .then(function () {
+                    return Promise.all(promises).then(function () {
                         console.log('done');
                     });
                 })
-                .then(function(){
+                .then(function () {
                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
                 })
-                .then(function(){
+                .then(function () {
                     res.status(201).end();
                 })
-                .catch(function(err) {
+                .catch(function (err) {
                     return t.rollback();
                 });
         });
@@ -8929,11 +8980,11 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         var assignmentArray = new Array();
         var promises = [];
         console.log('TaskInstanceArchive is called\n');
-        return sequelize.transaction(function(t) {
+        return sequelize.transaction(function (t) {
             var options = { raw: true, transaction: t };
             return sequelize
                 .query('SET FOREIGN_KEY_CHECKS = 0', options)
-                .then(function(){
+                .then(function () {
                     return TaskActivity.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -8988,7 +9039,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return WorkflowActivity.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -9019,7 +9070,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return Assignment.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -9044,40 +9095,40 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         });
                     });
                 })
-                .then(function(){
+                .then(function () {
                     return TaskActivity.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete Taskactivity Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return WorkflowActivity.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowActivity Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return Assignment.destroy({
                         where: {
                             AssignmentID: req.params.AssignmentID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete Assignment Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     AssignmentInstance.findAll({
                         where: {
                             AssignmentID: req.params.AssignmentID
@@ -9090,18 +9141,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                         }
                     });
                 })
-                .then(function(){
-                    return Promise.all(promises).then(function(){
+                .then(function () {
+                    return Promise.all(promises).then(function () {
                         console.log('done');
                     });
                 })
-                .then(function(){
+                .then(function () {
                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
                 })
-                .then(function(){
+                .then(function () {
                     res.status(201).end();
                 })
-                .catch(function(err) {
+                .catch(function (err) {
                     return t.rollback();
                 });
         });
@@ -9115,7 +9166,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         var assignmentArray = new Array();
         console.log('Restoreassignmentinstance is called\n');
         restoreArchivedInstance(req.params.AssignmentInstanceID)
-            .then(function(){
+            .then(function () {
                 res.status(201).end();
             });
 
@@ -9125,23 +9176,23 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         var assignmentArray = new Array();
         console.log('Restoreassignmentinstance is called\n');
         restoreRemovedInstance(req.params.AssignmentInstanceID)
-            .then(function(){
+            .then(function () {
                 res.status(201).end();
             });
     });
 
-    function restoreArchivedInstance(AssignInsID){
-        return sequelize.transaction(function(t) {
+    function restoreArchivedInstance(AssignInsID) {
+        return sequelize.transaction(function (t) {
             var options = { raw: true, transaction: t };
             return sequelize
                 .query('SET FOREIGN_KEY_CHECKS = 0', options)
-                .then(function() {
+                .then(function () {
                     return ArchivedAssignmentGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['AssignmentGradeID','AssignmentInstanceID','SectionUserID','Grade','Comments']
-                    }).then(function(rows){
+                        attributes: ['AssignmentGradeID', 'AssignmentInstanceID', 'SectionUserID', 'Grade', 'Comments']
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             AssignmentGrade.create({
@@ -9150,30 +9201,30 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 SectionUserID: rows[x].SectionUserID,
                                 Grade: rows[x].Grade,
                                 Comments: rows[x].Comments
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedAssignmentGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete AssignmentGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedWorkflowGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
-                    }).then(function(rows){
+                        attributes: ['WorkflowGradeID', 'WorkflowActivityID', 'SectionUserID', 'AssignmentInstanceID', 'Grade', 'Comments']
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             WorkflowGrade.create({
@@ -9183,29 +9234,29 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 Grade: rows[x].Grade,
                                 Comments: rows[x].Comments
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedWorkflowGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedTaskGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         }
-                    }).then(function(rows){
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             TaskGrade.create({
@@ -9219,24 +9270,24 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 IsExtraCredit: rows[x].IsExtraCredit,
                                 MaxGrade: rows[x].MaxGrade,
                                 Comments: rows[x].Comments,
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedTaskGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows) {
+                        .then(function (rows) {
                             console.log('Delete TaskGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedTaskInstance.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
@@ -9249,8 +9300,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 where: {
                                     TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                 },
-                                attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
-                            }).then(function(rows){
+                                attributes: ['TaskSimpleGradeID', 'TaskInstanceID', 'SectionUserID', 'WorkflowActivityID', 'Grade', 'IsExtraCredit', 'Comments']
+                            }).then(function (rows) {
                                 var arrayLength = rows.length;
                                 for (var x = 0; x < arrayLength; x++) {
                                     TaskSimpleGrade.create({
@@ -9261,25 +9312,25 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                         Grade: rows[x].Grade,
                                         IsExtraCredit: rows[x].IsExtraCredit,
                                         Comments: rows[x].Comments,
-                                    },{
+                                    }, {
                                         transaction: t
                                     });
                                 }
-                            }).then(function(){
+                            }).then(function () {
                                 return ArchivedTaskSimpleGrade.destroy({
                                     where: {
                                         TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                     },
                                     transaction: t
                                 })
-                                    .then(function(rows) {
+                                    .then(function (rows) {
                                         console.log('Delete TaskSimpleGRade Success and saved to other back up');
                                     });
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedTaskInstance.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
@@ -9360,60 +9411,60 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                             }
                         }));
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedTaskInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete TaskInstance Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedWorkflowInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowInstance Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return ArchivedAssignmentInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('AssignmentInstance Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
                 })
-                .catch(function(err) {
+                .catch(function (err) {
                     return t.rollback();
                 });
         });
     }
 
-    function restoreRemovedInstance(AssignInsID){
-        return sequelize.transaction(function(t) {
+    function restoreRemovedInstance(AssignInsID) {
+        return sequelize.transaction(function (t) {
             var options = { raw: true, transaction: t };
             return sequelize
                 .query('SET FOREIGN_KEY_CHECKS = 0', options)
-                .then(function() {
+                .then(function () {
                     return RemovedAssignmentGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['AssignmentGradeID','AssignmentInstanceID','SectionUserID','Grade','Comments']
-                    }).then(function(rows){
+                        attributes: ['AssignmentGradeID', 'AssignmentInstanceID', 'SectionUserID', 'Grade', 'Comments']
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             AssignmentGrade.create({
@@ -9422,30 +9473,30 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 SectionUserID: rows[x].SectionUserID,
                                 Grade: rows[x].Grade,
                                 Comments: rows[x].Comments
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedAssignmentGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete AssignmentGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedWorkflowGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
-                    }).then(function(rows){
+                        attributes: ['WorkflowGradeID', 'WorkflowActivityID', 'SectionUserID', 'AssignmentInstanceID', 'Grade', 'Comments']
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             WorkflowGrade.create({
@@ -9455,30 +9506,30 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 Grade: rows[x].Grade,
                                 Comments: rows[x].Comments
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedWorkflowGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedTaskGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
-                    }).then(function(rows){
+                        attributes: ['TaskGradeID', 'TaskInstanceID', 'SectionUserID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'WorkflowActivityID', 'Grade', 'IsExtraCredit', 'MaxGrade', 'Comments']
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             TaskGrade.create({
@@ -9492,24 +9543,24 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 IsExtraCredit: rows[x].IsExtraCredit,
                                 MaxGrade: rows[x].MaxGrade,
                                 Comments: rows[x].Comments,
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedTaskGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows) {
+                        .then(function (rows) {
                             console.log('Delete TaskGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedTaskInstance.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
@@ -9522,8 +9573,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 where: {
                                     TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                 },
-                                attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
-                            }).then(function(rows){
+                                attributes: ['TaskSimpleGradeID', 'TaskInstanceID', 'SectionUserID', 'WorkflowActivityID', 'Grade', 'IsExtraCredit', 'Comments']
+                            }).then(function (rows) {
                                 var arrayLength = rows.length;
                                 for (var x = 0; x < arrayLength; x++) {
                                     TaskSimpleGrade.create({
@@ -9534,25 +9585,25 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                         Grade: rows[x].Grade,
                                         IsExtraCredit: rows[x].IsExtraCredit,
                                         Comments: rows[x].Comments,
-                                    },{
+                                    }, {
                                         transaction: t
                                     });
                                 }
-                            }).then(function(){
+                            }).then(function () {
                                 return RemovedTaskSimpleGrade.destroy({
                                     where: {
                                         TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                     },
                                     transaction: t
                                 })
-                                    .then(function(rows) {
+                                    .then(function (rows) {
                                         console.log('Delete TaskSimpleGRade Success and saved to other back up');
                                     });
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedTaskInstance.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
@@ -9633,60 +9684,60 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                             }
                         }));
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedTaskInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete TaskInstance Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedWorkflowInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowInstance Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return RemovedAssignmentInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('AssignmentInstance Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
                 })
-                .catch(function(err) {
+                .catch(function (err) {
                     return t.rollback();
                 });
         });
     }
 
     function removeInstance(AssignInsID) {
-        return sequelize.transaction(function(t) {
+        return sequelize.transaction(function (t) {
             var options = { raw: true, transaction: t };
             return sequelize
                 .query('SET FOREIGN_KEY_CHECKS = 0', options)
-                .then(function() {
+                .then(function () {
                     return AssignmentGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['AssignmentGradeID','AssignmentInstanceID','SectionUserID','Grade','Comments']
-                    }).then(function(rows){
+                        attributes: ['AssignmentGradeID', 'AssignmentInstanceID', 'SectionUserID', 'Grade', 'Comments']
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             RemovedAssignmentGrade.create({
@@ -9695,30 +9746,30 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 SectionUserID: rows[x].SectionUserID,
                                 Grade: rows[x].Grade,
                                 Comments: rows[x].Comments
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return AssignmentGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete AssignmentGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return WorkflowGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['WorkflowGradeID','WorkflowActivityID','SectionUserID','AssignmentInstanceID','Grade','Comments']
-                    }).then(function(rows){
+                        attributes: ['WorkflowGradeID', 'WorkflowActivityID', 'SectionUserID', 'AssignmentInstanceID', 'Grade', 'Comments']
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             RemovedWorkflowGrade.create({
@@ -9728,30 +9779,30 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 AssignmentInstanceID: rows[x].AssignmentInstanceID,
                                 Grade: rows[x].Grade,
                                 Comments: rows[x].Comments
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return WorkflowGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return TaskGrade.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
-                        attributes: ['TaskGradeID','TaskInstanceID','SectionUserID','WorkflowInstanceID','AssignmentInstanceID','WorkflowActivityID','Grade','IsExtraCredit','MaxGrade','Comments']
-                    }).then(function(rows){
+                        attributes: ['TaskGradeID', 'TaskInstanceID', 'SectionUserID', 'WorkflowInstanceID', 'AssignmentInstanceID', 'WorkflowActivityID', 'Grade', 'IsExtraCredit', 'MaxGrade', 'Comments']
+                    }).then(function (rows) {
                         var arrayLength = rows.length;
                         for (var x = 0; x < arrayLength; x++) {
                             RemovedTaskGrade.create({
@@ -9765,24 +9816,24 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 IsExtraCredit: rows[x].IsExtraCredit,
                                 MaxGrade: rows[x].MaxGrade,
                                 Comments: rows[x].Comments,
-                            },{
+                            }, {
                                 transaction: t
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return TaskGrade.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows) {
+                        .then(function (rows) {
                             console.log('Delete TaskGrade Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return TaskInstance.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
@@ -9795,8 +9846,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                 where: {
                                     TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                 },
-                                attributes: ['TaskSimpleGradeID','TaskInstanceID','SectionUserID','WorkflowActivityID','Grade','IsExtraCredit','Comments']
-                            }).then(function(rows){
+                                attributes: ['TaskSimpleGradeID', 'TaskInstanceID', 'SectionUserID', 'WorkflowActivityID', 'Grade', 'IsExtraCredit', 'Comments']
+                            }).then(function (rows) {
                                 var arrayLength = rows.length;
                                 for (var x = 0; x < arrayLength; x++) {
                                     RemovedTaskSimpleGrade.create({
@@ -9807,25 +9858,25 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                                         Grade: rows[x].Grade,
                                         IsExtraCredit: rows[x].IsExtraCredit,
                                         Comments: rows[x].Comments,
-                                    },{
+                                    }, {
                                         transaction: t
                                     });
                                 }
-                            }).then(function(){
+                            }).then(function () {
                                 return TaskSimpleGrade.destroy({
                                     where: {
                                         TaskInstanceID: assigninstancerows[x].TaskInstanceID
                                     },
                                     transaction: t
                                 })
-                                    .then(function(rows) {
+                                    .then(function (rows) {
                                         console.log('Delete TaskSimpleGRade Success and saved to other back up');
                                     });
                             });
                         }
                     });
                 })
-                .then(function() {
+                .then(function () {
                     return TaskInstance.findAll({
                         where: {
                             AssignmentInstanceID: AssignInsID
@@ -9904,44 +9955,44 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                             }
                         }));
                 })
-                .then(function() {
+                .then(function () {
                     return TaskInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete TaskInstance Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return WorkflowInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('Delete WorkflowInstance Success and saved to other back up');
                         });
                 })
-                .then(function() {
+                .then(function () {
                     return AssignmentInstance.destroy({
                         where: {
                             AssignmentInstanceID: AssignInsID
                         },
                         transaction: t
                     })
-                        .then(function(rows){
+                        .then(function (rows) {
                             console.log('AssignmentInstance Success and saved to other back up');
                         });
                 })
-                .then(function(){
+                .then(function () {
                     return sequelize.query('SET FOREIGN_KEY_CHECKS = 1', options);
                 })
-                .catch(function(err) {
-				    console.log(err);
+                .catch(function (err) {
+                    console.log(err);
                     return t.rollback();
                 });
         });
@@ -9951,7 +10002,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         var assignmentArray = new Array();
         console.log('Remove assignment is called\n');
         removeInstance(req.params.AssignmentInstanceID)
-            .then(function() {
+            .then(function () {
                 res.status(201).end();
             });
     });
@@ -10077,7 +10128,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     AllowReflection: JSON.parse(rows[x].AllowReflection),
                     AllowAssessment: rows[x].AllowAssessment,
                     NumberParticipants: rows[x].NumberParticipants,
-	                TriggerConsolidationThreshold: JSON.parse(rows[x].TriggerConsolidationThreshold),
+                    TriggerConsolidationThreshold: JSON.parse(rows[x].TriggerConsolidationThreshold),
                     FunctionType: rows[x].FunctionType,
                     Function: rows[x].Function,
                     AllowDispute: rows[x].AllowDispute,
@@ -10126,43 +10177,43 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             for (var x = 0; x < arrayLength; x++) {
 
                 TaskActivity.create({
-	                TaskActivityID: rows[x].TaskActivityID,
-	                WorkflowActivityID: rows[x].WorkflowActivityID,
-	                AssignmentID: rows[x].AssignmentID,
-	                Name: rows[x].Name,
-	                Type: rows[x].Type,
-	                FileUpload: JSON.parse(rows[x].FileUpload),
-	                DueType: JSON.parse(rows[x].DueType),
-	                StartDelay: rows[x].StartDelay,
-	                AtDUrationEnd: rows[x].AtDUrationEnd,
-	                WhatIfLate: JSON.parse(rows[x].WhatIfLate),
-	                DisplayName: rows[x].DisplayName,
-	                Documentation: rows[x].Documentation,
-	                OneOrSeparate: rows[x].OneOrSeparate,
-	                AssigneeConstraints: JSON.parse(rows[x].AssigneeConstraints),
-	                Difficulty: rows[x].Difficulty,
-	                SimpleGrade: rows[x].SimpleGrade,
-	                IsFinalGradingTask: rows[x].IsFinalGradingTask,
-	                Instructions: rows[x].Instructions,
-	                Rubric: rows[x].Rubric,
-	                Fields: JSON.parse(rows[x].Fields),
-	                AllowReflection: JSON.parse(rows[x].AllowReflection),
-	                AllowAssessment: rows[x].AllowAssessment,
-	                NumberParticipants: rows[x].NumberParticipants,
-	                TriggerConsolidationThreshold: JSON.parse(rows[x].TriggerConsolidationThreshold),
-	                FunctionType: rows[x].FunctionType,
-	                Function: rows[x].Function,
-	                AllowDispute: rows[x].AllowDispute,
-	                LeadsToNewProblem: rows[x].LeadsToNewProblem,
-	                LeadsToNewSolution: rows[x].LeadsToNewSolution,
-	                VisualID: rows[x].VisualID,
-	                VersionHistory: JSON.parse(rows[x].VersionHistory),
-	                RefersToWhichTask: rows[x].RefersToWhichTask,
-	                TriggerCondition: JSON.parse(rows[x].TriggerCondition),
-	                PreviousTasks: JSON.parse(rows[x].PreviousTasks),
-	                NextTasks: JSON.parse(rows[x].NextTasks),
-	                MinimumDuration: rows[x].MinimumDuration,
-	                AssignmentInstanceID: rows[x].AssignmentInstanceID
+                    TaskActivityID: rows[x].TaskActivityID,
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentID: rows[x].AssignmentID,
+                    Name: rows[x].Name,
+                    Type: rows[x].Type,
+                    FileUpload: JSON.parse(rows[x].FileUpload),
+                    DueType: JSON.parse(rows[x].DueType),
+                    StartDelay: rows[x].StartDelay,
+                    AtDUrationEnd: rows[x].AtDUrationEnd,
+                    WhatIfLate: JSON.parse(rows[x].WhatIfLate),
+                    DisplayName: rows[x].DisplayName,
+                    Documentation: rows[x].Documentation,
+                    OneOrSeparate: rows[x].OneOrSeparate,
+                    AssigneeConstraints: JSON.parse(rows[x].AssigneeConstraints),
+                    Difficulty: rows[x].Difficulty,
+                    SimpleGrade: rows[x].SimpleGrade,
+                    IsFinalGradingTask: rows[x].IsFinalGradingTask,
+                    Instructions: rows[x].Instructions,
+                    Rubric: rows[x].Rubric,
+                    Fields: JSON.parse(rows[x].Fields),
+                    AllowReflection: JSON.parse(rows[x].AllowReflection),
+                    AllowAssessment: rows[x].AllowAssessment,
+                    NumberParticipants: rows[x].NumberParticipants,
+                    TriggerConsolidationThreshold: JSON.parse(rows[x].TriggerConsolidationThreshold),
+                    FunctionType: rows[x].FunctionType,
+                    Function: rows[x].Function,
+                    AllowDispute: rows[x].AllowDispute,
+                    LeadsToNewProblem: rows[x].LeadsToNewProblem,
+                    LeadsToNewSolution: rows[x].LeadsToNewSolution,
+                    VisualID: rows[x].VisualID,
+                    VersionHistory: JSON.parse(rows[x].VersionHistory),
+                    RefersToWhichTask: rows[x].RefersToWhichTask,
+                    TriggerCondition: JSON.parse(rows[x].TriggerCondition),
+                    PreviousTasks: JSON.parse(rows[x].PreviousTasks),
+                    NextTasks: JSON.parse(rows[x].NextTasks),
+                    MinimumDuration: rows[x].MinimumDuration,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID
 
                 });
             }
@@ -10199,24 +10250,24 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
                 TaskInstance_Archive.create({
 
-	                TaskInstanceID: rows[x].TaskInstanceID,
-	                UserID: rows[x].UserID,
-	                TaskActivityID: rows[x].TaskActivityID,
-	                WorkflowInstanceID: rows[x].WorkflowInstanceID,
-	                AssignmentInstanceID: rows[x].AssignmentInstanceID,
-	                GroupID: rows[x].GroupID,
-	                Status: rows[x].Status,
-	                StartDate: rows[x].StartDate,
-	                EndDate: rows[x].EndDate,
-	                ActualEndDate: rows[x].ActualEndDate,
-	                Data: JSON.parse(rows[x].Data),
-	                UserHistory: JSON.parse(rows[x].UserHistory),
-	                FinalGrade: rows[x].FinalGrade,
-	                Files: rows[x].Files,
-	                ReferencedTask: rows[x].ReferencedTask,
-	                NextTask: JSON.parse(rows[x].NextTask),
-	                PreviousTask: JSON.parse(rows[x].PreviousTask),
-	                EmailLastSent: rows[x].EmailLastSent
+                    TaskInstanceID: rows[x].TaskInstanceID,
+                    UserID: rows[x].UserID,
+                    TaskActivityID: rows[x].TaskActivityID,
+                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    GroupID: rows[x].GroupID,
+                    Status: rows[x].Status,
+                    StartDate: rows[x].StartDate,
+                    EndDate: rows[x].EndDate,
+                    ActualEndDate: rows[x].ActualEndDate,
+                    Data: JSON.parse(rows[x].Data),
+                    UserHistory: JSON.parse(rows[x].UserHistory),
+                    FinalGrade: rows[x].FinalGrade,
+                    Files: rows[x].Files,
+                    ReferencedTask: rows[x].ReferencedTask,
+                    NextTask: JSON.parse(rows[x].NextTask),
+                    PreviousTask: JSON.parse(rows[x].PreviousTask),
+                    EmailLastSent: rows[x].EmailLastSent
 
                 });
             }
@@ -10255,24 +10306,24 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
                 TaskInstance.create({
 
-	                TaskInstanceID: rows[x].TaskInstanceID,
-	                UserID: rows[x].UserID,
-	                TaskActivityID: rows[x].TaskActivityID,
-	                WorkflowInstanceID: rows[x].WorkflowInstanceID,
-	                AssignmentInstanceID: rows[x].AssignmentInstanceID,
-	                GroupID: rows[x].GroupID,
-	                Status: rows[x].Status,
-	                StartDate: rows[x].StartDate,
-	                EndDate: rows[x].EndDate,
-	                ActualEndDate: rows[x].ActualEndDate,
-	                Data: JSON.parse(rows[x].Data),
-	                UserHistory: JSON.parse(rows[x].UserHistory),
-	                FinalGrade: rows[x].FinalGrade,
-	                Files: rows[x].Files,
-	                ReferencedTask: rows[x].ReferencedTask,
-	                NextTask: JSON.parse(rows[x].NextTask),
-	                PreviousTask: JSON.parse(rows[x].PreviousTask),
-	                EmailLastSent: rows[x].EmailLastSent
+                    TaskInstanceID: rows[x].TaskInstanceID,
+                    UserID: rows[x].UserID,
+                    TaskActivityID: rows[x].TaskActivityID,
+                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    GroupID: rows[x].GroupID,
+                    Status: rows[x].Status,
+                    StartDate: rows[x].StartDate,
+                    EndDate: rows[x].EndDate,
+                    ActualEndDate: rows[x].ActualEndDate,
+                    Data: JSON.parse(rows[x].Data),
+                    UserHistory: JSON.parse(rows[x].UserHistory),
+                    FinalGrade: rows[x].FinalGrade,
+                    Files: rows[x].Files,
+                    ReferencedTask: rows[x].ReferencedTask,
+                    NextTask: JSON.parse(rows[x].NextTask),
+                    PreviousTask: JSON.parse(rows[x].PreviousTask),
+                    EmailLastSent: rows[x].EmailLastSent
 
                 });
             }
@@ -10356,13 +10407,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             for (var x = 0; x < arrayLength; x++) {
 
                 WorkflowInstance.create({
-	                WorkflowInstanceID: rows[x].WorkflowInstanceID,
-	                WorkflowActivityID: rows[x].WorkflowActivityID,
-	                AssignmentInstanceID: rows[x].AssignmentInstanceID,
-	                StartTime: rows[x].StartTime,
-	                EndTime: rows[x].EndTime,
-	                TaskCollection: JSON.parse(rows[x].TaskCollection),
-	                Data: JSON.parse(rows[x].Data)
+                    WorkflowInstanceID: rows[x].WorkflowInstanceID,
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentInstanceID: rows[x].AssignmentInstanceID,
+                    StartTime: rows[x].StartTime,
+                    EndTime: rows[x].EndTime,
+                    TaskCollection: JSON.parse(rows[x].TaskCollection),
+                    Data: JSON.parse(rows[x].Data)
 
                 });
             }
@@ -10446,18 +10497,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             for (var x = 0; x < arrayLength; x++) {
 
                 WorkflowActivity.create({
-	                WorkflowActivityID: rows[x].WorkflowActivityID,
-	                AssignmentID: rows[x].AssignmentID,
-	                TaskActivityCollection: JSON.parse(rows[x].TaskActivityCollection),
-	                Name: rows[x].Name,
-	                Type: rows[x].Type,
-	                GradeDistribution: JSON.parse(rows[x].GradeDistribution),
-	                NumberOfSets: rows[x].NumberOfSets,
-	                Documentation: rows[x].Documentation,
-	                GroupSize: rows[x].GroupSize,
-	                StartTaskActivity: rows[x].StartTaskActivity,
-	                WorkflowStructure: JSON.parse(rows[x].WorkflowStructure),
-	                VersionHistory: rows[x].VersionHistory
+                    WorkflowActivityID: rows[x].WorkflowActivityID,
+                    AssignmentID: rows[x].AssignmentID,
+                    TaskActivityCollection: JSON.parse(rows[x].TaskActivityCollection),
+                    Name: rows[x].Name,
+                    Type: rows[x].Type,
+                    GradeDistribution: JSON.parse(rows[x].GradeDistribution),
+                    NumberOfSets: rows[x].NumberOfSets,
+                    Documentation: rows[x].Documentation,
+                    GroupSize: rows[x].GroupSize,
+                    StartTaskActivity: rows[x].StartTaskActivity,
+                    WorkflowStructure: JSON.parse(rows[x].WorkflowStructure),
+                    VersionHistory: rows[x].VersionHistory
                 });
             }
             //200 for OK
@@ -10669,7 +10720,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             }, {
 
                 model: UserLogin,
-                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked','LastLogin']
+                attributes: ['Email', 'Pending', 'Attempts', 'Timeout', 'Blocked', 'LastLogin']
             }
 
             ]
@@ -10756,47 +10807,47 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
     //@ user_pool_woc: [#,..] array of users without constrains
     //@ is_extra_credit: boolean
-    router.post('/reallocate/user_based', teacherAuthentication, async function (req, res){
-        if(req.body.ai_ids == null || req.body.old_user_ids == null || req.body.is_extra_credit == null || req.body.sec_id == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null ){
-            logger.log('error','/reallocate/assigment: fields cannot be null');
+    router.post('/reallocate/user_based', teacherAuthentication, async function (req, res) {
+        if (req.body.ai_ids == null || req.body.old_user_ids == null || req.body.is_extra_credit == null || req.body.sec_id == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null) {
+            logger.log('error', '/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
-        var allocate = new Allocator([],0);
+        var allocate = new Allocator([], 0);
         var inactivate_users;
-        if(req.body.inactivate_users == null){
-            inactivate_users ='this_assignment';
-        }else{
+        if (req.body.inactivate_users == null) {
+            inactivate_users = 'this_assignment';
+        } else {
             inactivate_users = req.body.inactivate_users;
         }
         var remove_from_all_assignments;
-        if(req.body.remove_from_all_assignments == null){
-            remove_from_all_assignments =false;
-        }else{
+        if (req.body.remove_from_all_assignments == null) {
+            remove_from_all_assignments = false;
+        } else {
             remove_from_all_assignments = req.body.remove_from_all_assignments;
         }
-        await Promise.map(req.body.old_user_ids, async (old_user_id)=>{
-            if(inactivate_users == 'all_assignments'){
+        await Promise.map(req.body.old_user_ids, async (old_user_id) => {
+            if (inactivate_users == 'all_assignments') {
                 await allocate.inactivate_section_user(req.body.sec_id, old_user_id); // deactive user in section
             }
-            await allocate.delete_volunteer(req.body.sec_id , old_user_id);     // remove user from voluenteers
+            await allocate.delete_volunteer(req.body.sec_id, old_user_id);     // remove user from voluenteers
             // TODO: When database structore is established, deactive user in this assignment only
             //if( inactivate_users == 'this_assignment'){
             //
             //
             //}
         });
-        logger.log('info','/reallocate/user_based called');
+        logger.log('info', '/reallocate/user_based called');
 
         var ais = [];
-        if(remove_from_all_assignments){                 // remove user from all Assigments
+        if (remove_from_all_assignments) {                 // remove user from all Assigments
             ais = await AssignmentInstance.findAll({
                 where: {
                     SectionID: req.body.sec_id          // TODO: get only active assigments in section
                 }
             });
-        }else{
-            await Promise.map(req.body.ai_ids, async(ai_id) => { // remove users from provided ais
+        } else {
+            await Promise.map(req.body.ai_ids, async (ai_id) => { // remove users from provided ais
                 var ai = await AssignmentInstance.findOne({
                     where: {
                         AssignmentInstanceID: ai_id
@@ -10805,130 +10856,130 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                 ais.push(ai);
             });
         }
-        var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids , req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
-        res.json( result );
+        var result = await allocate.reallocate_users(req.body.sec_id, ais, req.body.old_user_ids, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
+        res.json(result);
     });
     // API to reallocate Tasks  created 3-4-18 mss86
     //@ taskarray: [ 'ti' [#,..]] or [ 'wi' [#,..]] or [ 'ai' [#,..]]
     //@ user_pool_wc: [ [#,..],..] array of arrays of users to use with constrains
     //@ user_pool_woc: [#,..] array of users without constrains
     //@ is_extra_credit: boolean
-    router.post('/reallocate/task_based', teacherAuthentication,async function (req, res){
-        if(req.body.taskarray == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null || req.body.is_extra_credit == null){
-            logger.log('error','/reallocate/assigment: fields cannot be null');
+    router.post('/reallocate/task_based', teacherAuthentication, async function (req, res) {
+        if (req.body.taskarray == null || req.body.user_pool_wc == null || req.body.user_pool_woc == null || req.body.is_extra_credit == null) {
+            logger.log('error', '/reallocate/assigment: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info','/reallocate/task_based called');
-        logger.log('debug','req.body.user_pool_wc', req.body.user_pool_wc);
-        var allocate = new Allocator([],0);
+        logger.log('info', '/reallocate/task_based called');
+        logger.log('debug', 'req.body.user_pool_wc', req.body.user_pool_wc);
+        var allocate = new Allocator([], 0);
         var result = await allocate.reallocate_tasks_based(req.body.taskarray, req.body.user_pool_wc, req.body.user_pool_woc, req.body.is_extra_credit);
-        res.json( result );
+        res.json(result);
     });
     // API to cancel workflows   created 3-10-19 mss86
     //@ ai_id: assigment instance
     //@ workflow_ids: [ ] of wi_ids
-    router.post('/reallocate/cancel_workflows', teacherAuthentication, async function (req, res){
-        if(req.body.ai_id == null || req.body.wi_ids == null){
-            logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
+    router.post('/reallocate/cancel_workflows', teacherAuthentication, async function (req, res) {
+        if (req.body.ai_id == null || req.body.wi_ids == null) {
+            logger.log('error', '/reallocate/cancel_workflows: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info',{
-            call:'/reallocate/cancel_workflows',
+        logger.log('info', {
+            call: '/reallocate/cancel_workflows',
             ai_id: req.body.ai_id,
             wi_ids: req.body.wi_ids,
         });
         var wi_ids = req.body.wi_ids;
-        var allocate = new Allocator([],0);
+        var allocate = new Allocator([], 0);
         var assigment_array = []; // array that stores each WA seperate and processes them seperatly
         var index = 0;
         // group the assignments per WA
         // each WA will be processed seperatly as they have different types of tasks
         // TODO: look in Allocator.js in function 'make_array_of_usable_users' for description
         //     : here we would split the Tis into sections, similarlt to how WA are split, to implement solution 2.
-        await Promise.mapSeries(wi_ids, async(wi_id) =>{    // group the assigments per Workflow Activity
+        await Promise.mapSeries(wi_ids, async (wi_id) => {    // group the assigments per Workflow Activity
             var wi = await allocate.get_wi_from_wi_id(wi_id);
             var wa_id = wi.WorkflowActivityID;
-            if(index === 0){
-                assigment_array.push({wa_id: wa_id, wi_ids:[wi_id]});
+            if (index === 0) {
+                assigment_array.push({ wa_id: wa_id, wi_ids: [wi_id] });
                 index++;
-            }else{
-                var pos = assigment_array.map(function(e) { return e.wa_id; }).indexOf(wa_id);
-                if( pos > -1){
+            } else {
+                var pos = assigment_array.map(function (e) { return e.wa_id; }).indexOf(wa_id);
+                if (pos > -1) {
                     assigment_array[pos].wi_ids.push(wi_id);
-                }else{
-                    assigment_array.push({wa_id: wa_id, wi_ids:[wi_id]});
+                } else {
+                    assigment_array.push({ wa_id: wa_id, wi_ids: [wi_id] });
                 }
             }
         });
         var Message = 'Workflows Successfully Cancelled';
-        var array_of_results =[];
+        var array_of_results = [];
         var result;
-        var needs_confirmation       = false;     // confirmation by instructor
+        var needs_confirmation = false;     // confirmation by instructor
         var wanted_to_cancel_started = false;
         var extra_task_for_extra_credit = false;
         var realocate_error = false;
-        try{
-            await Promise.mapSeries(assigment_array, async(activity) =>{
+        try {
+            await Promise.mapSeries(assigment_array, async (activity) => {
                 result = await allocate.cancel_workflow(req.body.ai_id, activity.wa_id, activity.wi_ids);
                 array_of_results.push(result);
-                if(result.Error){
+                if (result.Error) {
                     needs_confirmation = true;
                 }
-                if(result.extra_task_for_extra_credit){
+                if (result.extra_task_for_extra_credit) {
                     extra_task_for_extra_credit = true;
                 }
-                if(result.wanted_to_cancel_started){
+                if (result.wanted_to_cancel_started) {
                     wanted_to_cancel_started = true;
                 }
             });
-            if(result.Error){
+            if (result.Error) {
                 needs_confirmation = true;
-                if(result.wanted_to_cancel_started && !result.extra_task_for_extra_credit){
+                if (result.wanted_to_cancel_started && !result.extra_task_for_extra_credit) {
                     Message = 'Some users will have less tasks then others, Started workflows will not be cancelled';
-                }else if(result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                } else if (result.wanted_to_cancel_started && result.extra_task_for_extra_credit) {
                     Message = 'Some users will have less tasks then others, extra tasks will be allocated for extra credit, Started workflows will not be cancelled';
-                }else if(!result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                } else if (!result.wanted_to_cancel_started && result.extra_task_for_extra_credit) {
                     Message = 'Some users will have less tasks then others, extra tasks will be allocated for extra credit';
-                }else{
+                } else {
                     Message = 'Some users will have less tasks then others';
                 }
-            }else{
-                if(result.wanted_to_cancel_started && !result.extra_task_for_extra_credit){
+            } else {
+                if (result.wanted_to_cancel_started && !result.extra_task_for_extra_credit) {
                     Message = 'Started workflows were not cancelled';
-                }else if(result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                } else if (result.wanted_to_cancel_started && result.extra_task_for_extra_credit) {
                     Message = 'Extra tasks were allocated for extra credit, Started workflows were not be cancelled';
-                }else if(!result.wanted_to_cancel_started && result.extra_task_for_extra_credit){
+                } else if (!result.wanted_to_cancel_started && result.extra_task_for_extra_credit) {
                     Message = 'Extra tasks were allocated for extra credit';
                 }
             }
             // if workflow cancellation went smoothly, then continue with the cancellation
             // else send a message to the frontend to prompt instuctor with appropriate message
             // and he will choose if it should procceed by calling different API
-            if(!needs_confirmation){    // Use the graph and apply it to the database
-                await Promise.map( array_of_results , async (w_activity) => {
+            if (!needs_confirmation) {    // Use the graph and apply it to the database
+                await Promise.map(array_of_results, async (w_activity) => {
                     var data = w_activity.data;
                     var Graph = data.Graph;
                     var wi_ids = data.wi_ids;
                     var ai_id = data.ai_id;
                     var users_to_realocate = data.users_to_realocate_later;
                     var old_users = data.old_users;
-                    if(wi_ids.length > 0){
-                        result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id, old_users);
+                    if (wi_ids.length > 0) {
+                        result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate, ai_id, old_users);
                     }
                 });
-                array_of_results=[];
+                array_of_results = [];
             }
-        }catch(e){
-            logger.log('error','error in /reallocate/cancel_workflows', e);
+        } catch (e) {
+            logger.log('error', 'error in /reallocate/cancel_workflows', e);
             realocate_error = true;
             Message = 'Could not cancel, error occured';
         }
         res.json(
             {
                 Error: realocate_error,
-                confirmation_required : needs_confirmation,
+                confirmation_required: needs_confirmation,
                 Message: Message,
                 data: array_of_results
             }
@@ -10937,42 +10988,42 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     // API to Confirm Workfow Cancellation By Instructor   created 3-10-19 mss86
     // Takes a Multi Dimensional Graph and applies it to the database
     //@ data: [] array of Json containing Graph and wi_ids
-    router.post('/reallocate/confirm_cancellation', teacherAuthentication, async function (req, res){
-        if(req.body.data == null ){
-            logger.log('error','/reallocate/cancel_workflows: fields cannot be null');
+    router.post('/reallocate/confirm_cancellation', teacherAuthentication, async function (req, res) {
+        if (req.body.data == null) {
+            logger.log('error', '/reallocate/cancel_workflows: fields cannot be null');
             res.status(400).end();
             return;
         };
-        logger.log('info',{
-            call:'/reallocate/confirm_cancellation',
+        logger.log('info', {
+            call: '/reallocate/confirm_cancellation',
             data: req.body.data,
         });
-        var allocate = new Allocator([],0);
+        var allocate = new Allocator([], 0);
         var result;
-        await Promise.map( req.body.data , async (w_activity) => {
+        await Promise.map(req.body.data, async (w_activity) => {
             var data = w_activity.data;
             var Graph = data.Graph;
             var wi_ids = data.wi_ids;                                    // workflow ids to be cancelled
             var ai_id = data.ai_id;
             var users_to_realocate = data.users_to_realocate_later;      // users that need to be realocated when first task had siblings
             var old_users = data.old_users;
-            result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate,ai_id, old_users);
+            result = await allocate.apply_cancellation_graph(Graph, wi_ids, users_to_realocate, ai_id, old_users);
         });
-        res.json( result );
+        res.json(result);
     });
 
 
     // API to cancell a Ti  created 4-7-18 mss86
     //@ ti_id: task instance id
     // changes status from "normal" to "cancelled"
-    router.post('/task/cancel', teacherAuthentication, async function (req, res){
-        logger.log('info',{
-            call:'/task/cancel',
+    router.post('/task/cancel', teacherAuthentication, async function (req, res) {
+        logger.log('info', {
+            call: '/task/cancel',
             ti_id: req.body.ti_id
         });
 
-        if(req.body.ti_id == null ){
-            logger.log('error','/task/cancel');
+        if (req.body.ti_id == null) {
+            logger.log('error', '/task/cancel');
             res.status(400).end();
             return;
         };
@@ -10987,7 +11038,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         }).then(async function (ti) {
 
             var ti_status = JSON.parse(ti.Status);
-            if(ti_status[0] == 'bypassed' || ti_status[0] == 'complete' || ti_status[1] == 'cancelled'){
+            if (ti_status[0] == 'bypassed' || ti_status[0] == 'complete' || ti_status[1] == 'cancelled') {
                 res.json({
                     Error: true,
                     Message: 'Completed task cannot be cancelled'
@@ -10996,13 +11047,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             }
             var trigger = new TaskTrigger();
 
-            if (ti.TaskActivity.Type === 'edit' ) {
+            if (ti.TaskActivity.Type === 'edit') {
                 var first_task = await trigger.getEdittingTask(ti);
                 await trigger.cancelAll(first_task);
             }
 
             await trigger.cancelAll(ti);
-            if(ti_status[0] == 'started'){
+            if (ti_status[0] == 'started') {
                 var email = new Email();
                 email.sendNow(ti.UserID, 'task_cancelled');   // send email only to the task that was cancelled, not follow on
             }
@@ -11019,13 +11070,13 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     // API to Bypass a Ti and trigger next  created 4-7-18 mss86
     //@ ti_id: task instance id
     // changes status to "bypassed" and triggers next tasks
-    router.post('/task/bypass', teacherAuthentication,  async function (req, res){
-        logger.log('info',{
-            call:'/task/bypass',
+    router.post('/task/bypass', teacherAuthentication, async function (req, res) {
+        logger.log('info', {
+            call: '/task/bypass',
             ti_id: req.body.ti_id
         });
-        if(req.body.ti_id == null ){
-            logger.log('error','/task/cancel');
+        if (req.body.ti_id == null) {
+            logger.log('error', '/task/cancel');
             res.status(400).end();
             return;
         };
@@ -11036,16 +11087,16 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             include: [{
                 model: TaskActivity,
                 attributes: ['Type', 'AllowRevision', 'AllowReflection'],
-            }, ],
+            },],
         });
         var trigger = new TaskTrigger();
         var status = JSON.parse(ti.Status);
         var Message;
         var Success;
-        if(status[0] !== 'complete' && status[0] !== 'bypassed' && status[0] !== 'not_yet_started'){
+        if (status[0] !== 'complete' && status[0] !== 'bypassed' && status[0] !== 'not_yet_started') {
             var date = new Date();
             status[0] = 'bypassed';
-            logger.log('info', 'updating TaskInstanceID:',req.body.ti_id, 'to bypassed');
+            logger.log('info', 'updating TaskInstanceID:', req.body.ti_id, 'to bypassed');
             await TaskInstance.update({     // update task before triggering
                 Status: JSON.stringify(status),
                 StartDate: date,
@@ -11059,8 +11110,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
             Message = 'Task Successfully Bypassed';
             Success = true;
-            try{
-                if (ti.TaskActivity.Type === 'edit' ) {      // edit tasks always have [] as next task, treat differently
+            try {
+                if (ti.TaskActivity.Type === 'edit') {      // edit tasks always have [] as next task, treat differently
                     var original_task = await trigger.getEdittingTask(ti);
                     await trigger.trigger(original_task);       // trigger next tasks
                     trigger.next(req.body.ti_id);               // same action as in trigger.approved() function
@@ -11068,12 +11119,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                     await trigger.next(req.body.ti_id);         // trigger next task
                     await trigger.bypass(ti);                   // changes status to bypassed, checks if final task
                 }
-            }catch(e){                                      // error with missing grades occurs sometimes
+            } catch (e) {                                      // error with missing grades occurs sometimes
                 Message = 'Task Bypassed, with Server Error';
                 Success = false;
-                logger.log('error','/task/bypass', e);
+                logger.log('error', '/task/bypass', e);
             }
-        }else{
+        } else {
             Message = 'Cannot Bypass Completed or Not Started Tasks';
             Success = false;
         }
@@ -11087,22 +11138,22 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     //@ user_ids: [] of userIDS
     //@ ai_id: AssigmentInstanceID
     //@ inactivate_users: condition
-    router.post('/inactivate/users_in_assignment', teacherAuthentication, async function (req, res){
-        if(req.body.user_ids == null || req.body.ai_id == null || req.body.sec_id == null || req.body.inactivate_users == null){
-            logger.log('error','/task/cancel');
+    router.post('/inactivate/users_in_assignment', teacherAuthentication, async function (req, res) {
+        if (req.body.user_ids == null || req.body.ai_id == null || req.body.sec_id == null || req.body.inactivate_users == null) {
+            logger.log('error', '/task/cancel');
             res.status(400).end();
             return;
         };
-        logger.log('info',{
-            call:'/inactivate/users_in_assignment',
+        logger.log('info', {
+            call: '/inactivate/users_in_assignment',
             user_ids: req.body.user_ids,
             inactivate_users: req.body.inactivate_users
         });
         var allocate = new Allocator([], 0);
-        await Promise.map(req.body.user_ids, async (old_user_id)=>{
-            if(req.body.inactivate_users == 'all_assignments'){
+        await Promise.map(req.body.user_ids, async (old_user_id) => {
+            if (req.body.inactivate_users == 'all_assignments') {
                 await allocate.inactivate_section_user(req.body.sec_id, old_user_id); // deactive user in section
-            }else if(req.body.inactivate_users == 'this_assignment'){
+            } else if (req.body.inactivate_users == 'this_assignment') {
                 // TODO: inactivate in all assgments, not implemented yet
                 // in req.body.ai_id
             }
@@ -11125,10 +11176,10 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         logger.log('warn', 'only info', ([1, 2, {
             k: 'v'
         },
-        ['hi'],
-        function(test) {
-            console.log(test);
-        }
+            ['hi'],
+            function (test) {
+                console.log(test);
+            }
         ]).toString());
 
         // var manager = new Manager()
@@ -11289,9 +11340,9 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
 
 
     //-------inactive a user from a section---------------------------------
-    router.post('/inactiveuser/section', teacherAuthentication, function(req, res) {
+    router.post('/inactiveuser/section', teacherAuthentication, function (req, res) {
 
-        if (req.body.UserID  == null) {
+        if (req.body.UserID == null) {
             console.log('/inactiveuser/section : UserID cannot be null');
             res.status(400).end();
             return;
@@ -11302,8 +11353,8 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             return;
         };
         SectionUser.update({
-            Active:0
-        },{
+            Active: 0
+        }, {
             where: {
                 UserID: req.body.UserID,
                 SectionID: req.body.SectionID
@@ -11314,19 +11365,19 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //---------Section status---------------------------------------------------
-    router.post('/status/section/:sectionID',  function(req, res) {
+    router.post('/status/section/:sectionID', function (req, res) {
 
         Section.find({
             where: {
                 SectionID: req.params.sectionID
             }
-        }).then(function(rows) {
+        }).then(function (rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success',
                 'Semester': rows
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/status/section/:sectionID ' + err.message);
             res.status(400).end();
         });
@@ -11334,7 +11385,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //-----------user management------------------------------------
-    router.post('/usermanagement/testuser/add', function(req, res) {
+    router.post('/usermanagement/testuser/add', function (req, res) {
 
         User.update({
             Test: 1
@@ -11342,12 +11393,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             where: {
                 UserID: req.body.UserID
             }
-        }).then(function(rows) {
+        }).then(function (rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success'
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/usermanagement/testuser/add' + err.message);
             res.status(400).end();
         });
@@ -11355,7 +11406,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //----------------------------------------------------------------
-    router.post('/usermanagement/testuser/remove', function(req, res) {
+    router.post('/usermanagement/testuser/remove', function (req, res) {
 
         User.update({
             Test: 0
@@ -11363,12 +11414,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             where: {
                 UserID: req.body.UserID
             }
-        }).then(function(rows) {
+        }).then(function (rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success'
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/usermanagement/testuser/remove' + err.message);
             res.status(400).end();
         });
@@ -11376,7 +11427,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //----------------------------------------------------------------
-    router.post('/usermanagement/role', function(req, res) {
+    router.post('/usermanagement/role', function (req, res) {
 
         User.update({
             Role: req.body.Role
@@ -11384,12 +11435,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             where: {
                 UserID: req.body.UserID
             }
-        }).then(function(rows) {
+        }).then(function (rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success'
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/usermanagement/role' + err.message);
             res.status(400).end();
         });
@@ -11397,23 +11448,23 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //----------------------------------------------------------------
-    router.post('/testuser/create',async function(req, res) {
+    router.post('/testuser/create', async function (req, res) {
         console.log('/testuser/create : was called');
         console.log(TestUser);
         await TestUser.create({
             Test: true
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('TestUser.create ' + err.message);
             res.status(400).end();
         });
 
         var f = await TestUser.findAll({
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('TestUser.findAll ' + err.message);
             res.status(400).end();
         });
 
-        var n = f[f.length-1].X;
+        var n = f[f.length - 1].X;
 
 
         res.json({
@@ -11427,7 +11478,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //-----------user management------------------------------------
-    router.post('/usermanagement/testuser/add', function(req, res) {
+    router.post('/usermanagement/testuser/add', function (req, res) {
 
         User.update({
             Test: 1
@@ -11435,12 +11486,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             where: {
                 UserID: req.body.UserID
             }
-        }).then(function(rows) {
+        }).then(function (rows) {
             res.json({
                 'Error': false,
                 'Message': 'Success'
             });
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/usermanagement/testuser/add' + err.message);
             res.status(401).end();
         });
@@ -11456,73 +11507,73 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
          */
         console.log('/sectionUsers/changeVolunteer/ was called', req.params.UserID, req.params.SectionID, req.params.Status);
         SectionUser.findOne({
-          where: {
-            UserID: req.params.UserID,
-            SectionID: req.params.SectionID
-          }
+            where: {
+                UserID: req.params.UserID,
+                SectionID: req.params.SectionID
+            }
         }).then(function (rows2) {
-          rows2.update({Volunteer: req.params.Status});
-          console.log(req.params.UserType);
-          if (req.params.UserType == 'student') {
-            console.log ('notify instructor pathway');
-            SectionUser.findAll({
-              where: {
-                SectionID: req.params.SectionID,
-                Role: 'Instructor'
-              },
-            }).then(function (rows) {
-              for (let i of rows) {
+            rows2.update({ Volunteer: req.params.Status });
+            console.log(req.params.UserType);
+            if (req.params.UserType == 'student') {
+                console.log('notify instructor pathway');
+                SectionUser.findAll({
+                    where: {
+                        SectionID: req.params.SectionID,
+                        Role: 'Instructor'
+                    },
+                }).then(function (rows) {
+                    for (let i of rows) {
+                        Notifications.update({
+                            Dismiss: 1,
+                            //OriginTaskInstanceID: req.body.OriginTaskInstanceID
+                        }, {
+                            where: {
+                                NotificationTarget: 'SectionUser',
+                                TargetID: rows2.SectionUserID
+                            }
+                        }).then(function (row2) {
+                            Notifications.create({
+                                UserID: i.UserID,
+                                Time: moment(),
+                                Dismiss: 0,
+                                Info: (req.params.Status == 0) ? 'Request Cancelled' : req.params.Status,
+                                NotificationTarget: 'SectionUser',
+                                TargetID: rows2.SectionUserID
+                            });
+                        })
+                    }
+                }).then(function (rows3) {
+                    res.status(201).json({
+                        message: 'Success',
+                        SectionUserID: rows2.SectionUserID
+                    });
+                });
+            }
+            else {
+                console.log('notify student pathway');
                 Notifications.update({
-                  Dismiss: 1,
-                  //OriginTaskInstanceID: req.body.OriginTaskInstanceID
+                    Dismiss: 1,
+                    //OriginTaskInstanceID: req.body.OriginTaskInstanceID
                 }, {
-                  where: {
-                    NotificationTarget: 'SectionUser',
-                    TargetID: rows2.SectionUserID
-                  }
-                }).then(function(row2) {
-                  Notifications.create({
-                    UserID: i.UserID,
-                    Time: moment(),
-                    Dismiss: 0,
-                    Info: (req.params.Status == 0) ? 'Request Cancelled' : req.params.Status,
-                    NotificationTarget: 'SectionUser',
-                    TargetID: rows2.SectionUserID
-                  });
-                })
-              }
-            }).then(function(rows3) {
-              res.status(201).json({
-                  message: 'Success',
-                  SectionUserID: rows2.SectionUserID
-              });
-            });
-          }
-          else {
-            console.log('notify student pathway');
-                Notifications.update({
-                  Dismiss: 1,
-                  //OriginTaskInstanceID: req.body.OriginTaskInstanceID
-                }, {
-                  where: {
-                    NotificationTarget: 'SectionUser',
-                    TargetID: rows2.SectionUserID
-                  }
+                    where: {
+                        NotificationTarget: 'SectionUser',
+                        TargetID: rows2.SectionUserID
+                    }
                 });
                 Notifications.create({
-                  UserID: req.params.UserID,
-                  Time: moment(),
-                  Dismiss: 0,
-                  Info: req.params.Status,
-                  NotificationTarget: 'SectionUser',
-                  TargetID: rows2.SectionUserID
-                }).then(function(rows3) {
-              res.status(201).json({
-                  message: 'Success',
-                  SectionUserID: rows2.SectionUserID
-              });
-            });
-          }
+                    UserID: req.params.UserID,
+                    Time: moment(),
+                    Dismiss: 0,
+                    Info: req.params.Status,
+                    NotificationTarget: 'SectionUser',
+                    TargetID: rows2.SectionUserID
+                }).then(function (rows3) {
+                    res.status(201).json({
+                        message: 'Success',
+                        SectionUserID: rows2.SectionUserID
+                    });
+                });
+            }
 
 
         }).catch(err => {
@@ -11544,29 +11595,29 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             attributes: ['Volunteer', 'SectionUserID']
         }).then(function (rows) {
             if (req.params.Student == 'true') {
-              console.log('starting dismiss sequence with SectionUserID ', rows[0].SectionUserID, 'UserID ', req.params.UserID);
-              Notifications.findAll({
-                where: {
-                  NotificationTarget: 'SectionUser',
-                  TargetID: rows[0].SectionUserID,
-                  UserID: req.params.UserID,
-                  Dismiss: 0
-                }
-              }).then(function(rows2) {
-                  rows2[0].update({Dismiss: 1});
-              })
+                console.log('starting dismiss sequence with SectionUserID ', rows[0].SectionUserID, 'UserID ', req.params.UserID);
+                Notifications.findAll({
+                    where: {
+                        NotificationTarget: 'SectionUser',
+                        TargetID: rows[0].SectionUserID,
+                        UserID: req.params.UserID,
+                        Dismiss: 0
+                    }
+                }).then(function (rows2) {
+                    rows2[0].update({ Dismiss: 1 });
+                })
             }
-          console.log(rows[0].Volunteer);
-          res.json({
-              'Error': false,
-              'Message': 'Success',
-              'Volunteer': rows[0].Volunteer
-          })
-    });
+            console.log(rows[0].Volunteer);
+            res.json({
+                'Error': false,
+                'Message': 'Success',
+                'Volunteer': rows[0].Volunteer
+            })
+        });
     });
 
     //---------------------------------------------------------------------------
-    router.get('/VolunteerPool/:UserID/:SectionID/:Student',async function (req, res) {
+    router.get('/VolunteerPool/:UserID/:SectionID/:Student', async function (req, res) {
         console.log('/VolunteerPool/:UserID/:SectionID was called', req.params.UserID, req.params.SectionID, req.params.Student);
         var VP = await VolunteerPool.findAll({
             where: {
@@ -11585,49 +11636,49 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                 model: Assignment,
                 attributes: ['DisplayName']
             }]
-          });
-          var result = [];
-                for (var i = 0; i < A.length; i++) {
-                  var found = false;
-                  for (var j = 0; j < VP.length; j++) {
-                    if (A[i].AssignmentInstanceID == VP[j].AssignmentInstanceID) {
-                      console.log('Found assignment info')
-                      result.push({AssignmentInstanceID: A[i].AssignmentInstanceID, DisplayName: A[i].Assignment.DisplayName, Status: VP[j].status, VolunteerPoolID: VP[j].VolunteerPoolID});
-                      found = true;
-                      if (req.params.Student == 'true') {
-                          console.log('starting dismiss sequence');
-                          Notifications.findOne({
+        });
+        var result = [];
+        for (var i = 0; i < A.length; i++) {
+            var found = false;
+            for (var j = 0; j < VP.length; j++) {
+                if (A[i].AssignmentInstanceID == VP[j].AssignmentInstanceID) {
+                    console.log('Found assignment info')
+                    result.push({ AssignmentInstanceID: A[i].AssignmentInstanceID, DisplayName: A[i].Assignment.DisplayName, Status: VP[j].status, VolunteerPoolID: VP[j].VolunteerPoolID });
+                    found = true;
+                    if (req.params.Student == 'true') {
+                        console.log('starting dismiss sequence');
+                        Notifications.findOne({
                             where: {
-                              NotificationTarget: 'VolunteerPool',
-                              TargetID: VP[j].VolunteerPoolID,
-                              UserID: req.params.UserID
+                                NotificationTarget: 'VolunteerPool',
+                                TargetID: VP[j].VolunteerPoolID,
+                                UserID: req.params.UserID
                             }
-                          }).then(function(rows2) {
+                        }).then(function (rows2) {
                             if (rows2 != null) {
-                              rows2.update({Dismiss: 1});
-                              console.log('update completed', rows2);
+                                rows2.update({ Dismiss: 1 });
+                                console.log('update completed', rows2);
                             }
-                          });
-                      }
+                        });
                     }
-                  }
-                  if (found == false) {
-                    result.push({AssignmentInstanceID: A[i].AssignmentInstanceID, DisplayName: A[i].Assignment.DisplayName, Status: null, VolunteerPoolID: null});
-                  }
                 }
+            }
+            if (found == false) {
+                result.push({ AssignmentInstanceID: A[i].AssignmentInstanceID, DisplayName: A[i].Assignment.DisplayName, Status: null, VolunteerPoolID: null });
+            }
+        }
 
-                /*for (let i of VP) {
-                  Notifications.update({
-                    Dismiss: 1,
-                  },{
-                    where: {
-                      NotificationTarget: 'VolunteerPool',
-                      TargetID: i.VolunteerPoolID,
-                      UserID: req.params.UserID
-                    }
-                  });
-                }*/
-            {/*if (req.params.Student === true) {
+        /*for (let i of VP) {
+          Notifications.update({
+            Dismiss: 1,
+          },{
+            where: {
+              NotificationTarget: 'VolunteerPool',
+              TargetID: i.VolunteerPoolID,
+              UserID: req.params.UserID
+            }
+          });
+        }*/
+        {/*if (req.params.Student === true) {
               for (let k of result) {
                 console.log(result, k.VolunteerPoolID);
                 Notifications.findOne({
@@ -11645,18 +11696,18 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
               }
             }*/}
 
-            res.json({
-                'Error': false,
-                'Message': 'Success',
-                'Volunteers': result
-            });
-          });
+        res.json({
+            'Error': false,
+            'Message': 'Success',
+            'Volunteers': result
+        });
+    });
 
     //---------------------------------------------------------------------------
     router.post('/VolunteerPool/add', function (req, res) {
         console.log('/VolunteerPool/add : was called');
 
-        if (req.body.UserID === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/ ) {
+        if (req.body.UserID === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/) {
             console.log('/VolunteerPool/add : Missing attributes');
             res.status(400).end();
         }
@@ -11671,22 +11722,22 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         }).then(function (rows) {
 
             SectionUser.findAll({
-              where: {
-                SectionID: req.body.SectionID,
-                Role: 'Instructor'
-              },
+                where: {
+                    SectionID: req.body.SectionID,
+                    Role: 'Instructor'
+                },
             }).then(function (rows2) {
-              console.log('add VolunteerPool success, new ID=', rows.VolunteerPoolID);
-              for (let i of rows2) {
-                Notifications.create({
-                  UserID: i.UserID,
-                  NotificationTarget: 'VolunteerPool',
-                  TargetID: rows.VolunteerPoolID,
-                  Time: moment(),
-                  Info: 'Pending',
-                  Dismiss: 0
-                })
-              }
+                console.log('add VolunteerPool success, new ID=', rows.VolunteerPoolID);
+                for (let i of rows2) {
+                    Notifications.create({
+                        UserID: i.UserID,
+                        NotificationTarget: 'VolunteerPool',
+                        TargetID: rows.VolunteerPoolID,
+                        Time: moment(),
+                        Info: 'Pending',
+                        Dismiss: 0
+                    })
+                }
             })
             console.log('add User Success, new ID=', rows.VolunteerPoolID);
             res.status(200).json({
@@ -11703,7 +11754,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     router.post('/VolunteerPool/appoint', function (req, res) {
         console.log('/VolunteerPool/appoint : was called', req.body.userId, req.body.SectionID, req.body.AssignmentInstanceID, req.body.UID);
 
-        if (req.body.userId === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/ ) {
+        if (req.body.userId === null || req.body.SectionID === null /*|| req.body.AssignmentInstanceID === null*/) {
             console.log('/VolunteerPool/appoint : Missing attributes');
             res.status(400).end();
         }
@@ -11718,12 +11769,12 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
         }).then(function (rows) {
             console.log('add User Success, new ID=', rows.VolunteerPoolID);
             Notifications.create({
-              UserID: req.body.userId,
-              NotificationTarget: 'VolunteerPool',
-              TargetID: rows.VolunteerPoolID,
-              Time: moment(),
-              Info: 'Appointed',
-              Dismiss: 0
+                UserID: req.body.userId,
+                NotificationTarget: 'VolunteerPool',
+                TargetID: rows.VolunteerPoolID,
+                Time: moment(),
+                Info: 'Appointed',
+                Dismiss: 0
             });
 
             res.status(200).json({
@@ -11738,7 +11789,7 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
     });
 
     //Endpoint to change status of volunteer individually
-    router.post('/VolunteerPool/individualStatusUpdate/', async function(req, res) {
+    router.post('/VolunteerPool/individualStatusUpdate/', async function (req, res) {
         console.log('Volunteerpool id rec: ' + req.body.VolunteerPoolID);
         /*var vp = await Notifications.findOne({
           where: {
@@ -11749,33 +11800,33 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
             where: {
                 VolunteerPoolID: req.body.VolunteerPoolID
             }
-        }).then(function(rows) {
-          rows.update({status: req.body.status});
-          console.log('update success');
-          Notifications.update({
-            Time: moment(),
-            Dismiss: 1,
-            //OriginTaskInstanceID: req.body.OriginTaskInstanceID
-          }, {
-            where: {
-              NotificationTarget: 'VolunteerPool',
-              TargetID: req.body.VolunteerPoolID,
-            }
-          }).then(function(NotificationsUpdated) {
-              Notifications.create({
-                NotificationTarget: 'VolunteerPool',
-                TargetID: req.body.VolunteerPoolID,
+        }).then(function (rows) {
+            rows.update({ status: req.body.status });
+            console.log('update success');
+            Notifications.update({
                 Time: moment(),
-                Info: req.body.status,
-                UserID: rows.UserID,
-                Dismiss: 0
+                Dismiss: 1,
                 //OriginTaskInstanceID: req.body.OriginTaskInstanceID
-              });
-              console.log('----------------notification create----------------------')
-          });
-          res.status(201).end();
+            }, {
+                where: {
+                    NotificationTarget: 'VolunteerPool',
+                    TargetID: req.body.VolunteerPoolID,
+                }
+            }).then(function (NotificationsUpdated) {
+                Notifications.create({
+                    NotificationTarget: 'VolunteerPool',
+                    TargetID: req.body.VolunteerPoolID,
+                    Time: moment(),
+                    Info: req.body.status,
+                    UserID: rows.UserID,
+                    Dismiss: 0
+                    //OriginTaskInstanceID: req.body.OriginTaskInstanceID
+                });
+                console.log('----------------notification create----------------------')
+            });
+            res.status(201).end();
 
-        }).catch(function(err) {
+        }).catch(function (err) {
             console.log('/VolunteerPool/individualStatusUpdate ' + err.message);
             res.status(401).end();
         });
@@ -11791,17 +11842,17 @@ router.get('/course/:courseId', participantAuthentication, function (req, res) {
                 VolunteerPoolID: req.body.VolunteerPoolID
                 //AssignmentInstanceID: req.body.AssignmentInstanceID
             }
-        //VolunteerPool.update({
-        //    status: 0
-        //}, {
-        //    where: {
-        //        VolunteerPoolID: req.body.VolunteerPoolID
-        //    }
+            //VolunteerPool.update({
+            //    status: 0
+            //}, {
+            //    where: {
+            //        VolunteerPoolID: req.body.VolunteerPoolID
+            //    }
         }).then(function (rows) {
             console.log('Delete User Success');
             Notifications.update({
                 Dismiss: 1
-              },{
+            }, {
                 where: {
                     NotificationTarget: 'VolunteerPool',
                     TargetID: req.body.VolunteerPoolID
