@@ -941,6 +941,67 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
 
     });
 
+    // gets all assignments for a student in a particular section, given sectionId and userId
+    router.post('/studentGradeReports', participantAuthentication, async function (req, res) {
+        logger.log('info', `Finding Assignments for Section ${req.body.sectionId} for gathering assignment grade data.`);
+        let activeAssignments = {};
+
+        AssignmentInstance.findAll({
+            where: {
+                SectionID: req.body.sectionId
+            },
+            attributes: ['AssignmentInstanceID', 'StartDate', 'EndDate'],
+            include: [{
+                model: Assignment,
+                attributes: ['DisplayName']
+            }]
+        }).then(async function (result) {
+            //console.log('/getActiveAssignmentsForSection/:sectionId: Assignments have been found!');
+            activeAssignments = {
+                'Error': false,
+                'Assignments': result
+            };
+
+            let sectionUserId = null;
+
+            await SectionUser.findOne({
+                where: {
+                    SectionID: req.body.sectionId,
+                    UserID: req.body.userId
+                },
+                attributes: ['SectionUserID', 'Role', 'Active']
+            }).then(user => {
+                sectionUserId = user.SectionUserID;
+            });
+
+
+            let grade = new Grade();
+            let gradeReports = [];
+            for (let i = 0; i < activeAssignments.Assignments.length; i++) {
+                console.log(req.body.sectionId);
+                console.log(activeAssignments);
+                let report = await grade.getStudentAssignmentGradeReport(activeAssignments.Assignments[i].AssignmentInstanceID, sectionUserId);
+                gradeReports.push(report);
+            }
+
+            res.json(gradeReports);
+        }).catch(function (err) {
+            res.status(400).json({
+                Error: true
+            });
+        });
+
+
+        // let grade = new Grade();
+
+        // let report = await grade.getStudentAssignmentGradeReports(req.body.section_id, req.body.sectionUserID);
+
+
+        // res.json({
+        //     assignmentStudentGradeReport: report
+        // });
+    });
+
     // TODO: unimplemented
     router.post('/studentAssignments', participantAuthentication, async function (req, res) {
         let grade = new Grade();
