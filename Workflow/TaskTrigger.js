@@ -695,6 +695,10 @@ class TaskTrigger {
             var keys = Object.keys(data); //find the latest version of the data
         }
         await Promise.mapSeries(keys, function(val) {
+
+            //MB 9/21/2022
+            //console.log("TT, tiid, fieldvalue", ti.TaskInstanceID, data[val][0]);
+
             if ((val !== 'revise_and_resubmit' && val !== 'field_titles' && val !== 'number_of_fields' && val !== 'field_distribution') && field[val].field_type === 'assessment') { //check if field type is assessment
                 let distribution = field.field_distribution[val];
                 if (field[val].assessment_type === 'grade') {
@@ -711,6 +715,12 @@ class TaskTrigger {
                         //MB added 2/1/2021 to allow for final grade = 0
                         gradeExists = true;
                     }
+                    //MB 9/21/2022
+                    else {
+                        if(data[val][0] == 'fail'){
+                            gradeExists = true;
+                        }
+                    }
                 } else if (field[val].assessment_type === 'evaluation') {
                     let label_length = field[val].list_of_labels.length;
                     //MB 2/1/2021 Changed to make lowest position label equivalent = 0, instead of = position/length
@@ -720,6 +730,9 @@ class TaskTrigger {
                     gradeExists = true;
                 }
             }
+            //MB 9/21/2022
+            //console.log("TT, tiid, gradeExists, final_grade", ti.TaskInstanceID, gradeExists, final_grade);
+
         });
 
         //MB 2/1/2021 This is a mistake - the final grade can = 0

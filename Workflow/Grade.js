@@ -1765,6 +1765,11 @@ class Grade {
                 };
                 */
             
+
+                //MB 9/21/2022
+                //console.log("getPATG, before calculating, countOfTaskGrades", ti.TaskInstanceID, countOfTaskGrades);
+
+
             // for each tiid in taskGrades, need to max, avg or min if > 1 task
             //   taskGrade = taskGrade + taskGradeFields[taskGrades[i]].gradeTotal;
                 
@@ -1803,6 +1808,9 @@ class Grade {
                //console.log('inProgress: ti, inProgress, tisComplete, taskGrade', ti.TaskInstanceID, inProgress, tisComplete, taskGrade);
                 //MB 2/25/2021 End of new code
                 
+
+                //MB 9/21/2022
+                //console.log("getPATG, after calculating, taskGrade", ti.TaskInstanceID, taskGrade);
                 
                 
                 //MB 2/22/2021 Calculating Weights
@@ -1839,6 +1847,63 @@ class Grade {
                     scaledGrade = scaledWIGrade * (WAWeight / 100);
                     WAScaledTotal = WAScaledTotal + scaledWIGrade;
                 }
+
+                //MB 9/21/2022
+                //console.log("getPATG, before returning", ti.TaskInstanceID, taskGrade);
+                //console.log("getPATG, rounded", ti.TaskInstanceID, util.roundDecimal(taskGrade));
+
+                var roundedTG;
+                if (!isNaN(taskGrade)) {
+                    //console.log("getPATG, numeric taskGrade", ti.TaskInstanceID);
+                    roundedTG = await util.roundDecimal(taskGrade);
+                    //console.log("getPATG, rounded taskGrade", ti.TaskInstanceID, roundedTG);
+                };
+
+                //MB 9/21/2022 Manually return taskGrade == 0, since it returns '-' instead
+                if (!isNaN(taskGrade) && taskGrade == 0) 
+                {
+                problemAndTimelinessGrade[ti.TaskInstanceID] = {
+                    name: ti.TaskActivity.DisplayName,
+                    taskInstanceID: ti.TaskInstanceID,
+                    workflowInstanceID: ti.WorkflowInstanceID,
+                    workflowName: wf.Name,
+                    
+                    // 2/15/2021: Adjusted weightInProblem for #sets (???); changed weightInAssignment to fullWeightInAssignment and added weightInAssignment 
+                    //weightInProblem: JSON.parse(wf.GradeDistribution)[ti.TaskActivityID] || '-',
+                    weightInProblem: problemQualityWeight || '-',
+                    //weightInProblem: t_grade.TAGradeWeight || '-',
+                    //MB 3/1/2021 weightInAssignment, fullWeightInAssignment are redundant
+                    //weightInAssignment: t_grade.WAWeight || '-',
+                    //fullWeightInAssignment: assignmentQualityWeight || '-',
+                    //MB 2/25/2021 taskGrade: t_grade.Grade || 'not yet complete',
+                    //taskGrade: t_grade.Grade || 'not yet complete',
+                    //MB 8/13/2021 taskGrade: taskGrade || '-',
+                    taskGrade: 0,
+                    // 2/15/2021 Add weighted WA grade
+                    //MB 8/13/2021 scaledWIGrade: scaledWIGrade  || '-',
+                    scaledWIGrade: 0,
+                    //MB 3/1/2021 added scaledWIGrade and scaledGrade for in progress grading tasks
+                    //scaledGrade: t_grade.TIScaledGrade || '-',
+                    //MB 8/13/2021 scaledGrade: scaledGrade || '-',
+                    scaledGrade: 0,
+                     //MB 2/22/2021 Add in progress, and grade weights, so they can show for all gradable tasks, even if they are not complete and have no taskgrade
+                     taskGradeInProgress: inProgress || '-',
+                     //MB 8/16/2021 problemWeightInAssignment: WAWeight  || '-',
+                     problemWeightInAssignment: await util.roundDecimal(WAWeight)  || '-',
+                     //MB 8/16/2021 adjustedWeightInProblem: AdjustedTAGradeWeight)  || '-',
+                     adjustedWeightInProblem: await util.roundDecimal(AdjustedTAGradeWeight)  || '-',
+                     //MB 8/16/2021 taskGradeWeightInAssignment:TAGradeWeightinAssignment  || '-',
+                     taskGradeWeightInAssignment: await util.roundDecimal(TAGradeWeightinAssignment)  || '-',
+                     //MB 2/25/2021 Add in details about the grading task(s)
+                    gradeTaskDisplayName: tisComplete.gradeTaskDisplayName  || '-',
+                    gradeTaskType: tisComplete.gradeTaskType  || '-',
+                    consolidationFunction: tisComplete.consolidationFunction  || '-',
+                    countOfTaskGrades: countOfTaskGrades,
+                    taskGradeFields: taskGradeFields || {}
+                    };
+                }
+                else
+                {
 
                 problemAndTimelinessGrade[ti.TaskInstanceID] = {
                     name: ti.TaskActivity.DisplayName,
@@ -1878,6 +1943,7 @@ class Grade {
                     consolidationFunction: tisComplete.consolidationFunction  || '-',
                     countOfTaskGrades: countOfTaskGrades,
                     taskGradeFields: taskGradeFields || {}
+                };
                 };
             }
         });

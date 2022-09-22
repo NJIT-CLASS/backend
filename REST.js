@@ -594,8 +594,8 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         // res.status(200).end();
 
         let grade = new Grade();
-        let report = await grade.getAssignmentGradeReport(132);
-        let UTIA = await grade.getUserTaskInfoArray(132);
+        let report = await grade.getAssignmentGradeReport(192);
+        let UTIA = await grade.getUserTaskInfoArray(192);
         res.json({
             UTIA: UTIA,
             assignmentGradeReport: report
@@ -1286,7 +1286,41 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
         let successfulFiles = [];
         let unsuccessfulFiles = [];
 
+        //MB 9/21/2022
+        var i = 0;
+        var f = "";
+        var t = 0;
+
         Promise.mapSeries(req.body.files, (file) => {
+
+         // MB 2022-09-21 add taskID to original filename
+         console.log("post, file type", req.params.type);
+
+        if (req.params.type = 'task') 
+        {
+            t = req.body.taskInstanceId;
+            //f = JSON.parse(file.originalname);
+            f = file.originalname;
+
+            console.log("post, tid, original name", t, f);
+ 
+                i = 0;
+                console.log("post - before loop - taskid, i, filename", t, i, f);
+                 for (i = f.length; i > 0; i--) {
+                     if (f.charAt(i - 1) == ".") {
+                      file.originalname = f.slice(0, i - 1) + "_" + t + "_" + f.slice(i - 1, f.length);
+                         break;
+                     } else {
+                         if (i == 1) {
+                          file.originalname = f + "_" + t + "_";
+                             break;
+                         }
+                     }
+                 }
+                 console.log("after loop", i, f, f.charAt(i - 1), file.originalname);
+        }
+
+
             return FileReference.create({
                 UserID: req.body.userId,
                 Info: file,
@@ -1848,9 +1882,14 @@ REST_ROUTER.prototype.handleRoutes = function (router) {
             newStatus[0] = 'complete';
 
             var final_grade = null;
-            if (ti.TaskActivity.Type === 'grade_problem') {
-                final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
+            // MB 9/21/2022
+            console.log("REST before final grade: TIID req/ti.id, Type", req.body.taskInstanceid, ti.TaskInstanceID, ti.TaskActivity.Type);
+            if (ti.TaskActivity.Type === 'grade_problem' || ti.TaskActivity.Type === 'consolidation' || ti.TaskActivity.Type === 'resolve_dispute') {
+            //    if (ti.TaskActivity.Type === 'grade_problem') {
+                    final_grade = await trigger.finalGrade(ti, req.body.taskInstanceData);
             }
+            console.log("REST after final grade: TIID req/ti.id, finalGrade", req.body.taskInstanceid, ti.TaskInstanceID, finalGrade);
+            
 
             var done = await TaskInstance.update({
                 Data: ti_data,
