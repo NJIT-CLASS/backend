@@ -14,7 +14,7 @@
     "content-disposition": "^0.5.2",
     "continuation-local-storage": "^3.2.0",
     "dateformat": "^3.0.2",
-    "express": "^4.16.1",
+    "express": "^4.17.3",
     "flat-to-nested": "^1.0.2",
     "guid": "^0.0.12",
     "jsonwebtoken": "^8.1.0",
